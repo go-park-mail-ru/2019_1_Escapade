@@ -1,0 +1,25 @@
+{
+  "server": {
+      "host": "http://localhost",
+      "port": ":3000"
+  },
+  "cors": {
+      "origins": [
+          "*",
+          "http://localhost:3000",
+          "http://localhost:8080"
+      ],
+      "headers": [
+          "Version",
+          "Content-type"
+      ],
+      "credentials" : "true",
+      "methods": [
+          "GET",
+          "POST",
+          "PUT",
+          "DELETE",
+          "OPTIONS"
+      ]
+  }
+}
