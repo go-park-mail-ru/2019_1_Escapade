@@ -13,22 +13,22 @@ import (
 )
 
 const (
-	confPath = "/home/artyom/projest/back/2019_1_Escapade/conf.json"
+	confPath = "../../conf.json"
 )
 
 func main() {
-
+	fmt.Println("Ok")
 	conf, confErr := config.Init(confPath)
-
+	fmt.Println("Ok")
 	if confErr != nil {
 		panic(confErr)
 	}
-
+	fmt.Println("Ok")
 	db, dbErr := database.Init()
 	if dbErr != nil {
 		panic(dbErr)
 	}
-
+	fmt.Println("Ok")
 	API := api.Init(db)
 
 	r := mux.NewRouter()

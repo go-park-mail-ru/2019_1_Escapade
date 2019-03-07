@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"escapade/internal/models"
+	"os"
 
 	"fmt"
 
@@ -20,10 +21,10 @@ type DataBase struct {
 // If success - return instance of DataBase
 // if failed - return error
 func Init() (db *DataBase, err error) {
-	connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
+	//connStr := "user=unemuzhregdywt password=5d9ae1059a39b0a8838b5653854adc7fb266deb7da1dc35de729a4836ba27b65 dbname=dd1f3dqgsuq1k5 sslmode=disable"
 
 	var database *sql.DB
-	database, err = sql.Open("postgres", connStr)
+	database, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return
 	}
