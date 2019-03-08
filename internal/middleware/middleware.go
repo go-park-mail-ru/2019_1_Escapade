@@ -13,7 +13,7 @@ import (
 type handleDecorator func(http.HandlerFunc) http.HandlerFunc
 
 func setCORS(rw http.ResponseWriter, cc config.CORSConfig) {
-	rw.Header().Set("Access-Control-Allow-Origin", strings.Join(cc.Headers, ", "))
+	rw.Header().Set("Access-Control-Allow-Origin", strings.Join(cc.Origins, ", "))
 	rw.Header().Set("Access-Control-Allow-Headers", strings.Join(cc.Headers, ", "))
 	rw.Header().Set("Access-Control-Allow-Credentials", cc.Credentials)
 	rw.Header().Set("Access-Control-Allow-Methods", strings.Join(cc.Methods, ", "))
