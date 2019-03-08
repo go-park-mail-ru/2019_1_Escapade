@@ -6,6 +6,7 @@ import (
 	mi "escapade/internal/middleware"
 	"escapade/internal/services/api"
 	"fmt"
+	"os"
 
 	"net/http"
 
@@ -41,6 +42,6 @@ func main() {
 	r.HandleFunc("/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 
-	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port)
-	http.ListenAndServe(conf.Server.Port, r)
+	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT"))
+	http.ListenAndServe(":"+os.Getenv("PORT"), r)
 }
