@@ -34,9 +34,9 @@ func Init() (db *DataBase, err error) {
 		return
 	}
 
-	if err = db.CreateTables(); err != nil {
-		return
-	}
+	// if err = db.CreateTables(); err != nil {
+	// 	return
+	// }
 
 	return
 }
