@@ -103,7 +103,8 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const place = "Register"
-	fmt.Println(r.FormValue("username"), r.FormValue("email"), r.FormValue("password"))
+	fmt.Println("Try Register:")
+	fmt.Println(r.FormValue("login"), r.FormValue("email"), r.FormValue("password"))
 	user := getUser(r)
 	sessionID, err := h.DB.Register(&user)
 
