@@ -107,8 +107,6 @@ CREATE Table PlayerStatistics (
 );
 */
 
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
-
 INSERT INTO Player(name, password, email, best_score, best_time) VALUES
     ('tiger', 'Bananas', 'tinan@mail.ru', 1000, 10),
     ('panda', 'apple', 'today@mail.ru', 2323, 20),
