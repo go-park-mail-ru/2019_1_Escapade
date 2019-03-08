@@ -101,6 +101,50 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	return
 }
 
+func (db *DataBase) GetUsers(name string, how int) (games []models.Game, err error) {
+
+	sqlStatement := `
+	SELECT * 
+	FROM Player as P1
+	JOIN (
+		SELECT email, best_score, best_time  
+		FROM Player 
+		ORDER BY id LIMIT 100000 OFFSET 2)
+		as P2 ON b.id = test_table.id
+	SELECT SELECT email, best_score, best_time 
+	FROM Player 
+	ORDER BY (best_score)
+`
+	games = make([]models.Game, 0, 0)
+	rows, erro := db.Db.Query(sqlStatement, name)
+
+	if erro != nil {
+		err = erro
+
+		fmt.Println("database/GetGames cant access to database:", erro.Error())
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		game := models.Game{}
+		if err = rows.Scan(&game.FieldWidth, &game.FieldHeight,
+			&game.MinsTotal, &game.MinsFound, &game.Finished,
+			&game.Exploded); err != nil {
+
+			fmt.Println("database/GetGames wrong row catched")
+
+			break
+		}
+
+		games = append(games, game)
+	}
+
+	fmt.Println("database/GetGames +")
+
+	return
+}
+
 func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err error) {
 
 	sqlStatement := `
