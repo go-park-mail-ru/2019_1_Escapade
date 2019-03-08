@@ -77,7 +77,7 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 	const place = "Me"
 	sessionID := misc.GetSessionCookie(r)
 	username, err := h.DB.GetNameBySessionID(sessionID)
-
+	fmt.Println("Session ID : ", sessionID)
 	if err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
