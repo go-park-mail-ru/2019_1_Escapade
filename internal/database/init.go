@@ -34,15 +34,16 @@ func Init() (db *DataBase, err error) {
 		return
 	}
 
-	if err = db.CreateTables(); err != nil {
-		return
-	}
+	//if err = db.CreateTables(); err != nil {
+	//	return
+	//}
 
 	return
 }
 
 func (db *DataBase) CreateTables() error {
 	sqlStatement := `
+	
 	DROP TABLE IF EXISTS Player;
 	DROP TABLE IF EXISTS Photo;
 	DROP TABLE IF EXISTS Session;
@@ -107,7 +108,7 @@ CREATE Table PlayerStatistics (
 );
 */
 
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
+--GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
 
 INSERT INTO Player(name, password, email, best_score, best_time) VALUES
     ('tiger', 'Bananas', 'tinan@mail.ru', 1000, 10),

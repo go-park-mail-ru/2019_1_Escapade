@@ -5,12 +5,11 @@
   },
   "cors": {
       "origins": [
-          "*",
           "http://localhost:3000",
-          "http://localhost:8080"
+          "http://localhost:8080",
+          "https://escapade-frontend.herokuapp.com"
       ],
       "headers": [
-          "Version",
           "Content-type"
       ],
       "credentials" : "true",

@@ -36,12 +36,16 @@ func main() {
 
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
 	r.HandleFunc("/register", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
+	r.HandleFunc("/register", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+
 	r.HandleFunc("/delete", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
-	r.HandleFunc("/delete", mi.CORS(conf.Cors)(API.DeleteAccountOptions)).Methods("OPTIONS")
+	r.HandleFunc("/delete", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
 	r.HandleFunc("/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
+	r.HandleFunc("/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+
 	r.HandleFunc("/me", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
-	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
+	r.HandleFunc("/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	r.HandleFunc("/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))

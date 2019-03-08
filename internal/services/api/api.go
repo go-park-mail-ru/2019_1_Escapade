@@ -5,6 +5,7 @@ import (
 	"errors"
 	database "escapade/internal/database"
 	"escapade/internal/misc"
+	"escapade/internal/models"
 	"fmt"
 	"io"
 	"net/http"
@@ -99,8 +100,9 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Register"
-	user := getUser(r)
-	sessionID, err := h.DB.Register(&user)
+	user, err := getUser(r)
+	var sessionID string
+	sessionID, err = h.DB.Register(&user)
 
 	if err != nil {
 		rw.WriteHeader(http.StatusForbidden)
@@ -123,10 +125,20 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 // Login handle login
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
-	user := getUser(r)
-	sessionID, err := h.DB.Login(&user)
+	var (
+		user      models.UserPrivateInfo
+		err       error
+		username  string
+		sessionID string
+	)
 
-	if err != nil {
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	if sessionID, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 		return
@@ -135,9 +147,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	sessionCookie := misc.CreateCookie(sessionID)
 	http.SetCookie(rw, sessionCookie)
 
-	username, err := h.DB.GetNameBySessionID(sessionID)
-
-	if err != nil {
+	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 
@@ -180,11 +190,23 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "DeleteAccount"
-	user := getUser(r)
-	sessionID := misc.GetSessionCookie(r)
-	sessionID, err := h.DB.DeleteAccount(&user, sessionID)
+	var (
+		user      models.UserPrivateInfo
+		err       error
+		sessionID string
+	)
 
-	if err != nil {
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/DeleteAccount failed")
+		return
+	}
+
+	sessionID = misc.GetSessionCookie(r)
+
+	if sessionID, err = h.DB.DeleteAccount(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 
