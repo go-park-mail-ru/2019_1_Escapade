@@ -17,7 +17,7 @@ func (db *DataBase) createSession(user *models.UserPrivateInfo) (string, error) 
 				VALUES(
 					(SELECT id FROM Player WHERE name=$1), $2, $3
 				);
-			`, user.Name, misc.CreateID(), misc.CreateExpiration())
+			`, user.Name, str, misc.CreateExpiration())
 
 	if err != nil {
 		fmt.Println("database/session/createSession - fail:" + err.Error())
