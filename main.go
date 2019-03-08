@@ -41,6 +41,9 @@ func main() {
 	r.HandleFunc("/delete", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
 	r.HandleFunc("/delete", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
+	r.HandleFunc("/logout", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
+	r.HandleFunc("/logout", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+
 	r.HandleFunc("/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	r.HandleFunc("/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
