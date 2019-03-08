@@ -44,7 +44,7 @@ func main() {
 	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	r.HandleFunc("/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
-	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
+	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT"))
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), r)
 	//err := http.ListenAndServe(conf.Server.Port, r)
 	fmt.Println("oh, this is error:" + err.Error())
