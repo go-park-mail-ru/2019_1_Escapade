@@ -98,6 +98,10 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 // Register handle registration
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
+	if r.Method == "OPTIONS" {
+		rw.WriteHeader(http.StatusOK)
+		return
+	}
 	const place = "Register"
 	user := getUser(r)
 	sessionID, err := h.DB.Register(&user)
@@ -122,6 +126,10 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
 // Login handle login
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		rw.WriteHeader(http.StatusOK)
+		return
+	}
 	const place = "Login"
 	user := getUser(r)
 	sessionID, err := h.DB.Login(&user)
