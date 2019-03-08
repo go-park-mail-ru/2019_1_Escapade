@@ -93,10 +93,12 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 
 	row := db.Db.QueryRow(sqlStatement, sessionID)
 
-	if err = row.Scan(&name); err != nil {
+	err = row.Scan(&name)
+	if err != nil {
 		fmt.Println("database/GetNameBySessionID failed")
 		return
 	}
+	fmt.Println("Sess error: ", err.Error())
 
 	return
 }
