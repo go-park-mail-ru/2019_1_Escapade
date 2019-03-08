@@ -75,14 +75,17 @@ func (db *DataBase) Logout(sessionCode string) (err error) {
 	return
 }
 
-/*
- name varchar(30) NOT NULL,
-    password varchar(30) NOT NULL,
-    email varchar(30) NOT NULL,
-    photo_id int,
-    best_score int,
-    best_time int,
-*/
+func (db *DataBase) PostImage(filename string, username string) (err error) {
+	sqlStatement := `UPDATE Player SET photo = $1 WHERE name = $2;`
+
+	_, err = db.Db.Exec(sqlStatement, filename, username)
+
+	if err != nil {
+		fmt.Println("database/session/PostImage - fail:" + err.Error())
+		return
+	}
+	return
+}
 
 func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error) {
 	sqlStatement := `
@@ -90,7 +93,6 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	FROM Player as P join Session as S on S.player_id=P.id
 	WHERE session_code like $1 
 `
-
 	row := db.Db.QueryRow(sqlStatement, sessionID)
 
 	if err = row.Scan(&name); err != nil {

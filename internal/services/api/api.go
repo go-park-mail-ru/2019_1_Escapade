@@ -8,13 +8,14 @@ import (
 	"escapade/internal/models"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 
 	//"reflect"
 
 	"github.com/gorilla/mux"
-	"github.com/segmentio/ksuid"
 )
 
 // Handler is struct
@@ -30,37 +31,88 @@ func Init(DB *database.DataBase) (handler *Handler) {
 	return
 }
 
+// Вызывать с defer в начале функций
+func errorSheduler(rw http.ResponseWriter, err error, who string) {
+	if err != nil {
+		sendErrorJSON(rw, err, who)
+		fmt.Println(who+" failed:", err.Error())
+	}
+}
+
 // UploadAvatar uploads avatar
-func (h *Handler) UploadAvatar(r *http.Request) (created bool, path string) {
-	file, _, err := r.FormFile("avatar")
+func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
+	const place = "PostImage"
 
-	if err != nil || file == nil {
-		return true, "img/avatars/default"
+	var (
+		err     error
+		input   multipart.File
+		created *os.File
+
+		sessionID string
+		username  string
+	)
+
+	input, _, err = r.FormFile("avatar")
+
+	if err != nil || input == nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		return
 	}
 
-	defer file.Close()
+	defer input.Close()
 
-	prefix := "img/avatars/"
-	hash := ksuid.New()
-	fileName := hash.String()
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
 
-	createPath := "./" + prefix + fileName
-	path = prefix + fileName
-
-	out, err := os.Create(createPath)
-	defer out.Close()
-
-	if err != nil {
-
-		return false, ""
+		fmt.Println("api/PostImage failed")
+		return
 	}
 
-	_, err = io.Copy(out, file)
-	if err != nil {
-		return false, ""
+	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/PostImage failed")
+		return
 	}
 
-	return true, path
+	imageName := misc.CreateImageName()
+	path := "imgs/players/" + username + "/" + imageName
+
+	if created, err = os.Create(path); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	defer created.Close()
+
+	if _, err = io.Copy(created, input); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if err = h.DB.PostImage(imageName, username); err != nil {
+		// if error then lets delete uploaded image
+		_ = os.Remove(path)
+
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/PostImage failed")
+		return
+	}
+	rw.WriteHeader(http.StatusCreated)
+	sendSuccessJSON(rw, place)
+
+	fmt.Println("api/PostImage ok")
 }
 
 // Ok always returns StatusOk
@@ -75,10 +127,22 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Me"
-	sessionID := misc.GetSessionCookie(r)
-	username, err := h.DB.GetNameBySessionID(sessionID)
 
-	if err != nil {
+	var (
+		err       error
+		sessionID string
+		username  string
+	)
+
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 
@@ -100,11 +164,22 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Register"
-	user, err := getUser(r)
-	var sessionID string
-	sessionID, err = h.DB.Register(&user)
 
-	if err != nil {
+	var (
+		user      models.UserPrivateInfo
+		err       error
+		sessionID string
+	)
+
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/register failed")
+		return
+	}
+
+	if sessionID, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 
@@ -168,10 +243,20 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 // Login handle logout
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
-	sessionID := misc.GetSessionCookie(r)
-	err := h.DB.Logout(sessionID)
 
-	if err != nil {
+	var (
+		err       error
+		sessionID string
+	)
+
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		return
+	}
+
+	if err = h.DB.Logout(sessionID); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 
@@ -180,6 +265,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(rw, misc.CreateCookie(""))
 	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, place)
 
 	fmt.Println("api/logout ok")
 
@@ -204,7 +290,12 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID = misc.GetSessionCookie(r)
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		return
+	}
 
 	if sessionID, err = h.DB.DeleteAccount(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
@@ -231,10 +322,17 @@ func (h *Handler) DeleteAccountOptions(rw http.ResponseWriter, r *http.Request) 
 func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetPlayerGames"
 
-	vars := mux.Vars(r)
-	username := vars["name"]
+	var (
+		err      error
+		games    []models.Game
+		bytes    []byte
+		vars     map[string]string
+		username string
+	)
 
-	if username == "" {
+	vars = mux.Vars(r)
+
+	if username = vars["name"]; username == "" {
 		fmt.Println("No username found")
 
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -242,26 +340,59 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games, err := h.DB.GetGames(username)
-
-	if err != nil {
+	if games, err = h.DB.GetGames(username); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 		return
 	}
 
-	bytes, errJSON := json.Marshal(games)
-	if errJSON == nil {
-		rw.WriteHeader(http.StatusOK)
-		fmt.Fprintln(rw, string(bytes))
-
-		fmt.Println("api/GetPlayerGames ok")
-	} else {
+	if bytes, err = json.Marshal(games); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 
 		fmt.Println("api/GetPlayerGames cant create json")
+		return
 	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(bytes)
+	fmt.Println("api/GetPlayerGames ok")
+}
+
+func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
+	const place = "GetImage"
+	var (
+		err   error
+		image models.Image
+		file  []byte //*os.File
+	)
+
+	if r.Body == nil {
+		err = errors.New("JSON not found")
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/GetImage doesnt recieve json")
+
+		return
+	}
+	_ = json.NewDecoder(r.Body).Decode(&image)
+
+	filename := "imgs/" + image.Path
+	file, err = ioutil.ReadFile(filename)
+
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/GetImage cant found file")
+
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(file)
+	fmt.Println("api/GetImage ok")
 
 }
 
@@ -269,10 +400,15 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetProfile"
 
-	vars := mux.Vars(r)
-	username := vars["name"]
+	var (
+		err      error
+		vars     map[string]string
+		username string
+	)
 
-	if username == "" {
+	vars = mux.Vars(r)
+
+	if username = vars["name"]; username == "" {
 		fmt.Println("No username found")
 
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -280,12 +416,12 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sendPublicUser(h, rw, username, place); err != nil {
-		fmt.Println("api/Me failed")
+	if err = sendPublicUser(h, rw, username, place); err != nil {
+		fmt.Println("api/GetProfile failed")
 		return
 	}
 
-	fmt.Println("api/Me ok")
+	fmt.Println("api/GetProfile ok")
 
 	return
 }
