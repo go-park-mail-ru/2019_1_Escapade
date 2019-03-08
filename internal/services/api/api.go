@@ -71,6 +71,30 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
+
+	const place = "Me"
+	sessionID := misc.GetSessionCookie(r)
+	username, err := h.DB.GetNameBySessionID(sessionID)
+
+	if err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	if err = sendPublicUser(h, rw, username, place); err != nil {
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	fmt.Println("api/Me ok")
+
+	return
+}
+
 // Register handle registration
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
@@ -110,8 +134,23 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 
 	sessionCookie := misc.CreateCookie(sessionID)
 	http.SetCookie(rw, sessionCookie)
-	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, place)
+
+	username, err := h.DB.GetNameBySessionID(sessionID)
+
+	if err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	if err = sendPublicUser(h, rw, username, place); err != nil {
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	fmt.Println("api/Me ok")
 
 	return
 }
@@ -202,4 +241,29 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println("api/GetPlayerGames cant create json")
 	}
 
+}
+
+func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
+
+	const place = "GetProfile"
+
+	vars := mux.Vars(r)
+	username := vars["name"]
+
+	if username == "" {
+		fmt.Println("No username found")
+
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, errors.New("No username found"), place)
+		return
+	}
+
+	if err := sendPublicUser(h, rw, username, place); err != nil {
+		fmt.Println("api/Me failed")
+		return
+	}
+
+	fmt.Println("api/Me ok")
+
+	return
 }

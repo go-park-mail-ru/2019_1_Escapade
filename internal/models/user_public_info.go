@@ -5,8 +5,8 @@ import (
 )
 
 type UserPublicInfo struct {
-	Name      string         `json:"name"`
-	Photo     sql.NullString `json:"photo"`
+	Name      string         `json:"username"`
+	Email     string         `json:"email"`
 	BestScore sql.NullString `json:"bestScore"`
 	BestTime  sql.NullString `json:"bestTime"`
 }

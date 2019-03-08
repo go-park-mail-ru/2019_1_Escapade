@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"escapade/internal/models"
-	"os"
 
 	"fmt"
 
@@ -15,32 +14,6 @@ import (
 // Support methods Login, Register
 type DataBase struct {
 	Db *sql.DB
-}
-
-// Init try to connect to DataBase.
-// If success - return instance of DataBase
-// if failed - return error
-func Init() (db *DataBase, err error) {
-	//connStr := "user=unemuzhregdywt password=5d9ae1059a39b0a8838b5653854adc7fb266deb7da1dc35de729a4836ba27b65 dbname=dd1f3dqgsuq1k5 sslmode=disable"
-
-	// connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
-
-	// var database *sql.DB
-	// database, err = sql.Open("postgres", connStr)
-	var database *sql.DB
-	database, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		return
-	}
-	db = &DataBase{Db: database}
-	db.Db.SetMaxOpenConns(20)
-
-	err = db.Db.Ping()
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 // Login check sql-injections and is password right
@@ -99,6 +72,54 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, err erro
 // Logout delete session_id row  from session table
 func (db *DataBase) Logout(sessionCode string) (err error) {
 	err = db.deleteSession(sessionCode)
+	return
+}
+
+/*
+ name varchar(30) NOT NULL,
+    password varchar(30) NOT NULL,
+    email varchar(30) NOT NULL,
+    photo_id int,
+    best_score int,
+    best_time int,
+*/
+
+func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error) {
+	sqlStatement := `
+	SELECT name
+	FROM Player as P join Session as S on S.player_id=P.id
+	WHERE session_code like $1 
+`
+
+	row := db.Db.QueryRow(sqlStatement, sessionID)
+
+	if err = row.Scan(&name); err != nil {
+		fmt.Println("database/GetNameBySessionID failed")
+		return
+	}
+
+	return
+}
+
+func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err error) {
+
+	sqlStatement := `
+	SELECT email, best_score, best_time 
+	FROM Player 
+	WHERE name like $1 
+`
+
+	row := db.Db.QueryRow(sqlStatement, name)
+
+	user.Name = name
+
+	if err = row.Scan(&user.Email, &user.BestScore, &user.BestTime); err != nil {
+		fmt.Println("database/GetProfile failed")
+		return
+	}
+
+	fmt.Println("database/GetProfile +")
+
 	return
 }
 

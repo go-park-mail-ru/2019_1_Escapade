@@ -23,15 +23,17 @@ func setCORS(rw http.ResponseWriter, cc config.CORSConfig) {
 func CORS(cc config.CORSConfig) handleDecorator {
 	return func(hf http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
+			/*
+				origin := r.Header.Get("Origin")
 
-			if !cors.IsAllowed(origin, cc.Origins) {
-				fmt.Println("CORS doesnt want work with you, mr " + origin)
-				rw.WriteHeader(http.StatusForbidden)
-				return
-			}
+				if !cors.IsAllowed(origin, cc.Origins) {
+					fmt.Println("CORS doesnt want work with you, mr " + origin)
+					rw.WriteHeader(http.StatusForbidden)
+					return
+				}
+			*/
 			setCORS(rw, cc)
-			fmt.Println("CORS allows")
+			fmt.Println("CORS disabled")
 
 			hf(rw, r)
 			return

@@ -10,6 +10,7 @@ CREATE TABLE Player (
     email varchar(30) NOT NULL,
     photo_id int,
     best_score int,
+    best_time int,
     FOREIGN KEY (photo_id) REFERENCES Photo (id)
 );
 
