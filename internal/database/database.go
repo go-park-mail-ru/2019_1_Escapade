@@ -95,10 +95,10 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 
 	err = row.Scan(&name)
 	if err != nil {
+		fmt.Println("Sess error: ", err.Error())
 		fmt.Println("database/GetNameBySessionID failed")
 		return
 	}
-	fmt.Println("Sess error: ", err.Error())
 
 	return
 }
