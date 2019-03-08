@@ -3,6 +3,7 @@ module escapade
 go 1.12
 
 // +heroku goVersion go1.12
+// +heroku install ./cmd/api/
 
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20180710155616-bc664df96737
