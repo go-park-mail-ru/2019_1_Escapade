@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	confPath = "conf.json"
+	confPath = "../../conf.json"
 )
 
 func main() {
