@@ -23,6 +23,10 @@ type DataBase struct {
 func Init() (db *DataBase, err error) {
 	//connStr := "user=unemuzhregdywt password=5d9ae1059a39b0a8838b5653854adc7fb266deb7da1dc35de729a4836ba27b65 dbname=dd1f3dqgsuq1k5 sslmode=disable"
 
+	// connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
+
+	// var database *sql.DB
+	// database, err = sql.Open("postgres", connStr)
 	var database *sql.DB
 	database, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
