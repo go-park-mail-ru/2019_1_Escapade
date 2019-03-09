@@ -91,12 +91,29 @@ func (db *DataBase) Logout(sessionCode string) (err error) {
 }
 
 func (db *DataBase) PostImage(filename string, username string) (err error) {
-	sqlStatement := `UPDATE Player SET photo = $1 WHERE name = $2;`
+	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE name = $2;`
 
 	_, err = db.Db.Exec(sqlStatement, filename, username)
 
 	if err != nil {
 		fmt.Println("database/session/PostImage - fail:" + err.Error())
+		return
+	}
+	return
+}
+
+func (db *DataBase) GetImage(username string) (filename string, err error) {
+	sqlStatement := `
+	SELECT photo_title
+		FROM Player as P 
+			join Session as S 
+			on S.player_id=P.id
+		WHERE P.name = $1 
+`
+	row := db.Db.QueryRow(sqlStatement, username)
+
+	if err = row.Scan(&filename); err != nil {
+		fmt.Println("database/GetImage failed")
 		return
 	}
 	return
@@ -120,46 +137,54 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	return
 }
 
-func (db *DataBase) GetUsers(name string, how int) (games []models.Game, err error) {
+func (db *DataBase) GetUsersAmount() (amount int, err error) {
+	sqlStatement := `SELECT count(1) FROM Player`
+	row := db.Db.QueryRow(sqlStatement)
+	if err = row.Scan(&amount); err != nil {
+		fmt.Println("GetUsersAmount failed")
+		return
+	}
+	return
+}
+
+func (db *DataBase) GetUsers(page int) (players []models.UserPublicInfo, err error) {
 
 	sqlStatement := `
-	SELECT * 
+	SELECT P1.name, P1.email, P1.best_score, P1.best_time  
 	FROM Player as P1
 	JOIN (
-		SELECT email, best_score, best_time  
-		FROM Player 
-		ORDER BY id LIMIT 100000 OFFSET 2)
-		as P2 ON b.id = test_table.id
-	SELECT SELECT email, best_score, best_time 
-	FROM Player 
-	ORDER BY (best_score)
+		SELECT id, name, email, best_score, best_time  
+		FROM Player
+		OFFSET $1 Limit $2
+		)
+		as P2 ON P1.id = P2.id
 `
-	games = make([]models.Game, 0, 0)
-	rows, erro := db.Db.Query(sqlStatement, name)
+	size := db.PageUsers
+	players = make([]models.UserPublicInfo, 0, size)
+	rows, erro := db.Db.Query(sqlStatement, size*(page-1), size)
 
 	if erro != nil {
 		err = erro
 
-		fmt.Println("database/GetGames cant access to database:", erro.Error())
+		fmt.Println("database/GetUsers cant access to database:", erro.Error())
 		return
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		game := models.Game{}
-		if err = rows.Scan(&game.FieldWidth, &game.FieldHeight,
-			&game.MinsTotal, &game.MinsFound, &game.Finished,
-			&game.Exploded); err != nil {
+		player := models.UserPublicInfo{}
+		if err = rows.Scan(&player.Name, &player.Email, &player.BestScore,
+			&player.BestTime); err != nil {
 
-			fmt.Println("database/GetGames wrong row catched")
+			fmt.Println("database/GetUsers wrong row catched")
 
 			break
 		}
 
-		games = append(games, game)
+		players = append(players, player)
 	}
 
-	fmt.Println("database/GetGames +")
+	fmt.Println("database/GetUsers +")
 
 	return
 }
@@ -188,32 +213,27 @@ func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err err
 
 // GetGames returns games, played by player with some name
 func (db *DataBase) GetGames(name string, page int) (games []models.Game, err error) {
+
+	size := db.PageGames
 	sqlStatement := `
-	SELECT * FROM Game as a 
-		JOIN
-			Player as p 
-			on a.player_id=p.id
+	SELECT 	a.FieldWidth, a.FieldHeight,
+					a.MinsTotal, a.MinsFound,
+					a.Finished, a.Exploded 
+	 FROM Player as p 
 		JOIN
 			(
-				SELECT 
+				SELECT player_id,
 					FieldWidth, FieldHeight,
 					MinsTotal, MinsFound,
 					Finished, Exploded 
-					FROM Game LIMIT $1, $2
-			) as b 
-			ON b.id = a.id
+					FROM Game Order by id
+			) as a
+			ON p.id = a.player_id and p.name like $1
+			OFFSET $2 Limit $3
 	`
-	/*
-		sqlStatement := `
-		SELECT FieldWidth, FieldHeight, MinsTotal, MinsFound,
-					 Finished, Exploded
-		FROM Game as G join Player as P on G.player_id=P.id
-		WHERE P.name like $1
-	`*/
-	games = make([]models.Game, 0, db.PageGames)
-	size := db.PageGames
-	rows, erro := db.Db.Query(sqlStatement,
-		size, size*(page-1))
+
+	games = make([]models.Game, 0, size)
+	rows, erro := db.Db.Query(sqlStatement, name, size*(page-1), size) // //, name)
 
 	if erro != nil {
 		err = erro

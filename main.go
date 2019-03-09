@@ -55,6 +55,10 @@ func main() {
 	r.HandleFunc("/playerAvatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
 	r.HandleFunc("/playerAvatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
+	r.HandleFunc("/users", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
+	r.HandleFunc("/users/{page}", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
+	r.HandleFunc("/usersAmount", mi.CORS(conf.Cors)(API.GetUsersAmount)).Methods("GET")
+
 	r.HandleFunc("/me", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
 	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	r.HandleFunc("/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
