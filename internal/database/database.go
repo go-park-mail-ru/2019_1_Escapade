@@ -145,6 +145,8 @@ func (db *DataBase) GetUsersPageAmount() (amount int, err error) {
 		return
 	}
 	amount /= db.PageUsers
+	amount++
+	fmt.Println("Page amount", amount)
 	return
 }
 
