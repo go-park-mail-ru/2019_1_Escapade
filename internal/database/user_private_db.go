@@ -19,13 +19,8 @@ func ValidatePrivateUI(user *models.UserPrivateInfo) (err error) {
 		return
 	}
 
-	if !models.ValidatePlayerName(user.Name) {
-		err = errors.New("player name is not valid")
-		return
-	}
-
-	if !models.ValidateEmail(user.Email) {
-		err = errors.New("email is not valid")
+	if !models.ValidatePlayerName(user.Name) && !models.ValidateEmail(user.Email) {
+		err = errors.New("player name or email is not valid")
 		return
 	}
 

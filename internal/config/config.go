@@ -6,8 +6,9 @@ import (
 )
 
 type Configuration struct {
-	Server ServerConfig `json:"server"`
-	Cors   CORSConfig   `json:"cors"`
+	Server   ServerConfig   `json:"server"`
+	Cors     CORSConfig     `json:"cors"`
+	DataBase DatabaseConfig `json:"dataBase"`
 }
 
 type ServerConfig struct {
@@ -20,6 +21,13 @@ type CORSConfig struct {
 	Headers     []string `json:"headers"`
 	Credentials string   `json:"credentials"`
 	Methods     []string `json:"methods"`
+}
+
+type DatabaseConfig struct {
+	DriverName   string   `json:"driverName"`
+	URL          string   `json:"url"`
+	MaxOpenConns int      `json:"maxOpenConns"`
+	Tables       []string `json:"tables"`
 }
 
 func Init(path string) (conf Configuration, return_error error) {

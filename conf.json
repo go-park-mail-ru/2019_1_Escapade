@@ -3,6 +3,16 @@
       "host": "http://localhost",
       "port": ":3000"
   },
+  "dataBase": {
+    "driverName": "postgres",
+    "url": "DATABASE_URL",
+    "maxOpenConns": 20,
+    "tables": [
+        "Player",
+        "Session",
+        "Game"
+    ]
+    },
   "cors": {
       "origins": [
           "http://localhost:3000",

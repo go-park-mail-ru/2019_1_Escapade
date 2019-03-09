@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"escapade/internal/config"
 	"fmt"
 	"os"
 
@@ -12,7 +13,7 @@ import (
 // Init try to connect to DataBase.
 // If success - return instance of DataBase
 // if failed - return error
-func Init() (db *DataBase, err error) {
+func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	//connStr := "user=unemuzhregdywt password=5d9ae1059a39b0a8838b5653854adc7fb266deb7da1dc35de729a4836ba27b65 dbname=dd1f3dqgsuq1k5 sslmode=disable"
 
 	// Local
@@ -24,35 +25,72 @@ func Init() (db *DataBase, err error) {
 	*/
 	// Deploy
 	///*
-	var database *sql.DB
-	database, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+
+	//connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
+
 	//*/
-	if err != nil {
+
+	// for local launch
+	if os.Getenv(CDB.URL) == "" {
+		os.Setenv(CDB.URL, "user=rolepade password=escapade dbname=escabase sslmode=disable")
+	}
+
+	var database *sql.DB
+	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
+		fmt.Println("database/Init cant open:" + err.Error())
 		return
 	}
 
 	db = &DataBase{Db: database}
-	db.Db.SetMaxOpenConns(20)
+	db.Db.SetMaxOpenConns(CDB.MaxOpenConns)
 
-	err = db.Db.Ping()
-	if err != nil {
+	if err = db.Db.Ping(); err != nil {
+		fmt.Println("database/Init cant access:" + err.Error())
 		return
 	}
+	fmt.Println("database/Init open")
+	if !db.areTablesCreated(CDB.Tables) {
+		if err = db.CreateTables(); err != nil {
+			return
+		}
+	}
 
-	//if err = db.CreateTables(); err != nil {
-	//	return
-	//}
+	return
+}
 
+func (db *DataBase) checkTable(tableName string) (err error) {
+	sqlStatement := `
+    SELECT count(1)
+  FROM information_schema.tables tbl 
+  where tbl.table_name like $1;`
+	row := db.Db.QueryRow(sqlStatement, tableName)
+
+	var result int
+	if err = row.Scan(&result); err != nil {
+		fmt.Println(tableName + " doesnt exists. Create it!" + err.Error())
+
+		return
+	}
+	return
+}
+
+func (db *DataBase) areTablesCreated(tables []string) (created bool) {
+	created = true
+	for _, table := range tables {
+		if err := db.checkTable(table); err != nil {
+			created = false
+			break
+		}
+	}
 	return
 }
 
 func (db *DataBase) CreateTables() error {
 	sqlStatement := `
-	
-	DROP TABLE IF EXISTS Player;
-	DROP TABLE IF EXISTS Photo;
 	DROP TABLE IF EXISTS Session;
-	DROP TABLE IF EXISTS Game;
+    DROP TABLE IF EXISTS Game;
+    DROP TABLE IF EXISTS Player;
+    DROP TABLE IF EXISTS Photo;
 
 	CREATE TABLE Player (
     id SERIAL PRIMARY KEY,
@@ -152,7 +190,6 @@ CREATE Table Game (
 
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())
-
 	}
 	return err
 }

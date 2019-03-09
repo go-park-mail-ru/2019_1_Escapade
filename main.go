@@ -25,7 +25,7 @@ func main() {
 		panic(confErr)
 	}
 	fmt.Println("Ok")
-	db, dbErr := database.Init()
+	db, dbErr := database.Init(conf.DataBase)
 	if dbErr != nil {
 		panic(dbErr)
 	}
