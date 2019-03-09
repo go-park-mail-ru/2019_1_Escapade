@@ -31,7 +31,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 			return
 		}
 	}
-
+	fmt.Println("User", user.Name, user.Email)
 	if err = confirmRightPass(user, db.Db); err != nil {
 		fmt.Println("database/login - fail confirmition")
 		return
