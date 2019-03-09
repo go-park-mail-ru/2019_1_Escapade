@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"strconv"
 
 	//"reflect"
 
@@ -40,20 +39,6 @@ func errorSheduler(rw http.ResponseWriter, err error, who string) {
 		sendErrorJSON(rw, err, who)
 		fmt.Println(who+" failed:", err.Error())
 	}
-}
-
-func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error) {
-	var sessionID string
-
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		return
-	}
-
-	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
-		return
-	}
-
-	return
 }
 
 // UploadAvatar uploads avatar
@@ -363,32 +348,16 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		err      error
 		games    []models.Game
 		bytes    []byte
-		vars     map[string]string
 		username string
 		page     int
 	)
 
-	vars = mux.Vars(r)
-
-	if username = vars["name"]; username == "" {
+	if page, username, err = h.getNameAndPage(r); err != nil {
 		fmt.Println("No username found")
 
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, errors.New("No username found"), place)
 		return
-	}
-
-	if vars["page"] == "" {
-		page = 1
-	} else {
-		if page, err = strconv.Atoi(vars["page"]); err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			sendErrorJSON(rw, err, place)
-			return
-		}
-		if page < 1 {
-			page = 1
-		}
 	}
 
 	if games, err = h.DB.GetGames(username, page); err != nil {
@@ -398,6 +367,73 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if bytes, err = json.Marshal(games); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/GetPlayerGames cant create json")
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(bytes)
+	fmt.Println("api/GetPlayerGames ok")
+}
+
+func (h *Handler) GetUsersAmount(rw http.ResponseWriter, r *http.Request) {
+	const place = "GetUsersAmount"
+
+	var (
+		pages models.Pages
+		err   error
+		bytes []byte
+	)
+
+	if pages.Amount, err = h.DB.GetUsersAmount(); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/GetUsersAmount cant work with DB")
+		return
+	}
+
+	if bytes, err = json.Marshal(pages); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		fmt.Println("api/GetUsersAmount cant create json")
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(bytes)
+	fmt.Println("api/GetUsersAmount ok")
+}
+
+// GetPlayerGames handle get games list
+func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
+	const place = "GetUsers"
+
+	var (
+		err   error
+		users []models.UserPublicInfo
+		bytes []byte
+		page  int
+	)
+
+	if page, err = h.getPage(r); err != nil {
+		fmt.Println("No page found")
+
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	if users, err = h.DB.GetUsers(page); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	if bytes, err = json.Marshal(users); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 

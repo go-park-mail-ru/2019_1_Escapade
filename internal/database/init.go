@@ -26,7 +26,11 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		return
 	}
 
-	db = &DataBase{Db: database}
+	db = &DataBase{
+		Db:        database,
+		PageGames: CDB.PageGames,
+		PageUsers: CDB.PageUsers,
+	}
 	db.Db.SetMaxOpenConns(CDB.MaxOpenConns)
 
 	if err = db.Db.Ping(); err != nil {
