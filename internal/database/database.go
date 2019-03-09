@@ -129,16 +129,19 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	return
 }
 
-func (db *DataBase) GetUsersAmount() (amount int, err error) {
+func (db *DataBase) GetUsersPageAmount() (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := db.Db.QueryRow(sqlStatement)
 	if err = row.Scan(&amount); err != nil {
 		fmt.Println("GetUsersAmount failed")
 		return
 	}
+	amount /= db.PageUsers
 	return
 }
 
+// GetUsers returns information about users
+// for leaderboard
 func (db *DataBase) GetUsers(page int) (players []models.UserPublicInfo, err error) {
 
 	sqlStatement := `
