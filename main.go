@@ -25,7 +25,7 @@ func main() {
 		panic(confErr)
 	}
 	fmt.Println("Ok")
-	db, dbErr := database.Init()
+	db, dbErr := database.Init(conf.DataBase)
 	if dbErr != nil {
 		panic(dbErr)
 	}
@@ -47,12 +47,18 @@ func main() {
 	r.HandleFunc("/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	r.HandleFunc("/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
+	r.HandleFunc("/playerAvatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
+	r.HandleFunc("/playerAvatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
+	r.HandleFunc("/playerAvatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+
 	r.HandleFunc("/me", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
+	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	r.HandleFunc("/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
-	r.HandleFunc("/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
+	r.HandleFunc("/{name}", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT"))
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), r)
+	// Local
 	//err := http.ListenAndServe(conf.Server.Port, r)
 	fmt.Println("oh, this is error:" + err.Error())
 }

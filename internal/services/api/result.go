@@ -7,30 +7,46 @@ import (
 	"net/http"
 )
 
-func sendErrorJSON(rw http.ResponseWriter, err error, place string) {
-	result := models.Result{
+func sendErrorJSON(rw http.ResponseWriter, catched error, place string) {
+	var (
+		result models.Result
+		bytes  []byte
+		err    error
+	)
+
+	result = models.Result{
 		Place:   place,
 		Success: false,
-		Message: err.Error(),
+		Message: catched.Error(),
 	}
 
-	bytes, erro := json.Marshal(result)
-
-	if erro == nil {
-		fmt.Fprintln(rw, string(bytes))
+	if bytes, err = json.Marshal(result); err != nil {
+		fmt.Println("sendErrorJSON cant create json")
+		return
 	}
+
+	fmt.Fprintln(rw, string(bytes))
+	fmt.Println("sendErrorJSON sent:" + result.Message)
 }
 
 func sendSuccessJSON(rw http.ResponseWriter, place string) {
-	result := models.Result{
+	var (
+		result models.Result
+		bytes  []byte
+		err    error
+	)
+
+	result = models.Result{
 		Place:   place,
 		Success: true,
 		Message: "no error",
 	}
 
-	bytes, erro := json.Marshal(result)
-
-	if erro == nil {
-		fmt.Fprintln(rw, string(bytes))
+	if bytes, err = json.Marshal(result); err != nil {
+		fmt.Println("sendSuccessJSON cant create json")
+		return
 	}
+
+	fmt.Println("sendSuccessJSON +")
+	fmt.Fprintln(rw, string(bytes))
 }

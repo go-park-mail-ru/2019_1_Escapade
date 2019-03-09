@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	NameCookie     = "sessionid"
-	LengthCookie   = 16
-	years          = 0
-	months         = 0
-	days           = 7
-	LifetimeCookie = days * 24 * 60
+	NameCookie      = "sessionid"
+	LengthCookie    = 16
+	years           = 0
+	months          = 0
+	days            = 7
+	LifetimeCookie  = days * 24 * 60
+	LengthImageName = 24
 )
 
 func CreateExpiration() time.Time {
@@ -23,6 +24,10 @@ func CreateID() string {
 	return randStr(LengthCookie)
 }
 
+func CreateImageName() string {
+	return randStr(LengthImageName)
+}
+
 func CreateCookie(value string) (cookie *http.Cookie) {
 	cookie = &http.Cookie{}
 	cookie.MaxAge = LifetimeCookie
@@ -31,12 +36,12 @@ func CreateCookie(value string) (cookie *http.Cookie) {
 	return
 }
 
-func GetSessionCookie(r *http.Request) string {
+func GetSessionCookie(r *http.Request) (string, error) {
 	session, err := r.Cookie(NameCookie)
 	if err != nil || session == nil {
-		return ""
+		return "", err
 	}
-	return session.Value
+	return session.Value, err
 }
 
 func SetCookie(w http.ResponseWriter, cookie *http.Cookie) {
@@ -45,9 +50,7 @@ func SetCookie(w http.ResponseWriter, cookie *http.Cookie) {
 
 func randStr(strSize int) string {
 
-	var dictionary string
-
-	dictionary = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 	var bytes = make([]byte, strSize)
 	rand.Read(bytes)

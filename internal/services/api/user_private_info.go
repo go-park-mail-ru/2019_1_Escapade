@@ -8,12 +8,6 @@ import (
 )
 
 func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
-	user = models.UserPrivateInfo{
-		Name:     "err",
-		Email:    "err",
-		Password: "err",
-	}
-
 	if r.Body == nil {
 		err = errors.New("JSON not found")
 		return
