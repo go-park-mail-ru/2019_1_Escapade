@@ -13,7 +13,9 @@ import (
 // DataBase consists of *sql.DB
 // Support methods Login, Register
 type DataBase struct {
-	Db *sql.DB
+	Db        *sql.DB
+	PageGames int
+	PageUsers int
 }
 
 // Login check sql-injections and is password right
@@ -33,6 +35,11 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		}
 	}
 	fmt.Println("User", user.Name, user.Email)
+	if err = confirmRightPass(user, db.Db); err != nil {
+		fmt.Println("database/login - fail confirmition")
+		return
+	}
+
 	if err = confirmRightPass(user, db.Db); err != nil {
 		fmt.Println("database/login - fail confirmition")
 		return
@@ -180,16 +187,33 @@ func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err err
 }
 
 // GetGames returns games, played by player with some name
-func (db *DataBase) GetGames(name string) (games []models.Game, err error) {
-
+func (db *DataBase) GetGames(name string, page int) (games []models.Game, err error) {
 	sqlStatement := `
-	SELECT FieldWidth, FieldHeight, MinsTotal, MinsFound,
-				 Finished, Exploded
-	FROM Game as G join Player as P on G.player_id=P.id
-	WHERE P.name like $1 
-`
-	games = make([]models.Game, 0, 0)
-	rows, erro := db.Db.Query(sqlStatement, name)
+	SELECT * FROM Game as a 
+		JOIN
+			Player as p 
+			on a.player_id=p.id
+		JOIN
+			(
+				SELECT 
+					FieldWidth, FieldHeight,
+					MinsTotal, MinsFound,
+					Finished, Exploded 
+					FROM Game LIMIT $1, $2
+			) as b 
+			ON b.id = a.id
+	`
+	/*
+		sqlStatement := `
+		SELECT FieldWidth, FieldHeight, MinsTotal, MinsFound,
+					 Finished, Exploded
+		FROM Game as G join Player as P on G.player_id=P.id
+		WHERE P.name like $1
+	`*/
+	games = make([]models.Game, 0, db.PageGames)
+	size := db.PageGames
+	rows, erro := db.Db.Query(sqlStatement,
+		size, size*(page-1))
 
 	if erro != nil {
 		err = erro
