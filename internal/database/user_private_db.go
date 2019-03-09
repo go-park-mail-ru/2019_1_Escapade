@@ -37,7 +37,7 @@ func GetNameByEmail(email string, db *sql.DB) (name string, err error) {
 		if err != nil {
 			return
 		} else {
-			return "", err
+			return
 		}
 	}
 	return

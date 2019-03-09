@@ -26,6 +26,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 	}
 
 	if user.Name == "" {
+		fmt.Println("+")
 		if user.Name, err = GetNameByEmail(user.Email, db.Db); err != nil {
 			fmt.Println("database/login - fail get name by email")
 			return
