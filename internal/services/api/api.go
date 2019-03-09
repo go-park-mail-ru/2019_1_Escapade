@@ -152,7 +152,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		sendErrorJSON(rw, err, place)
 		return
 	}
-
+	fmt.Println("Session ID ", sessionID)
 	sessionCookie := misc.CreateCookie(sessionID)
 	http.SetCookie(rw, sessionCookie)
 
@@ -163,7 +163,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println("api/Me failed")
 		return
 	}
-
+	fmt.Println("Username ", username)
 	if err = sendPublicUser(h, rw, username, place); err != nil {
 		fmt.Println("api/Me failed")
 		return
