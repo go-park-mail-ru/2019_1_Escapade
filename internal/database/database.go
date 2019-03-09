@@ -85,7 +85,7 @@ func (db *DataBase) Logout(sessionCode string) (err error) {
 }
 
 func (db *DataBase) PostImage(filename string, username string) (err error) {
-	sqlStatement := `UPDATE Player SET photo = $1 WHERE name = $2;`
+	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE name = $2;`
 
 	_, err = db.Db.Exec(sqlStatement, filename, username)
 

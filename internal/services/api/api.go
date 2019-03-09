@@ -99,13 +99,13 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	fileType := handle.Header.Get("Content-Type")
 	fileName := handle.Filename
 	storagePath := h.PlayersAvatarsStorage
-	filePath := storagePath + username + "/" + fileName
+	filePath := storagePath + username
 
 	switch fileType {
 	case "image/jpeg":
-		err = saveFile(filePath, input)
+		err = saveFile(filePath, fileName, input)
 	case "image/png":
-		err = saveFile(filePath, input)
+		err = saveFile(filePath, fileName, input)
 	default:
 		err = errors.New("wrong format of file:" + fileType)
 	}
@@ -134,16 +134,18 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/PostImage ok")
 }
 
-func saveFile(path string, file multipart.File) (err error) {
+func saveFile(path string, name string, file multipart.File) (err error) {
 	var (
 		data []byte
 	)
+
+	os.MkdirAll(path, 0777)
 
 	if data, err = ioutil.ReadAll(file); err != nil {
 		return
 	}
 
-	if err = ioutil.WriteFile(path, data, 0666); err != nil {
+	if err = ioutil.WriteFile(path+"/"+name, data, 0666); err != nil {
 		return
 	}
 
@@ -436,7 +438,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filepath = h.PlayersAvatarsStorage + filename
+	filepath = h.PlayersAvatarsStorage + username + "/" + filename
 
 	if file, err = ioutil.ReadFile(filepath); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
