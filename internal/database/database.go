@@ -25,16 +25,16 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		return
 	}
 
-	if err = confirmRightPass(user, db.Db); err != nil {
-		fmt.Println("database/login - fail confirmition")
-		return
-	}
-
 	if user.Name == "" {
 		if user.Name, err = GetNameByEmail(user.Email, db.Db); err != nil {
 			fmt.Println("database/login - fail get name by email")
 			return
 		}
+	}
+
+	if err = confirmRightPass(user, db.Db); err != nil {
+		fmt.Println("database/login - fail confirmition")
+		return
 	}
 
 	if str, err = db.createSession(user); err != nil {
