@@ -387,8 +387,8 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/GetPlayerGames ok")
 }
 
-func (h *Handler) GetUsersAmount(rw http.ResponseWriter, r *http.Request) {
-	const place = "GetUsersAmount"
+func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
+	const place = "GetUsersPageAmount"
 
 	var (
 		pages models.Pages
@@ -396,10 +396,10 @@ func (h *Handler) GetUsersAmount(rw http.ResponseWriter, r *http.Request) {
 		bytes []byte
 	)
 
-	if pages.Amount, err = h.DB.GetUsersAmount(); err != nil {
+	if pages.Amount, err = h.DB.GetUsersPageAmount(); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/GetUsersAmount cant work with DB")
+		fmt.Println("api/GetUsersPageAmount cant work with DB")
 		return
 	}
 
