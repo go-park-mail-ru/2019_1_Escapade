@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"escapade/internal/models"
+	"math"
 
 	"fmt"
 
@@ -84,6 +85,7 @@ func (db *DataBase) Logout(sessionCode string) (err error) {
 	return
 }
 
+// PostImage set filename of avatar to relation Player
 func (db *DataBase) PostImage(filename string, username string) (err error) {
 	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE name = $2;`
 
@@ -96,6 +98,7 @@ func (db *DataBase) PostImage(filename string, username string) (err error) {
 	return
 }
 
+// GetImage Get avatar - filename of player image
 func (db *DataBase) GetImage(username string) (filename string, err error) {
 	sqlStatement := `
 	SELECT photo_title
@@ -113,6 +116,8 @@ func (db *DataBase) GetImage(username string) (filename string, err error) {
 	return
 }
 
+// GetNameBySessionID gets name of Player from
+// relation Session, cause we know that user has session
 func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error) {
 	sqlStatement := `
 	SELECT name
@@ -129,6 +134,8 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	return
 }
 
+// GetUsersPageAmount returns amount of rows in table Player
+// deleted on amount of rows in one page
 func (db *DataBase) GetUsersPageAmount() (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := db.Db.QueryRow(sqlStatement)
@@ -136,7 +143,7 @@ func (db *DataBase) GetUsersPageAmount() (amount int, err error) {
 		fmt.Println("GetUsersAmount failed")
 		return
 	}
-	amount /= db.PageUsers
+	amount = int(math.Ceil(float64(amount) / float64(db.PageUsers)))
 	return
 }
 

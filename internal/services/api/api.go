@@ -340,7 +340,7 @@ func (h *Handler) DeleteAccountOptions(rw http.ResponseWriter, r *http.Request) 
 	rw.WriteHeader(http.StatusOK)
 }
 
-// GetPlayerGames handle get games list
+// GetPlayerGames retur
 func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetPlayerGames"
 
@@ -379,6 +379,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/GetPlayerGames ok")
 }
 
+// GetUsersPageAmount returns amount of pages of users
 func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsersPageAmount"
 
