@@ -226,16 +226,16 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
 
-		fmt.Println("api/Me failed")
+		fmt.Println("api/Login failed")
 		return
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
-		fmt.Println("api/Me failed")
+		fmt.Println("api/Login failed")
 		return
 	}
 
-	fmt.Println("api/Me ok")
+	fmt.Println("api/Login ok")
 
 	return
 }

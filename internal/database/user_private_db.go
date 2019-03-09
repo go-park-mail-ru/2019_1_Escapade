@@ -27,6 +27,22 @@ func ValidatePrivateUI(user *models.UserPrivateInfo) (err error) {
 	return
 }
 
+func GetNameByEmail(email string, db *sql.DB) (name string, err error) {
+	sqlStatement := "SELECT name " +
+		"FROM Player where email=$1"
+
+	row := db.QueryRow(sqlStatement, email)
+
+	if err = row.Scan(&name); err != sql.ErrNoRows {
+		if err != nil {
+			return
+		} else {
+			return "", err
+		}
+	}
+	return
+}
+
 func isNameUnique(taken string, db *sql.DB) error {
 	sqlStatement := "SELECT name " +
 		"FROM Player where name=$1"
