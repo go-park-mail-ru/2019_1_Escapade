@@ -14,21 +14,6 @@ import (
 // If success - return instance of DataBase
 // if failed - return error
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
-	//connStr := "user=unemuzhregdywt password=5d9ae1059a39b0a8838b5653854adc7fb266deb7da1dc35de729a4836ba27b65 dbname=dd1f3dqgsuq1k5 sslmode=disable"
-
-	// Local
-	/*
-		connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
-
-		var database *sql.DB
-		database, err = sql.Open("postgres", connStr)
-	*/
-	// Deploy
-	///*
-
-	//connStr := "user=rolepade password=escapade dbname=escabase sslmode=disable"
-
-	//*/
 
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {

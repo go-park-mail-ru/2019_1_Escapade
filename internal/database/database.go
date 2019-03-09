@@ -96,6 +96,23 @@ func (db *DataBase) PostImage(filename string, username string) (err error) {
 	return
 }
 
+func (db *DataBase) GetImage(username string) (filename string, err error) {
+	sqlStatement := `
+	SELECT photo_title
+		FROM Player as P 
+			join Session as S 
+			on S.player_id=P.id
+		WHERE P.name = $1 
+`
+	row := db.Db.QueryRow(sqlStatement, username)
+
+	if err = row.Scan(&filename); err != nil {
+		fmt.Println("database/GetImage failed")
+		return
+	}
+	return
+}
+
 func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error) {
 	sqlStatement := `
 	SELECT name
@@ -180,21 +197,28 @@ func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err err
 
 // GetGames returns games, played by player with some name
 func (db *DataBase) GetGames(name string, page int) (games []models.Game, err error) {
+
+	size := db.PageGames
 	sqlStatement := `
-	SELECT * FROM Game as a 
+	SELECT 	a.FieldWidth, a.FieldHeight,
+					a.MinsTotal, a.MinsFound,
+					a.Finished, a.Exploded 
+	 FROM Game as a 
 		JOIN
 			Player as p 
 			on a.player_id=p.id
 		JOIN
 			(
-				SELECT 
+				SELECT id,
 					FieldWidth, FieldHeight,
 					MinsTotal, MinsFound,
 					Finished, Exploded 
-					FROM Game LIMIT $1, $2
+					FROM Game Order by id OFFSET $1 Limit $2 --$1 LIMIT $2
 			) as b 
 			ON b.id = a.id
 	`
+	fmt.Println("look at us", size*(page-1), size)
+
 	/*
 		sqlStatement := `
 		SELECT FieldWidth, FieldHeight, MinsTotal, MinsFound,
@@ -203,9 +227,7 @@ func (db *DataBase) GetGames(name string, page int) (games []models.Game, err er
 		WHERE P.name like $1
 	`*/
 	games = make([]models.Game, 0, db.PageGames)
-	size := db.PageGames
-	rows, erro := db.Db.Query(sqlStatement,
-		size, size*(page-1))
+	rows, erro := db.Db.Query(sqlStatement, size*(page-1), size)
 
 	if erro != nil {
 		err = erro

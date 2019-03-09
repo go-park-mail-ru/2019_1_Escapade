@@ -8,7 +8,6 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -43,69 +42,84 @@ func errorSheduler(rw http.ResponseWriter, err error, who string) {
 	}
 }
 
+func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error) {
+	var sessionID string
+
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		return
+	}
+
+	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
+		return
+	}
+
+	return
+}
+
 // UploadAvatar uploads avatar
 func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
 	var (
-		err     error
-		input   multipart.File
-		created *os.File
-
-		sessionID string
-		username  string
+		err      error
+		input    multipart.File
+		username string
+		handle   *multipart.FileHeader
 	)
 
-	input, _, err = r.FormFile("avatar")
-
-	if err != nil || input == nil {
+	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+	}
+
+	if input, handle, err = r.FormFile("file"); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if input == nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		return
 	}
 
 	defer input.Close()
 
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+	if handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
-
 		fmt.Println("api/PostImage failed")
 		return
 	}
 
-	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
+	fileType := handle.Header.Get("Content-Type")
+	fileName := handle.Filename
+	storagePath := h.PlayersAvatarsStorage
+	filePath := storagePath + username + "/" + fileName
+
+	switch fileType {
+	case "image/jpeg":
+		err = saveFile(filePath, input)
+	case "image/png":
+		err = saveFile(filePath, input)
+	default:
+		err = errors.New("wrong format of file:" + fileType)
+	}
+
+	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
-
 		fmt.Println("api/PostImage failed")
 		return
 	}
 
-	imageName := misc.CreateImageName()
-	path := h.PlayersAvatarsStorage + username + "/" + imageName
-
-	if created, err = os.Create(path); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	defer created.Close()
-
-	if _, err = io.Copy(created, input); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	if err = h.DB.PostImage(imageName, username); err != nil {
+	if err = h.DB.PostImage(fileName, username); err != nil {
 		// if error then lets delete uploaded image
-		_ = os.Remove(path)
+		_ = os.Remove(filePath)
 
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
@@ -113,10 +127,27 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println("api/PostImage failed")
 		return
 	}
+
 	rw.WriteHeader(http.StatusCreated)
 	sendSuccessJSON(rw, place)
 
 	fmt.Println("api/PostImage ok")
+}
+
+func saveFile(path string, file multipart.File) (err error) {
+	var (
+		data []byte
+	)
+
+	if data, err = ioutil.ReadAll(file); err != nil {
+		return
+	}
+
+	if err = ioutil.WriteFile(path, data, 0666); err != nil {
+		return
+	}
+
+	return
 }
 
 // Ok always returns StatusOk
@@ -380,26 +411,34 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
-		err   error
-		image models.Image
-		file  []byte //*os.File
+		err      error
+		username string
+		filename string
+		filepath string
+		file     []byte
 	)
 
-	if r.Body == nil {
-		err = errors.New("JSON not found")
+	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 
-		fmt.Println("api/GetImage doesnt recieve json")
+		fmt.Println("api/GetImage cant found file")
 
 		return
 	}
-	_ = json.NewDecoder(r.Body).Decode(&image)
 
-	filename := h.PlayersAvatarsStorage + image.Path
-	file, err = ioutil.ReadFile(filename)
+	if filename, err = h.DB.GetImage(username); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
 
-	if err != nil {
+		fmt.Println("api/GetImage cant found file")
+
+		return
+	}
+
+	filepath = h.PlayersAvatarsStorage + filename
+
+	if file, err = ioutil.ReadFile(filepath); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 
