@@ -33,12 +33,8 @@ func GetNameByEmail(email string, db *sql.DB) (name string, err error) {
 
 	row := db.QueryRow(sqlStatement, email)
 
-	if err = row.Scan(&name); err != sql.ErrNoRows {
-		if err != nil {
-			return
-		} else {
-			return "", err
-		}
+	if err = row.Scan(&name); err != nil {
+		return
 	}
 	return
 }

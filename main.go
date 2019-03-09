@@ -18,19 +18,23 @@ const (
 )
 
 func main() {
+
 	fmt.Println("Ok")
 	conf, confErr := config.Init(confPath)
+
 	fmt.Println("Ok")
 	if confErr != nil {
 		panic(confErr)
 	}
+
 	fmt.Println("Ok")
 	db, dbErr := database.Init(conf.DataBase)
 	if dbErr != nil {
 		panic(dbErr)
 	}
+
 	fmt.Println("Ok")
-	API := api.Init(db)
+	API := api.Init(db, conf.Storage)
 
 	r := mux.NewRouter()
 
@@ -58,9 +62,10 @@ func main() {
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
 
-	// Deploy
+	if os.Getenv("PORT") == "" {
+		os.Setenv("PORT", "3000")
+	}
+
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), r)
-	// Local
-	//err := http.ListenAndServe(conf.Server.Port, r)
 	fmt.Println("oh, this is error:" + err.Error())
 }

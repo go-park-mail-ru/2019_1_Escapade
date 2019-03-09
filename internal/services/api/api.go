@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"escapade/internal/config"
 	database "escapade/internal/database"
 	"escapade/internal/misc"
 	"escapade/internal/models"
@@ -12,6 +13,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strconv"
 
 	//"reflect"
 
@@ -20,13 +22,15 @@ import (
 
 // Handler is struct
 type Handler struct {
-	DB database.DataBase
+	DB                    database.DataBase
+	PlayersAvatarsStorage string
 }
 
 // Init creates Handler
-func Init(DB *database.DataBase) (handler *Handler) {
+func Init(DB *database.DataBase, storage config.FileStorageConfig) (handler *Handler) {
 	handler = &Handler{
-		DB: *DB,
+		DB:                    *DB,
+		PlayersAvatarsStorage: storage.PlayersAvatarsStorage,
 	}
 	return
 }
@@ -79,7 +83,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	imageName := misc.CreateImageName()
-	path := "imgs/players/" + username + "/" + imageName
+	path := h.PlayersAvatarsStorage + username + "/" + imageName
 
 	if created, err = os.Create(path); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -328,6 +332,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		bytes    []byte
 		vars     map[string]string
 		username string
+		page     int
 	)
 
 	vars = mux.Vars(r)
@@ -340,7 +345,20 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if games, err = h.DB.GetGames(username); err != nil {
+	if vars["page"] == "" {
+		page = 1
+	} else {
+		if page, err = strconv.Atoi(vars["page"]); err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			sendErrorJSON(rw, err, place)
+			return
+		}
+		if page < 1 {
+			page = 1
+		}
+	}
+
+	if games, err = h.DB.GetGames(username, page); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 		return
@@ -378,7 +396,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(r.Body).Decode(&image)
 
-	filename := "imgs/" + image.Path
+	filename := h.PlayersAvatarsStorage + image.Path
 	file, err = ioutil.ReadFile(filename)
 
 	if err != nil {

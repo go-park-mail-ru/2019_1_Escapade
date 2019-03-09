@@ -6,9 +6,10 @@ import (
 )
 
 type Configuration struct {
-	Server   ServerConfig   `json:"server"`
-	Cors     CORSConfig     `json:"cors"`
-	DataBase DatabaseConfig `json:"dataBase"`
+	Server   ServerConfig      `json:"server"`
+	Cors     CORSConfig        `json:"cors"`
+	DataBase DatabaseConfig    `json:"dataBase"`
+	Storage  FileStorageConfig `json:"storage"`
 }
 
 type ServerConfig struct {
@@ -28,6 +29,12 @@ type DatabaseConfig struct {
 	URL          string   `json:"url"`
 	MaxOpenConns int      `json:"maxOpenConns"`
 	Tables       []string `json:"tables"`
+	PageGames    int      `json:"pageGames"`
+	PageUsers    int      `json:"pageUsers"`
+}
+
+type FileStorageConfig struct {
+	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
 }
 
 func Init(path string) (conf Configuration, return_error error) {

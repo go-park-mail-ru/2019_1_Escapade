@@ -11,7 +11,9 @@
         "Player",
         "Session",
         "Game"
-    ]
+    ],
+    "PageGames": 2,
+    "PageUsers": 10
     },
   "cors": {
       "origins": [
@@ -30,5 +32,8 @@
           "DELETE",
           "OPTIONS"
       ]
-  }
+  },
+  "storage": {
+      "playersAvatarsStorage": "imgs/players/"
+  } 
 }
