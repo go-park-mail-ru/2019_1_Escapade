@@ -10,6 +10,7 @@ import (
 // Вызывать с defer в начале функций
 func fixResult(rw http.ResponseWriter,
 	err error, who string, JSON interface{}) {
+	fmt.Println("fixResult see :", err.Error())
 	if err != nil {
 		sendErrorJSON(rw, err, who)
 		fmt.Println(who+" failed:", err.Error())
