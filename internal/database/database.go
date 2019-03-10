@@ -87,10 +87,10 @@ func (db *DataBase) Logout(sessionCode string) (err error) {
 }
 
 // PostImage set filename of avatar to relation Player
-func (db *DataBase) PostImage(filename string, username string) (err error) {
-	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE name = $2;`
+func (db *DataBase) PostImage(filename string, userID int) (err error) {
+	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE id = $2;`
 
-	_, err = db.Db.Exec(sqlStatement, filename, username)
+	_, err = db.Db.Exec(sqlStatement, filename, userID)
 
 	if err != nil {
 		fmt.Println("database/session/PostImage - fail:" + err.Error())
@@ -100,15 +100,13 @@ func (db *DataBase) PostImage(filename string, username string) (err error) {
 }
 
 // GetImage Get avatar - filename of player image
-func (db *DataBase) GetImage(username string) (filename string, err error) {
+func (db *DataBase) GetImage(userID int) (filename string, err error) {
 	sqlStatement := `
 	SELECT photo_title
 		FROM Player as P 
-			join Session as S 
-			on S.player_id=P.id
-		WHERE P.name = $1 
+		WHERE P.id = $1 
 `
-	row := db.Db.QueryRow(sqlStatement, username)
+	row := db.Db.QueryRow(sqlStatement, userID)
 
 	if err = row.Scan(&filename); err != nil {
 		fmt.Println("database/GetImage failed")
@@ -131,6 +129,26 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 	if err != nil {
 		fmt.Println("Sess error: ", err.Error())
 		fmt.Println("database/GetNameBySessionID failed")
+		return
+	}
+
+	return
+}
+
+// GetNameBySessionID gets name of Player from
+// relation Session, cause we know that user has session
+func (db *DataBase) GetUserIdBySessionID(sessionID string) (id int, err error) {
+	sqlStatement := `
+	SELECT S.player_id
+	FROM Session as S
+	WHERE session_code like $1 
+	`
+	row := db.Db.QueryRow(sqlStatement, sessionID)
+
+	err = row.Scan(&id)
+	if err != nil {
+		fmt.Println("Sess error: ", err.Error())
+		fmt.Println("database/GetIdBySessionID failed")
 		return
 	}
 
