@@ -131,6 +131,7 @@ func (db DataBase) checkBunchNamePass(username string, password string) (id int,
 
 	if err = row.Scan(&id); err != nil {
 		err = errors.New("Wrong password")
+		fmt.Println("err:", err.Error())
 	}
 	fmt.Println("i found id", id)
 	return
@@ -145,6 +146,7 @@ func (db DataBase) checkBunchEmailPass(email string, password string) (id int, e
 	fmt.Println("email and password", email, password)
 	if err := row.Scan(&id); err != nil {
 		err = errors.New("Wrong password")
+		fmt.Println("err:", err.Error())
 	}
 	fmt.Println("i found id", id)
 	return
