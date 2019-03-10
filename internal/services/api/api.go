@@ -246,23 +246,23 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 	const place = "DeleteAccount"
 	var (
 		user      models.UserPrivateInfo
-		err       error
+		err       *error
 		sessionID string
 	)
 
 	defer fixResult(rw, err, place, nil)
 
-	if user, err = getUser(r); err != nil {
+	if user, *err = getUser(r); *err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+	if sessionID, *err = misc.GetSessionCookie(r); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if sessionID, err = h.DB.DeleteAccount(&user, sessionID); err != nil {
+	if sessionID, *err = h.DB.DeleteAccount(&user, sessionID); *err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
