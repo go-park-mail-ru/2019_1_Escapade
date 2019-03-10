@@ -97,29 +97,23 @@ func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
 }
 
 func (db DataBase) checkBunch(field string, password string) (err error) {
-	var (
-		right1 bool
-		right2 bool
-	)
+
 	fmt.Println("checkBunch:", field, password)
 
-	if right1, err = db.checkBunchNamePass(field, password); err != nil {
-		return
+	// If checkBunchNamePass cant find brunch name-password
+	if err = db.checkBunchNamePass(field, password); err != nil {
+		// and checkBunchEmailPass cant find brunch email-password
+		if err = db.checkBunchEmailPass(field, password); err != nil {
+			return // then password wrong
+		}
 	}
-
-	if right2, err = db.checkBunchEmailPass(field, password); err != nil {
-		return
-	}
-
-	if !right1 && !right2 {
-		return errors.New("Wrong password")
-	}
+	err = nil
 	return
 }
 
 // confirmRightPass checks that Player with such
 // password and name exists
-func (db DataBase) checkBunchNamePass(username string, password string) (bool, error) {
+func (db DataBase) checkBunchNamePass(username string, password string) error {
 	sqlStatement := "SELECT password FROM Player where name like $1"
 
 	fmt.Println("checkBunchNamePass:", username, password)
@@ -128,15 +122,15 @@ func (db DataBase) checkBunchNamePass(username string, password string) (bool, e
 	var get string
 
 	if err := row.Scan(&get); err != nil || password != get {
-		return false, err
+		return errors.New("Wrong password")
 	}
 
-	return true, nil
+	return nil
 }
 
 // confirmRightPass checks that Player with such
 // password and name exists
-func (db DataBase) checkBunchEmailPass(email string, password string) (bool, error) {
+func (db DataBase) checkBunchEmailPass(email string, password string) error {
 	sqlStatement := "SELECT password FROM Player where email like $1"
 
 	fmt.Println("checkBunchEmailPass:", email, password)
@@ -145,10 +139,10 @@ func (db DataBase) checkBunchEmailPass(email string, password string) (bool, err
 	var get string
 
 	if err := row.Scan(&get); err != nil || password != get {
-		return false, err
+		return errors.New("Wrong password")
 	}
 
-	return true, nil
+	return nil
 }
 
 // confirmRightEmail checks that Player with such
