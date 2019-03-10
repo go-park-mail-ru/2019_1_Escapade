@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"escapade/internal/models"
-	"fmt"
 
 	//
 	_ "github.com/lib/pq"
@@ -27,11 +26,21 @@ func ValidatePrivateUI(user *models.UserPrivateInfo) (err error) {
 	return
 }
 
-func GetNameByEmail(email string, db *sql.DB) (name string, err error) {
+// GetPlayerIDbyName get player's id by his hame
+func (db *DataBase) GetPlayerIDbyName(username string) (id int, err error) {
+	sqlStatement := `SELECT id FROM Player WHERE name = $1`
+	row := db.Db.QueryRow(sqlStatement, username)
+
+	err = row.Scan(&id)
+	return
+}
+
+// GetNameByEmail get player's name by his email
+func (db DataBase) GetNameByEmail(email string) (name string, err error) {
 	sqlStatement := "SELECT name " +
 		"FROM Player where email=$1"
 
-	row := db.QueryRow(sqlStatement, email)
+	row := db.Db.QueryRow(sqlStatement, email)
 
 	if err = row.Scan(&name); err != nil {
 		return
@@ -39,65 +48,64 @@ func GetNameByEmail(email string, db *sql.DB) (name string, err error) {
 	return
 }
 
-func isNameUnique(taken string, db *sql.DB) error {
+// isNameUnique checks if there are Players with
+// this('taken') name and returns corresponding error if yes
+func (db DataBase) isNameUnique(taken string) error {
 	sqlStatement := "SELECT name " +
 		"FROM Player where name=$1"
 
-	row := db.QueryRow(sqlStatement, taken)
+	row := db.Db.QueryRow(sqlStatement, taken)
 
 	var tmp string
 	if err := row.Scan(&tmp); err != sql.ErrNoRows {
 		if err == nil {
 			return errors.New("name is taken")
-		} else {
-			return err
 		}
+		return err
 	}
 	return nil
 }
 
-func isEmailUnique(taken string, db *sql.DB) error {
+// isEmailUnique checks if there are Players with
+// this('taken') email and returns corresponding error if yes
+func (db DataBase) isEmailUnique(taken string) error {
 	sqlStatement := "SELECT name " +
 		"FROM Player where email=$1"
 
-	row := db.QueryRow(sqlStatement, taken)
+	row := db.Db.QueryRow(sqlStatement, taken)
 
 	var tmp string
 	if err := row.Scan(&tmp); err != sql.ErrNoRows {
 		if err == nil {
 			return errors.New("email is taken")
-		} else {
-			return err
 		}
+		return err
 	}
 	return nil
 }
 
-// confirmUnique confirm that user.Email and user.Password unique
-func confirmUnique(user *models.UserPrivateInfo, db *sql.DB) (err error) {
-	err = isEmailUnique(user.Email, db)
-	if err != nil {
+// confirmUnique confirm that user.Email and user.Name
+// dont use by another Player
+func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
+	if err = db.isEmailUnique(user.Email); err != nil {
 		return
 	}
 
-	err = isNameUnique(user.Name, db)
-	if err != nil {
-		return
-	}
+	err = db.isNameUnique(user.Name)
 	return
 }
 
-func confirmRightEmail(user *models.UserPrivateInfo, db *sql.DB) error {
+// confirmRightEmail checks that Player with such
+// email and name exists
+func (db DataBase) confirmRightEmail(user *models.UserPrivateInfo) error {
 	sqlStatement := "SELECT email " +
 		"FROM Player where name=$1"
 
-	// Get one record
-	row := db.QueryRow(sqlStatement, user.Name)
+	row := db.Db.QueryRow(sqlStatement, user.Name)
 
 	var email string
 
 	if err := row.Scan(&email); err != nil {
-		// No rows were returned
 		return err
 	}
 
@@ -108,17 +116,17 @@ func confirmRightEmail(user *models.UserPrivateInfo, db *sql.DB) error {
 	return nil
 }
 
-func confirmRightPass(user *models.UserPrivateInfo, db *sql.DB) error {
+// confirmRightPass checks that Player with such
+// password and name exists
+func (db DataBase) confirmRightPass(user *models.UserPrivateInfo) error {
 	sqlStatement := "SELECT password " +
 		"FROM Player where name=$1"
 
-	// Get one record
-	row := db.QueryRow(sqlStatement, user.Name)
+	row := db.Db.QueryRow(sqlStatement, user.Name)
 
 	var password string
 
 	if err := row.Scan(&password); err != nil {
-		// No rows were returned
 		return err
 	}
 
@@ -129,21 +137,17 @@ func confirmRightPass(user *models.UserPrivateInfo, db *sql.DB) error {
 	return nil
 }
 
-func (db *DataBase) deleteUser(user *models.UserPrivateInfo) error {
+func (db *DataBase) deletePlayer(user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2 and email=$3
 		`
 	_, err := db.Db.Exec(sqlStatement, user.Name,
 		user.Password, user.Email)
 
-	if err != nil {
-		fmt.Println("database/user_private_info/deleteUser - fail:" + err.Error())
-
-	}
 	return err
 }
 
-func (db *DataBase) createUser(user *models.UserPrivateInfo) error {
+func (db *DataBase) createPlayer(user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	INSERT INTO Player(name, password, email) VALUES
     ($1, $2, $3);
@@ -151,9 +155,5 @@ func (db *DataBase) createUser(user *models.UserPrivateInfo) error {
 	_, err := db.Db.Exec(sqlStatement, user.Name,
 		user.Password, user.Email)
 
-	if err != nil {
-		fmt.Println("database/user_private_info/createUser - fail:" + err.Error())
-
-	}
 	return err
 }

@@ -7,20 +7,6 @@ import (
 	"net/http"
 )
 
-// Вызывать с defer в начале функций
-func fixResult(rw http.ResponseWriter,
-	err *error, who string, JSON interface{}) {
-
-	if *err != nil {
-		fmt.Println("fixResult see :", (*err).Error())
-		sendErrorJSON(rw, *err, who)
-		fmt.Println(who+" failed:", (*err).Error())
-	} else {
-		sendSuccessJSON(rw, JSON, who)
-		fmt.Println(who + " success")
-	}
-}
-
 func sendErrorJSON(rw http.ResponseWriter, catched error, place string) {
 	var (
 		result models.Result
@@ -48,11 +34,6 @@ func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 		bytes []byte
 		err   error
 	)
-
-	if result == "" {
-		return
-	}
-
 	if result == nil {
 		result = models.Result{
 			Place:   place,

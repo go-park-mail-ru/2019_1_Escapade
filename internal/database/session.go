@@ -41,3 +41,14 @@ func (db *DataBase) deleteSession(sessionCode string) error {
 	_, err := db.Db.Exec(sqlStatement, sessionCode)
 	return err
 }
+
+func (db *DataBase) deleteAllUserSessions(username string) (err error) {
+	var id int
+	if id, err = db.GetPlayerIDbyName(username); err != nil {
+		return
+	}
+
+	sqlStatement := `DELETE From Session where player_id=$1`
+	_, err = db.Db.Exec(sqlStatement, id)
+	return
+}

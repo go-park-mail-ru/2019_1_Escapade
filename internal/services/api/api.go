@@ -38,34 +38,38 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
 	var (
-		err      *error
+		err      error
 		input    multipart.File
 		username string
 		handle   *multipart.FileHeader
 	)
 
-	defer fixResult(rw, err, place, nil)
-
-	if username, *err = h.getNameFromCookie(r); *err != nil {
+	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		return
 	}
 
-	if input, handle, *err = r.FormFile("file"); *err != nil {
+	if input, handle, err = r.FormFile("file"); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		return
 	}
 
 	if input == nil {
-		*err = errors.New("no input")
+		err = errors.New("no input")
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		return
 	}
 
 	defer input.Close()
 
 	if handle == nil {
-		*err = errors.New("no handle")
+		err = errors.New("no handle")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -77,22 +81,25 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "image/jpeg":
-		*err = saveFile(filePath, fileName, input)
+		err = saveFile(filePath, fileName, input)
 	case "image/png":
-		*err = saveFile(filePath, fileName, input)
+		err = saveFile(filePath, fileName, input)
 	default:
-		*err = errors.New("wrong format of file:" + fileType)
+		err = errors.New("wrong format of file:" + fileType)
 	}
 
-	if *err != nil {
+	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		return
 	}
 
-	if *err = h.DB.PostImage(fileName, username); *err != nil {
+	if err = h.DB.PostImage(fileName, username); err != nil {
 		// if error then lets delete uploaded image
 		_ = os.Remove(filePath)
-
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -136,139 +143,153 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Me"
 	var (
-		err      *error
+		err      error
 		username string
 	)
 
-	defer fixResult(rw, err, place, "")
-
-	if username, *err = h.getNameFromCookie(r); *err != nil {
+	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/Me failed")
 		return
 	}
 
-	if *err = sendPublicUser(h, rw, username, place); *err != nil {
+	if err = sendPublicUser(h, rw, username, place); err != nil {
+		fmt.Println("api/Me failed")
 		return
 	}
+
+	fmt.Println("api/Me ok")
 
 	return
 }
 
 // Register handle registration
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
-
-	if r.Method == "OPTIONS" {
-		rw.WriteHeader(http.StatusOK)
-		return
-	}
 	const place = "Register"
+
 	var (
 		user      models.UserPrivateInfo
-		err       *error
+		err       error
 		sessionID string
 	)
 
-	defer fixResult(rw, err, place, nil)
-	//defer fmt.Println("Register see :", err.Error())
-	if user, *err = getUser(r); *err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/register failed")
 		return
 	}
 
-	if sessionID, *err = h.DB.Register(&user); *err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	if sessionID, err = h.DB.Register(&user); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/register failed")
 		return
 	}
 
 	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
+	sendSuccessJSON(rw, nil, place)
+
+	fmt.Println("api/register ok")
+
 	return
 }
 
 // Login handle login
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == "OPTIONS" {
-		rw.WriteHeader(http.StatusOK)
-		return
-	}
 	const place = "Login"
 	var (
-		user models.UserPrivateInfo
-		err  *error
-	)
-
-	defer fixResult(rw, err, place, "")
-
-	if user, *err = getUser(r); *err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	if _, *err = h.DB.Login(&user); *err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	if *err = sendPublicUser(h, rw, user.Name, place); *err != nil {
-		return
-	}
-	return
-}
-
-// Login handle logout
-func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
-	const place = "Logout"
-	var (
-		err       *error
+		user      models.UserPrivateInfo
+		err       error
 		sessionID string
 	)
 
-	defer fixResult(rw, err, place, nil)
-
-	if sessionID, *err = misc.GetSessionCookie(r); *err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
 		return
 	}
 
-	if *err = h.DB.Logout(sessionID); *err != nil {
+	if sessionID, err = h.DB.Login(&user); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	sessionCookie := misc.CreateCookie(sessionID)
+	http.SetCookie(rw, sessionCookie)
+
+	if err = sendPublicUser(h, rw, user.Name, place); err != nil {
+		fmt.Println("api/Login failed")
+		return
+	}
+
+	fmt.Println("api/Login ok")
+
+	return
+}
+
+// Logout handle logout
+func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
+	const place = "Logout"
+
+	var (
+		err       error
+		sessionID string
+	)
+
+	if sessionID, err = misc.GetSessionCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
+		return
+	}
+
+	if err = h.DB.Logout(sessionID); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+
 		return
 	}
 
 	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, place)
+
+	fmt.Println("api/logout ok")
+
 	return
 }
 
-// DeleteAccount handle registration
+// DeleteAccount deletes user
 func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "DeleteAccount"
 	var (
-		user      models.UserPrivateInfo
-		err       *error
-		sessionID string
+		user models.UserPrivateInfo
+		err  error
 	)
 
-	defer fixResult(rw, err, place, nil)
-
-	if user, *err = getUser(r); *err != nil {
+	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/DeleteAccount failed")
 		return
 	}
 
-	if sessionID, *err = misc.GetSessionCookie(r); *err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if sessionID, *err = h.DB.DeleteAccount(&user, sessionID); *err != nil {
+	if err = h.DB.DeleteAccount(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/DeleteAccount failed")
 		return
 	}
 
 	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
+
+	fmt.Println("api/DeleteAccount ok")
 	return
 }
 

@@ -30,18 +30,18 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 
 	if user.Name == "" {
 		fmt.Println("+")
-		if user.Name, err = GetNameByEmail(user.Email, db.Db); err != nil {
+		if user.Name, err = db.GetNameByEmail(user.Email); err != nil {
 			fmt.Println("database/login - fail get name by email")
 			return
 		}
 	}
 	fmt.Println("User", user.Name, user.Email)
-	if err = confirmRightPass(user, db.Db); err != nil {
+	if err = db.confirmRightPass(user); err != nil {
 		fmt.Println("database/login - fail confirmition")
 		return
 	}
 
-	if err = confirmRightPass(user, db.Db); err != nil {
+	if err = db.confirmRightPass(user); err != nil {
 		fmt.Println("database/login - fail confirmition")
 		return
 	}
@@ -65,12 +65,12 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, err erro
 		return
 	}
 
-	if err = confirmUnique(user, db.Db); err != nil {
+	if err = db.confirmUnique(user); err != nil {
 		fmt.Println("database/register - fail uniqie")
 		return
 	}
 
-	if err = db.createUser(user); err != nil {
+	if err = db.createPlayer(user); err != nil {
 		fmt.Println("database/register - fail creating User")
 		return
 	}
@@ -273,29 +273,29 @@ func (db *DataBase) GetGames(name string, page int) (games []models.Game, err er
 }
 
 // DeleteAccount deletes account
-func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo, sessionCode string) (str string, err error) {
+func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 
 	if err = ValidatePrivateUI(user); err != nil {
 		fmt.Println("database/DeleteAccount - fail validation")
 		return
 	}
 
-	if err = confirmRightPass(user, db.Db); err != nil {
+	if err = db.confirmRightPass(user); err != nil {
 		fmt.Println("database/DeleteAccount - fail confirmition password")
 		return
 	}
 
-	if err = confirmRightEmail(user, db.Db); err != nil {
+	if err = db.confirmRightEmail(user); err != nil {
 		fmt.Println("database/DeleteAccount - fail confirmition email")
 		return
 	}
 
-	if err = db.deleteSession(sessionCode); err != nil {
-		fmt.Println("database/DeleteAccount - fail deleting Session")
+	if err = db.deleteAllUserSessions(user.Name); err != nil {
+		fmt.Println("database/DeleteAccount - fail deleting all user sessions")
 		return
 	}
 
-	if err = db.deleteUser(user); err != nil {
+	if err = db.deletePlayer(user); err != nil {
 		fmt.Println("database/DeleteAccount - fail deletting User")
 		return
 	}

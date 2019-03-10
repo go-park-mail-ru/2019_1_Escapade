@@ -2,6 +2,7 @@ package api
 
 import (
 	"escapade/internal/models"
+	"fmt"
 	"net/http"
 )
 
@@ -9,16 +10,18 @@ func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place s
 
 	var (
 		user models.UserPublicInfo
-		err  *error
+		err  error
 	)
 
-	defer fixResult(rw, err, place, user)
-
-	if user, *err = h.DB.GetProfile(username); *err != nil {
+	if user, err = h.DB.GetProfile(username); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		return *err
+		sendErrorJSON(rw, err, place)
+		fmt.Println(place + " failed")
+		return err
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	return *err
+	sendSuccessJSON(rw, user, place)
+	fmt.Println(place + " ok")
+	return err
 }
