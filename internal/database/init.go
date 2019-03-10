@@ -38,11 +38,11 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		return
 	}
 	fmt.Println("database/Init open")
-	if !db.areTablesCreated(CDB.Tables) {
-		if err = db.CreateTables(); err != nil {
-			return
-		}
+	//if !db.areTablesCreated(CDB.Tables) {
+	if err = db.CreateTables(); err != nil {
+		return
 	}
+	//}
 
 	return
 }
