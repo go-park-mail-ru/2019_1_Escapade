@@ -39,7 +39,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")

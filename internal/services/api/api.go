@@ -140,28 +140,29 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 }
 
 // Me returns my profile
-func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
-	const place = "Me"
+	const place = "GetMyProfile"
 	var (
 		err      error
 		username string
 	)
 
 	if username, err = h.getNameFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		fmt.Println("api/Me failed")
 		return
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
 		fmt.Println("api/Me failed")
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 	fmt.Println("api/Me ok")
-
 	return
 }
 
@@ -211,26 +212,28 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/register failed")
+		fmt.Println("api/UpdateProfile failed")
 		return
 	}
 
 	if name, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
+		fmt.Println("api/UpdateProfile failed")
 		return
 	}
 
 	if err = h.DB.UpdatePlayerByName(name, &user); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
+		fmt.Println("api/UpdateProfile failed")
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
 	sendSuccessJSON(rw, nil, place)
 
-	fmt.Println("api/update ok")
+	fmt.Println("api/UpdateProfile ok")
 
 	return
 }
@@ -261,10 +264,12 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	misc.CreateAndSet(rw, sessionID)
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
 		fmt.Println("api/Login failed")
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 	fmt.Println("api/Login ok")
 
 	return
@@ -282,14 +287,12 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
-
 		return
 	}
 
 	if err = h.DB.Logout(sessionID); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
-
 		return
 	}
 
@@ -489,30 +492,16 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
-
 	const place = "GetProfile"
+	vars := mux.Vars(r)
 
-	var (
-		err      error
-		vars     map[string]string
-		username string
-	)
-
-	vars = mux.Vars(r)
-
-	if username = vars["name"]; username == "" {
-		fmt.Println("No username found")
-
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, errors.New("No username found"), place)
-		return
-	}
-
-	if err = sendPublicUser(h, rw, username, place); err != nil {
+	if err := sendPublicUser(h, rw, vars["name"], place); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
 		fmt.Println("api/GetProfile failed")
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 	fmt.Println("api/GetProfile ok")
 
 	return

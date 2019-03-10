@@ -33,6 +33,7 @@ func CreateCookie(value string) (cookie *http.Cookie) {
 	cookie.MaxAge = LifetimeCookie
 	cookie.Name = NameCookie
 	cookie.Value = value
+	cookie.Path = "/"
 	return
 }
 
