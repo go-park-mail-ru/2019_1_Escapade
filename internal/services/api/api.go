@@ -33,15 +33,7 @@ func Init(DB *database.DataBase, storage config.FileStorageConfig) (handler *Han
 	return
 }
 
-// Вызывать с defer в начале функций
-func errorSheduler(rw http.ResponseWriter, err error, who string) {
-	if err != nil {
-		sendErrorJSON(rw, err, who)
-		fmt.Println(who+" failed:", err.Error())
-	}
-}
-
-// UploadAvatar uploads avatar
+// PostImage posts avatar
 func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
@@ -52,23 +44,20 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		handle   *multipart.FileHeader
 	)
 
+	defer fixResult(rw, err, place, nil)
+
 	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
+		return
 	}
 
 	if input, handle, err = r.FormFile("file"); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
 	if input == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
@@ -76,8 +65,6 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	if handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
@@ -97,8 +84,6 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
@@ -107,16 +92,10 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		_ = os.Remove(filePath)
 
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
 	rw.WriteHeader(http.StatusCreated)
-	sendSuccessJSON(rw, place)
-
-	fmt.Println("api/PostImage ok")
 }
 
 func saveFile(path string, name string, file multipart.File) (err error) {
@@ -124,13 +103,17 @@ func saveFile(path string, name string, file multipart.File) (err error) {
 		data []byte
 	)
 
-	os.MkdirAll(path, 0777)
+	// вынести в конфиг
+	const mode777 = 0777
+	const mode666 = 0666
+
+	os.MkdirAll(path, mode777)
 
 	if data, err = ioutil.ReadAll(file); err != nil {
 		return
 	}
 
-	if err = ioutil.WriteFile(path+"/"+name, data, 0666); err != nil {
+	if err = ioutil.WriteFile(path+"/"+name, data, mode666); err != nil {
 		return
 	}
 
@@ -140,44 +123,32 @@ func saveFile(path string, name string, file multipart.File) (err error) {
 // Ok always returns StatusOk
 func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, "Ok")
+	sendSuccessJSON(rw, nil, "Ok")
 
 	fmt.Println("api/ok - ok")
 	return
 }
 
+// Me returns my profile
 func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Me"
-
 	var (
-		err       error
-		sessionID string
-		username  string
+		err      error
+		username string
 	)
 
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
+	defer fixResult(rw, err, place, "")
 
-		fmt.Println("api/Me failed")
-		return
-	}
-
-	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/Me failed")
+	if username, err = h.getNameFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
-		fmt.Println("api/Me failed")
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println("api/Me ok")
 
 	return
 }
@@ -190,36 +161,26 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const place = "Register"
-
 	var (
 		user      models.UserPrivateInfo
 		err       error
 		sessionID string
 	)
 
-	if user, err = getUser(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
+	defer fixResult(rw, err, place, nil)
 
-		fmt.Println("api/register failed")
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if sessionID, err = h.DB.Register(&user); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/register failed")
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	sessionCookie := misc.CreateCookie(sessionID)
-	http.SetCookie(rw, sessionCookie)
+	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
-	sendSuccessJSON(rw, place)
-
-	fmt.Println("api/register ok")
-
 	return
 }
 
@@ -231,36 +192,23 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 	const place = "Login"
 	var (
-		user      models.UserPrivateInfo
-		err       error
-		username  string
-		sessionID string
+		user models.UserPrivateInfo
+		err  error
 	)
+
+	defer fixResult(rw, err, place, "")
 
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
 		return
 	}
 
-	if sessionID, err = h.DB.Login(&user); err != nil {
+	if _, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
 		return
 	}
-	fmt.Println("Session ID ", sessionID)
-	sessionCookie := misc.CreateCookie(sessionID)
-	http.SetCookie(rw, sessionCookie)
 
-	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/Login failed")
-		return
-	}
-	fmt.Println("Username ", username)
-	if err = sendPublicUser(h, rw, username, place); err != nil {
+	if err = sendPublicUser(h, rw, user.Name, place); err != nil {
 		fmt.Println("api/Login failed")
 		return
 	}
@@ -295,7 +243,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(rw, misc.CreateCookie(""))
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, place)
+	//sendSuccessJSON(rw, place)
 
 	fmt.Println("api/logout ok")
 

@@ -48,6 +48,11 @@ func SetCookie(w http.ResponseWriter, cookie *http.Cookie) {
 	http.SetCookie(w, cookie)
 }
 
+// CreateAndSet creates cookie with value - value and sets it
+func CreateAndSet(w http.ResponseWriter, value string) {
+	http.SetCookie(w, CreateCookie(value))
+}
+
 func randStr(strSize int) string {
 
 	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
