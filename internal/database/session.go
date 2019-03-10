@@ -2,6 +2,7 @@ package database
 
 import (
 	misc "escapade/internal/misc"
+	"fmt"
 
 	//
 	_ "github.com/lib/pq"
@@ -14,6 +15,7 @@ func (db *DataBase) createSession(userID int) (sessionID string, err error) {
 	INSERT INTO Session(player_id, session_code, expiration)
 		VALUES($1, $2, $3);
 `
+	fmt.Println("userID is ", userID)
 	_, err = db.Db.Exec(sqlStatement, userID, sessionID, expiration)
 	return sessionID, err
 }
