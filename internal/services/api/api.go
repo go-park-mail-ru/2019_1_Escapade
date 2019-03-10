@@ -163,20 +163,19 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	const place = "Register"
 	var (
 		user      models.UserPrivateInfo
-		err       error
+		err       *error
 		sessionID string
 	)
 
-	defer fixResult(rw, &err, place, nil)
+	defer fixResult(rw, err, place, nil)
 	//defer fmt.Println("Register see :", err.Error())
-	if user, err = getUser(r); err != nil {
+	if user, *err = getUser(r); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if sessionID, err = h.DB.Register(&user); err != nil {
+	if sessionID, *err = h.DB.Register(&user); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Println("real is :", err.Error())
 		return
 	}
 
