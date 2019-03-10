@@ -113,8 +113,10 @@ func (db DataBase) checkBunch(field string, password string) (id int, err error)
 	if id, err = db.checkBunchNamePass(field, password); err != nil {
 		// and checkBunchEmailPass cant find brunch email-password
 		if id, err = db.checkBunchEmailPass(field, password); err != nil {
+			fmt.Println("double error")
 			return // then password wrong
 		}
+		fmt.Println("one error")
 	}
 	fmt.Println("i see id", id)
 	err = nil
