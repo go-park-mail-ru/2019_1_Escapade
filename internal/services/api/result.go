@@ -11,7 +11,7 @@ import (
 func fixResult(rw http.ResponseWriter,
 	err *error, who string, JSON interface{}) {
 
-	if err != nil {
+	if *err != nil {
 		fmt.Println("fixResult see :", (*err).Error())
 		sendErrorJSON(rw, *err, who)
 		fmt.Println(who+" failed:", (*err).Error())

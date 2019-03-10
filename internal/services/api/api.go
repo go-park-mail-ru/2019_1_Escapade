@@ -250,33 +250,25 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
+	defer fixResult(rw, err, place, nil)
+
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/DeleteAccount failed")
 		return
 	}
 
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
 		return
 	}
 
 	if sessionID, err = h.DB.DeleteAccount(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/DeleteAccount failed")
 		return
 	}
 
-	http.SetCookie(rw, misc.CreateCookie(""))
+	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
-
-	fmt.Println("api/DeleteAccount ok")
 	return
 }
 
