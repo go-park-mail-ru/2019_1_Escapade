@@ -206,8 +206,6 @@ func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateI
 
 	oldName = curName
 	if curEmail, curPass, err = db.GetPasswordEmailByName(curName); err != nil {
-		fmt.Println("UpdatePlayerByName error: ", err.Error())
-		fmt.Println("database/UpdatePlayerByName failed")
 		return
 	}
 
@@ -243,8 +241,6 @@ func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateI
 	_, err = db.Db.Exec(sqlStatement, curName, curEmail, curPass, oldName)
 
 	if err != nil {
-		fmt.Println("UpdatePlayerByName db.Db.Exec error: ", err.Error())
-		fmt.Println("database/UpdatePlayerByName db.Db.Exec failed")
 		return
 	}
 
