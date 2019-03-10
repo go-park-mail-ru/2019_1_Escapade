@@ -115,6 +115,7 @@ func (db DataBase) checkBunch(field string, password string) (id int, err error)
 		if id, err = db.checkBunchEmailPass(field, password); err != nil {
 			fmt.Println("double error")
 			return // then password wrong
+		}
 		fmt.Println("one error")
 	}
 	fmt.Println("i see id", id)
@@ -125,6 +126,7 @@ func (db DataBase) checkBunch(field string, password string) (id int, err error)
 // confirmRightPass checks that Player with such
 // password and name exists
 func (db DataBase) checkBunchNamePass(username string, password string) (id int, err error) {
+
 	sqlStatement := "SELECT id FROM Player where name like $1 and password like $2"
 	row := db.Db.QueryRow(sqlStatement, username, password)
 
