@@ -204,6 +204,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		user      models.UserPrivateInfo
 		err       error
 		sessionID string
+		username  string
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -219,11 +220,16 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println("api/Login failed")
 		return
 	}
+	misc.CreateAndSet(rw, sessionID)
 
-	sessionCookie := misc.CreateCookie(sessionID)
-	http.SetCookie(rw, sessionCookie)
+	if username, err = h.getNameFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/Me failed")
+		return
+	}
 
-	if err = sendPublicUser(h, rw, user.Name, place); err != nil {
+	if err = sendPublicUser(h, rw, username, place); err != nil {
 		fmt.Println("api/Login failed")
 		return
 	}

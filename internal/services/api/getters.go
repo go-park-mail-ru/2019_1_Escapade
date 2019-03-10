@@ -65,6 +65,7 @@ func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error
 	var sessionID string
 
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+		err = errors.New("Authorization required")
 		return
 	}
 
