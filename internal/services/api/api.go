@@ -168,7 +168,7 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	defer fixResult(rw, err, place, nil)
-	defer fmt.Println("Register see :", err.Error())
+	//defer fmt.Println("Register see :", err.Error())
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
