@@ -11,7 +11,7 @@ func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place s
 		user models.UserPublicInfo
 	)
 
-	defer fixResult(rw, err, place, user)
+	defer fixResult(rw, &err, place, user)
 
 	if user, err = h.DB.GetProfile(username); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)

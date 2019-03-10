@@ -44,7 +44,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		handle   *multipart.FileHeader
 	)
 
-	defer fixResult(rw, err, place, nil)
+	defer fixResult(rw, &err, place, nil)
 
 	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -138,7 +138,7 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 		username string
 	)
 
-	defer fixResult(rw, err, place, "")
+	defer fixResult(rw, &err, place, "")
 
 	if username, err = h.getNameFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +167,7 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
-	defer fixResult(rw, err, place, nil)
+	defer fixResult(rw, &err, place, nil)
 	//defer fmt.Println("Register see :", err.Error())
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -197,7 +197,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		err  error
 	)
 
-	defer fixResult(rw, err, place, "")
+	defer fixResult(rw, &err, place, "")
 
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
@@ -223,7 +223,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
-	defer fixResult(rw, err, place, "")
+	defer fixResult(rw, &err, place, "")
 
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)

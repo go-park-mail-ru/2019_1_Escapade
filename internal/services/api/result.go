@@ -9,12 +9,12 @@ import (
 
 // Вызывать с defer в начале функций
 func fixResult(rw http.ResponseWriter,
-	err error, who string, JSON interface{}) {
+	err *error, who string, JSON interface{}) {
 
 	if err != nil {
-		fmt.Println("fixResult see :", err.Error())
-		sendErrorJSON(rw, err, who)
-		fmt.Println(who+" failed:", err.Error())
+		fmt.Println("fixResult see :", (*err).Error())
+		sendErrorJSON(rw, *err, who)
+		fmt.Println(who+" failed:", (*err).Error())
 	} else {
 		sendSuccessJSON(rw, JSON, who)
 		fmt.Println(who + " success")
