@@ -131,6 +131,7 @@ func (db DataBase) checkBunchEmailPass(email string, password string) (id int, e
 	sqlStatement := "SELECT id FROM Player where email like $1 and password like $2"
 	row := db.Db.QueryRow(sqlStatement, email, password)
 
+	fmt.Println("email and password", email, password)
 	if err := row.Scan(&id); err != nil {
 		err = errors.New("Wrong password")
 	}
