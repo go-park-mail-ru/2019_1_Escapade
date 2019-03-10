@@ -39,21 +39,17 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
-	r.HandleFunc("/user/register", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
-	r.HandleFunc("/user/register", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
-
-	r.HandleFunc("/user/delete", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
-	r.HandleFunc("/user/delete", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
+	r.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
 	r.HandleFunc("/user/logout", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
 	r.HandleFunc("/user/logout", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
 	r.HandleFunc("/user/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	r.HandleFunc("/user/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
-
-	r.HandleFunc("/user/profile", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
-	r.HandleFunc("/user/profile", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
-	r.HandleFunc("/user/profile", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
 	r.HandleFunc("/user/Avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
 	r.HandleFunc("/user/Avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
