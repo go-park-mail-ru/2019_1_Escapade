@@ -27,6 +27,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		fmt.Println("database/login - fail validation")
 		return
 	}
+	fmt.Printf("Login:", user.Email, user.Password, user.Name)
 
 	if err = db.checkBunch(user.Email, user.Password); err != nil {
 		fmt.Println("database/login - fail enter")

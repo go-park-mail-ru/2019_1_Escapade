@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"escapade/internal/models"
+	"fmt"
 
 	//
 	_ "github.com/lib/pq"
@@ -100,6 +101,7 @@ func (db DataBase) checkBunch(field string, password string) (err error) {
 		right1 bool
 		right2 bool
 	)
+	fmt.Printf("checkBunch:", field, password)
 
 	if right1, err = db.checkBunchNamePass(field, password); err != nil {
 		return
