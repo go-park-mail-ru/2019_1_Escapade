@@ -146,7 +146,7 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
-	
+
 		return
 	}
 
@@ -164,7 +164,7 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	defer fixResult(rw, err, place, nil)
-
+	defer fmt.Println("Register see :", err.Error())
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
@@ -172,6 +172,7 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 
 	if sessionID, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		fmt.Println("real is :", err.Error())
 		return
 	}
 
@@ -209,11 +210,12 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 // Login handle logout
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
-
 	var (
 		err       error
 		sessionID string
 	)
+
+	defer fixResult(rw, err, place, "")
 
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
