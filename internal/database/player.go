@@ -95,46 +95,69 @@ func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
 	return
 }
 
-// confirmRightEmail checks that Player with such
-// email and name exists
-func (db DataBase) confirmRightEmail(user *models.UserPrivateInfo) error {
-	sqlStatement := "SELECT email " +
-		"FROM Player where name=$1"
+func (db DataBase) checkBunch(field string, password string) (err error) {
+	var (
+		right1 bool
+		right2 bool
+	)
 
-	row := db.Db.QueryRow(sqlStatement, user.Name)
-
-	var email string
-
-	if err := row.Scan(&email); err != nil {
-		return err
+	if right1, err = db.checkBunchNamePass(field, password); err != nil {
+		return
 	}
 
-	if email != user.Email {
-		return errors.New("email is wrong")
+	if right2, err = db.checkBunchEmailPass(field, password); err != nil {
+		return
 	}
 
-	return nil
+	if !right1 && !right2 {
+		return errors.New("Wrong password")
+	}
+	return
 }
 
 // confirmRightPass checks that Player with such
 // password and name exists
-func (db DataBase) confirmRightPass(user *models.UserPrivateInfo) error {
+func (db DataBase) checkBunchNamePass(username string, password string) (bool, error) {
 	sqlStatement := "SELECT password " +
 		"FROM Player where name=$1"
 
-	row := db.Db.QueryRow(sqlStatement, user.Name)
+	row := db.Db.QueryRow(sqlStatement, username)
 
-	var password string
+	var get string
 
-	if err := row.Scan(&password); err != nil {
-		return err
+	if err := row.Scan(&get); err != nil || password != get {
+		return false, err
 	}
 
-	if password != user.Password {
-		return errors.New("password is wrong")
+	return true, nil
+}
+
+// confirmRightPass checks that Player with such
+// password and name exists
+func (db DataBase) checkBunchEmailPass(email string, password string) (bool, error) {
+	sqlStatement := "SELECT password " +
+		"FROM Player where email=$1"
+
+	row := db.Db.QueryRow(sqlStatement, email)
+
+	var get string
+
+	if err := row.Scan(&get); err != nil || password != get {
+		return false, err
 	}
 
-	return nil
+	return true, nil
+}
+
+// confirmRightEmail checks that Player with such
+// email and name exists
+func (db DataBase) confirmEmailNamePassword(user *models.UserPrivateInfo) error {
+	sqlStatement := "SELECT 1 FROM Player where name=$1, password=$2, email=$3"
+
+	row := db.Db.QueryRow(sqlStatement, user.Name, user.Password, user.Email)
+	var res int
+	err := row.Scan(&res)
+	return err
 }
 
 func (db *DataBase) deletePlayer(user *models.UserPrivateInfo) error {

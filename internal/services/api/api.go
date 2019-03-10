@@ -209,12 +209,14 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
+		fmt.Println("api/Login failed")
 		return
 	}
 
 	if sessionID, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
+		fmt.Println("api/Login failed")
 		return
 	}
 

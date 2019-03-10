@@ -28,21 +28,8 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		return
 	}
 
-	if user.Name == "" {
-		fmt.Println("+")
-		if user.Name, err = db.GetNameByEmail(user.Email); err != nil {
-			fmt.Println("database/login - fail get name by email")
-			return
-		}
-	}
-	fmt.Println("User", user.Name, user.Email)
-	if err = db.confirmRightPass(user); err != nil {
-		fmt.Println("database/login - fail confirmition")
-		return
-	}
-
-	if err = db.confirmRightPass(user); err != nil {
-		fmt.Println("database/login - fail confirmition")
+	if err = db.checkBunch(user.Email, user.Password); err != nil {
+		fmt.Println("database/login - fail enter")
 		return
 	}
 
@@ -280,13 +267,8 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 		return
 	}
 
-	if err = db.confirmRightPass(user); err != nil {
-		fmt.Println("database/DeleteAccount - fail confirmition password")
-		return
-	}
-
-	if err = db.confirmRightEmail(user); err != nil {
-		fmt.Println("database/DeleteAccount - fail confirmition email")
+	if err = db.confirmEmailNamePassword(user); err != nil {
+		fmt.Println("database/DeleteAccount - fail confirmition")
 		return
 	}
 
