@@ -101,7 +101,7 @@ func (db DataBase) checkBunch(field string, password string) (err error) {
 		right1 bool
 		right2 bool
 	)
-	fmt.Printf("checkBunch:", field, password)
+	fmt.Println("checkBunch:", field, password)
 
 	if right1, err = db.checkBunchNamePass(field, password); err != nil {
 		return
@@ -120,9 +120,9 @@ func (db DataBase) checkBunch(field string, password string) (err error) {
 // confirmRightPass checks that Player with such
 // password and name exists
 func (db DataBase) checkBunchNamePass(username string, password string) (bool, error) {
-	sqlStatement := "SELECT password " +
-		"FROM Player where name=$1"
+	sqlStatement := "SELECT password FROM Player where name like $1"
 
+	fmt.Println("checkBunchNamePass:", username, password)
 	row := db.Db.QueryRow(sqlStatement, username)
 
 	var get string
@@ -137,9 +137,9 @@ func (db DataBase) checkBunchNamePass(username string, password string) (bool, e
 // confirmRightPass checks that Player with such
 // password and name exists
 func (db DataBase) checkBunchEmailPass(email string, password string) (bool, error) {
-	sqlStatement := "SELECT password " +
-		"FROM Player where email=$1"
+	sqlStatement := "SELECT password FROM Player where email like $1"
 
+	fmt.Println("checkBunchEmailPass:", email, password)
 	row := db.Db.QueryRow(sqlStatement, email)
 
 	var get string
@@ -154,7 +154,7 @@ func (db DataBase) checkBunchEmailPass(email string, password string) (bool, err
 // confirmRightEmail checks that Player with such
 // email and name exists
 func (db DataBase) confirmEmailNamePassword(user *models.UserPrivateInfo) error {
-	sqlStatement := "SELECT 1 FROM Player where name=$1, password=$2, email=$3"
+	sqlStatement := "SELECT 1 FROM Player where name like $1, password like $2, email like $3"
 
 	row := db.Db.QueryRow(sqlStatement, user.Name, user.Password, user.Email)
 	var res int
