@@ -96,14 +96,14 @@ func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
 	return
 }
 
-func (db DataBase) checkBunch(field string, password string) (err error) {
+func (db DataBase) checkBunch(field string, password string) (id int, err error) {
 
 	fmt.Println("checkBunch:", field, password)
 
 	// If checkBunchNamePass cant find brunch name-password
-	if err = db.checkBunchNamePass(field, password); err != nil {
+	if id, err = db.checkBunchNamePass(field, password); err != nil {
 		// and checkBunchEmailPass cant find brunch email-password
-		if err = db.checkBunchEmailPass(field, password); err != nil {
+		if id, err = db.checkBunchEmailPass(field, password); err != nil {
 			return // then password wrong
 		}
 	}
@@ -113,36 +113,28 @@ func (db DataBase) checkBunch(field string, password string) (err error) {
 
 // confirmRightPass checks that Player with such
 // password and name exists
-func (db DataBase) checkBunchNamePass(username string, password string) error {
-	sqlStatement := "SELECT password FROM Player where name like $1"
+func (db DataBase) checkBunchNamePass(username string, password string) (id int, err error) {
+	sqlStatement := "SELECT id FROM Player where name like $1, password like $2"
+	row := db.Db.QueryRow(sqlStatement, username, password)
 
-	fmt.Println("checkBunchNamePass:", username, password)
-	row := db.Db.QueryRow(sqlStatement, username)
-
-	var get string
-
-	if err := row.Scan(&get); err != nil || password != get {
-		return errors.New("Wrong password")
+	if err = row.Scan(&id); err != nil {
+		err = errors.New("Wrong password")
 	}
 
-	return nil
+	return
 }
 
 // confirmRightPass checks that Player with such
 // password and name exists
-func (db DataBase) checkBunchEmailPass(email string, password string) error {
-	sqlStatement := "SELECT password FROM Player where email like $1"
+func (db DataBase) checkBunchEmailPass(email string, password string) (id int, err error) {
+	sqlStatement := "SELECT id FROM Player where email like $1, password like $2"
+	row := db.Db.QueryRow(sqlStatement, email, password)
 
-	fmt.Println("checkBunchEmailPass:", email, password)
-	row := db.Db.QueryRow(sqlStatement, email)
-
-	var get string
-
-	if err := row.Scan(&get); err != nil || password != get {
-		return errors.New("Wrong password")
+	if err := row.Scan(&id); err != nil {
+		err = errors.New("Wrong password")
 	}
 
-	return nil
+	return
 }
 
 // confirmRightEmail checks that Player with such
@@ -166,13 +158,21 @@ func (db *DataBase) deletePlayer(user *models.UserPrivateInfo) error {
 	return err
 }
 
-func (db *DataBase) createPlayer(user *models.UserPrivateInfo) error {
-	sqlStatement := `
+func (db *DataBase) createPlayer(user *models.UserPrivateInfo) (id int, err error) {
+	sqlInsert := `
 	INSERT INTO Player(name, password, email) VALUES
     ($1, $2, $3);
 		`
-	_, err := db.Db.Exec(sqlStatement, user.Name,
-		user.Password, user.Email)
+	_, err = db.Db.Exec(sqlInsert, user.Name, user.Password, user.Email)
 
-	return err
+	if err != nil {
+		return
+	}
+
+	sqlGetID := `SELECT id FROM Player WHERE name = $1`
+	row := db.Db.QueryRow(sqlGetID, user.Name)
+
+	err = row.Scan(&id)
+
+	return
 }

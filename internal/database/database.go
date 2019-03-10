@@ -27,14 +27,14 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		fmt.Println("database/login - fail validation")
 		return
 	}
-	fmt.Printf("Login:", user.Email, user.Password, user.Name)
 
-	if err = db.checkBunch(user.Email, user.Password); err != nil {
+	var userID int
+	if userID, err = db.checkBunch(user.Email, user.Password); err != nil {
 		fmt.Println("database/login - fail enter")
 		return
 	}
 
-	if str, err = db.createSession(user); err != nil {
+	if str, err = db.createSession(userID); err != nil {
 		fmt.Println("database/login - fail creating Session")
 		return
 	}
@@ -58,12 +58,13 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, err erro
 		return
 	}
 
-	if err = db.createPlayer(user); err != nil {
+	var userID int
+	if userID, err = db.createPlayer(user); err != nil {
 		fmt.Println("database/register - fail creating User")
 		return
 	}
 
-	if str, err = db.createSession(user); err != nil {
+	if str, err = db.createSession(userID); err != nil {
 		fmt.Println("database/register - fail creating Session")
 		return
 	}

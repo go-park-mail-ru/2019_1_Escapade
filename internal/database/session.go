@@ -2,37 +2,19 @@ package database
 
 import (
 	misc "escapade/internal/misc"
-	"escapade/internal/models"
-	"fmt"
-	"time"
 
 	//
 	_ "github.com/lib/pq"
 )
 
-func (db *DataBase) createSession(user *models.UserPrivateInfo) (string, error) {
-
-	var (
-		err          error
-		sessionID    string
-		sqlStatement string
-		expiration   time.Time
-	)
-	expiration = misc.CreateExpiration()
+func (db *DataBase) createSession(userID int) (sessionID string, err error) {
+	expiration := misc.CreateExpiration()
 	sessionID = misc.CreateID()
-	sqlStatement = `
+	sqlStatement := `
 	INSERT INTO Session(player_id, session_code, expiration)
-	VALUES(
-		(SELECT id FROM Player WHERE name=$1), $2, $3
-	);
+		VALUES($1, $2, $3);
 `
-
-	_, err = db.Db.Exec(sqlStatement, user.Name, sessionID, expiration)
-
-	if err != nil {
-		fmt.Println("database/session/createSession - fail:" + err.Error())
-		return sessionID, err
-	}
+	_, err = db.Db.Exec(sqlStatement, userID, sessionID, expiration)
 	return sessionID, err
 }
 
