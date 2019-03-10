@@ -146,7 +146,7 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	
 		return
 	}
 
@@ -201,12 +201,8 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = sendPublicUser(h, rw, user.Name, place); err != nil {
-		fmt.Println("api/Login failed")
 		return
 	}
-
-	fmt.Println("api/Login ok")
-
 	return
 }
 

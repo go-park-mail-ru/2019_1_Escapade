@@ -47,6 +47,10 @@ func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 		err   error
 	)
 
+	if result == "" {
+		return
+	}
+
 	if result == nil {
 		result = models.Result{
 			Place:   place,
