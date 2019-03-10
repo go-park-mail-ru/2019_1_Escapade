@@ -34,6 +34,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 		return
 	}
 
+	fmt.Println("i give id", userID)
 	if str, err = db.createSession(userID); err != nil {
 		fmt.Println("database/login - fail creating Session")
 		return
