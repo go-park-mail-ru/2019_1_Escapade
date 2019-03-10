@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strconv"
 
 	//"reflect"
 
@@ -38,13 +39,13 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
 	var (
-		err      error
-		input    multipart.File
-		username string
-		handle   *multipart.FileHeader
+		err    error
+		input  multipart.File
+		userID int
+		handle *multipart.FileHeader
 	)
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 		fmt.Println("api/PostImage failed")
@@ -77,7 +78,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	fileType := handle.Header.Get("Content-Type")
 	fileName := handle.Filename
 	storagePath := h.PlayersAvatarsStorage
-	filePath := storagePath + username
+	filePath := storagePath + strconv.Itoa(userID)
 
 	switch fileType {
 	case "image/jpeg":
@@ -95,7 +96,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.PostImage(fileName, username); err != nil {
+	if err = h.DB.PostImage(fileName, userID); err != nil {
 		// if error then lets delete uploaded image
 		_ = os.Remove(filePath)
 		sendErrorJSON(rw, err, place)
@@ -193,6 +194,43 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	sendSuccessJSON(rw, nil, place)
 
 	fmt.Println("api/register ok")
+
+	return
+}
+
+// UpdateProfile
+func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
+	const place = "Register"
+
+	var (
+		user models.UserPrivateInfo
+		err  error
+		name string
+	)
+
+	if user, err = getUser(r); err != nil {
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/register failed")
+		return
+	}
+
+	if name, err = h.getNameFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	if err = h.DB.UpdatePlayerByName(name, &user); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, place)
+
+	fmt.Println("api/update ok")
 
 	return
 }
@@ -411,13 +449,20 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
 		err      error
-		username string
+		userID   int
 		filename string
 		filepath string
 		file     []byte
 	)
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if filename, err = h.DB.GetImage(userID); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, err, place)
 
@@ -426,16 +471,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if filename, err = h.DB.GetImage(username); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetImage cant found file")
-
-		return
-	}
-
-	filepath = h.PlayersAvatarsStorage + username + "/" + filename
+	filepath = h.PlayersAvatarsStorage + strconv.Itoa(userID) + "/" + filename
 
 	if file, err = ioutil.ReadFile(filepath); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)

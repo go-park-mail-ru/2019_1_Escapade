@@ -57,6 +57,19 @@ func (db DataBase) GetNameByEmail(email string) (name string, err error) {
 	return
 }
 
+// GetNameByEmail get player's name by his email
+func (db DataBase) GetPasswordEmailByName(name string) (email string, password string, err error) {
+	sqlStatement := "SELECT email, password " +
+		"FROM Player where name like $1"
+
+	row := db.Db.QueryRow(sqlStatement, name)
+
+	if err = row.Scan(&email, &password); err != nil {
+		return
+	}
+	return
+}
+
 // isNameUnique checks if there are Players with
 // this('taken') name and returns corresponding error if yes
 func (db DataBase) isNameUnique(taken string) error {
@@ -177,6 +190,63 @@ func (db *DataBase) createPlayer(user *models.UserPrivateInfo) (id int, err erro
 	row := db.Db.QueryRow(sqlGetID, user.Name)
 
 	err = row.Scan(&id)
+
+	return
+}
+
+// UpdatePlayerByName gets name of Player from
+// relation Session, cause we know that user has session
+func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateInfo) (err error) {
+	var (
+		curEmail     string
+		curPass      string
+		sqlStatement string
+		oldName      string
+	)
+
+	oldName = curName
+	if curEmail, curPass, err = db.GetPasswordEmailByName(curName); err != nil {
+		fmt.Println("UpdatePlayerByName error: ", err.Error())
+		fmt.Println("database/UpdatePlayerByName failed")
+		return
+	}
+
+	if user.Email != curEmail {
+		if !models.ValidateEmail(user.Email) {
+			return errors.New("invalid email")
+		}
+		if err = db.isEmailUnique(user.Email); err != nil {
+			return
+		}
+		curEmail = user.Email
+	}
+
+	if user.Password != "" {
+		curPass = user.Password
+	}
+
+	if user.Name != curName {
+		if !models.ValidateString(user.Name) {
+			return errors.New("invalid name")
+		}
+		if err = db.isNameUnique(user.Name); err != nil {
+			return
+		}
+		curName = user.Name
+	}
+
+	sqlStatement = `
+			UPDATE Player 
+			SET name = $1, email = $2, password = $3  
+			WHERE name like $4
+		`
+	_, err = db.Db.Exec(sqlStatement, curName, curEmail, curPass, oldName)
+
+	if err != nil {
+		fmt.Println("UpdatePlayerByName db.Db.Exec error: ", err.Error())
+		fmt.Println("database/UpdatePlayerByName db.Db.Exec failed")
+		return
+	}
 
 	return
 }

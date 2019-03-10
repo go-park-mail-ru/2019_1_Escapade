@@ -51,6 +51,9 @@ func main() {
 	r.HandleFunc("/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	r.HandleFunc("/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
+	r.HandleFunc("/updateProfile", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
+	r.HandleFunc("/updateProfile", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+
 	r.HandleFunc("/playerAvatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
 	r.HandleFunc("/playerAvatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
 	r.HandleFunc("/playerAvatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
