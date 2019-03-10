@@ -62,7 +62,7 @@ func main() {
 	r.HandleFunc("/me", mi.CORS(conf.Cors)(API.Me)).Methods("GET")
 	r.HandleFunc("/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	r.HandleFunc("/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
-	r.HandleFunc("/{name}", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
+	r.HandleFunc("/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
 
