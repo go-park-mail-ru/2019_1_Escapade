@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"escapade/internal/models"
-	"fmt"
 
 	//
 	_ "github.com/lib/pq"
@@ -106,19 +105,13 @@ func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
 }
 
 func (db DataBase) checkBunch(field string, password string) (id int, err error) {
-
-	fmt.Println("checkBunch:", field, password)
-
 	// If checkBunchNamePass cant find brunch name-password
 	if id, err = db.checkBunchNamePass(field, password); err != nil {
 		// and checkBunchEmailPass cant find brunch email-password
 		if id, err = db.checkBunchEmailPass(field, password); err != nil {
-			fmt.Println("double error")
 			return // then password wrong
 		}
-		fmt.Println("one error")
 	}
-	fmt.Println("i see id", id)
 	err = nil
 	return
 }
@@ -132,9 +125,7 @@ func (db DataBase) checkBunchNamePass(username string, password string) (id int,
 
 	if err = row.Scan(&id); err != nil {
 		err = errors.New("Wrong password")
-		fmt.Println("err:", err.Error())
 	}
-	fmt.Println("i found id", id)
 	return
 }
 
@@ -144,12 +135,9 @@ func (db DataBase) checkBunchEmailPass(email string, password string) (id int, e
 	sqlStatement := "SELECT id FROM Player where email like $1 and password like $2"
 	row := db.Db.QueryRow(sqlStatement, email, password)
 
-	fmt.Println("email and password", email, password)
 	if err = row.Scan(&id); err != nil {
 		err = errors.New("Wrong password")
-		fmt.Println("err:", err.Error())
 	}
-	fmt.Println("i found id", id)
 	return
 }
 
