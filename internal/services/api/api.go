@@ -38,25 +38,26 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
 	var (
-		err      error
+		err      *error
 		input    multipart.File
 		username string
 		handle   *multipart.FileHeader
 	)
 
-	defer fixResult(rw, &err, place, nil)
+	defer fixResult(rw, err, place, nil)
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if username, *err = h.getNameFromCookie(r); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if input, handle, err = r.FormFile("file"); err != nil {
+	if input, handle, *err = r.FormFile("file"); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if input == nil {
+		*err = errors.New("no input")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -64,6 +65,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	defer input.Close()
 
 	if handle == nil {
+		*err = errors.New("no handle")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -75,19 +77,19 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "image/jpeg":
-		err = saveFile(filePath, fileName, input)
+		*err = saveFile(filePath, fileName, input)
 	case "image/png":
-		err = saveFile(filePath, fileName, input)
+		*err = saveFile(filePath, fileName, input)
 	default:
-		err = errors.New("wrong format of file:" + fileType)
+		*err = errors.New("wrong format of file:" + fileType)
 	}
 
-	if err != nil {
+	if *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if err = h.DB.PostImage(fileName, username); err != nil {
+	if *err = h.DB.PostImage(fileName, username); *err != nil {
 		// if error then lets delete uploaded image
 		_ = os.Remove(filePath)
 
@@ -134,19 +136,18 @@ func (h *Handler) Me(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "Me"
 	var (
-		err      error
+		err      *error
 		username string
 	)
 
-	defer fixResult(rw, &err, place, "")
+	defer fixResult(rw, err, place, "")
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if username, *err = h.getNameFromCookie(r); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-
+	if *err = sendPublicUser(h, rw, username, place); *err != nil {
 		return
 	}
 
@@ -193,22 +194,22 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
 		user models.UserPrivateInfo
-		err  error
+		err  *error
 	)
 
-	defer fixResult(rw, &err, place, "")
+	defer fixResult(rw, err, place, "")
 
-	if user, err = getUser(r); err != nil {
+	if user, *err = getUser(r); *err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	if _, err = h.DB.Login(&user); err != nil {
+	if _, *err = h.DB.Login(&user); *err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, user.Name, place); err != nil {
+	if *err = sendPublicUser(h, rw, user.Name, place); *err != nil {
 		return
 	}
 	return
@@ -218,32 +219,24 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
 	var (
-		err       error
+		err       *error
 		sessionID string
 	)
 
-	defer fixResult(rw, &err, place, "")
+	defer fixResult(rw, err, place, nil)
 
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+	if sessionID, *err = misc.GetSessionCookie(r); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
 		return
 	}
 
-	if err = h.DB.Logout(sessionID); err != nil {
+	if *err = h.DB.Logout(sessionID); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
 		return
 	}
 
-	http.SetCookie(rw, misc.CreateCookie(""))
+	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
-	//sendSuccessJSON(rw, place)
-
-	fmt.Println("api/logout ok")
-
 	return
 }
 

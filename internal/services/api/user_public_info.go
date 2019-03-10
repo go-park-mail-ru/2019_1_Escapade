@@ -5,19 +5,20 @@ import (
 	"net/http"
 )
 
-func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place string) (err error) {
+func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place string) error {
 
 	var (
 		user models.UserPublicInfo
+		err  *error
 	)
 
-	defer fixResult(rw, &err, place, user)
+	defer fixResult(rw, err, place, user)
 
-	if user, err = h.DB.GetProfile(username); err != nil {
+	if user, *err = h.DB.GetProfile(username); *err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		return
+		return *err
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	return
+	return *err
 }
