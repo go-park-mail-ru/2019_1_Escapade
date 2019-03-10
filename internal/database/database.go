@@ -21,7 +21,7 @@ type DataBase struct {
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) {
+func (db *DataBase) Login(user *models.UserPrivateInfo) (sessionCode string, username string, err error) {
 
 	if err = ValidatePrivateUI(user); err != nil {
 		fmt.Println("database/login - fail validation")
@@ -35,8 +35,13 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (str string, err error) 
 	}
 
 	fmt.Println("i give id", userID)
-	if str, err = db.createSession(userID); err != nil {
+	if sessionCode, err = db.createSession(userID); err != nil {
 		fmt.Println("database/login - fail creating Session")
+		return
+	}
+
+	if username, err = db.GetPlayerNamebyID(userID); err != nil {
+		fmt.Println("database/login - fail get name by id")
 		return
 	}
 

@@ -36,6 +36,15 @@ func (db *DataBase) GetPlayerIDbyName(username string) (id int, err error) {
 	return
 }
 
+// GetPlayerNamebyID get player's name by his id
+func (db *DataBase) GetPlayerNamebyID(id int) (username string, err error) {
+	sqlStatement := `SELECT name FROM Player WHERE id = $1`
+	row := db.Db.QueryRow(sqlStatement, id)
+
+	err = row.Scan(&username)
+	return
+}
+
 // GetNameByEmail get player's name by his email
 func (db DataBase) GetNameByEmail(email string) (name string, err error) {
 	sqlStatement := "SELECT name " +
