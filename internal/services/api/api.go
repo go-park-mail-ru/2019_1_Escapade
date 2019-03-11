@@ -439,8 +439,9 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		fmt.Println("api/PostImage failed")
 		return
 	}

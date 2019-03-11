@@ -25,3 +25,9 @@ func ErrorAuthorization() error {
 func ErrorAvatarNotFound() error {
 	return errors.New("Avatar not found")
 }
+
+// ErrorInvalidFile call it, if client give you
+// 	invalid file as a request parameter
+func ErrorInvalidFile() error {
+	return errors.New("Invalid file")
+}
