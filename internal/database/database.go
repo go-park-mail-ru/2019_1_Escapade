@@ -179,9 +179,9 @@ func (db *DataBase) GetUsers(page int) (players []models.UserPublicInfo, err err
 		SELECT id, name, email, best_score, best_time  
 		FROM Player
 		ORDER BY (best_score) desc
-		OFFSET $1 Limit $2
 		)
 		as P2 ON P1.id = P2.id
+		OFFSET $1 Limit $2
 `
 	size := db.PageUsers
 	players = make([]models.UserPublicInfo, 0, size)
