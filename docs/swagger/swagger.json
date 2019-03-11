@@ -10,6 +10,64 @@
     "host": "https://escapade-backend.herokuapp.com",
     "basePath": "/api/v1",
     "paths": {
+        "/user/Avatar": {
+            "get": {
+                "description": "Get user avatar",
+                "summary": "Get user avatar",
+                "operationId": "GetImage",
+                "responses": {
+                    "200": {
+                        "description": "Avatar found successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "Avatar not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create user avatar",
+                "summary": "Create user avatar",
+                "operationId": "PostImage",
+                "responses": {
+                    "201": {
+                        "description": "Avatar created successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "Avatar not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{name}/profile": {
             "get": {
                 "description": "return public information, such as name or best_score",
@@ -18,14 +76,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Profile email",
-                        "name": "email",
-                        "in": "path"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Profile nickname",
-                        "name": "nickname",
+                        "description": "User name",
+                        "name": "name",
                         "in": "path"
                     }
                 ],

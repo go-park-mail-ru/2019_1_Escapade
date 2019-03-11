@@ -28,18 +28,55 @@ info:
   title: Escapade API
   version: "1.0"
 paths:
+  /user/Avatar:
+    get:
+      description: Get user avatar
+      operationId: GetImage
+      responses:
+        "200":
+          description: Avatar found successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "404":
+          description: Avatar not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: Get user avatar
+    post:
+      description: Create user avatar
+      operationId: PostImage
+      responses:
+        "201":
+          description: Avatar created successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: Avatar not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: Create user avatar
   /users/{name}/profile:
     get:
       description: return public information, such as name or best_score
       operationId: GetProfile
       parameters:
-      - description: Profile email
+      - description: User name
         in: path
-        name: email
-        type: string
-      - description: Profile nickname
-        in: path
-        name: nickname
+        name: name
         type: string
       responses:
         "200":
