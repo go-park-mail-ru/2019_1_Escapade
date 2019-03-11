@@ -45,6 +45,8 @@ func main() {
 
 	r := mux.NewRouter()
 
+	r.PathPrefix("/api/v1/")
+
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
