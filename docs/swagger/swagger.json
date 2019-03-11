@@ -10,6 +10,116 @@
     "host": "https://escapade-backend.herokuapp.com",
     "basePath": "/api/v1",
     "paths": {
+        "/user": {
+            "get": {
+                "description": "get public user information",
+                "summary": "get user",
+                "operationId": "GetMyProfile",
+                "responses": {
+                    "200": {
+                        "description": "successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "update public info",
+                "summary": "update user information",
+                "operationId": "UpdateProfile",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid info",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create new user",
+                "summary": "create new user",
+                "operationId": "Register",
+                "responses": {
+                    "200": {
+                        "description": "successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "delete account",
+                "summary": "delete account",
+                "operationId": "DeleteAccount",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid input",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK1",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
         "/user/Avatar": {
             "get": {
                 "description": "Get user avatar",
@@ -60,6 +170,151 @@
                     },
                     "500": {
                         "description": "Avatar not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK4",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "post": {
+                "description": "login",
+                "summary": "login",
+                "operationId": "Login",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid name",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK2",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user/logout": {
+            "delete": {
+                "description": "logout",
+                "summary": "logout",
+                "operationId": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK3",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/users/pages_amount": {
+            "get": {
+                "description": "Get amount of users list page",
+                "summary": "amount of users list page",
+                "operationId": "GetUsersPageAmount",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Pages"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{name}/games/{page}": {
+            "get": {
+                "description": "Get amount of users list page",
+                "summary": "get users game",
+                "operationId": "GetPlayerGames",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Game"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid username or page",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "games not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
                         "schema": {
                             "type": "object",
                             "$ref": "#/definitions/models.Result"
@@ -147,6 +402,37 @@
         }
     },
     "definitions": {
+        "models.Game": {
+            "type": "object",
+            "properties": {
+                "exploded": {
+                    "type": "boolean"
+                },
+                "fieldHeight": {
+                    "type": "integer"
+                },
+                "fieldWidth": {
+                    "type": "integer"
+                },
+                "finihsed": {
+                    "type": "boolean"
+                },
+                "minsFound": {
+                    "type": "integer"
+                },
+                "minsTotal": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Pages": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Result": {
             "type": "object",
             "properties": {

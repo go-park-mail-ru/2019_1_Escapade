@@ -56,7 +56,12 @@ func saveFile(path string, name string, file multipart.File) (err error) {
 	return
 }
 
-// Ok always returns StatusOk
+// catch CORS preflight
+// @Summary catch CORS preflight
+// @Description catch CORS preflight
+// @ID OK1
+// @Success 200 "successfully"
+// @Router /user [OPTIONS]
 func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	sendSuccessJSON(rw, nil, "Ok")
@@ -65,7 +70,55 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Me returns my profile
+// catch CORS preflight
+// @Summary catch CORS preflight
+// @Description catch CORS preflight
+// @ID OK2
+// @Success 200 "successfully"
+// @Router /user/login [OPTIONS]
+func (h *Handler) Ok2(rw http.ResponseWriter, r *http.Request) {
+	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, "Ok")
+
+	fmt.Println("api/ok - ok")
+	return
+}
+
+// catch CORS preflight
+// @Summary catch CORS preflight
+// @Description catch CORS preflight
+// @ID OK3
+// @Success 200 "successfully"
+// @Router /user/logout [OPTIONS]
+func (h *Handler) Ok3(rw http.ResponseWriter, r *http.Request) {
+	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, "Ok")
+
+	fmt.Println("api/ok - ok")
+	return
+}
+
+// catch CORS preflight
+// @Summary catch CORS preflight
+// @Description catch CORS preflight
+// @ID OK4
+// @Success 200 "successfully"
+// @Router /user/Avatar [OPTIONS]
+func (h *Handler) Ok4(rw http.ResponseWriter, r *http.Request) {
+	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, "Ok")
+
+	fmt.Println("api/ok - ok")
+	return
+}
+
+// GetMyProfile get user profile
+// @Summary get user
+// @Description get public user information
+// @ID GetMyProfile
+// @Success 200 {object} models.UserPublicInfo "successfully"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user [GET]
 func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetMyProfile"
@@ -92,7 +145,13 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Register handle registration
+// Register create new user
+// @Summary create new user
+// @Description create new user
+// @ID Register
+// @Success 200 {object} models.Result "successfully"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user [POST]
 func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	const place = "Register"
 
@@ -125,9 +184,16 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// UpdateProfile
+// UpdateProfile updates profile
+// @Summary update user information
+// @Description update public info
+// @ID UpdateProfile
+// @Success 200 {object} models.Result "Get successfully"
+// @Failure 400 {object} models.Result "invalid info"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user [PUT]
 func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
-	const place = "Register"
+	const place = "UpdateProfile"
 
 	var (
 		user models.UserPrivateInfo
@@ -164,7 +230,14 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Login handle login
+// Login login
+// @Summary login
+// @Description login
+// @ID Login
+// @Success 200 {object} models.UserPublicInfo "Get successfully"
+// @Failure 400 {object} models.Result "invalid name"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user/login [POST]
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
@@ -201,7 +274,13 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Logout handle logout
+// Logout logout
+// @Summary logout
+// @Description logout
+// @ID Logout
+// @Success 200 {object} models.Result "Get successfully"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user/logout [DELETE]
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
 
@@ -231,7 +310,14 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DeleteAccount deletes user
+// DeleteAccount delete account
+// @Summary delete account
+// @Description delete account
+// @ID DeleteAccount
+// @Success 200 {object} models.Result "Get successfully"
+// @Failure 400 {object} models.Result "invalid input"
+// @Failure 500 {object} models.Result "server error"
+// @Router /user [DELETE]
 func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "DeleteAccount"
@@ -261,13 +347,20 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DeleteAccountOptions handle preCORS request
 func (h *Handler) DeleteAccountOptions(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/DeleteAccountOptions ok")
 	rw.WriteHeader(http.StatusOK)
 }
 
-// GetPlayerGames retur
+// GetPlayerGames get games
+// @Summary get users game
+// @Description Get amount of users list page
+// @ID GetPlayerGames
+// @Success 200 {array} models.Game "Get successfully"
+// @Failure 400 {object} models.Result "invalid username or page"
+// @Failure 404 {object} models.Result "games not found"
+// @Failure 500 {object} models.Result "server error"
+// @Router /users/{name}/games/{page} [GET]
 func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetPlayerGames"
 
@@ -306,7 +399,13 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/GetPlayerGames ok")
 }
 
-// GetUsersPageAmount returns amount of pages of users
+// GetUsersPageAmount get amount of users list page
+// @Summary amount of users list page
+// @Description Get amount of users list page
+// @ID GetUsersPageAmount
+// @Success 200 {object} models.Pages "Get successfully"
+// @Failure 500 {object} models.Result "Server error"
+// @Router /users/pages_amount [GET]
 func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsersPageAmount"
 

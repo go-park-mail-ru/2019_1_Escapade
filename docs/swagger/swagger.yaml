@@ -1,5 +1,25 @@
 basePath: /api/v1
 definitions:
+  models.Game:
+    properties:
+      exploded:
+        type: boolean
+      fieldHeight:
+        type: integer
+      fieldWidth:
+        type: integer
+      finihsed:
+        type: boolean
+      minsFound:
+        type: integer
+      minsTotal:
+        type: integer
+    type: object
+  models.Pages:
+    properties:
+      amount:
+        type: integer
+    type: object
   models.Result:
     properties:
       message:
@@ -20,14 +40,90 @@ definitions:
       name:
         type: string
     type: object
-host: https://escapade-backend.herokuapp.com
+host: "https://escapade-backend.herokuapp.com"
 info:
-  contact: {}
   description: Documentation
-  license: {}
   title: Escapade API
   version: "1.0"
 paths:
+  /user:
+    delete:
+      description: delete account
+      operationId: DeleteAccount
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "400":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: delete account
+    get:
+      description: get public user information
+      operationId: GetMyProfile
+      responses:
+        "200":
+          description: successfully
+          schema:
+            $ref: '#/definitions/models.UserPublicInfo'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: get user
+    options:
+      description: catch CORS preflight
+      operationId: OK1
+      responses:
+        "200":
+          description: successfully
+      summary: catch CORS preflight
+    post:
+      description: create new user
+      operationId: Register
+      responses:
+        "200":
+          description: successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: create new user
+    put:
+      description: update public info
+      operationId: UpdateProfile
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "400":
+          description: invalid info
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: update user information
   /user/Avatar:
     get:
       description: Get user avatar
@@ -49,6 +145,13 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Get user avatar
+    options:
+      description: catch CORS preflight
+      operationId: OK4
+      responses:
+        "200":
+          description: successfully
+      summary: catch CORS preflight
     post:
       description: Create user avatar
       operationId: PostImage
@@ -69,15 +172,87 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Create user avatar
-  /users/{name}/profile:
+  /user/login:
+    options:
+      description: catch CORS preflight
+      operationId: OK2
+      responses:
+        "200":
+          description: successfully
+      summary: catch CORS preflight
+    post:
+      description: login
+      operationId: Login
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.UserPublicInfo'
+            type: object
+        "400":
+          description: invalid name
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: login
+  /user/logout:
+    delete:
+      description: logout
+      operationId: Logout
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: logout
+    options:
+      description: catch CORS preflight
+      operationId: OK3
+      responses:
+        "200":
+          description: successfully
+    get:
+      description: Get amount of users list page
+      operationId: GetPlayerGames
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            items:
+              $ref: '#/definitions/models.Game'
+            type: array
+        "400":
+          description: invalid username or page
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "404":
+          description: games not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: get users game
+ /users/username/profile:
     get:
       description: return public information, such as name or best_score
       operationId: GetProfile
-      parameters:
-      - description: User name
-        in: path
-        name: name
-        type: string
+     
       responses:
         "200":
           description: Profile found successfully
@@ -95,7 +270,7 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Get some of user fields
-  /users/{page}:
+  /users/page:
     get:
       description: Get page of user list
       operationId: GetUsers
@@ -122,4 +297,20 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Get users list
+  /users/pages_amount:
+    get:
+      description: Get amount of users list page
+      operationId: GetUsersPageAmount
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.Pages'
+            type: object
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: amount of users list page
 swagger: "2.0"
