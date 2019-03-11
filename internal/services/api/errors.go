@@ -13,3 +13,15 @@ func ErrorInvalidName() error {
 func ErrorUserNotFound() error {
 	return errors.New("User not found")
 }
+
+// ErrorAuthorization call it, if client
+// 	hasnt session cookie
+func ErrorAuthorization() error {
+	return errors.New("Required authorization")
+}
+
+// ErrorAvatarNotFound call it, if you cant
+// find avatar
+func ErrorAvatarNotFound() error {
+	return errors.New("Avatar not found")
+}

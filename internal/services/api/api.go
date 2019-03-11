@@ -34,80 +34,6 @@ func Init(DB *database.DataBase, storage config.FileStorageConfig) (handler *Han
 	return
 }
 
-// PostImage posts avatar
-func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
-	const place = "PostImage"
-
-	var (
-		err    error
-		input  multipart.File
-		userID int
-		handle *multipart.FileHeader
-	)
-
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	if input, handle, err = r.FormFile("file"); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	if input == nil {
-		err = errors.New("no input")
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	defer input.Close()
-
-	if handle == nil {
-		err = errors.New("no handle")
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	fileType := handle.Header.Get("Content-Type")
-	fileName := handle.Filename
-	storagePath := h.PlayersAvatarsStorage
-	filePath := storagePath + strconv.Itoa(userID)
-
-	switch fileType {
-	case "image/jpeg":
-		err = saveFile(filePath, fileName, input)
-	case "image/png":
-		err = saveFile(filePath, fileName, input)
-	default:
-		err = errors.New("wrong format of file:" + fileType)
-	}
-
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	if err = h.DB.PostImage(fileName, userID); err != nil {
-		// if error then lets delete uploaded image
-		_ = os.Remove(filePath)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	rw.WriteHeader(http.StatusCreated)
-}
-
 func saveFile(path string, name string, file multipart.File) (err error) {
 	var (
 		data []byte
@@ -448,6 +374,14 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/GetPlayerGames ok")
 }
 
+// GetImage returns user avatar
+// @Summary Get user avatar
+// @Description Get user avatar
+// @ID GetImage
+// @Success 200 {object} models.Result "Avatar found successfully"
+// @Failure 401 {object} models.Result "Required authorization"
+// @Failure 404 {object} models.Result "Avatar not found"
+// @Router /user/Avatar [GET]
 func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
@@ -459,44 +393,119 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if filename, err = h.DB.GetImage(userID); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetImage cant found file")
-
+		rw.WriteHeader(http.StatusOK)
+		sendErrorJSON(rw, ErrorAvatarNotFound(), place)
+		printResult(err, http.StatusOK, place)
 		return
 	}
 
 	filepath = h.PlayersAvatarsStorage + strconv.Itoa(userID) + "/" + filename
 
 	if file, err = ioutil.ReadFile(filepath); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetImage cant found file")
-
+		rw.WriteHeader(http.StatusNoContent)
+		sendErrorJSON(rw, ErrorAvatarNotFound(), place)
+		printResult(err, http.StatusNoContent, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(file)
-	fmt.Println("api/GetImage ok")
+	printResult(err, http.StatusOK, place)
+}
 
+// PostImage create avatar
+// @Summary Create user avatar
+// @Description Create user avatar
+// @ID PostImage
+// @Success 201 {object} models.Result "Avatar created successfully"
+// @Failure 401 {object} models.Result "Required authorization"
+// @Failure 500 {object} models.Result "Avatar not found"
+// @Router /user/Avatar [POST]
+func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
+	const place = "PostImage"
+
+	var (
+		err    error
+		input  multipart.File
+		userID int
+		handle *multipart.FileHeader
+	)
+
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if input, handle, err = r.FormFile("file"); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if input == nil {
+		err = errors.New("no input")
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	defer input.Close()
+
+	if handle == nil {
+		err = errors.New("no handle")
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fileType := handle.Header.Get("Content-Type")
+	fileName := handle.Filename
+	storagePath := h.PlayersAvatarsStorage
+	filePath := storagePath + strconv.Itoa(userID)
+
+	switch fileType {
+	case "image/jpeg":
+		err = saveFile(filePath, fileName, input)
+	case "image/png":
+		err = saveFile(filePath, fileName, input)
+	default:
+		err = errors.New("wrong format of file:" + fileType)
+	}
+
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		return
+	}
+
+	if err = h.DB.PostImage(fileName, userID); err != nil {
+		// if error then lets delete uploaded image
+		_ = os.Remove(filePath)
+		sendErrorJSON(rw, err, place)
+		fmt.Println("api/PostImage failed")
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusCreated)
 }
 
 // GetProfile returns model UserPublicInfo
 // @Summary Get some of user fields
 // @Description return public information, such as name or best_score
 // @ID GetProfile
-// @Param email path string false "Profile email"
-// @Param nickname path string false "Profile nickname"
+// @Param name path string false "User name"
 // @Success 200 {object} models.UserPublicInfo "Profile found successfully"
 // @Failure 400 {object} models.Result "Invalid username"
 // @Failure 404 {object} models.Result "User not found"
