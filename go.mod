@@ -67,7 +67,9 @@ require (
 	github.com/shurcooL/webdavfs v0.0.0-20181215192745-5988b2d638f6 // indirect
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	github.com/streadway/amqp v0.0.0-20190225234609-30f8ed68076e
+	github.com/swaggo/files v0.0.0-20190110041405-30649e0721f8 // indirect
 	github.com/swaggo/gin-swagger v1.1.0
+	github.com/swaggo/http-swagger v0.0.0-20190219123516-d2bf002bf65b
 	github.com/swaggo/swag v1.4.1
 	github.com/ugorji/go/codec v0.0.0-20190309163734-c4a1c341dc93 // indirect
 	github.com/uudashr/gopkgs v2.0.1+incompatible // indirect
