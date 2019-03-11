@@ -491,18 +491,46 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetProfile returns model UserPublicInfo
+// @Summary Get some of user fields
+// @Description return public information, such as name or best_score
+// @ID GetProfile
+// @Param email path string false "Profile email"
+// @Param nickname path string false "Profile nickname"
+// @Success 200 {object} models.UserPublicInfo "Profile found successfully"
+// @Failure 400 {object} models.Result "Invalid username"
+// @Failure 404 {object} models.Result "User not found"
+// @Router /users/{name}/profile [GET]
 func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetProfile"
-	vars := mux.Vars(r)
 
-	if err := sendPublicUser(h, rw, vars["name"], place); err != nil {
+	var (
+		err      error
+		username string
+	)
+
+	vars := mux.Vars(r)
+	username = vars["name"]
+
+	if username == "" {
+		err = ErrorInvalidName()
+		rw.WriteHeader(http.StatusBadGateway)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadGateway, place)
+		return
+	}
+
+	if err = sendPublicUser(h, rw, username, place); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		fmt.Println("api/GetProfile failed")
+		sendErrorJSON(rw, ErrorUserNotFound(), place)
+		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	fmt.Println("api/GetProfile ok")
+	printResult(err, http.StatusOK, place)
 
 	return
 }
+
+// 536

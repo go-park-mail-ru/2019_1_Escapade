@@ -7,6 +7,14 @@ import (
 	"net/http"
 )
 
+func printResult(catched error, number int, place string) {
+	if catched != nil {
+		fmt.Println("api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
+	} else {
+		fmt.Println("api/"+place+" success(code:", number, ")")
+	}
+}
+
 func sendErrorJSON(rw http.ResponseWriter, catched error, place string) {
 	var (
 		result models.Result

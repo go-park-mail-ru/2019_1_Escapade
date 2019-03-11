@@ -17,6 +17,12 @@ const (
 	confPath = "conf.json"
 )
 
+// @title Escapade API
+// @version 1.0
+// @description Documentation
+
+// @host https://escapade-backend.herokuapp.com
+// @BasePath /api/v1
 func main() {
 
 	fmt.Println("Ok")
