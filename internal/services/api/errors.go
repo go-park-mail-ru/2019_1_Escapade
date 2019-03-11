@@ -8,10 +8,22 @@ func ErrorInvalidName() error {
 	return errors.New("Invalid username")
 }
 
+// ErrorInvalidPage call it, if client give you
+// 	invalid username as a request parameter
+func ErrorInvalidPage() error {
+	return errors.New("Invalid page")
+}
+
 // ErrorUserNotFound call it, if you cant
 // 	find user
 func ErrorUserNotFound() error {
 	return errors.New("User not found")
+}
+
+// ErrorUsersNotFound call it, if you cant
+// 	find users
+func ErrorUsersNotFound() error {
+	return errors.New("Users not found")
 }
 
 // ErrorAuthorization call it, if client
@@ -36,6 +48,11 @@ func ErrorInvalidFile() error {
 // 	invalid file as a request parameter
 func ErrorInvalidFileFormat() error {
 	return errors.New("Invalid file format. Use .png or .jpg only")
+}
+
+// ErrorDataBase  call it, if error in database
+func ErrorDataBase() error {
+	return errors.New("DataBase error")
 }
 
 // ErrorServer  call it, if error internal

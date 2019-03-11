@@ -336,10 +336,17 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("api/GetUsersAmount ok")
 }
 
-// GetPlayerGames handle get games list
+// GetUsers get users list
+// @Summary Get users list
+// @Description Get page of user list
+// @ID GetUsers
+// @Success 200 {array} models.Result "Get successfully"
+// @Failure 400 {object} models.Result "Invalid pade"
+// @Failure 404 {object} models.Result "Users not found"
+// @Failure 500 {object} models.Result "Server error"
+// @Router /users/{page} [GET]
 func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsers"
-
 	var (
 		err   error
 		users []models.UserPublicInfo
@@ -348,30 +355,29 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if page, err = h.getPage(r); err != nil {
-		fmt.Println("No page found")
-
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, ErrorInvalidPage(), place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if users, err = h.DB.GetUsers(page); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		rw.WriteHeader(http.StatusNoContent)
+		sendErrorJSON(rw, ErrorUsersNotFound(), place)
+		printResult(err, http.StatusNoContent, place)
 		return
 	}
 
 	if bytes, err = json.Marshal(users); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetPlayerGames cant create json")
+		sendErrorJSON(rw, ErrorServer(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(bytes)
-	fmt.Println("api/GetPlayerGames ok")
+	printResult(err, http.StatusOK, place)
 }
 
 // GetImage returns user avatar
@@ -479,11 +485,10 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.DB.PostImage(fileName, userID); err != nil {
-		// if error then lets delete uploaded image
-		_ = os.Remove(filePath)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
+		_ = os.Remove(filePath) // if error then lets delete uploaded image
 		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, ErrorDataBase(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 

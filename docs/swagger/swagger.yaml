@@ -95,4 +95,31 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Get some of user fields
+  /users/{page}:
+    get:
+      description: Get page of user list
+      operationId: GetUsers
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            items:
+              $ref: '#/definitions/models.Result'
+            type: array
+        "400":
+          description: Invalid pade
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "404":
+          description: Users not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: Get users list
 swagger: "2.0"
