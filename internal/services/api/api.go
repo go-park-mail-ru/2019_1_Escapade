@@ -400,9 +400,9 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if filename, err = h.DB.GetImage(userID); err != nil {
-		rw.WriteHeader(http.StatusOK)
+		rw.WriteHeader(http.StatusNoContent)
 		sendErrorJSON(rw, ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusOK, place)
+		printResult(err, http.StatusNoContent, place)
 		return
 	}
 
@@ -442,32 +442,17 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusUnauthorized)
 		sendErrorJSON(rw, ErrorAuthorization(), place)
 		printResult(err, http.StatusUnauthorized, place)
-		fmt.Println("api/PostImage failed")
 		return
 	}
 
-	if input, handle, err = r.FormFile("file"); err != nil {
+	if input, handle, err = r.FormFile("file"); err != nil || input == nil || handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
-		return
-	}
-
-	if input == nil {
-		err = errors.New("no input")
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
+		sendErrorJSON(rw, ErrorInvalidFile(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	defer input.Close()
-
-	if handle == nil {
-		err = errors.New("no handle")
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 
 	fileType := handle.Header.Get("Content-Type")
 	fileName := handle.Filename
@@ -480,13 +465,16 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	case "image/png":
 		err = saveFile(filePath, fileName, input)
 	default:
-		err = errors.New("wrong format of file:" + fileType)
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, ErrorInvalidFileFormat(), place)
+		printResult(err, http.StatusBadRequest, place)
+		return
 	}
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/PostImage failed")
+		sendErrorJSON(rw, ErrorServer(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 

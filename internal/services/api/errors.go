@@ -31,3 +31,14 @@ func ErrorAvatarNotFound() error {
 func ErrorInvalidFile() error {
 	return errors.New("Invalid file")
 }
+
+// ErrorInvalidFileFormat call it, if client give you
+// 	invalid file as a request parameter
+func ErrorInvalidFileFormat() error {
+	return errors.New("Invalid file format. Use .png or .jpg only")
+}
+
+// ErrorServer  call it, if error internal
+func ErrorServer() error {
+	return errors.New("Server error")
+}
