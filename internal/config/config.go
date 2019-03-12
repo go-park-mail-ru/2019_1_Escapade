@@ -24,6 +24,10 @@ type CORSConfig struct {
 	Methods     []string `json:"methods"`
 }
 
+// DatabaseConfig set type of database management system
+//   the url of connection string, max amount of
+//   connections, tables, sizes of page  of gamers
+//   and users
 type DatabaseConfig struct {
 	DriverName   string   `json:"driverName"`
 	URL          string   `json:"url"`
@@ -33,10 +37,14 @@ type DatabaseConfig struct {
 	PageUsers    int      `json:"pageUsers"`
 }
 
+// FileStorageConfig set, where avatars store and
+//    what mode set to files/directories
 type FileStorageConfig struct {
 	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
+	FileMode              int    `json:"fileMode"`
 }
 
+// Init load configuration file
 func Init(path string) (conf Configuration, return_error error) {
 	conf = Configuration{}
 	data, err := ioutil.ReadFile(path)

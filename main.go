@@ -54,15 +54,13 @@ func main() {
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
 	r.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	r.HandleFunc("/user/logout", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
-	r.HandleFunc("/user/logout", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	r.HandleFunc("/session", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
+	r.HandleFunc("/session", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
+	r.HandleFunc("/session", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	r.HandleFunc("/user/login", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
-	r.HandleFunc("/user/login", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
-
-	r.HandleFunc("/user/Avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
-	r.HandleFunc("/user/Avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
-	r.HandleFunc("/user/Avatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	r.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
+	r.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
+	r.HandleFunc("/avatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
 	r.HandleFunc("/users", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
 	r.HandleFunc("/users/pages/{page}", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")

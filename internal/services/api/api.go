@@ -1,8 +1,6 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
 	"escapade/internal/config"
 	database "escapade/internal/database"
 	"escapade/internal/misc"
@@ -24,6 +22,7 @@ import (
 type Handler struct {
 	DB                    database.DataBase
 	PlayersAvatarsStorage string
+	FileMode              int
 }
 
 // Init creates Handler
@@ -31,26 +30,23 @@ func Init(DB *database.DataBase, storage config.FileStorageConfig) (handler *Han
 	handler = &Handler{
 		DB:                    *DB,
 		PlayersAvatarsStorage: storage.PlayersAvatarsStorage,
+		FileMode:              storage.FileMode,
 	}
 	return
 }
 
-func saveFile(path string, name string, file multipart.File) (err error) {
+func saveFile(path string, name string, file multipart.File, mode os.FileMode) (err error) {
 	var (
 		data []byte
 	)
 
-	// вынести в конфиг
-	const mode777 = 0777
-	const mode666 = 0666
-
-	os.MkdirAll(path, mode777)
+	os.MkdirAll(path, mode)
 
 	if data, err = ioutil.ReadAll(file); err != nil {
 		return
 	}
 
-	if err = ioutil.WriteFile(path+"/"+name, data, mode666); err != nil {
+	if err = ioutil.WriteFile(path+"/"+name, data, mode); err != nil {
 		return
 	}
 
@@ -233,9 +229,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 // @Description login
 // @ID Login
 // @Success 200 {object} models.UserPublicInfo "Get successfully"
-// @Failure 400 {object} models.Result "invalid name"
+// @Failure 400 {object} models.Result "invalid name/email or password"
 // @Failure 500 {object} models.Result "server error"
-// @Router /user/login [POST]
+// @Router /session [POST]
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
@@ -248,27 +244,27 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/Login failed")
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	if sessionID, username, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/Login failed")
+		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 	misc.CreateAndSet(rw, sessionID)
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
-		fmt.Println("api/Login failed")
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, re.ErrorDataBase(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	fmt.Println("api/Login ok")
-
+	printResult(err, http.StatusOK, place)
 	return
 }
 
@@ -277,34 +273,34 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 // @Description logout
 // @ID Logout
 // @Success 200 {object} models.Result "Get successfully"
+// @Success 401 {object} models.Result "Require authorization"
 // @Failure 500 {object} models.Result "server error"
-// @Router /user/logout [DELETE]
+// @Router /session [DELETE]
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
-
 	var (
 		err       error
 		sessionID string
 	)
 
 	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if err = h.DB.Logout(sessionID); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		sendErrorJSON(rw, re.ErrorDataBase(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
 	sendSuccessJSON(rw, nil, place)
-
-	fmt.Println("api/logout ok")
-
+	printResult(err, http.StatusOK, place)
 	return
 }
 
@@ -327,27 +323,21 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/DeleteAccount failed")
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	if err = h.DB.DeleteAccount(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/DeleteAccount failed")
+		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
-
-	fmt.Println("api/DeleteAccount ok")
+	printResult(err, http.StatusOK, place)
 	return
-}
-
-func (h *Handler) DeleteAccountOptions(rw http.ResponseWriter, r *http.Request) {
-	fmt.Println("api/DeleteAccountOptions ok")
-	rw.WriteHeader(http.StatusOK)
 }
 
 // GetPlayerGames get games
@@ -357,7 +347,7 @@ func (h *Handler) DeleteAccountOptions(rw http.ResponseWriter, r *http.Request) 
 // @Success 200 {array} models.Game "Get successfully"
 // @Failure 400 {object} models.Result "invalid username or page"
 // @Failure 404 {object} models.Result "games not found"
-// @Failure 500 {object} models.Result "server error"
+// @Failure 500 {object} models.Result "Databse error"
 // @Router /users/{name}/games/{page} [GET]
 func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetPlayerGames"
@@ -365,36 +355,28 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	var (
 		err      error
 		games    []models.Game
-		bytes    []byte
 		username string
 		page     int
 	)
 
 	if page, username, err = h.getNameAndPage(r); err != nil {
-		fmt.Println("No username found")
-
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, errors.New("No username found"), place)
+		rw.WriteHeader(http.StatusForbidden)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	if games, err = h.DB.GetGames(username, page); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
+		rw.WriteHeader(http.StatusNotFound)
+		sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
+		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	if bytes, err = json.Marshal(games); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetPlayerGames cant create json")
-		return
-	}
-
+	sendSuccessJSON(rw, games, place)
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(bytes)
-	fmt.Println("api/GetPlayerGames ok")
+	printResult(err, http.StatusOK, place)
+	return
 }
 
 // GetUsersPageAmount get amount of users list page
@@ -410,27 +392,18 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	var (
 		pages models.Pages
 		err   error
-		bytes []byte
 	)
 
 	if pages.Amount, err = h.DB.GetUsersPageAmount(); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/GetUsersPageAmount cant work with DB")
+		sendErrorJSON(rw, re.ErrorDataBase(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
-	if bytes, err = json.Marshal(pages); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-
-		fmt.Println("api/GetUsersAmount cant create json")
-		return
-	}
-
+	sendSuccessJSON(rw, pages, place)
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(bytes)
-	fmt.Println("api/GetUsersAmount ok")
+	printResult(err, http.StatusOK, place)
 }
 
 // GetUsers get users list
@@ -447,7 +420,6 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	var (
 		err   error
 		users []models.UserPublicInfo
-		bytes []byte
 		page  int
 	)
 
@@ -459,21 +431,14 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if users, err = h.DB.GetUsers(page); err != nil {
-		rw.WriteHeader(http.StatusNoContent)
+		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
-		printResult(err, http.StatusNoContent, place)
+		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	if bytes, err = json.Marshal(users); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorServer(), place)
-		printResult(err, http.StatusInternalServerError, place)
-		return
-	}
-
+	sendSuccessJSON(rw, users, place)
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(bytes)
 	printResult(err, http.StatusOK, place)
 }
 
@@ -484,7 +449,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} models.Result "Avatar found successfully"
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 404 {object} models.Result "Avatar not found"
-// @Router /user/Avatar [GET]
+// @Router /avatar [GET]
 func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
@@ -503,18 +468,18 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if filename, err = h.DB.GetImage(userID); err != nil {
-		rw.WriteHeader(http.StatusNoContent)
+		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusNoContent, place)
+		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
 	filepath = h.PlayersAvatarsStorage + strconv.Itoa(userID) + "/" + filename
 
 	if file, err = ioutil.ReadFile(filepath); err != nil {
-		rw.WriteHeader(http.StatusNoContent)
+		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusNoContent, place)
+		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
@@ -530,7 +495,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} models.Result "Avatar created successfully"
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "Avatar not found"
-// @Router /user/Avatar [POST]
+// @Router /avatar [POST]
 func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "PostImage"
 
@@ -564,9 +529,9 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "image/jpeg":
-		err = saveFile(filePath, fileName, input)
+		err = saveFile(filePath, fileName, input, os.FileMode(h.FileMode))
 	case "image/png":
-		err = saveFile(filePath, fileName, input)
+		err = saveFile(filePath, fileName, input, os.FileMode(h.FileMode))
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
@@ -589,6 +554,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sendSuccessJSON(rw, nil, place)
 	rw.WriteHeader(http.StatusCreated)
 }
 
@@ -629,8 +595,5 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
-
 	return
 }
-
-// 536

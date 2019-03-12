@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"escapade/internal/misc"
+	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
 
@@ -42,7 +43,7 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	vars = mux.Vars(r)
 
 	if username = vars["name"]; username == "" {
-		err = errors.New("No username found")
+		err = re.ErrorInvalidName()
 		return
 	}
 
@@ -50,7 +51,7 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 		page = 1
 	} else {
 		if page, err = strconv.Atoi(vars["page"]); err != nil {
-			err = errors.New("Error page")
+			err = re.ErrorInvalidPage()
 			return
 		}
 		if page < 1 {

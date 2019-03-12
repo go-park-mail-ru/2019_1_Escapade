@@ -8,6 +8,7 @@ import (
 
 const (
 	NameCookie      = "sessionid"
+	pathCoolie      = "/"
 	LengthCookie    = 16
 	years           = 0
 	months          = 0
@@ -29,11 +30,13 @@ func CreateImageName() string {
 }
 
 func CreateCookie(value string) (cookie *http.Cookie) {
-	cookie = &http.Cookie{}
-	cookie.MaxAge = LifetimeCookie
-	cookie.Name = NameCookie
-	cookie.Value = value
-	cookie.Path = "/"
+	cookie = &http.Cookie{
+		Name:     NameCookie,
+		Value:    value,
+		Path:     pathCoolie,
+		MaxAge:   LifetimeCookie,
+		HttpOnly: true,
+	}
 	return
 }
 

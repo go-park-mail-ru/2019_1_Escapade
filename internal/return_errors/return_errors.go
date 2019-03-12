@@ -62,6 +62,12 @@ func ErrorUsersNotFound() error {
 	return errors.New("Users not found")
 }
 
+// ErrorGamesNotFound call it, if you cant
+// 	find games
+func ErrorGamesNotFound() error {
+	return errors.New("Games not found")
+}
+
 // ErrorAuthorization call it, if client
 // 	hasnt session cookie
 func ErrorAuthorization() error {
