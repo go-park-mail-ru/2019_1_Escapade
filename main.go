@@ -1,8 +1,6 @@
 package main
 
 import (
-	"escapade/internal/config"
-	"escapade/internal/database"
 	mi "escapade/internal/middleware"
 	"escapade/internal/services/api"
 	"fmt"
@@ -14,10 +12,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-const (
-	confPath = "conf.json"
-)
-
 // @title Escapade API
 // @version 1.0
 // @description Documentation
@@ -25,27 +19,17 @@ const (
 // @host https://escapade-backend.herokuapp.com
 // @BasePath /api/v1
 func main() {
+	const confPath = "conf.json"
 
-	fmt.Println("Ok")
-	conf, confErr := config.Init(confPath)
-
-	fmt.Println("Ok")
-	if confErr != nil {
-		panic(confErr)
+	API, conf, err := api.GetHandler(confPath) // init.go
+	if err != nil {
+		fmt.Println("Some error with configuration file or database" + err.Error())
+		return
 	}
-
-	fmt.Println("Ok")
-	db, dbErr := database.Init(conf.DataBase)
-	if dbErr != nil {
-		panic(dbErr)
-	}
-
-	fmt.Println("Ok")
-	API := api.Init(db, conf.Storage)
 
 	r := mux.NewRouter()
 
-	r.PathPrefix("/api/v1/")
+	//r.PathPrefix("/api/v1/")
 
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
@@ -78,6 +62,7 @@ func main() {
 		os.Setenv("PORT", "3000")
 	}
 
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), r)
-	fmt.Println("oh, this is error:" + err.Error())
+	if err = http.ListenAndServe(":"+os.Getenv("PORT"), r); err != nil {
+		fmt.Println("oh, this is error:" + err.Error())
+	}
 }

@@ -10,117 +10,7 @@
     "host": "https://escapade-backend.herokuapp.com",
     "basePath": "/api/v1",
     "paths": {
-        "/user": {
-            "get": {
-                "description": "get public user information",
-                "summary": "get user",
-                "operationId": "GetMyProfile",
-                "responses": {
-                    "200": {
-                        "description": "successfully",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.UserPublicInfo"
-                        }
-                    },
-                    "500": {
-                        "description": "server error",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "update public info",
-                "summary": "update user information",
-                "operationId": "UpdateProfile",
-                "responses": {
-                    "200": {
-                        "description": "Get successfully",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "400": {
-                        "description": "invalid info",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "500": {
-                        "description": "server error",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "create new user",
-                "summary": "create new user",
-                "operationId": "Register",
-                "responses": {
-                    "200": {
-                        "description": "successfully",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "500": {
-                        "description": "server error",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "delete account",
-                "summary": "delete account",
-                "operationId": "DeleteAccount",
-                "responses": {
-                    "200": {
-                        "description": "Get successfully",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "400": {
-                        "description": "invalid input",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "500": {
-                        "description": "server error",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    }
-                }
-            },
-            "options": {
-                "description": "catch CORS preflight",
-                "summary": "catch CORS preflight",
-                "operationId": "OK1",
-                "responses": {
-                    "200": {
-                        "description": "successfully"
-                    }
-                }
-            }
-        },
-        "/user/Avatar": {
+        "/avatar": {
             "get": {
                 "description": "Get user avatar",
                 "summary": "Get user avatar",
@@ -176,19 +66,9 @@
                         }
                     }
                 }
-            },
-            "options": {
-                "description": "catch CORS preflight",
-                "summary": "catch CORS preflight",
-                "operationId": "OK4",
-                "responses": {
-                    "200": {
-                        "description": "successfully"
-                    }
-                }
             }
         },
-        "/user/login": {
+        "/session": {
             "post": {
                 "description": "login",
                 "summary": "login",
@@ -202,7 +82,142 @@
                         }
                     },
                     "400": {
-                        "description": "invalid name",
+                        "description": "invalid name/email or password",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "logout",
+                "summary": "logout",
+                "operationId": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Require authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/user": {
+            "get": {
+                "description": "get public user information",
+                "summary": "get user",
+                "operationId": "GetMyProfile",
+                "responses": {
+                    "200": {
+                        "description": "successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "update public info",
+                "summary": "update user information",
+                "operationId": "UpdateProfile",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid info",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create new user",
+                "summary": "create new user",
+                "operationId": "Register",
+                "responses": {
+                    "201": {
+                        "description": "Create user successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid information",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "delete account",
+                "summary": "delete account",
+                "operationId": "DeleteAccount",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid input",
                         "schema": {
                             "type": "object",
                             "$ref": "#/definitions/models.Result"
@@ -220,6 +235,30 @@
             "options": {
                 "description": "catch CORS preflight",
                 "summary": "catch CORS preflight",
+                "operationId": "OK1",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user/Avatar": {
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK4",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
                 "operationId": "OK2",
                 "responses": {
                     "200": {
@@ -229,27 +268,6 @@
             }
         },
         "/user/logout": {
-            "delete": {
-                "description": "logout",
-                "summary": "logout",
-                "operationId": "Logout",
-                "responses": {
-                    "200": {
-                        "description": "Get successfully",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "500": {
-                        "description": "server error",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    }
-                }
-            },
             "options": {
                 "description": "catch CORS preflight",
                 "summary": "catch CORS preflight",
@@ -314,7 +332,7 @@
                         }
                     },
                     "500": {
-                        "description": "server error",
+                        "description": "Databse error",
                         "schema": {
                             "type": "object",
                             "$ref": "#/definitions/models.Result"

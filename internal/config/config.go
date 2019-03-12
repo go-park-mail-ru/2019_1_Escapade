@@ -45,18 +45,14 @@ type FileStorageConfig struct {
 }
 
 // Init load configuration file
-func Init(path string) (conf Configuration, return_error error) {
-	conf = Configuration{}
-	data, err := ioutil.ReadFile(path)
+func Init(path string) (conf *Configuration, err error) {
+	conf = &Configuration{}
+	var data []byte
 
-	if err != nil {
-		return_error = err
+	if data, err = ioutil.ReadFile(path); err != nil {
 		return
 	}
-
-	if return_error = json.Unmarshal(data, &conf); return_error != nil {
-		return
-	}
+	err = json.Unmarshal(data, conf)
 
 	return
 }

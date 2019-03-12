@@ -40,12 +40,96 @@ definitions:
       name:
         type: string
     type: object
-host: "https://escapade-backend.herokuapp.com"
+host: https://escapade-backend.herokuapp.com
 info:
+  contact: {}
   description: Documentation
+  license: {}
   title: Escapade API
   version: "1.0"
 paths:
+  /avatar:
+    get:
+      description: Get user avatar
+      operationId: GetImage
+      responses:
+        "200":
+          description: Avatar found successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "404":
+          description: Avatar not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: Get user avatar
+    post:
+      description: Create user avatar
+      operationId: PostImage
+      responses:
+        "201":
+          description: Avatar created successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: Avatar not found
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: Create user avatar
+  /session:
+    delete:
+      description: logout
+      operationId: Logout
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "401":
+          description: Require authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: logout
+    post:
+      description: login
+      operationId: Login
+      responses:
+        "200":
+          description: Get successfully
+          schema:
+            $ref: '#/definitions/models.UserPublicInfo'
+            type: object
+        "400":
+          description: invalid name/email or password
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
+      summary: login
   /user:
     delete:
       description: delete account
@@ -76,6 +160,11 @@ paths:
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
             type: object
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: server error
           schema:
@@ -93,13 +182,13 @@ paths:
       description: create new user
       operationId: Register
       responses:
-        "200":
-          description: successfully
+        "201":
+          description: Create user successfully
           schema:
             $ref: '#/definitions/models.Result'
             type: object
-        "500":
-          description: server error
+        "400":
+          description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
             type: object
@@ -125,26 +214,6 @@ paths:
             type: object
       summary: update user information
   /user/Avatar:
-    get:
-      description: Get user avatar
-      operationId: GetImage
-      responses:
-        "200":
-          description: Avatar found successfully
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "401":
-          description: Required authorization
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "404":
-          description: Avatar not found
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: Get user avatar
     options:
       description: catch CORS preflight
       operationId: OK4
@@ -152,26 +221,6 @@ paths:
         "200":
           description: successfully
       summary: catch CORS preflight
-    post:
-      description: Create user avatar
-      operationId: PostImage
-      responses:
-        "201":
-          description: Avatar created successfully
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "401":
-          description: Required authorization
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: Avatar not found
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: Create user avatar
   /user/login:
     options:
       description: catch CORS preflight
@@ -180,48 +229,15 @@ paths:
         "200":
           description: successfully
       summary: catch CORS preflight
-    post:
-      description: login
-      operationId: Login
-      responses:
-        "200":
-          description: Get successfully
-          schema:
-            $ref: '#/definitions/models.UserPublicInfo'
-            type: object
-        "400":
-          description: invalid name
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: server error
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: login
   /user/logout:
-    delete:
-      description: logout
-      operationId: Logout
-      responses:
-        "200":
-          description: Get successfully
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: server error
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: logout
     options:
       description: catch CORS preflight
       operationId: OK3
       responses:
         "200":
           description: successfully
+      summary: catch CORS preflight
+  /users/{name}/games/{page}:
     get:
       description: Get amount of users list page
       operationId: GetPlayerGames
@@ -243,16 +259,20 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
         "500":
-          description: server error
+          description: Databse error
           schema:
             $ref: '#/definitions/models.Result'
             type: object
       summary: get users game
- /users/username/profile:
+  /users/{name}/profile:
     get:
       description: return public information, such as name or best_score
       operationId: GetProfile
-     
+      parameters:
+      - description: User name
+        in: path
+        name: name
+        type: string
       responses:
         "200":
           description: Profile found successfully
@@ -270,7 +290,7 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: Get some of user fields
-  /users/page:
+  /users/{page}:
     get:
       description: Get page of user list
       operationId: GetUsers

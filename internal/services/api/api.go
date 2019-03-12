@@ -1,7 +1,6 @@
 package api
 
 import (
-	"escapade/internal/config"
 	database "escapade/internal/database"
 	"escapade/internal/misc"
 	"escapade/internal/models"
@@ -23,16 +22,6 @@ type Handler struct {
 	DB                    database.DataBase
 	PlayersAvatarsStorage string
 	FileMode              int
-}
-
-// Init creates Handler
-func Init(DB *database.DataBase, storage config.FileStorageConfig) (handler *Handler) {
-	handler = &Handler{
-		DB:                    *DB,
-		PlayersAvatarsStorage: storage.PlayersAvatarsStorage,
-		FileMode:              storage.FileMode,
-	}
-	return
 }
 
 func saveFile(path string, name string, file multipart.File, mode os.FileMode) (err error) {
