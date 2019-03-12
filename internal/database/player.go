@@ -2,8 +2,8 @@ package database
 
 import (
 	"database/sql"
-	"errors"
 	"escapade/internal/models"
+	re "escapade/internal/return_errors"
 
 	//
 	_ "github.com/lib/pq"
@@ -14,12 +14,12 @@ import (
 func ValidatePrivateUI(user *models.UserPrivateInfo) (err error) {
 
 	if !models.ValidatePassword(user.Password) {
-		err = errors.New("password is not valid")
+		err = re.ErrorInvalidPassword()
 		return
 	}
 
 	if !models.ValidatePlayerName(user.Name) && !models.ValidateEmail(user.Email) {
-		err = errors.New("player name or email is not valid")
+		err = re.ErrorInvalidNameOrEmail()
 		return
 	}
 
@@ -81,7 +81,7 @@ func (db DataBase) isNameUnique(taken string) error {
 	var tmp string
 	if err := row.Scan(&tmp); err != sql.ErrNoRows {
 		if err == nil {
-			return errors.New("name is taken")
+			return re.ErrorNameIstaken()
 		}
 		return err
 	}
@@ -99,7 +99,7 @@ func (db DataBase) isEmailUnique(taken string) error {
 	var tmp string
 	if err := row.Scan(&tmp); err != sql.ErrNoRows {
 		if err == nil {
-			return errors.New("email is taken")
+			return re.ErrorEmailIstaken()
 		}
 		return err
 	}
@@ -112,7 +112,6 @@ func (db DataBase) confirmUnique(user *models.UserPrivateInfo) (err error) {
 	if err = db.isEmailUnique(user.Email); err != nil {
 		return
 	}
-
 	err = db.isNameUnique(user.Name)
 	return
 }
@@ -122,6 +121,7 @@ func (db DataBase) checkBunch(field string, password string) (id int, err error)
 	if id, err = db.checkBunchNamePass(field, password); err != nil {
 		// and checkBunchEmailPass cant find brunch email-password
 		if id, err = db.checkBunchEmailPass(field, password); err != nil {
+			err = re.ErrorWrongPassword()
 			return // then password wrong
 		}
 	}
@@ -135,10 +135,7 @@ func (db DataBase) checkBunchNamePass(username string, password string) (id int,
 
 	sqlStatement := "SELECT id FROM Player where name like $1 and password like $2"
 	row := db.Db.QueryRow(sqlStatement, username, password)
-
-	if err = row.Scan(&id); err != nil {
-		err = errors.New("Wrong password")
-	}
+	err = row.Scan(&id)
 	return
 }
 
@@ -147,10 +144,7 @@ func (db DataBase) checkBunchNamePass(username string, password string) (id int,
 func (db DataBase) checkBunchEmailPass(email string, password string) (id int, err error) {
 	sqlStatement := "SELECT id FROM Player where email like $1 and password like $2"
 	row := db.Db.QueryRow(sqlStatement, email, password)
-
-	if err = row.Scan(&id); err != nil {
-		err = errors.New("Wrong password")
-	}
+	err = row.Scan(&id)
 	return
 }
 
@@ -190,7 +184,6 @@ func (db *DataBase) createPlayer(user *models.UserPrivateInfo) (id int, err erro
 	row := db.Db.QueryRow(sqlGetID, user.Name)
 
 	err = row.Scan(&id)
-
 	return
 }
 
@@ -211,7 +204,7 @@ func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateI
 
 	if user.Email != curEmail {
 		if !models.ValidateEmail(user.Email) {
-			return errors.New("invalid email")
+			return re.ErrorInvalidEmail()
 		}
 		if err = db.isEmailUnique(user.Email); err != nil {
 			return
@@ -225,7 +218,7 @@ func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateI
 
 	if user.Name != curName {
 		if !models.ValidateString(user.Name) {
-			return errors.New("invalid name")
+			return re.ErrorInvalidName()
 		}
 		if err = db.isNameUnique(user.Name); err != nil {
 			return

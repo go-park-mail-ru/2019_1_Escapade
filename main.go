@@ -49,7 +49,7 @@ func main() {
 
 	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.Register)).Methods("POST")
+	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
 	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
 	r.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")

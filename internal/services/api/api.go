@@ -7,6 +7,7 @@ import (
 	database "escapade/internal/database"
 	"escapade/internal/misc"
 	"escapade/internal/models"
+	re "escapade/internal/return_errors"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
@@ -112,11 +113,12 @@ func (h *Handler) Ok4(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetMyProfile get user profile
+// GetMyProfile get public user information
 // @Summary get user
 // @Description get public user information
 // @ID GetMyProfile
 // @Success 200 {object} models.UserPublicInfo "successfully"
+// @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "server error"
 // @Router /user [GET]
 func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
@@ -128,33 +130,33 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if username, err = h.getNameFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/Me failed")
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Println("api/Me failed")
+		sendErrorJSON(rw, re.ErrorServer(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	fmt.Println("api/Me ok")
+	printResult(err, http.StatusOK, place)
 	return
 }
 
-// Register create new user
+// CreateUser create new user
 // @Summary create new user
 // @Description create new user
 // @ID Register
-// @Success 200 {object} models.Result "successfully"
-// @Failure 500 {object} models.Result "server error"
+// @Success 201 {object} models.Result "Create user successfully"
+// @Failure 400 {object} models.Result "Invalid information"
 // @Router /user [POST]
-func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
-	const place = "Register"
-
+func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
+	const place = "CreateUser"
 	var (
 		user      models.UserPrivateInfo
 		err       error
@@ -164,23 +166,21 @@ func (h *Handler) Register(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/register failed")
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	if sessionID, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/register failed")
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	sendSuccessJSON(rw, nil, place)
-
-	fmt.Println("api/register ok")
-
+	printResult(err, http.StatusForbidden, place)
 	return
 }
 
@@ -204,29 +204,27 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusForbidden)
 		sendErrorJSON(rw, err, place)
-		fmt.Println("api/UpdateProfile failed")
+		printResult(err, http.StatusForbidden, place)
 		return
 	}
 
 	if name, err = h.getNameFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/UpdateProfile failed")
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if err = h.DB.UpdatePlayerByName(name, &user); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, err, place)
-		fmt.Println("api/UpdateProfile failed")
+		sendErrorJSON(rw, re.ErrorDataBase(), place)
+		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
 	sendSuccessJSON(rw, nil, place)
-
-	fmt.Println("api/UpdateProfile ok")
-
+	printResult(err, http.StatusOK, place)
 	return
 }
 
@@ -455,21 +453,21 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 
 	if page, err = h.getPage(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, ErrorInvalidPage(), place)
+		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if users, err = h.DB.GetUsers(page); err != nil {
 		rw.WriteHeader(http.StatusNoContent)
-		sendErrorJSON(rw, ErrorUsersNotFound(), place)
+		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
 		printResult(err, http.StatusNoContent, place)
 		return
 	}
 
 	if bytes, err = json.Marshal(users); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, ErrorServer(), place)
+		sendErrorJSON(rw, re.ErrorServer(), place)
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
@@ -499,14 +497,14 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, ErrorAuthorization(), place)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
 		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if filename, err = h.DB.GetImage(userID); err != nil {
 		rw.WriteHeader(http.StatusNoContent)
-		sendErrorJSON(rw, ErrorAvatarNotFound(), place)
+		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		printResult(err, http.StatusNoContent, place)
 		return
 	}
@@ -515,7 +513,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 
 	if file, err = ioutil.ReadFile(filepath); err != nil {
 		rw.WriteHeader(http.StatusNoContent)
-		sendErrorJSON(rw, ErrorAvatarNotFound(), place)
+		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		printResult(err, http.StatusNoContent, place)
 		return
 	}
@@ -545,14 +543,14 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, ErrorAuthorization(), place)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
 		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if input, handle, err = r.FormFile("file"); err != nil || input == nil || handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, ErrorInvalidFile(), place)
+		sendErrorJSON(rw, re.ErrorInvalidFile(), place)
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
@@ -571,14 +569,14 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		err = saveFile(filePath, fileName, input)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, ErrorInvalidFileFormat(), place)
+		sendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, ErrorServer(), place)
+		sendErrorJSON(rw, re.ErrorServer(), place)
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
@@ -586,7 +584,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	if err = h.DB.PostImage(fileName, userID); err != nil {
 		_ = os.Remove(filePath) // if error then lets delete uploaded image
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, ErrorDataBase(), place)
+		sendErrorJSON(rw, re.ErrorDataBase(), place)
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
@@ -615,7 +613,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	username = vars["name"]
 
 	if username == "" {
-		err = ErrorInvalidName()
+		err = re.ErrorInvalidName()
 		rw.WriteHeader(http.StatusBadGateway)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadGateway, place)
@@ -624,7 +622,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 
 	if err = sendPublicUser(h, rw, username, place); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, ErrorUserNotFound(), place)
+		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
 		return
 	}
