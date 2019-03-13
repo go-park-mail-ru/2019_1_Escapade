@@ -1,8 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"escapade/internal/misc"
+	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
@@ -86,6 +88,39 @@ func (h *Handler) getUserIDFromCookie(r *http.Request) (userID int, err error) {
 	}
 
 	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
+		return
+	}
+
+	return
+}
+
+func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+		return
+	}
+	defer r.Body.Close()
+
+	_ = json.NewDecoder(r.Body).Decode(&user)
+
+	return
+}
+
+func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err error) {
+
+	user, err = getUser(r)
+	if user.Name == "" {
+		err = re.ErrorInvalidName()
+		return
+	}
+
+	if user.Email == "" {
+		err = re.ErrorInvalidEmail()
+		return
+	}
+
+	if user.Password == "" {
+		err = re.ErrorInvalidPassword()
 		return
 	}
 

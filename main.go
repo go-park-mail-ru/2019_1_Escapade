@@ -12,6 +12,8 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// ./swag init
+
 // @title Escapade API
 // @version 1.0
 // @description Documentation
@@ -23,7 +25,7 @@ func main() {
 
 	API, conf, err := api.GetHandler(confPath) // init.go
 	if err != nil {
-		fmt.Println("Some error with configuration file or database" + err.Error())
+		fmt.Println("Some error happened with configuration file or database" + err.Error())
 		return
 	}
 

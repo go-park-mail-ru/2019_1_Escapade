@@ -148,24 +148,24 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
-	if user, err = getUser(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+	if user, err = getUserWithAllFields(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if sessionID, err = h.DB.Register(&user); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	sendSuccessJSON(rw, nil, place)
-	printResult(err, http.StatusForbidden, place)
+	printResult(err, http.StatusCreated, place)
 	return
 }
 
@@ -187,9 +187,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if user, err = getUser(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
@@ -231,16 +231,16 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if user, err = getUser(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if sessionID, username, err = h.DB.Login(&user); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 	misc.CreateAndSet(rw, sessionID)
@@ -310,16 +310,16 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if user, err = getUser(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if err = h.DB.DeleteAccount(&user); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
@@ -349,9 +349,9 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if page, username, err = h.getNameAndPage(r); err != nil {
-		rw.WriteHeader(http.StatusForbidden)
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusForbidden, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 

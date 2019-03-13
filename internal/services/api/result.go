@@ -9,9 +9,9 @@ import (
 
 func printResult(catched error, number int, place string) {
 	if catched != nil {
-		fmt.Println("api/"+place+" failed(code: ", number, "). Error message:"+catched.Error())
+		fmt.Println("api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
 	} else {
-		fmt.Println("api/"+place+" success(code: ", number, ")")
+		fmt.Println("api/"+place+" success(code:", number, ")")
 	}
 }
 
@@ -34,4 +34,19 @@ func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 		}
 	}
 	json.NewEncoder(rw).Encode(result)
+}
+
+func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place string) error {
+
+	var (
+		user models.UserPublicInfo
+		err  error
+	)
+
+	if user, err = h.DB.GetProfile(username); err != nil {
+		return err
+	}
+
+	sendSuccessJSON(rw, user, place)
+	return err
 }

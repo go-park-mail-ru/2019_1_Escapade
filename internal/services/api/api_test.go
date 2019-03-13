@@ -2,55 +2,133 @@ package api
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 type TestCase struct {
-	ID         string
 	Response   string
+	Body       string
 	StatusCode int
 }
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	key := r.FormValue("id")
-	if key == "42" {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, `{"status": 200, "resp": {"user": 42}}`)
-	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-		io.WriteString(w, `{"status": 500, "err": "db_error"}`)
+// go test -coverprofile test/cover.out
+// go tool cover -html=test/cover.out -o test/coverage.html
+
+const confPath = "../../../conf.json"
+
+var replacer = strings.NewReplacer("\n", "", "\t", "")
+
+func checkStrings(t *testing.T, caseNum int, got string, expected string) {
+	got = strings.TrimSpace(got)
+	expected = strings.TrimSpace(expected)
+	got = replacer.Replace(got)
+	expected = replacer.Replace(expected)
+	if got != expected {
+		t.Errorf("[%d] wrong Response: got \n%+v\nexpected\n%+v",
+			caseNum, got, expected)
 	}
 }
 
 func TestCreateUser(t *testing.T) {
 	cases := []TestCase{
 		TestCase{
-			ID: "42",
-			Response: `{"status": 200,
-										 "resp": {"user": 42}
-										}`,
-			StatusCode: http.StatusOK,
+			Response: `{
+				"place":"CreateUser",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"name": "username111",
+				"password": "1454543",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusCreated,
 		},
 		TestCase{
-			ID:         "500",
-			Response:   `{"status": 500, "err": "db_error"}`,
-			StatusCode: http.StatusInternalServerError,
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Invalid password"}`,
+			Body: `{
+				"name": "TestCase2",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Invalid username"}`,
+			Body: `{
+				"password": "username111",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Invalid email"}`,
+			Body: `{
+				"name": "username111",
+				"password": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Invalid username"}`,
+			Body: `{
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Username is taken"}
+			`,
+			Body: `{
+				"name": "username111",
+				"password": "1454543",
+				"email": "emailtest"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"CreateUser",
+				"success":false,
+				"message":"Email is taken"}
+			`,
+			Body: `{
+				"name": "usertest",
+				"password": "1454543",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
 		},
 	}
 
-	H, _, err := GetHandler("conf.json")
+	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error")
+		fmt.Println("TestCreateUser catched error:", err.Error())
+		return
 	}
-	//H, _, err := GetHandler("conf.json")
 
+	url := "/user"
+	preq := httptest.NewRequest("DELETE", url, strings.NewReader(cases[0].Body))
+	H.DeleteAccount(httptest.NewRecorder(), preq)
 	for caseNum, item := range cases {
-		url := "http://localhost:3000/user"
-		req := httptest.NewRequest("POST", url, nil)
+		req := httptest.NewRequest("POST", url, strings.NewReader(item.Body))
 		w := httptest.NewRecorder()
 
 		H.CreateUser(w, req)
@@ -63,46 +141,8 @@ func TestCreateUser(t *testing.T) {
 		resp := w.Result()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		bodyStr := string(body)
-		if bodyStr != item.Response {
-			t.Errorf("[%d] wrong Response: got %+v, expected %+v",
-				caseNum, bodyStr, item.Response)
-		}
-	}
-}
+		defer resp.Body.Close()
 
-func TestGetUser(t *testing.T) {
-	cases := []TestCase{
-		TestCase{
-			ID:         "42",
-			Response:   `{"status": 200, "resp": {"user": 42}}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			ID:         "500",
-			Response:   `{"status": 500, "err": "db_error"}`,
-			StatusCode: http.StatusInternalServerError,
-		},
-	}
-	for caseNum, item := range cases {
-		url := "http://example.com/api/user?id=" + item.ID
-		req := httptest.NewRequest("GET", url, nil)
-		w := httptest.NewRecorder()
-
-		GetUser(w, req)
-
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
-
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		bodyStr := string(body)
-		if bodyStr != item.Response {
-			t.Errorf("[%d] wrong Response: got %+v, expected %+v",
-				caseNum, bodyStr, item.Response)
-		}
+		checkStrings(t, caseNum, string(body), item.Response)
 	}
 }
