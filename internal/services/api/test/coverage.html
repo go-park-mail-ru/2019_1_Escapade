@@ -54,13 +54,15 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">escapade/internal/services/api/api.go (19.0%)</option>
+				<option value="file0">escapade/internal/services/api/api.go (51.5%)</option>
 				
-				<option value="file1">escapade/internal/services/api/getters.go (35.2%)</option>
+				<option value="file1">escapade/internal/services/api/files.go (0.0%)</option>
 				
-				<option value="file2">escapade/internal/services/api/init.go (77.8%)</option>
+				<option value="file2">escapade/internal/services/api/getters.go (59.3%)</option>
 				
-				<option value="file3">escapade/internal/services/api/result.go (61.5%)</option>
+				<option value="file3">escapade/internal/services/api/init.go (77.8%)</option>
+				
+				<option value="file4">escapade/internal/services/api/result.go (92.3%)</option>
 				
 				</select>
 			</div>
@@ -100,73 +102,13 @@ type Handler struct {
         FileMode              int
 }
 
-func saveFile(path string, name string, file multipart.File, mode os.FileMode) (err error) <span class="cov0" title="0">{
-        var (
-                data []byte
-        )
-
-        os.MkdirAll(path, mode)
-
-        if data, err = ioutil.ReadAll(file); err != nil </span><span class="cov0" title="0">{
-                return
-        }</span>
-
-        <span class="cov0" title="0">if err = ioutil.WriteFile(path+"/"+name, data, mode); err != nil </span><span class="cov0" title="0">{
-                return
-        }</span>
-
-        <span class="cov0" title="0">return</span>
-}
-
 // catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
 // @ID OK1
 // @Success 200 "successfully"
 // @Router /user [OPTIONS]
-func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, "Ok")
-
-        fmt.Println("api/ok - ok")
-        return
-}</span>
-
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK2
-// @Success 200 "successfully"
-// @Router /user/login [OPTIONS]
-func (h *Handler) Ok2(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, "Ok")
-
-        fmt.Println("api/ok - ok")
-        return
-}</span>
-
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK3
-// @Success 200 "successfully"
-// @Router /user/logout [OPTIONS]
-func (h *Handler) Ok3(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, "Ok")
-
-        fmt.Println("api/ok - ok")
-        return
-}</span>
-
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK4
-// @Success 200 "successfully"
-// @Router /user/Avatar [OPTIONS]
-func (h *Handler) Ok4(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         rw.WriteHeader(http.StatusOK)
         sendSuccessJSON(rw, nil, "Ok")
 
@@ -182,7 +124,7 @@ func (h *Handler) Ok4(rw http.ResponseWriter, r *http.Request) <span class="cov0
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "server error"
 // @Router /user [GET]
-func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
 
         const place = "GetMyProfile"
         var (
@@ -190,21 +132,21 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) <span cl
                 username string
         )
 
-        if username, err = h.getNameFromCookie(r); err != nil </span><span class="cov0" title="0">{
+        if username, err = h.getNameFromCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
                 sendErrorJSON(rw, re.ErrorAuthorization(), place)
                 printResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
                 sendErrorJSON(rw, re.ErrorServer(), place)
                 printResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">rw.WriteHeader(http.StatusOK)
+        <span class="cov8" title="1">rw.WriteHeader(http.StatusOK)
         printResult(err, http.StatusOK, place)
         return</span>
 }
@@ -262,14 +204,14 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) <span c
                 name string
         )
 
-        if user, err = getUser(r); err != nil </span><span class="cov0" title="0">{
+        if user, err = getUser(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
                 sendErrorJSON(rw, err, place)
                 printResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
-        <span class="cov8" title="1">if name, err = h.getNameFromCookie(r); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if name, err = h.getNameFromCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
                 sendErrorJSON(rw, re.ErrorAuthorization(), place)
                 printResult(err, http.StatusUnauthorized, place)
@@ -297,7 +239,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) <span c
 // @Failure 400 {object} models.Result "invalid name/email or password"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [POST]
-func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         const place = "Login"
         var (
                 user      models.UserPrivateInfo
@@ -306,20 +248,20 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="co
                 username  string
         )
 
-        if user, err = getUser(r); err != nil </span><span class="cov0" title="0">{
+        if user, err = getUser(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
                 sendErrorJSON(rw, err, place)
                 printResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">if sessionID, username, err = h.DB.Login(&amp;user); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if sessionID, username, err = h.DB.Login(&amp;user); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
                 sendErrorJSON(rw, re.ErrorUserNotFound(), place)
                 printResult(err, http.StatusBadRequest, place)
                 return
         }</span>
-        <span class="cov0" title="0">misc.CreateAndSet(rw, sessionID)
+        <span class="cov8" title="1">misc.CreateAndSet(rw, sessionID)
 
         if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
@@ -328,7 +270,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="co
                 return
         }</span>
 
-        <span class="cov0" title="0">rw.WriteHeader(http.StatusOK)
+        <span class="cov8" title="1">rw.WriteHeader(http.StatusOK)
         printResult(err, http.StatusOK, place)
         return</span>
 }
@@ -341,28 +283,28 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="co
 // @Success 401 {object} models.Result "Require authorization"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [DELETE]
-func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         const place = "Logout"
         var (
                 err       error
                 sessionID string
         )
 
-        if sessionID, err = misc.GetSessionCookie(r); err != nil </span><span class="cov0" title="0">{
+        if sessionID, err = misc.GetSessionCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
                 sendErrorJSON(rw, re.ErrorAuthorization(), place)
                 printResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">if err = h.DB.Logout(sessionID); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err = h.DB.Logout(sessionID); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
                 sendErrorJSON(rw, re.ErrorDataBase(), place)
                 printResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">misc.CreateAndSet(rw, "")
+        <span class="cov8" title="1">misc.CreateAndSet(rw, "")
         rw.WriteHeader(http.StatusOK)
         sendSuccessJSON(rw, nil, place)
         printResult(err, http.StatusOK, place)
@@ -415,7 +357,7 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) <span clas
 // @Failure 404 {object} models.Result "games not found"
 // @Failure 500 {object} models.Result "Databse error"
 // @Router /users/{name}/games/{page} [GET]
-func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         const place = "GetPlayerGames"
 
         var (
@@ -425,21 +367,21 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) <span 
                 page     int
         )
 
-        if page, username, err = h.getNameAndPage(r); err != nil </span><span class="cov0" title="0">{
+        if page, username, err = h.getNameAndPage(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
                 sendErrorJSON(rw, err, place)
                 printResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">if games, err = h.DB.GetGames(username, page); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if games, err = h.DB.GetGames(username, page); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
                 sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
                 printResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">sendSuccessJSON(rw, games, place)
+        <span class="cov8" title="1">sendSuccessJSON(rw, games, place)
         rw.WriteHeader(http.StatusOK)
         printResult(err, http.StatusOK, place)
         return</span>
@@ -452,7 +394,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) <span 
 // @Success 200 {object} models.Pages "Get successfully"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/pages_amount [GET]
-func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         const place = "GetUsersPageAmount"
 
         var (
@@ -467,7 +409,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) <s
                 return
         }</span>
 
-        <span class="cov0" title="0">sendSuccessJSON(rw, pages, place)
+        <span class="cov8" title="1">sendSuccessJSON(rw, pages, place)
         rw.WriteHeader(http.StatusOK)
         printResult(err, http.StatusOK, place)</span>
 }
@@ -668,6 +610,33 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) <span clas
 		<pre class="file" id="file1" style="display: none">package api
 
 import (
+        "io/ioutil"
+        "mime/multipart"
+        "os"
+)
+
+func saveFile(path string, name string, file multipart.File, mode os.FileMode) (err error) <span class="cov0" title="0">{
+        var (
+                data []byte
+        )
+
+        os.MkdirAll(path, mode)
+
+        if data, err = ioutil.ReadAll(file); err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">if err = ioutil.WriteFile(path+"/"+name, data, mode); err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">return</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package api
+
+import (
         "encoding/json"
         "errors"
         "escapade/internal/misc"
@@ -704,7 +673,7 @@ func (h *Handler) getPage(r *http.Request) (page int, err error) <span class="co
         <span class="cov0" title="0">return</span>
 }
 
-func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, err error) <span class="cov0" title="0">{
+func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, err error) <span class="cov8" title="1">{
         var (
                 vars map[string]string
         )
@@ -716,25 +685,25 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
                 return
         }</span>
 
-        <span class="cov0" title="0">if vars["page"] == "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if vars["page"] == "" </span><span class="cov0" title="0">{
                 page = 1
-        }</span> else<span class="cov0" title="0"> {
-                if page, err = strconv.Atoi(vars["page"]); err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov8" title="1"> {
+                if page, err = strconv.Atoi(vars["page"]); err != nil </span><span class="cov8" title="1">{
                         err = re.ErrorInvalidPage()
                         return
                 }</span>
-                <span class="cov0" title="0">if page &lt; 1 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if page &lt; 1 </span><span class="cov0" title="0">{
                         page = 1
                 }</span>
 
         }
-        <span class="cov0" title="0">return</span>
+        <span class="cov8" title="1">return</span>
 }
 
 func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error) <span class="cov8" title="1">{
         var sessionID string
 
-        if sessionID, err = misc.GetSessionCookie(r); err != nil </span><span class="cov0" title="0">{
+        if sessionID, err = misc.GetSessionCookie(r); err != nil </span><span class="cov8" title="1">{
                 err = errors.New("Authorization required")
                 return
         }</span>
@@ -762,8 +731,10 @@ func (h *Handler) getUserIDFromCookie(r *http.Request) (userID int, err error) <
 }
 
 func getUser(r *http.Request) (user models.UserPrivateInfo, err error) <span class="cov8" title="1">{
-        if r.Body == nil </span><span class="cov0" title="0">{
+
+        if r.Body == nil </span><span class="cov8" title="1">{
                 err = re.ErrorNoBody()
+
                 return
         }</span>
         <span class="cov8" title="1">defer r.Body.Close()
@@ -795,7 +766,7 @@ func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err err
 }
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package api
+		<pre class="file" id="file3" style="display: none">package api
 
 import (
         "escapade/internal/config"
@@ -832,7 +803,7 @@ func GetHandler(confPath string) (handler *Handler, conf *config.Configuration, 
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package api
+		<pre class="file" id="file4" style="display: none">package api
 
 import (
         "encoding/json"
@@ -870,7 +841,7 @@ func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) <
         <span class="cov8" title="1">json.NewEncoder(rw).Encode(result)</span>
 }
 
-func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place string) error <span class="cov0" title="0">{
+func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place string) error <span class="cov8" title="1">{
 
         var (
                 user models.UserPublicInfo
@@ -881,7 +852,7 @@ func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place s
                 return err
         }</span>
 
-        <span class="cov0" title="0">sendSuccessJSON(rw, user, place)
+        <span class="cov8" title="1">sendSuccessJSON(rw, user, place)
         return err</span>
 }
 </pre>
