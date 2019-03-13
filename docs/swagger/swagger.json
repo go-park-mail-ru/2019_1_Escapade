@@ -1,0 +1,474 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Documentation",
+        "title": "Escapade API",
+        "contact": {},
+        "license": {},
+        "version": "1.0"
+    },
+    "host": "https://escapade-backend.herokuapp.com",
+    "basePath": "/api/v1",
+    "paths": {
+        "/avatar": {
+            "get": {
+                "description": "Get user avatar",
+                "summary": "Get user avatar",
+                "operationId": "GetImage",
+                "responses": {
+                    "200": {
+                        "description": "Avatar found successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "Avatar not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create user avatar",
+                "summary": "Create user avatar",
+                "operationId": "PostImage",
+                "responses": {
+                    "201": {
+                        "description": "Avatar created successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "Avatar not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/session": {
+            "post": {
+                "description": "login",
+                "summary": "login",
+                "operationId": "Login",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid name/email or password",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "logout",
+                "summary": "logout",
+                "operationId": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Require authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK1222",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user": {
+            "get": {
+                "description": "get public user information",
+                "summary": "get user",
+                "operationId": "GetMyProfile",
+                "responses": {
+                    "200": {
+                        "description": "successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "update public info",
+                "summary": "update user information",
+                "operationId": "UpdateProfile",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid info",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "need authorization",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create new user",
+                "summary": "create new user",
+                "operationId": "Register",
+                "responses": {
+                    "201": {
+                        "description": "Create user successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid information",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "delete account",
+                "summary": "delete account",
+                "operationId": "DeleteAccount",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid input",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/Avatar": {
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK4",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/user/logout": {
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK3",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
+            }
+        },
+        "/users/pages_amount": {
+            "get": {
+                "description": "Get amount of users list page",
+                "summary": "amount of users list page",
+                "operationId": "GetUsersPageAmount",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Pages"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{name}/games/{page}": {
+            "get": {
+                "description": "Get amount of users list page",
+                "summary": "get users game",
+                "operationId": "GetPlayerGames",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Game"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid username or page",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "games not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "Databse error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{name}/profile": {
+            "get": {
+                "description": "return public information, such as name or best_score",
+                "summary": "Get some of user fields",
+                "operationId": "GetProfile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User name",
+                        "name": "name",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile found successfully",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.UserPublicInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid username",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{page}": {
+            "get": {
+                "description": "Get page of user list",
+                "summary": "Get users list",
+                "operationId": "GetUsers",
+                "responses": {
+                    "200": {
+                        "description": "Get successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Result"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pade",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "Users not found",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Game": {
+            "type": "object",
+            "properties": {
+                "exploded": {
+                    "type": "boolean"
+                },
+                "fieldHeight": {
+                    "type": "integer"
+                },
+                "fieldWidth": {
+                    "type": "integer"
+                },
+                "finihsed": {
+                    "type": "boolean"
+                },
+                "minsFound": {
+                    "type": "integer"
+                },
+                "minsTotal": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Pages": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Result": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "place": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.UserPublicInfo": {
+            "type": "object",
+            "properties": {
+                "bestScore": {
+                    "type": "string"
+                },
+                "bestTime": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
