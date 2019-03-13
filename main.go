@@ -31,32 +31,34 @@ func main() {
 
 	r := mux.NewRouter()
 
-	//r.PathPrefix("/api/v1/")
+	var v = r.PathPrefix("/api").Subrouter()
 
-	r.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
-	r.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
-	r.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	v.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	r.HandleFunc("/session", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
-	r.HandleFunc("/session", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
-	r.HandleFunc("/session", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	var v1 = r.PathPrefix("/v1").Subrouter()
 
-	r.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
-	r.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
-	r.HandleFunc("/avatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
+	v1.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
+	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
+	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
+	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
+	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
+	v1.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	r.HandleFunc("/users", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
-	r.HandleFunc("/users/pages/{page}", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
-	r.HandleFunc("/users/pages_amount", mi.CORS(conf.Cors)(API.GetUsersPageAmount)).Methods("GET")
+	v1.HandleFunc("/session", mi.CORS(conf.Cors)(API.Logout)).Methods("DELETE")
+	v1.HandleFunc("/session", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
+	v1.HandleFunc("/session", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	r.HandleFunc("/users/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
-	r.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
-	r.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
+	v1.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
+	v1.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
+	v1.HandleFunc("/avatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+	v1.HandleFunc("/users", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
+	v1.HandleFunc("/users/pages/{page}", mi.CORS(conf.Cors)(API.GetUsers)).Methods("GET")
+	v1.HandleFunc("/users/pages_amount", mi.CORS(conf.Cors)(API.GetUsersPageAmount)).Methods("GET")
+
+	v1.HandleFunc("/users/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
+	v1.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
+	v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
 
