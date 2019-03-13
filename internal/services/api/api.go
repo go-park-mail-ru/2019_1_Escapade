@@ -56,48 +56,6 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK2
-// @Success 200 "successfully"
-// @Router /user/login [OPTIONS]
-func (h *Handler) Ok2(rw http.ResponseWriter, r *http.Request) {
-	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, "Ok")
-
-	fmt.Println("api/ok - ok")
-	return
-}
-
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK3
-// @Success 200 "successfully"
-// @Router /user/logout [OPTIONS]
-func (h *Handler) Ok3(rw http.ResponseWriter, r *http.Request) {
-	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, "Ok")
-
-	fmt.Println("api/ok - ok")
-	return
-}
-
-// catch CORS preflight
-// @Summary catch CORS preflight
-// @Description catch CORS preflight
-// @ID OK4
-// @Success 200 "successfully"
-// @Router /user/Avatar [OPTIONS]
-func (h *Handler) Ok4(rw http.ResponseWriter, r *http.Request) {
-	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, "Ok")
-
-	fmt.Println("api/ok - ok")
-	return
-}
-
 // GetMyProfile get public user information
 // @Summary get user
 // @Description get public user information
@@ -175,7 +133,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 // @ID UpdateProfile
 // @Success 200 {object} models.Result "Get successfully"
 // @Failure 400 {object} models.Result "invalid info"
-// @Failure 500 {object} models.Result "server error"
+// @Failure 401 {object} models.Result "need authorization"
 // @Router /user [PUT]
 func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "UpdateProfile"
@@ -201,9 +159,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.DB.UpdatePlayerByName(name, &user); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorDataBase(), place)
-		printResult(err, http.StatusInternalServerError, place)
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
@@ -301,15 +259,15 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} models.Result "invalid input"
 // @Failure 500 {object} models.Result "server error"
 // @Router /user [DELETE]
-func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 
-	const place = "DeleteAccount"
+	const place = "DeleteUser"
 	var (
 		user models.UserPrivateInfo
 		err  error
 	)
 
-	if user, err = getUser(r); err != nil {
+	if user, err = getUserWithAllFields(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadRequest, place)
@@ -325,6 +283,7 @@ func (h *Handler) DeleteAccount(rw http.ResponseWriter, r *http.Request) {
 
 	misc.CreateAndSet(rw, "")
 	rw.WriteHeader(http.StatusOK)
+	sendSuccessJSON(rw, nil, place)
 	printResult(err, http.StatusOK, place)
 	return
 }

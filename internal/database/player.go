@@ -202,26 +202,26 @@ func (db *DataBase) UpdatePlayerByName(curName string, user *models.UserPrivateI
 		return
 	}
 
-	if user.Email != curEmail {
+	if user.Email != curEmail && user.Email != "" {
 		if !models.ValidateEmail(user.Email) {
 			return re.ErrorInvalidEmail()
 		}
 		if err = db.isEmailUnique(user.Email); err != nil {
-			return
+			return re.ErrorInvalidEmail()
 		}
 		curEmail = user.Email
 	}
 
-	if user.Password != "" {
+	if user.Password != curPass && user.Password != "" {
 		curPass = user.Password
 	}
 
-	if user.Name != curName {
+	if user.Name != curName && user.Name != "" {
 		if !models.ValidateString(user.Name) {
 			return re.ErrorInvalidName()
 		}
 		if err = db.isNameUnique(user.Name); err != nil {
-			return
+			return re.ErrorInvalidName()
 		}
 		curName = user.Name
 	}

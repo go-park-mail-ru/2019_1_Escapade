@@ -40,7 +40,7 @@ func main() {
 	v1.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
-	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteAccount)).Methods("DELETE")
+	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteUser)).Methods("DELETE")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.UpdateProfile)).Methods("PUT")
 	v1.HandleFunc("/user", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 

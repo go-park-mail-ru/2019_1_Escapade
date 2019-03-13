@@ -95,8 +95,10 @@ func (h *Handler) getUserIDFromCookie(r *http.Request) (userID int, err error) {
 }
 
 func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
+
 	if r.Body == nil {
 		err = re.ErrorNoBody()
+
 		return
 	}
 	defer r.Body.Close()

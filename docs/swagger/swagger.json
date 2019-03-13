@@ -124,6 +124,16 @@
                         }
                     }
                 }
+            },
+            "options": {
+                "description": "catch CORS preflight",
+                "summary": "catch CORS preflight",
+                "operationId": "OK1222",
+                "responses": {
+                    "200": {
+                        "description": "successfully"
+                    }
+                }
             }
         },
         "/user": {
@@ -174,8 +184,8 @@
                             "$ref": "#/definitions/models.Result"
                         }
                     },
-                    "500": {
-                        "description": "server error",
+                    "401": {
+                        "description": "need authorization",
                         "schema": {
                             "type": "object",
                             "$ref": "#/definitions/models.Result"
@@ -231,16 +241,6 @@
                         }
                     }
                 }
-            },
-            "options": {
-                "description": "catch CORS preflight",
-                "summary": "catch CORS preflight",
-                "operationId": "OK1",
-                "responses": {
-                    "200": {
-                        "description": "successfully"
-                    }
-                }
             }
         },
         "/user/Avatar": {
@@ -248,18 +248,6 @@
                 "description": "catch CORS preflight",
                 "summary": "catch CORS preflight",
                 "operationId": "OK4",
-                "responses": {
-                    "200": {
-                        "description": "successfully"
-                    }
-                }
-            }
-        },
-        "/user/login": {
-            "options": {
-                "description": "catch CORS preflight",
-                "summary": "catch CORS preflight",
-                "operationId": "OK2",
                 "responses": {
                     "200": {
                         "description": "successfully"

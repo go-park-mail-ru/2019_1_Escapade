@@ -36,3 +36,17 @@ func (db *DataBase) deleteAllUserSessions(username string) (err error) {
 	_, err = db.Db.Exec(sqlStatement, id)
 	return
 }
+
+func (db *DataBase) GetSessionByName(userName string) (sessionID string, err error) {
+
+	sqlStatement := `
+	select s.session_code 
+		from Session as s join Player as p
+		on s.player_id = p.id 
+		where p.name like $1 
+	`
+	row := db.Db.QueryRow(sqlStatement, userName)
+
+	err = row.Scan(&sessionID)
+	return sessionID, err
+}

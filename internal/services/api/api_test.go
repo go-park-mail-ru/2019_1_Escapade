@@ -1,6 +1,7 @@
 package api
 
 import (
+	misc "escapade/internal/misc"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,9 +11,10 @@ import (
 )
 
 type TestCase struct {
-	Response   string
-	Body       string
-	StatusCode int
+	Response    string
+	Body        string
+	CookieValue string
+	StatusCode  int
 }
 
 // go test -coverprofile test/cover.out
@@ -30,6 +32,29 @@ func checkStrings(t *testing.T, caseNum int, got string, expected string) {
 	if got != expected {
 		t.Errorf("[%d] wrong Response: got \n%+v\nexpected\n%+v",
 			caseNum, got, expected)
+	}
+}
+
+func checkCookies(t *testing.T, caseNum int, got http.Cookie, expected http.Cookie) {
+
+	if got.Name != expected.Name {
+		t.Errorf("[%d] wrong cookie name: got \n%+v\nexpected\n%+v",
+			caseNum, got.Name, expected.Name)
+	}
+
+	if got.Value != expected.Value {
+		t.Errorf("[%d] wrong cookie value: got \n%+v\nexpected\n%+v",
+			caseNum, got.Value, expected.Value)
+	}
+
+	if got.Path != expected.Path {
+		t.Errorf("[%d] wrong cookie path: got \n%+v\nexpected\n%+v",
+			caseNum, got.Path, expected.Path)
+	}
+
+	if got.HttpOnly != expected.HttpOnly {
+		t.Errorf("[%d] wrong cookie HttpOnly flag: got \n%+v\nexpected\n%+v",
+			caseNum, got.HttpOnly, expected.HttpOnly)
 	}
 }
 
@@ -126,7 +151,7 @@ func TestCreateUser(t *testing.T) {
 
 	url := "/user"
 	preq := httptest.NewRequest("DELETE", url, strings.NewReader(cases[0].Body))
-	H.DeleteAccount(httptest.NewRecorder(), preq)
+	H.DeleteUser(httptest.NewRecorder(), preq)
 	for caseNum, item := range cases {
 		req := httptest.NewRequest("POST", url, strings.NewReader(item.Body))
 		w := httptest.NewRecorder()
@@ -145,4 +170,407 @@ func TestCreateUser(t *testing.T) {
 
 		checkStrings(t, caseNum, string(body), item.Response)
 	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	cases := []TestCase{
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"name": "username111",
+				"password": "1454543",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"Invalid password"}`,
+			Body: `{
+				"name": "TestCase2",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"Invalid username"}`,
+			Body: `{
+				"password": "username111",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"Invalid email"}`,
+			Body: `{
+				"name": "username111",
+				"password": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"Invalid username"}`,
+			Body: `{
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"User not found"}
+			`,
+			Body: `{
+				"name": "username111",
+				"password": "1454543",
+				"email": "emailtest"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"DeleteUser",
+				"success":false,
+				"message":"User not found"}
+			`,
+			Body: `{
+				"name": "usertest",
+				"password": "1454543",
+				"email": "123123"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+	}
+
+	H, _, err := GetHandler(confPath)
+	if err != nil || H == nil {
+		fmt.Println("TestDeleteUser catched error:", err.Error())
+		return
+	}
+
+	url := "/user"
+	preq := httptest.NewRequest("POST", url, strings.NewReader(cases[0].Body))
+	H.CreateUser(httptest.NewRecorder(), preq)
+
+	for caseNum, item := range cases {
+		req := httptest.NewRequest("DELETE", url, strings.NewReader(item.Body))
+		w := httptest.NewRecorder()
+
+		H.DeleteUser(w, req)
+
+		if w.Code != item.StatusCode {
+			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
+				caseNum, w.Code, item.StatusCode)
+		}
+
+		resp := w.Result()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		defer resp.Body.Close()
+
+		checkStrings(t, caseNum, string(body), item.Response)
+	}
+}
+
+func TestUpdateProfile(t *testing.T) {
+	users := []string{
+		`{
+				"name": "TestUpdateUser",
+				"password": "TestUpdateUser",
+				"email": "TestUpdateUser"
+			}`,
+		`{
+				"name": "taken",
+				"password": "taken",
+				"email": "taken"
+			}`,
+	}
+	cases := []TestCase{
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":false,
+				"message":"Required authorization"
+			}
+			`,
+			Body:       ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":false,
+				"message":"Cant found parameters"
+			}
+			`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"name": "TestUpdateUser1"
+			}`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"email": "TestUpdateUser2"
+			}`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"password": "TestUpdateUser3"
+			}`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body: `{
+				"name": "TestUpdateUser",
+				"password": "TestUpdateUser",
+				"email": "TestUpdateUser"
+			}`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":false,
+				"message":"Invalid email"}
+			`,
+			Body: `{
+				"email": "taken"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":false,
+				"message":"Invalid username"}
+			`,
+			Body: `{
+				"name": "taken"
+			}`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"place":"UpdateProfile",
+				"success":true,
+				"message":"no error"}
+			`,
+			Body:       ``,
+			StatusCode: http.StatusOK,
+		},
+	}
+
+	var (
+		H         *Handler
+		err       error
+		url       string
+		createReq *http.Request
+		deleteReq *http.Request
+		cookiestr string
+		cookie    *http.Cookie
+	)
+
+	if H, _, err = GetHandler(confPath); err != nil || H == nil {
+		fmt.Println("TestUpdateUser catched error:", err.Error())
+		return
+	}
+
+	url = "/user"
+
+	// create the user, which we will update
+	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[0]))
+	w := httptest.NewRecorder()
+	H.CreateUser(w, createReq)
+
+	if cookiestr, err = H.DB.GetSessionByName("TestUpdateUser"); err != nil {
+		fmt.Println("TestUpdateUser cant get cookie:", err.Error())
+		return
+	}
+	cookie = misc.CreateCookie(cookiestr)
+
+	// create user, which name/email we try to take(expected catch error)
+	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[1]))
+	H.CreateUser(httptest.NewRecorder(), createReq)
+
+	for caseNum, item := range cases {
+		url := "/user"
+		var req *http.Request
+
+		req = httptest.NewRequest("PUT", url, strings.NewReader(item.Body))
+
+		if caseNum == 1 {
+			req.Body = nil
+		}
+
+		w := httptest.NewRecorder()
+		if caseNum != 0 {
+			req.AddCookie(cookie)
+		}
+		H.UpdateProfile(w, req)
+
+		if w.Code != item.StatusCode {
+			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
+				caseNum, w.Code, item.StatusCode)
+		}
+
+		resp := w.Result()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		defer resp.Body.Close()
+
+		checkStrings(t, caseNum, string(body), item.Response)
+	}
+
+	// delete created users
+	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[0]))
+	H.DeleteUser(httptest.NewRecorder(), deleteReq)
+	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[1]))
+	H.DeleteUser(httptest.NewRecorder(), deleteReq)
+}
+
+func TestGetProfile(t *testing.T) {
+	users := []string{
+		`{
+				"name": "TestGetProfile",
+				"password": "TestGetProfile",
+				"email": "TestGetProfile"
+			}`,
+	}
+	cases := []TestCase{
+		TestCase{
+			Response: `{
+				"place":"GetMyProfile",
+				"success":false,
+				"message":"Required authorization"
+			}
+			`,
+			Body:       ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Response: `{
+				"place":"GetMyProfile",
+				"success":false,
+				"message":"Cant found parameters"
+			}
+			`,
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response: `{
+				"name":"TestGetProfile",
+				"email":"TestGetProfile",
+				"bestScore":{
+					"String":"0",
+					"Valid":true
+					},
+					"bestTime":{
+						"String":"0",
+						"Valid":true
+					}
+				}
+			`,
+			StatusCode: http.StatusOK,
+		},
+	}
+
+	var (
+		H         *Handler
+		err       error
+		url       string
+		createReq *http.Request
+		deleteReq *http.Request
+		cookiestr string
+		cookie    *http.Cookie
+	)
+
+	if H, _, err = GetHandler(confPath); err != nil || H == nil {
+		fmt.Println("TestGetUser catched error:", err.Error())
+		return
+	}
+
+	url = "/user"
+
+	// create the user, which we will update
+	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[0]))
+	w := httptest.NewRecorder()
+	H.CreateUser(w, createReq)
+
+	if cookiestr, err = H.DB.GetSessionByName("TestGetProfile"); err != nil {
+		fmt.Println("TestGetUser cant get cookie:", err.Error())
+		return
+	}
+	cookie = misc.CreateCookie(cookiestr)
+
+	for caseNum, item := range cases {
+		url := "/user"
+		var req *http.Request
+
+		req = httptest.NewRequest("GET", url, strings.NewReader(item.Body))
+
+		if caseNum == 1 {
+			req.Body = nil
+		}
+
+		w := httptest.NewRecorder()
+		if caseNum != 0 {
+			req.AddCookie(cookie)
+		}
+		H.GetMyProfile(w, req)
+
+		if w.Code != item.StatusCode {
+			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
+				caseNum, w.Code, item.StatusCode)
+		}
+
+		resp := w.Result()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		defer resp.Body.Close()
+
+		checkStrings(t, caseNum, string(body), item.Response)
+	}
+
+	// delete created users
+	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[0]))
+	H.DeleteUser(httptest.NewRecorder(), deleteReq)
 }

@@ -110,6 +110,13 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: logout
+    options:
+      description: catch CORS preflight
+      operationId: OK1222
+      responses:
+        "200":
+          description: successfully
+      summary: catch CORS preflight
     post:
       description: login
       operationId: Login
@@ -171,13 +178,6 @@ paths:
             $ref: '#/definitions/models.Result'
             type: object
       summary: get user
-    options:
-      description: catch CORS preflight
-      operationId: OK1
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
     post:
       description: create new user
       operationId: Register
@@ -207,8 +207,8 @@ paths:
           schema:
             $ref: '#/definitions/models.Result'
             type: object
-        "500":
-          description: server error
+        "401":
+          description: need authorization
           schema:
             $ref: '#/definitions/models.Result'
             type: object
@@ -217,14 +217,6 @@ paths:
     options:
       description: catch CORS preflight
       operationId: OK4
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
-  /user/login:
-    options:
-      description: catch CORS preflight
-      operationId: OK2
       responses:
         "200":
           description: successfully

@@ -37,6 +37,7 @@ func CreateCookie(value string) (cookie *http.Cookie) {
 		MaxAge:   LifetimeCookie,
 		HttpOnly: true,
 	}
+
 	return
 }
 
