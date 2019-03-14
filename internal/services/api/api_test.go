@@ -2,7 +2,6 @@ package api
 
 import (
 	misc "escapade/internal/misc"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -154,7 +153,7 @@ func TestCreateUser(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
 
@@ -268,7 +267,7 @@ func TestDeleteUser(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestDeleteUser catched error:", err.Error())
+		t.Error("TestDeleteUser catched error:", err.Error())
 		return
 	}
 
@@ -419,7 +418,7 @@ func TestUpdateProfile(t *testing.T) {
 	)
 
 	if H, _, err = GetHandler(confPath); err != nil || H == nil {
-		fmt.Println("TestUpdateUser catched error:", err.Error())
+		t.Error("TestUpdateUser catched error:", err.Error())
 		return
 	}
 
@@ -431,7 +430,7 @@ func TestUpdateProfile(t *testing.T) {
 	H.CreateUser(w, createReq)
 
 	if cookiestr, err = H.DB.GetSessionByName("TestUpdateUser"); err != nil {
-		fmt.Println("TestUpdateUser cant get cookie:", err.Error())
+		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}
 	cookie = misc.CreateCookie(cookiestr)
@@ -524,7 +523,7 @@ func TestGetProfile(t *testing.T) {
 	)
 
 	if H, _, err = GetHandler(confPath); err != nil || H == nil {
-		fmt.Println("TestGetUser catched error:", err.Error())
+		t.Error("TestGetUser catched error:", err.Error())
 		return
 	}
 
@@ -538,7 +537,7 @@ func TestGetProfile(t *testing.T) {
 	H.Ok(httptest.NewRecorder(), okreq)
 
 	if cookiestr, err = H.DB.GetSessionByName("TestGetProfile"); err != nil {
-		fmt.Println("TestGetUser cant get cookie:", err.Error())
+		t.Error("TestGetUser cant get cookie:", err.Error())
 		return
 	}
 	cookie = misc.CreateCookie(cookiestr)
@@ -635,7 +634,7 @@ func TestLogin(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
 	preq := httptest.NewRequest("DELETE", urlSignUp, strings.NewReader(cases[0].Body))
@@ -705,7 +704,7 @@ func TestLogout(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
 	preq := httptest.NewRequest("DELETE", urlSignUp, strings.NewReader(cases[0].Body))
@@ -720,7 +719,6 @@ func TestLogout(t *testing.T) {
 	wLogin := httptest.NewRecorder()
 	str, err := H.DB.GetSessionByName("username1")
 	if err != nil {
-		t.Errorf("aaaaaaaaaaaaaa")
 		return
 	}
 
@@ -732,7 +730,7 @@ func TestLogout(t *testing.T) {
 
 	var cookie *http.Cookie
 	if cookie, err = reqLogin.Cookie(misc.NameCookie); err != nil {
-		fmt.Println("TestUpdateUser cant get cookie:", err.Error())
+		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}
 
@@ -816,7 +814,7 @@ func TestGetPlayerGames(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
 
@@ -852,7 +850,7 @@ func TestGetUsersPageAmount(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
 	if err != nil || H == nil {
-		fmt.Println("TestCreateUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
 
