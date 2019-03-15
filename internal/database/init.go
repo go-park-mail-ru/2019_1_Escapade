@@ -17,8 +17,12 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
-		os.Setenv(CDB.URL, "user=rolepade password=escapade dbname=escabase sslmode=disable")
+		//db://postgres:postgres@db:5432/postgres?sslmode=disable
+		os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
+		//os.Setenv(CDB.URL, "user=rolepade password=escapade dbname=escabase sslmode=disable")
 	}
+	os.Setenv(CDB.URL, "postgresql://rolepade:escapade@127.0.0.1:5432/escabase")
+	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 
 	var database *sql.DB
 	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
@@ -38,11 +42,11 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		return
 	}
 	fmt.Println("database/Init open")
-	if !db.areTablesCreated(CDB.Tables) {
-		if err = db.CreateTables(); err != nil {
-			return
-		}
+	//if !db.areTablesCreated(CDB.Tables) {
+	if err = db.CreateTables(); err != nil {
+		return
 	}
+	//}
 
 	return
 }
