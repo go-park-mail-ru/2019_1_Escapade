@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"github.com/gorilla/websocket"
 
 	//"reflect"
 
@@ -22,6 +23,8 @@ type Handler struct {
 	DB                    database.DataBase
 	PlayersAvatarsStorage string
 	FileMode              int
+	ReadBufferSize int
+	WriteBufferSize int
 }
 
 // catch CORS preflight
@@ -526,4 +529,63 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 	return
+}
+
+func  (h *Handler) Game(rw http.ResponseWriter, r *http.Request) {
+	const place = "Game"
+	var (
+		err      error
+		userID int
+		userName string
+		ws *websocket.Conn
+	)
+
+	if userName, err = h.getNameFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  h.ReadBufferSize,
+		WriteBufferSize: h.WriteBufferSize,
+	}
+
+	if ws, err = upgrader.Upgrade(rw, r, nil); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			sendErrorJSON(rw, re.ErrorHandshake(), place)
+		} else {
+			sendErrorJSON(rw, re.ErrorNotWebsocket(), place)
+		}
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	// Get or create a room
+	var room *room
+	if len(freeRooms) > 0 {
+		for _, r := range freeRooms {
+			room = r
+			break
+		}
+	} else {
+		room = NewRoom("")
+	}
+
+	// Create Player and Conn
+	player := game.NewPlayer(playerName)
+	pConn := NewPlayerConn(ws, player, room)
+	// Join Player to room
+	room.join <- pConn
+
+	fmt.Printf("Player: %s has joined to room: %s \n", pConn.Name, room.name)
 }

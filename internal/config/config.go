@@ -15,6 +15,9 @@ type Configuration struct {
 type ServerConfig struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
+	// for websockets
+	ReadBufferSize  int `json:"readBufferSize"`
+	WriteBufferSize int `json:"writeBufferSize"`
 }
 
 type CORSConfig struct {
