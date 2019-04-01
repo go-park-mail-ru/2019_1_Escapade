@@ -4,24 +4,21 @@ import "escapade/internal/models"
 
 // Playing is a player, that playing game
 type Playing struct {
-	Player      *Player
-	Flag        *models.Flag
-	InGame      bool
-	WasCaptured bool
-	Stoped      bool // player waits
-	TakenFlags  int
-	points      int
+	Player   *models.Player
+	Flag     *models.Flag
+	InGame   bool
+	Finished bool
+	Stoped   bool // player waits
 }
 
 // NewPlaying create instance of Playing before game starts
-func NewPlaying(player *Player, flag *models.Flag) *Playing {
+func NewPlaying(player *models.Player, flag *models.Flag) *Playing {
 	playing := &Playing{
-		Player:      player,
-		Flag:        flag,
-		InGame:      true,
-		WasCaptured: false,
-		TakenFlags:  0,
-		points:      0,
+		Player:   player,
+		Flag:     flag,
+		InGame:   true,
+		Finished: false,
+		Stoped:   false,
 	}
 	return playing
 }

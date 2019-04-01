@@ -1,6 +1,7 @@
 package game
 
 import (
+	"escapade/internal/models"
 	"fmt"
 	"sync"
 
@@ -10,15 +11,20 @@ import (
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	ws     *websocket.Conn
-	player *Player
+	player *models.Player
 	room   *Room
 }
 
 // NewConnection creates a new connection and run it
-func NewConnection(ws *websocket.Conn, player *Player, room *Room) *Connection {
+func NewConnection(ws *websocket.Conn, player *models.Player, room *Room) *Connection {
 	conn := &Connection{ws, player, room}
 	go conn.run()
 	return conn
+}
+
+func (conn *Connection) GiveUp() {
+	conn.player.LastAction = models.ActionGiveUp
+	conn.room.chanLeave <- conn
 }
 
 func (conn *Connection) run() (returnError error) {
@@ -29,20 +35,20 @@ func (conn *Connection) run() (returnError error) {
 			break
 		}
 
-		//var cell Cell
+		var cell Cell
 
-		// cell.Value = 10 - setFlag
-		// otherwise       - openCell
-		// _ = json.NewDecoder(command).Decode(&cell)
+		//cell.Value = 10 - setFlag
+		//otherwise       - openCell
+		_ = json.NewDecoder(command).Decode(&cell)
 
-		// if (cell.Value == "10") {
+		if (cell.Value == models.CellFlag) {
+			room.fie
+		}
 
-		// }
-
-		// // execute a command
-		// con.player.Command(string(command)
-		// // update all conn
-		// con.room.updateAll <- true
+		// execute a command
+		con.player.Command(string(command)
+		// update all conn
+		con.room.updateAll <- true
 	}
 	if returnError != nil {
 		return
