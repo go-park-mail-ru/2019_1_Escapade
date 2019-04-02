@@ -130,7 +130,8 @@ func (lobby *Lobby) roomStart(room *Room) {
 
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
-	for conn := range room.Players {
+	for conn, playing := range room.Players {
+		playing.Finished = true
 		lobby.playerToWaiter(conn)
 	}
 	lobby.removeRoom(room)

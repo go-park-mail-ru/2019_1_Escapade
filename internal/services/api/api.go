@@ -562,7 +562,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		WriteBufferSize: h.WriteBufferSize,
 	}
 
-	if ws, err = upgrader.Upgrade(rw, r, nil); err != nil {
+	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			sendErrorJSON(rw, re.ErrorHandshake(), place)
@@ -580,7 +580,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Player: %d has joined \n", conn.GetPlayerID())
 
-	rw.WriteHeader(http.StatusOK)
+	//rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 	return
 }

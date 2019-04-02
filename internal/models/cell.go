@@ -133,6 +133,7 @@ const (
 	SendGameStatus   // in case of error
 	SendRoomSettings
 	SendCells
+	SendAlive
 )
 
 type ClientData struct {

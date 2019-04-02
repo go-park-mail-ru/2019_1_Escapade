@@ -124,6 +124,26 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 	return true
 }
 
+func (room *Room) kill(conn *Connection) {
+	if !room.Players[conn].Finished {
+		room.Players[conn].Finished = true
+		room.PlayersSize--
+		if room.PlayersSize <= 1 {
+			room.lobby.roomFinish(room)
+		}
+		room.sendAllPlayerAction(conn, models.ActionLose)
+	}
+}
+
+func (room *Room) flagFound(found *models.Cell) {
+	id := found.Value - models.CellIncrement
+	for conn, _ := range room.Players {
+		if conn.GetPlayerID() == id {
+			room.kill(conn)
+		}
+	}
+}
+
 func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
@@ -143,9 +163,14 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// set who try open cell(for history)
 	cell.PlayerID = conn.GetPlayerID()
 	cells := room.Field.OpenCell(cell)
-	//if len(cells) == 1 {
-	//	if cells[0].Value == CellMine
-	//}
+	if len(cells) == 1 {
+		if cells[0].Value == models.CellMine {
+			room.kill(conn)
+		} else if cells[0].Value == models.CellFlag {
+			room.flagFound(&cells[0])
+		}
+
+	}
 	room.sendCells(cells)
 
 	// send for this user, that his flag posision accepted
@@ -165,8 +190,9 @@ func (room *Room) cellHandle(conn *Connection, cell *models.Cell) (done bool) {
 func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 	if action == models.ActionGiveUp {
 		room.Players[conn].Finished = true
+		return true
 	}
-	return
+	return false
 }
 
 func (room *Room) GetRequest(req *Request) {
@@ -175,7 +201,7 @@ func (room *Room) GetRequest(req *Request) {
 	//case models.SendRoomSettings:
 	//
 	case models.SendPlayerAction:
-		//
+		done = room.actionHandle(req.Connection, req.Data.PlayerAction)
 	case models.SendCells:
 		done = room.cellHandle(req.Connection, req.Data.Cell)
 	}
