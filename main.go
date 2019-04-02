@@ -39,10 +39,10 @@ func main() {
 
 	v.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	var v1 = v.PathPrefix("/v1").Subrouter()
+	var v1 = r
 
 	v1.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
-	v1.HandleFunc("/GameOnline", API.GameOnline)
+	v1.HandleFunc("/ws", mi.CORS(conf.Cors)(API.GameOnline))
 
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
