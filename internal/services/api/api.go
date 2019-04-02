@@ -560,6 +560,9 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  h.ReadBufferSize,
 		WriteBufferSize: h.WriteBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
