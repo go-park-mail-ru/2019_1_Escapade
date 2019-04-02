@@ -8,13 +8,13 @@ import (
 
 type Request struct {
 	Connection *Connection
-	Cell       *models.Cell
+	Data       *models.ClientData
 }
 
-func NewRequest(conn *Connection, cell *models.Cell) *Request {
+func NewRequest(conn *Connection, data *models.ClientData) *Request {
 	request := &Request{
 		Connection: conn,
-		Cell:       cell,
+		Data:       data,
 	}
 	return request
 }
@@ -108,47 +108,80 @@ func (room *Room) Leave(conn *Connection) {
 	return
 }
 
-func (room *Room) SetFlag(req *Request) {
+func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 	// if user try set flag after game launch
 	if room.Status != StatusFlagPlacing {
-		sendNotAllowed(req.Connection)
-		return
+		return false
 	}
 
-	if !room.Field.IsInside(req.Cell) {
-		sendNotAllowed(req.Connection)
-		return
+	if !room.Field.IsInside(cell) {
+		return false
 	}
 
-	room.Players[req.Connection].Flag = req.Cell
-	req.Connection.SendInformation(models.ActionFlagSet)
+	room.Players[conn].Flag = cell
+	// send for this user, that his flag posision accepted
+	conn.SendInformation(models.ActionFlagSet)
+	return true
 }
 
-func (room *Room) GetRequest(req *Request) {
-	if req.Cell.Value == models.CellFlag {
-		room.SetFlag(req)
-	} else {
-		room.OpenCell(req)
-	}
-}
-
-func (room *Room) OpenCell(req *Request) {
+func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
-		sendNotAllowed(req.Connection)
-		return
+		return false
 	}
 
-	if !room.Field.IsInside(req.Cell) {
-		sendNotAllowed(req.Connection)
-		return
+	// if wrong cell
+	if !room.Field.IsInside(cell) {
+		return false
+	}
+
+	// if user died
+	if room.Players[conn].Finished == true {
+		return false
 	}
 
 	// set who try open cell(for history)
-	req.Cell.PlayerID = req.Connection.GetPlayerID()
-	room.Field.OpenCell(req.Cell)
+	cell.PlayerID = conn.GetPlayerID()
+	cells := room.Field.OpenCell(cell)
+	//if len(cells) == 1 {
+	//	if cells[0].Value == CellMine
+	//}
+	room.sendCells(cells)
 
-	req.Connection.SendInformation(models.ActionFlagSet)
+	// send for this user, that his flag posision accepted
+	conn.SendInformation(models.ActionFlagSet)
+	return true
+}
+
+func (room *Room) cellHandle(conn *Connection, cell *models.Cell) (done bool) {
+	if cell.Value == models.CellFlag {
+		done = room.setFlag(conn, cell)
+	} else {
+		done = room.openCell(conn, cell)
+	}
+	return
+}
+
+func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
+	if action == models.ActionGiveUp {
+		room.Players[conn].Finished = true
+	}
+	return
+}
+
+func (room *Room) GetRequest(req *Request) {
+	done := false
+	switch req.Data.Send {
+	//case models.SendRoomSettings:
+	//
+	case models.SendPlayerAction:
+		//
+	case models.SendCells:
+		done = room.cellHandle(req.Connection, req.Data.Cell)
+	}
+	if !done {
+		sendNotAllowed(req.Connection)
+	}
 }
 
 func (room *Room) startFlagPlacing() {

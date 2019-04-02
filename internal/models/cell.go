@@ -111,7 +111,8 @@ const (
 
 // Player actions
 const (
-	ActionNo = iota
+	ActionError = iota - 1
+	ActionNo
 	ActionConnectAsPlayer
 	ActionConnectAsObserver
 	ActionReconnect
@@ -130,8 +131,16 @@ const (
 const (
 	SendPlayerAction = iota
 	SendGameStatus   // in case of error
-	SendCell
+	SendRoomSettings
+	SendCells
 )
+
+type ClientData struct {
+	Send         int
+	RoomSettings *RoomSettings
+	Cell         *Cell
+	PlayerAction int
+}
 
 type GameInfo struct {
 	// show, what of fields is filled
@@ -141,7 +150,7 @@ type GameInfo struct {
 	// game status
 	Status int
 	//cell information. Send during game for all players
-	Cell Cell
+	Cells []Cell
 }
 
 type Flag struct {

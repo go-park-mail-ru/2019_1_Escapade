@@ -32,10 +32,12 @@ func NewConnection(ws *websocket.Conn, player *models.Player, lobby *Lobby) *Con
 	return conn
 }
 
+// GetPlayerID get player id
 func (conn *Connection) GetPlayerID() int {
 	return conn.player.ID
 }
 
+// GiveUp give up
 func (conn *Connection) GiveUp() {
 	conn.player.LastAction = models.ActionGiveUp
 	conn.room.chanLeave <- conn
@@ -43,13 +45,13 @@ func (conn *Connection) GiveUp() {
 
 func (conn *Connection) run() {
 	for {
-		var cell *models.Cell
-		err := conn.ws.ReadJSON(cell)
+		var data *models.ClientData
+		err := conn.ws.ReadJSON(data)
 		if err != nil {
 			fmt.Println("Error reading json.", err)
-			return
+			break
 		}
-		conn.room.chanRequest <- NewRequest(conn, cell)
+		conn.room.chanRequest <- NewRequest(conn, data)
 	}
 	switch conn.Status {
 	case connectionLobby:
@@ -64,6 +66,7 @@ func (conn *Connection) run() {
 	return
 }
 
+// SendInformation send info
 func (conn *Connection) SendInformation(info interface{}) {
 	if err := conn.ws.WriteJSON(info); err != nil {
 		fmt.Println(err)

@@ -1,6 +1,7 @@
 package models
 
 type RoomSettings struct {
+	id      int
 	Width   int
 	Height  int
 	Players int

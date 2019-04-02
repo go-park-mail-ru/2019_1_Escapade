@@ -29,37 +29,40 @@ func (field *Field) SetFlag(x int, y int, id int) {
 	field.Matrix[x][y] = id + CellIncrement
 }
 
-func (field *Field) openCellArea(x, y, ID int) {
+func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.Matrix[x][y]
 		if v < CellMine {
 			cell := NewCell(x, y, v)
 			cell.PlayerID = ID
 			field.History = append(field.History, *cell)
+			*cells = append(*cells, *cell)
 			field.Matrix[x][y] = CellOpened
 		}
 		if v == 0 {
 			field.Matrix[x][y] = CellOpened
-			field.openCellArea(x-1, y-1, ID)
-			field.openCellArea(x-1, y, ID)
-			field.openCellArea(x-1, y+1, ID)
+			field.openCellArea(x-1, y-1, ID, cells)
+			field.openCellArea(x-1, y, ID, cells)
+			field.openCellArea(x-1, y+1, ID, cells)
 
-			field.openCellArea(x, y+1, ID)
-			field.openCellArea(x, y-1, ID)
+			field.openCellArea(x, y+1, ID, cells)
+			field.openCellArea(x, y-1, ID, cells)
 
-			field.openCellArea(x+1, y-1, ID)
-			field.openCellArea(x+1, y, ID)
-			field.openCellArea(x+1, y+1, ID)
+			field.openCellArea(x+1, y-1, ID, cells)
+			field.openCellArea(x+1, y, ID, cells)
+			field.openCellArea(x+1, y+1, ID, cells)
 		}
 	}
 }
 
-func (field *Field) OpenCell(cell *Cell) {
+func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	cell.Value = field.Matrix[cell.X][cell.Y]
 
+	cells = make([]Cell, 0)
 	if cell.Value == 0 {
-		field.openCellArea(cell.X, cell.Y, cell.PlayerID)
+		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
+		cells = append(cells, *cell)
 		field.History = append(field.History, *cell)
 		if cell.Value < CellMine {
 			field.Matrix[cell.X][cell.Y] = CellOpened
@@ -67,6 +70,7 @@ func (field *Field) OpenCell(cell *Cell) {
 			field.Matrix[cell.X][cell.Y] = CellFlagTaken
 		}
 	}
+	return
 }
 
 // setMine add mine to matrix and increase dangerous value in cells near mine

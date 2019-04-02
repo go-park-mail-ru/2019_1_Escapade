@@ -59,6 +59,15 @@ func (room *Room) sendPeople(conn *Connection) {
 	conn.SendInformation(people)
 }
 
+// sendCells send cells info for user
+func (room *Room) sendCells(cells []models.Cell) {
+	gameInfo := models.GameInfo{
+		Send:  models.SendCells,
+		Cells: cells,
+	}
+	room.sendAllPlayers(gameInfo)
+}
+
 // sendPeople send field info for user
 func (room *Room) sendField(conn *Connection) {
 
