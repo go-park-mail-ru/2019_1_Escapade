@@ -11,6 +11,29 @@ type Request struct {
 	Cell       *models.Cell
 }
 
+func NewRequest(conn *Connection, cell *models.Cell) *Request {
+	request := &Request{
+		Connection: conn,
+		Cell:       cell,
+	}
+	return request
+}
+
+type Rooms struct {
+	Size  int
+	Rooms []Room
+}
+
+// Game status
+const (
+	StatusPeopleFinding = iota
+	StatusAborted       // in case of error
+	StatusFlagPlacing
+	StatusRunning
+	StatusFinished
+	StatusClosed
+)
+
 type Room struct {
 	ID     int
 	Status int
@@ -23,21 +46,14 @@ type Room struct {
 	ObserversSize     int
 	Observers         map[*Connection]*models.Player
 
-	Field         *models.Field
-	chanUpdateAll chan *struct{}
+	lobby *Lobby
+	Field *models.Field
+	//chanUpdateAll chan *struct{}
 
-	chanJoin    chan *Connection
+	//chanJoin    chan *Connection
 	chanLeave   chan *Connection
 	chanRequest chan *Request
 }
-
-// we use map, not array, cause in future will add name of rooms
-var allRooms = make(map[int]*Room)
-var freeRooms = make(map[int]*Room)
-var roomsCount int
-
-// вынести в конфиг
-var roomIDMax = 10000
 
 // sendPrepareInfo send preparing info
 func (room *Room) sendPrepareInfo(conn *Connection) {
@@ -46,6 +62,7 @@ func (room *Room) sendPrepareInfo(conn *Connection) {
 	room.sendField(conn)
 }
 
+/*
 // join handle user joining as player or observer
 func (room *Room) Join(conn *Connection) {
 
@@ -61,28 +78,29 @@ func (room *Room) Join(conn *Connection) {
 
 	// if room is searching new players
 	if room.Status == models.StatusPeopleFinding {
-		if room.addPlayer(conn) {
+		if room.enterPlayer(conn) {
 			return
 		}
 	}
 
 	// if you cant play, try observe
-	if room.addObserver(conn) {
+	if room.enterObserver(conn) {
 		return
 	}
 
 	// room not ready to accept you
-	room.sendRoomIsBlocked(conn)
+	sendNotAllowed(conn)
 }
+*/
 
 func (room *Room) Leave(conn *Connection) {
 
 	// cant delete players, cause they always need
 	// if game began
 	switch room.Status {
-	case models.StatusPeopleFinding:
+	case StatusPeopleFinding:
 		room.removeBeforeLaunch(conn)
-	case models.StatusRunning:
+	case StatusRunning:
 		room.removeDuringGame(conn)
 	default:
 		room.removeAfterFinish(conn)
@@ -90,21 +108,69 @@ func (room *Room) Leave(conn *Connection) {
 	return
 }
 
-func (room *Room) SetFlag(conn *Connection) {
-	if room.Status != models.StatusFlagPlacing {
-
+func (room *Room) SetFlag(req *Request) {
+	// if user try set flag after game launch
+	if room.Status != StatusFlagPlacing {
+		sendNotAllowed(req.Connection)
+		return
 	}
+
+	if !room.Field.IsInside(req.Cell) {
+		sendNotAllowed(req.Connection)
+		return
+	}
+
+	room.Players[req.Connection].Flag = req.Cell
+	req.Connection.SendInformation(models.ActionFlagSet)
+}
+
+func (room *Room) GetRequest(req *Request) {
+	if req.Cell.Value == models.CellFlag {
+		room.SetFlag(req)
+	} else {
+		room.OpenCell(req)
+	}
+}
+
+func (room *Room) OpenCell(req *Request) {
+	// if user try set open cell before game launch
+	if room.Status != StatusRunning {
+		sendNotAllowed(req.Connection)
+		return
+	}
+
+	if !room.Field.IsInside(req.Cell) {
+		sendNotAllowed(req.Connection)
+		return
+	}
+
+	// set who try open cell(for history)
+	req.Cell.PlayerID = req.Connection.GetPlayerID()
+	room.Field.OpenCell(req.Cell)
+
+	req.Connection.SendInformation(models.ActionFlagSet)
+}
+
+func (room *Room) startFlagPlacing() {
+	room.Status = StatusFlagPlacing
+	room.lobby.roomStart(room)
+	room.fillField()
+}
+
+func (room *Room) startGame() {
+	room.Status = StatusRunning
+	room.fillField()
 }
 
 // Run the room in goroutine
 func (room *Room) run() {
 	for {
 		select {
-		case connection := <-room.chanJoin:
-			room.Join(connection)
 
 		case connection := <-room.chanLeave:
 			room.Leave(connection)
+		case request := <-room.chanRequest:
+			room.GetRequest(request)
 		}
 	}
 }

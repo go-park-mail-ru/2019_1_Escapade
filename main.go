@@ -3,6 +3,7 @@ package main
 import (
 	mi "escapade/internal/middleware"
 	"escapade/internal/services/api"
+	"escapade/internal/services/game"
 	"fmt"
 	"os"
 
@@ -29,15 +30,20 @@ func main() {
 		return
 	}
 
+	API.Lobby = game.NewLobby()
+	go API.Lobby.Run()
+
 	r := mux.NewRouter()
 
 	var v = r.PathPrefix("/api").Subrouter()
 
 	v.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	var v1 = r.PathPrefix("/v1").Subrouter()
+	var v1 = v.PathPrefix("/v1").Subrouter()
 
 	v1.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
+	v1.HandleFunc("/GameOnline", API.GameOnline)
+
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.DeleteUser)).Methods("DELETE")
@@ -63,10 +69,10 @@ func main() {
 	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
 
 	if os.Getenv("PORT") == "" {
-		os.Setenv("PORT", "3000")
+		os.Setenv("PORT", conf.Server.Port)
 	}
 
-	if err = http.ListenAndServe(":"+os.Getenv("PORT"), r); err != nil {
+	if err = http.ListenAndServe(os.Getenv("PORT"), r); err != nil {
 		fmt.Println("oh, this is error:" + err.Error())
 	}
 }

@@ -3,20 +3,15 @@ package game
 import (
 	"escapade/internal/models"
 	//re "escapade/internal/return_errors"
-	"math/rand"
+
 	"sync"
 )
 
-func NewRoom(rs *models.RoomSettings) *Room {
-	id := rand.Intn(roomIDMax)
-
-	// find id, that doesnt exist
-	for elem, ok := allRooms[id]; ok; {
-	}
+func NewRoom(rs *models.RoomSettings, id int, lobby *Lobby) *Room {
 
 	room := &Room{
 		ID:              id,
-		Status:          models.StatusPeopleFinding,
+		Status:          StatusPeopleFinding,
 		PlayersCapacity: rs.Players,
 		PlayersSize:     0,
 		Players:         make(map[*Connection]*Playing),
@@ -25,21 +20,13 @@ func NewRoom(rs *models.RoomSettings) *Room {
 		ObserversSize:     0,
 		Observers:         make(map[*Connection]*models.Player),
 
-		Field:         models.NewField(rs),
-		chanUpdateAll: make(chan *struct{}),
-		chanJoin:      make(chan *Connection),
-		chanLeave:     make(chan *Connection),
-		chanRequest:   make(chan *Request),
+		lobby: lobby,
+		Field: models.NewField(rs),
+		//chanUpdateAll: make(chan *struct{}),
+		//chanJoin:      make(chan *Connection),
+		chanLeave:   make(chan *Connection),
+		chanRequest: make(chan *Request),
 	}
-
-	allRooms[id] = room
-	freeRooms[id] = room
-
-	// run room
-	go room.run()
-
-	roomsCount++
-
 	return room
 }
 
@@ -69,13 +56,13 @@ func (room *Room) sendPeople(conn *Connection) {
 		ObserversSize:     room.ObserversSize,
 		Observers:         observers,
 	}
-	conn.sendInformation(people)
+	conn.SendInformation(people)
 }
 
 // sendPeople send field info for user
 func (room *Room) sendField(conn *Connection) {
 
-	conn.sendInformation(*room.Field)
+	conn.SendInformation(*room.Field)
 }
 
 // sendAllPlayerAction send users action to everybody
@@ -100,22 +87,6 @@ func (room *Room) sendAllGameStatus(status int) {
 	room.sendAllPlayers(gameInfo)
 }
 
-func (room *Room) sendNotAllowed(conn *Connection) {
-	gameInfo := models.GameInfo{
-		Send:   models.SendGameStatus,
-		Status: models.StatusAborted,
-	}
-	conn.sendInformation(gameInfo)
-}
-
-func (room *Room) sendRoomIsBlocked(conn *Connection) {
-	gameInfo := models.GameInfo{
-		Send:   models.SendGameStatus,
-		Status: models.StatusBlock,
-	}
-	conn.sendInformation(gameInfo)
-}
-
 // observe try to connect user as observer
 /* instruction to call
  first response will be as GameInfo(json)
@@ -124,11 +95,10 @@ otherwise GameInfo
 
 then if success be ready to receive Field and People models
 */
-func (room *Room) addObserver(conn *Connection) bool {
+func (room *Room) enterObserver(conn *Connection) bool {
 	// if we have a place
 	if room.ObserversSize < room.ObserversCapacity {
-		room.Observers[conn] = conn.player
-		room.ObserversSize++
+		room.addObserver(conn)
 		room.sendAllPlayerAction(conn, models.ActionConnectAsObserver)
 		room.sendPrepareInfo(conn)
 		return true
@@ -137,11 +107,11 @@ func (room *Room) addObserver(conn *Connection) bool {
 }
 
 // addPlayer add Connection as player
-func (room *Room) addPlayer(conn *Connection) bool {
+func (room *Room) EnterPlayer(conn *Connection) bool {
 	// if room have already started
-	if room.Status != models.StatusPeopleFinding {
-		return false
-	}
+	// if room.Status != models.StatusPeopleFinding {
+	// 	return false
+	// }
 
 	// if room hasnt got places
 	if room.PlayersSize == room.PlayersCapacity {
@@ -149,13 +119,41 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	}
 
 	cell := room.Field.RandomCell()
-	flag := models.NewFlag(cell, conn.player.ID)
-	room.Players[conn] = NewPlaying(conn.player, flag)
-	room.PlayersSize++
-
+	cell.PlayerID = conn.GetPlayerID()
+	playing := NewPlaying(conn.player, cell)
+	room.addPlayer(conn, playing)
 	room.sendAllPlayerAction(conn, models.ActionConnectAsPlayer)
 
+	if room.PlayersSize == room.PlayersCapacity {
+		room.startFlagPlacing()
+	}
+
 	return true
+}
+
+// RecoverPlayer call it in lobby.join if player disconnected
+func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) {
+
+	value := room.Players[old]
+	room.addPlayer(new, value)
+	room.removePlayer(old)
+
+	room.sendAllPlayerAction(new, models.ActionReconnect)
+	room.sendPrepareInfo(new)
+
+	return
+}
+
+// RecoverPlayer call it in lobby.join if player disconnected
+func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool) {
+
+	room.addObserver(new)
+	room.removeObserver(old)
+
+	room.sendAllPlayerAction(new, models.ActionReconnect)
+	room.sendPrepareInfo(new)
+
+	return
 }
 
 // alreadyPlaying
@@ -181,23 +179,37 @@ func (room *Room) alreadyPlaying(conn *Connection) (played bool) {
 
 // room closes
 func (room *Room) close() {
-	room.sendAllGameStatus(models.StatusClosed)
+	room.sendAllGameStatus(StatusClosed)
 	room.Players = nil
 	room.Observers = nil
-	delete(allRooms, room.ID)
-	delete(freeRooms, room.ID)
+	//delete(allRooms, room.ID)
+	//delete(freeRooms, room.ID)
 }
 
 // removePlayer
 func (room *Room) removePlayer(conn *Connection) {
+	sendDisconnected(conn)
 	delete(room.Players, conn)
 	room.PlayersSize--
 }
 
 // removeObserver
 func (room *Room) removeObserver(conn *Connection) {
-	room.ObserversSize--
+	sendDisconnected(conn)
 	delete(room.Observers, conn)
+	room.ObserversSize--
+}
+
+// addPlayer
+func (room *Room) addPlayer(conn *Connection, value *Playing) {
+	room.Players[conn] = value
+	room.PlayersSize++
+}
+
+// addObserver
+func (room *Room) addObserver(conn *Connection) {
+	room.Observers[conn] = conn.player
+	room.ObserversSize++
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
@@ -232,7 +244,7 @@ func (room *Room) removeDuringGame(conn *Connection) {
 	}
 
 	// somebody broke, fix it
-	room.sendAllGameStatus(models.StatusAborted)
+	room.sendAllGameStatus(StatusAborted)
 	return
 }
 
@@ -250,12 +262,23 @@ func (room *Room) sendAllPlayers(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
 	for conn := range room.Players {
 		waitJobs.Add(1)
-		conn.sendGroupInformation(info)
+		conn.sendGroupInformation(info, waitJobs)
 	}
 
 	for conn := range room.Observers {
 		waitJobs.Add(1)
-		conn.sendGroupInformation(info)
+		conn.sendGroupInformation(info, waitJobs)
 	}
 	waitJobs.Wait()
+}
+
+func (room *Room) setFlags() {
+	for _, playing := range room.Players {
+		room.Field.SetFlag(playing.Flag.X, playing.Flag.Y, playing.Flag.PlayerID)
+	}
+}
+
+func (room *Room) fillField() {
+	room.setFlags()
+	room.Field.SetMines()
 }

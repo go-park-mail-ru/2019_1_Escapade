@@ -5,12 +5,14 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+	"escapade/internal/services/game"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
+
 	"github.com/gorilla/websocket"
 
 	//"reflect"
@@ -23,8 +25,9 @@ type Handler struct {
 	DB                    database.DataBase
 	PlayersAvatarsStorage string
 	FileMode              int
-	ReadBufferSize int
-	WriteBufferSize int
+	ReadBufferSize        int
+	WriteBufferSize       int
+	Lobby                 *game.Lobby
 }
 
 // catch CORS preflight
@@ -531,13 +534,13 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func  (h *Handler) Game(rw http.ResponseWriter, r *http.Request) {
-	const place = "Game"
+func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
+	const place = "GameOnline"
 	var (
 		err      error
-		userID int
+		userID   int
 		userName string
-		ws *websocket.Conn
+		ws       *websocket.Conn
 	)
 
 	if userName, err = h.getNameFromCookie(r); err != nil {
@@ -570,22 +573,14 @@ func  (h *Handler) Game(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get or create a room
-	var room *room
-	if len(freeRooms) > 0 {
-		for _, r := range freeRooms {
-			room = r
-			break
-		}
-	} else {
-		room = NewRoom("")
-	}
+	player := models.NewPlayer(userName, userID)
+	conn := game.NewConnection(ws, player, h.Lobby)
+	// Join Player to lobby
+	h.Lobby.ChanJoin <- conn
 
-	// Create Player and Conn
-	player := game.NewPlayer(playerName)
-	pConn := NewPlayerConn(ws, player, room)
-	// Join Player to room
-	room.join <- pConn
+	fmt.Printf("Player: %d has joined \n", conn.GetPlayerID())
 
-	fmt.Printf("Player: %s has joined to room: %s \n", pConn.Name, room.name)
+	rw.WriteHeader(http.StatusOK)
+	printResult(err, http.StatusOK, place)
+	return
 }

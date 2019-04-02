@@ -1,13 +1,28 @@
 package models
 
-// send to user one cell
+// Cell send to user one cell
 type Cell struct {
 	X int
 	Y int
 	// IsOpen bool
 	// IsMarked bool
-	Value int
+	Value    int
+	PlayerID int
 }
+
+func NewCell(x int, y int, v int) *Cell {
+	cell := &Cell{
+		X:     x,
+		Y:     y,
+		Value: v,
+	}
+	return cell
+}
+
+// SameAs compare two cells
+// func (cell *Cell) SameAs(another *Cell) bool {
+// 	return (cell.X == another.X) && (cell.Y == another.Y)
+// }
 
 /*
 0-8- amount of mines
@@ -87,9 +102,10 @@ func (player *Player) Reset() {
 
 // Cell type
 const (
-	CellMineClose = iota + 9
-	CellMineOpen
+	CellMine   = iota + 9
+	CellOpened // for empty cells
 	CellFlag
+	CellFlagTaken
 	CellIncrement // for id
 )
 
@@ -106,17 +122,8 @@ const (
 	ActionWin
 	ActionLose
 	ActionGetPoints
+	ActionFlagSet
 	ActionGiveUp
-)
-
-// Game status
-const (
-	StatusPeopleFinding = iota
-	StatusAborted       // in case of error
-	StatusFlagPlacing
-	StatusRunning
-	StatusFinished
-	StatusClosed
 )
 
 // What to send to user

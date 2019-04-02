@@ -8,18 +8,32 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Connection status
+const (
+	connectionLobby     = iota // can ask for rooms list
+	connectionRoomEnter        // can ask for field and people
+	connectionPlayer           // can send cell and get update field
+	connectionObserver         // get update field
+)
+
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	ws     *websocket.Conn
 	player *models.Player
+	lobby  *Lobby
 	room   *Room
+	Status int
 }
 
 // NewConnection creates a new connection and run it
-func NewConnection(ws *websocket.Conn, player *models.Player, room *Room) *Connection {
-	conn := &Connection{ws, player, room}
+func NewConnection(ws *websocket.Conn, player *models.Player, lobby *Lobby) *Connection {
+	conn := &Connection{ws, player, lobby, nil, connectionLobby}
 	go conn.run()
 	return conn
+}
+
+func (conn *Connection) GetPlayerID() int {
+	return conn.player.ID
 }
 
 func (conn *Connection) GiveUp() {
@@ -27,47 +41,31 @@ func (conn *Connection) GiveUp() {
 	conn.room.chanLeave <- conn
 }
 
-func (conn *Connection) run() (returnError error) {
+func (conn *Connection) run() {
 	for {
-		messageType, command, err := conn.ws.ReadMessage()
+		var cell *models.Cell
+		err := conn.ws.ReadJSON(cell)
 		if err != nil {
-			returnError = err
-			break
+			fmt.Println("Error reading json.", err)
+			return
 		}
-
-		var cell Cell
-
-		//cell.Value = 10 - setFlag
-		//otherwise       - openCell
-		_ = json.NewDecoder(command).Decode(&cell)
-
-		if (cell.Value == models.CellFlag) {
-			room.fie
-		}
-
-		// execute a command
-		con.player.Command(string(command)
-		// update all conn
-		con.room.updateAll <- true
+		conn.room.chanRequest <- NewRequest(conn, cell)
 	}
-	if returnError != nil {
-		return
+	switch conn.Status {
+	case connectionLobby:
+		conn.lobby.chanLeave <- conn
+	case connectionPlayer:
+		conn.room.chanLeave <- conn
+	case connectionObserver:
+		conn.lobby.chanLeave <- conn
+		conn.room.chanLeave <- conn
 	}
-	conn.room.leave <- conn
 	conn.ws.Close()
 	return
 }
 
-func (conn *Connection) sendInformation(info interface{}) {
-
-	err := conn.ws.ReadJSON(&info)
-	if err != nil {
-		fmt.Println("Error reading json.", err)
-	}
-
-	fmt.Printf("Got message: %#v\n", info)
-
-	if err = conn.ws.WriteJSON(info); err != nil {
+func (conn *Connection) SendInformation(info interface{}) {
+	if err := conn.ws.WriteJSON(info); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -75,5 +73,5 @@ func (conn *Connection) sendInformation(info interface{}) {
 func (conn *Connection) sendGroupInformation(info interface{}, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	conn.sendInformation(info)
+	conn.SendInformation(info)
 }
