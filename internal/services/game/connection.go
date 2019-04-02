@@ -51,7 +51,11 @@ func (conn *Connection) run() {
 			fmt.Println("Error reading json.", err)
 			break
 		}
-		conn.room.chanRequest <- NewRequest(conn, data)
+		if conn.Status == connectionLobby {
+			conn.lobby.chanRequest <- NewRequest(conn, data)
+		} else {
+			conn.room.chanRequest <- NewRequest(conn, data)
+		}
 	}
 	switch conn.Status {
 	case connectionLobby:

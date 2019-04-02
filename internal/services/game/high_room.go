@@ -223,6 +223,7 @@ func (room *Room) startGame() {
 
 // Run the room in goroutine
 func (room *Room) run() {
+	//timer := time.NewTimer()
 	for {
 		select {
 

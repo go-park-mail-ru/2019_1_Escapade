@@ -16,9 +16,9 @@ type Lobby struct {
 	waiting map[*Connection]*Room // room cause they can observe game
 	playing map[*Connection]*Room
 
-	ChanJoin  chan *Connection // connection joined lobby
-	chanEnter chan *Connection // connection joined room
-	chanLeave chan *Connection // connection left lobby
+	ChanJoin    chan *Connection // connection joined lobby
+	chanLeave   chan *Connection // connection left lobby
+	chanRequest chan *Request
 	//chanRoom  chan *Room       // room change status
 }
 
@@ -35,9 +35,9 @@ func NewLobby() *Lobby {
 		waiting: make(map[*Connection]*Room),
 		playing: make(map[*Connection]*Room),
 
-		ChanJoin:  make(chan *Connection),
-		chanEnter: make(chan *Connection),
-		chanLeave: make(chan *Connection),
+		ChanJoin:    make(chan *Connection),
+		chanLeave:   make(chan *Connection),
+		chanRequest: make(chan *Request),
 	}
 	return lobby
 }
@@ -201,18 +201,20 @@ func (lobby *Lobby) EnterBusyRoom(conn *Connection) bool {
 }
 
 // EnterRoom handle user join to room
-func (lobby *Lobby) EnterRoom(conn *Connection) {
+func (lobby *Lobby) EnterRoom(request *Request) {
 
 	done := false
-	if conn.room == nil {
-		done = lobby.EnterFreeRoom(conn)
+	if room, ok := lobby.allRooms[request.Data.RoomSettings.ID]; ok {
+		request.Connection.room = room
+		done = lobby.EnterBusyRoom(request.Connection)
 	} else {
-		done = lobby.EnterBusyRoom(conn)
+		done = lobby.EnterFreeRoom(request.Connection)
 	}
+
 	if done {
-		lobby.waiterToPlayer(conn)
+		lobby.waiterToPlayer(request.Connection)
 	} else {
-		sendNotAllowed(conn)
+		sendNotAllowed(request.Connection)
 	}
 	return
 }
@@ -243,8 +245,8 @@ func (lobby *Lobby) Run() {
 		case connection := <-lobby.ChanJoin:
 			lobby.Join(connection)
 
-		case connection := <-lobby.chanEnter:
-			lobby.EnterRoom(connection)
+		case request := <-lobby.chanRequest:
+			lobby.EnterRoom(request)
 
 		case connection := <-lobby.chanLeave:
 			lobby.Leave(connection)
