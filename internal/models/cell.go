@@ -2,12 +2,12 @@ package models
 
 // Cell send to user one cell
 type Cell struct {
-	X int
-	Y int
+	X int `json:"X"`
+	Y int `json:"Y"`
 	// IsOpen bool
 	// IsMarked bool
-	Value    int
-	PlayerID int
+	Value    int `json:"Value"`
+	PlayerID int `json:"PlayerID"`
 }
 
 func NewCell(x int, y int, v int) *Cell {
@@ -137,10 +137,15 @@ const (
 )
 
 type ClientData struct {
-	Send         int
-	RoomSettings *RoomSettings
-	Cell         *Cell
-	PlayerAction int
+	Send         int           `json:"Send"`
+	RoomSettings *RoomSettings `json:"RoomSettings"`
+	Cell         *Cell         `json:"Cell"`
+	PlayerAction int           `json:"PlayerAction"`
+}
+
+type ClientData2 struct {
+	Send         int `json:"Send"`
+	PlayerAction int `json:"PlayerAction"`
 }
 
 type GameInfo struct {

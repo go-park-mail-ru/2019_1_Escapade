@@ -45,8 +45,10 @@ func (conn *Connection) GiveUp() {
 
 func (conn *Connection) run() {
 	for {
-		var data *models.ClientData
-		err := conn.ws.ReadJSON(data)
+		var data = &models.ClientData{}
+		err := conn.ws.ReadJSON(&data)
+
+		fmt.Println(*data.RoomSettings)
 		if err != nil {
 			fmt.Println("Error reading json.", err)
 			break

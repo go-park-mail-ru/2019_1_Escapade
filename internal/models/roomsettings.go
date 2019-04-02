@@ -1,11 +1,11 @@
 package models
 
 type RoomSettings struct {
-	ID      int
-	Width   int
-	Height  int
-	Players int
-	Percent float32
+	ID      int     `json:"ID"`
+	Width   int     `json:"Width"`
+	Height  int     `json:"Height"`
+	Players int     `json:"Players"`
+	Percent float32 `json:"Percent"`
 }
 
 func NewSmallRoom() *RoomSettings {
