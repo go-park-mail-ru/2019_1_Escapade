@@ -3,7 +3,6 @@ package main
 import (
 	mi "escapade/internal/middleware"
 	"escapade/internal/services/api"
-	"escapade/internal/services/game"
 	"fmt"
 	"os"
 
@@ -30,9 +29,6 @@ func main() {
 		return
 	}
 
-	API.Lobby = game.NewLobby(500)
-	go API.Lobby.Run()
-
 	r := mux.NewRouter()
 
 	var v = r.PathPrefix("/api").Subrouter()
@@ -42,7 +38,7 @@ func main() {
 	var v1 = r
 
 	v1.HandleFunc("/", mi.CORS(conf.Cors)(API.Ok))
-	v1.HandleFunc("/ws", mi.CORS(conf.Cors)(API.GameOnline))
+	r.HandleFunc("/ws", mi.CORS(conf.Cors)(API.GameOnline))
 
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.GetMyProfile)).Methods("GET")
 	v1.HandleFunc("/user", mi.CORS(conf.Cors)(API.CreateUser)).Methods("POST")

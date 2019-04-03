@@ -3,18 +3,22 @@ package api
 import (
 	"escapade/internal/config"
 	"escapade/internal/database"
-	//"reflect"
+	"escapade/internal/services/game"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, storage config.FileStorageConfig, server config.ServerConfig) (handler *Handler) {
+func Init(DB *database.DataBase, config *config.Configuration) (handler *Handler) {
+	lobby := game.NewLobby(config.Game.RoomsCapacity,
+		config.Game.LobbyJoin, config.Game.LobbyRequest)
 	handler = &Handler{
 		DB:                    *DB,
-		PlayersAvatarsStorage: storage.PlayersAvatarsStorage,
-		FileMode:              storage.FileMode,
-		WriteBufferSize:       server.WriteBufferSize,
-		ReadBufferSize:        server.ReadBufferSize,
+		PlayersAvatarsStorage: config.Storage.PlayersAvatarsStorage,
+		FileMode:              config.Storage.FileMode,
+		WriteBufferSize:       config.Server.WriteBufferSize,
+		ReadBufferSize:        config.Server.ReadBufferSize,
+		Lobby:                 lobby,
 	}
+	go handler.Lobby.Run()
 	return
 }
 
@@ -32,6 +36,6 @@ func GetHandler(confPath string) (handler *Handler, conf *config.Configuration, 
 		return
 	}
 
-	handler = Init(db, conf.Storage, conf.Server)
+	handler = Init(db, conf)
 	return
 }

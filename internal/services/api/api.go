@@ -8,6 +8,7 @@ import (
 	"escapade/internal/services/game"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -28,6 +29,7 @@ type Handler struct {
 	ReadBufferSize        int
 	WriteBufferSize       int
 	Lobby                 *game.Lobby
+	Test                  bool
 }
 
 // catch CORS preflight
@@ -544,18 +546,23 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		ws       *websocket.Conn
 	)
 
-	if userName, err = h.getNameFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
-	}
+	if !h.Test {
+		if userName, err = h.getNameFromCookie(r); err != nil {
+			rw.WriteHeader(http.StatusUnauthorized)
+			sendErrorJSON(rw, re.ErrorAuthorization(), place)
+			printResult(err, http.StatusUnauthorized, place)
+			return
+		}
 
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
+		if userID, err = h.getUserIDFromCookie(r); err != nil {
+			rw.WriteHeader(http.StatusUnauthorized)
+			sendErrorJSON(rw, re.ErrorAuthorization(), place)
+			printResult(err, http.StatusUnauthorized, place)
+			return
+		}
+	} else {
+		userName = game.RandString(16)
+		userID = rand.Intn(10000)
 	}
 
 	var upgrader = websocket.Upgrader{

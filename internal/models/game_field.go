@@ -8,15 +8,13 @@ import (
 // about map or it is his first connect
 type Field struct {
 	Matrix    [][]int `json:"-"`
-	History   []Cell
-	Width     int
-	Height    int
-	CellsLeft int `json:"-"`
-	// Open   int
-	// Mines int
-	// Flags int
+	History   []Cell  `json:"history"`
+	Width     int     `json:"width"`
+	Height    int     `json:"height"`
+	CellsLeft int     `json:"-"`
 }
 
+// SameAs compare two fields
 func (field *Field) SameAs(another *Field) bool {
 	return field.Width == another.Width &&
 		field.Height == another.Height &&
@@ -64,6 +62,7 @@ func (field *Field) setCellOpen(x, y int) {
 	field.Matrix[x][y] = CellOpened
 }
 
+// IsCleared return true if all safe cells except flags open
 func (field *Field) IsCleared() bool {
 	return field.CellsLeft == 0
 }
@@ -79,6 +78,7 @@ func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 	*cells = append(*cells, *cell)
 }
 
+// OpenCell open cell and return slice of opened cells
 func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	cell.Value = field.Matrix[cell.X][cell.Y]
 

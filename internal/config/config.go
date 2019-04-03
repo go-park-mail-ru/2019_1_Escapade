@@ -10,6 +10,7 @@ type Configuration struct {
 	Cors     CORSConfig        `json:"cors"`
 	DataBase DatabaseConfig    `json:"dataBase"`
 	Storage  FileStorageConfig `json:"storage"`
+	Game     GameConfig        `json:"game"`
 }
 
 type ServerConfig struct {
@@ -45,6 +46,12 @@ type DatabaseConfig struct {
 type FileStorageConfig struct {
 	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
 	FileMode              int    `json:"fileMode"`
+}
+
+type GameConfig struct {
+	RoomsCapacity int `json:"roomsCapacity"`
+	LobbyJoin     int `json:"lobbyJoin"`
+	LobbyRequest  int `json:"lobbyRequest"`
 }
 
 // Init load configuration file

@@ -33,8 +33,9 @@
 			"OPTIONS"
 		]
 	},
-	"storage": {
-		"playersAvatarsStorage": "imgs/players/",
-		"fileMode":666
+	"game": {
+		"roomsCapacity": 500,
+		"lobbyJoin": 1,
+		"lobbyRequest": 1
 	}
 }

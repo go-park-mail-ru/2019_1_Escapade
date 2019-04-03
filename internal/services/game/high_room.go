@@ -57,7 +57,7 @@ type Room struct {
 }
 
 func (room *Room) addAction(conn *Connection, action int) {
-	pa := NewPlayerAction(conn.player, action)
+	pa := NewPlayerAction(conn.Player, action)
 	room.history = append(room.history, pa)
 }
 
@@ -75,8 +75,8 @@ func (room *Room) Join(conn *Connection) bool {
 		}
 	}
 
-	// reset old action and old points
-	conn.player.Reset()
+	// reset old points
+	conn.Player.Reset()
 
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {

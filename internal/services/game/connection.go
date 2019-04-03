@@ -18,10 +18,13 @@ const (
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	ws     *websocket.Conn
-	player *Player
+	Player *Player `json:"player"`
 	lobby  *Lobby
 	room   *Room
-	Status int
+	Status int `json:"status"`
+
+	//chanRead   chan *Connection  `json:"-"`
+	//chanWrite chan *RoomRequest `json:"-"`
 }
 
 // NewConnection creates a new connection and run it
@@ -33,7 +36,7 @@ func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection
 
 // GetPlayerID get player id
 func (conn *Connection) GetPlayerID() int {
-	return conn.player.ID
+	return conn.Player.ID
 }
 
 func (conn *Connection) lobbyWork() {

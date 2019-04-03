@@ -4,9 +4,9 @@ package game
 //"math/rand"
 
 type Connections struct {
-	Capacity int
-	Size     int
-	Get      map[*Connection]bool
+	Capacity int                  `json:"capacity"`
+	Size     int                  `json:"size"`
+	Get      map[*Connection]bool `json:"get"`
 }
 
 func NewConnections(capacity int) *Connections {
@@ -37,7 +37,6 @@ func (conns *Connections) Add(conn *Connection, b bool) bool {
 func (conns *Connections) Remove(conn *Connection) {
 	if _, ok := conns.Get[conn]; ok {
 		sendError(conn, "Remove", "You disconnected ")
-
 		delete(conns.Get, conn)
 		conns.Size--
 	}
