@@ -3,17 +3,17 @@ package game
 import (
 	"escapade/internal/models"
 	//re "escapade/internal/return_errors"
+	"fmt"
 
 	"sync"
 )
 
 // NewRoom return new instance of room
 func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
-
+	fmt.Println("NewRoom rs = ", *rs)
 	room := &Room{
-		Name:   name,
-		Status: StatusPeopleFinding,
-
+		Name:      name,
+		Status:    StatusPeopleFinding,
 		Players:   NewConnections(rs.Players),
 		Observers: NewConnections(10),
 
@@ -67,9 +67,9 @@ func (room *Room) EnterPlayer(conn *Connection) bool {
 
 	room.addAction(conn, ActionConnectAsPlayer)
 	room.sendTAIRPeople()
-	room.sendTOCAll(conn)
 
 	if !room.Players.enoughPlace() {
+		conn.debug("EnterPlayer", "EnterPlayer", "EnterPlayer", "EnterPlayer")
 		room.startFlagPlacing()
 	}
 
@@ -181,8 +181,11 @@ func (room *Room) setFlags() {
 }
 
 func (room *Room) fillField() {
+	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
+
 	room.setFlags()
 	room.Field.SetMines()
+
 }
 
 func (room *Room) sendToAllInRoom(info interface{}) {
@@ -216,6 +219,7 @@ func (room *Room) sendTAIRField() {
 		Field: true,
 	}
 	send := room.makeGetModel(get)
+
 	room.sendToAllInRoom(send)
 }
 

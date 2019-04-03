@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
+	"time"
 )
 
 // Field send to user, if he disconnect and 'forgot' everything
@@ -12,6 +14,7 @@ type Field struct {
 	Width     int     `json:"width"`
 	Height    int     `json:"height"`
 	CellsLeft int     `json:"-"`
+	Mines     int
 }
 
 // SameAs compare two fields
@@ -116,37 +119,43 @@ func (field *Field) setMine(x, y int) {
 func (field *Field) SetMines() {
 	width := field.Width
 	height := field.Height
-	mines := height*width - field.CellsLeft
-
+	mines := field.Mines
+	fmt.Println("begin SetMines")
 	for mines > 0 {
+		rand.Seed(time.Now().UnixNano())
 		i := rand.Intn(width)
 		j := rand.Intn(height)
+		fmt.Println(i, j)
 		if field.Matrix[i][j] < CellMine {
 			field.setMine(i, j)
+			mines--
 		}
 	}
+	fmt.Println("end SetMines")
 }
 
 // generate matrix
-func generate(rs *RoomSettings) (mines int, matrix [][]int) {
+func generate(rs *RoomSettings) (matrix [][]int) {
 	width := rs.Width
 	height := rs.Height
 
-	matrix = make([][]int, height)
-	mines = int(float32(width*height) * rs.Percent)
-
+	matrix = [][]int{}
+	for i := 0; i < height; i++ {
+		matrix = append(matrix, make([]int, width))
+	}
 	return
 }
 
 // NewField create new instance of field
 func NewField(rs *RoomSettings) *Field {
-	mines, matrix := generate(rs)
+	matrix := generate(rs)
 	field := &Field{
 		Matrix:    matrix,
 		History:   make([]Cell, 0, rs.Width*rs.Height),
 		Width:     rs.Width,
 		Height:    rs.Height,
-		CellsLeft: rs.Width*rs.Height - mines,
+		Mines:     rs.Mines,
+		CellsLeft: rs.Width*rs.Height - rs.Mines - rs.Players,
 	}
 	return field
 }

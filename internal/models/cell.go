@@ -2,12 +2,12 @@ package models
 
 // Cell send to user one cell
 type Cell struct {
-	X int `json:"X"`
-	Y int `json:"Y"`
+	X int `json:"x"`
+	Y int `json:"y"`
 	// IsOpen bool
 	// IsMarked bool
-	Value    int `json:"Value"`
-	PlayerID int `json:"PlayerID"`
+	Value    int `json:"value"`
+	PlayerID int `json:"playerID"`
 }
 
 func NewCell(x int, y int, v int) *Cell {

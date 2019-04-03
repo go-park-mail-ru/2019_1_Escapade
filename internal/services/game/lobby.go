@@ -80,6 +80,7 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 	if !lobby.AllRooms.Add(room, name) {
 		return nil
 	}
+
 	lobby.FreeRooms.Add(room, name)
 	go lobby.sendTAILRooms() // inform all about new room
 	go room.run()
@@ -136,6 +137,7 @@ func (lobby *Lobby) Leave(conn *Connection) {
 // roomStart - room remove from free
 func (lobby *Lobby) roomStart(room *Room) {
 	lobby.FreeRooms.Remove(room)
+
 	go lobby.sendTAILRooms()
 }
 
@@ -194,7 +196,11 @@ func (lobby *Lobby) enterFreeRoom(conn *Connection, rs *models.RoomSettings) (do
 	// if there is no room
 	if lobby.FreeRooms.Empty() {
 		// if room capacity ended return nil
+		conn.debug("enterFreeRoom before", "enterFreeRoom before", "enterFreeRoom before", "enterFreeRoom before")
 		room := lobby.createRoom(rs)
+		if room != nil {
+			room.Players.Add(conn)
+		}
 		return room != nil
 	}
 
@@ -202,6 +208,7 @@ func (lobby *Lobby) enterFreeRoom(conn *Connection, rs *models.RoomSettings) (do
 	for _, room := range lobby.FreeRooms.Rooms {
 		//if room.SameAs()
 		if room.EnterPlayer(conn) {
+			conn.debug("enterFreeRoom", "enterFreeRoom", "enterFreeRoom", "enterFreeRoom")
 			done = true
 			break
 		}
@@ -292,6 +299,7 @@ func sendError(conn *Connection, place, message string) {
 func (lobby *Lobby) sendToAllInLobby(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
 	for _, conn := range lobby.Waiting {
+		conn.debug("sendToAllInLobby", "sendToAllInLobby", "sendToAllInLobby", "sendToAllInLobby")
 		if conn.Status == connectionLobby {
 			waitJobs.Add(1)
 			conn.sendGroupInformation(info, waitJobs)
