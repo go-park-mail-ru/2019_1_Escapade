@@ -32,25 +32,25 @@ type RoomSend struct {
 }
 
 type RoomGet struct {
-	players   bool `json:"players"`
-	observers bool `json:"observers"`
-	field     bool `json:"field"`
-	history   bool `json:"history"`
+	Players   bool `json:"players"`
+	Observers bool `json:"observers"`
+	Field     bool `json:"field"`
+	History   bool `json:"history"`
 }
 
 type Room struct {
 	Name   string `json:"name"`
 	Status int    `json:"status"`
 
-	players   *Connections `json:"players"`
-	observers *Connections `json:"observers"`
+	Players   *Connections `json:"players"`
+	Observers *Connections `json:"observers"`
 
-	history []*PlayerAction `json:"history"`
+	History []*PlayerAction `json:"history"`
 
 	flags map[*Connection]*models.Cell `json:"-"`
 
 	lobby *Lobby        `json:"-"`
-	field *models.Field `json:"get"`
+	Field *models.Field `json:"field"`
 
 	chanLeave   chan *Connection  `json:"-"`
 	chanRequest chan *RoomRequest `json:"-"`
@@ -58,14 +58,15 @@ type Room struct {
 
 func (room *Room) addAction(conn *Connection, action int) {
 	pa := NewPlayerAction(conn.Player, action)
-	room.history = append(room.history, pa)
+	room.History = append(room.History, pa)
 }
 
+// SameAs compare  one room with another
 func (room *Room) SameAs(another *Room) bool {
-	return room.field.SameAs(another.field)
+	return room.Field.SameAs(another.Field)
 }
 
-// join handle user joining as player or observer
+// Join handle user joining as player or observer
 func (room *Room) Join(conn *Connection) bool {
 
 	// if game not finish, lets check is that conn already in game
@@ -113,7 +114,7 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 		return false
 	}
 
-	if !room.field.IsInside(cell) {
+	if !room.Field.IsInside(cell) {
 		return false
 	}
 	room.flags[conn] = cell
@@ -128,22 +129,22 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	}
 
 	// if wrong cell
-	if !room.field.IsInside(cell) {
+	if !room.Field.IsInside(cell) {
 		return false
 	}
 
 	// if user died
-	if room.players.Get[conn] == true {
+	if conn.Player.Finished == true {
 		return false
 	}
 
 	// set who try open cell(for history)
 	cell.PlayerID = conn.GetPlayerID()
-	room.field.OpenCell(cell)
+	room.Field.OpenCell(cell)
 
 	room.sendTAIRField()
 
-	if room.field.IsCleared() {
+	if room.Field.IsCleared() {
 		room.lobby.roomFinish(room)
 	}
 	return true

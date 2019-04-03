@@ -37,8 +37,8 @@ type Lobby struct {
 	FreeRooms *Rooms `json:"freeRooms"`
 
 	// room cause they can observe game
-	Waiting map[*Connection]*Room `json:"waiting"`
-	Playing map[*Connection]*Room `json:"playing"`
+	Waiting map[int]*Connection `json:"waiting"`
+	Playing map[int]*Connection `json:"playing"`
 
 	// connection joined lobby
 	ChanJoin chan *Connection `json:"-"`
@@ -58,8 +58,8 @@ func NewLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 		AllRooms:  NewRooms(roomsCapacity),
 		FreeRooms: NewRooms(roomsCapacity),
 
-		Waiting: make(map[*Connection]*Room),
-		Playing: make(map[*Connection]*Room),
+		Waiting: make(map[int]*Connection),
+		Playing: make(map[int]*Connection),
 
 		ChanJoin:    make(chan *Connection),
 		chanLeave:   make(chan *Connection),
@@ -96,20 +96,21 @@ func (lobby *Lobby) Join(conn *Connection) {
 		<-lobby.semJoin
 	}()
 
+	thatID := conn.GetPlayerID()
 	// maybe user disconnected and we need return him
 	for _, room := range lobby.AllRooms.Rooms {
 		// work only when game launched, because
 		// otherwise player delete from room
-		for foundConn := range room.players.Get {
-			if foundConn.GetPlayerID() == conn.GetPlayerID() {
+		for id, foundConn := range room.Players.Get {
+			if id == thatID {
 				conn.Status = connectionPlayer
 				room.RecoverPlayer(foundConn, conn)
 				return
 			}
 		}
 		// if the second account entered as observer
-		for foundConn := range room.observers.Get {
-			if foundConn.GetPlayerID() == conn.GetPlayerID() {
+		for id, foundConn := range room.Observers.Get {
+			if id == thatID {
 				conn.Status = connectionPlayer
 				room.RecoverObserver(foundConn, conn)
 				return
@@ -119,7 +120,7 @@ func (lobby *Lobby) Join(conn *Connection) {
 	// player is new
 	conn.Status = connectionLobby
 	lobby.sendRooms(conn)
-	lobby.Waiting[conn] = nil
+	lobby.addWaiter(conn)
 	go lobby.sendTAILPeople()
 }
 
@@ -141,8 +142,8 @@ func (lobby *Lobby) roomStart(room *Room) {
 // roomFinish - room remove from all
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
-	for conn := range room.players.Get {
-		room.players.Get[conn] = true
+	for _, conn := range room.Players.Get {
+		conn.Player.Finished = true
 		lobby.playerToWaiter(conn)
 	}
 	lobby.AllRooms.Remove(room)
@@ -154,27 +155,27 @@ func (lobby *Lobby) roomFinish(room *Room) {
 // ----- handle connection status
 func (lobby *Lobby) addWaiter(conn *Connection) {
 	conn.Status = connectionLobby
-	lobby.Playing[conn] = nil
+	lobby.Playing[conn.GetPlayerID()] = conn
 }
 
 func (lobby *Lobby) setWaiterRoom(conn *Connection, room *Room) {
 	conn.Status = connectionRoomEnter
 	conn.room = room
-	lobby.Waiting[conn] = room
+	lobby.Waiting[conn.GetPlayerID()] = conn
 }
 
 func (lobby *Lobby) addPlayer(conn *Connection, room *Room) {
 	conn.Status = connectionRoomEnter
 	conn.room = room
-	lobby.Playing[conn] = room
+	lobby.Playing[conn.GetPlayerID()] = conn
 }
 
 func (lobby *Lobby) removeWaiter(conn *Connection) {
-	delete(lobby.Waiting, conn)
+	delete(lobby.Waiting, conn.GetPlayerID())
 }
 
 func (lobby *Lobby) removePlayer(conn *Connection) {
-	delete(lobby.Playing, conn)
+	delete(lobby.Playing, conn.GetPlayerID())
 }
 
 func (lobby *Lobby) waiterToPlayer(conn *Connection) {
@@ -290,7 +291,7 @@ func sendError(conn *Connection, place, message string) {
 
 func (lobby *Lobby) sendToAllInLobby(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
-	for conn := range lobby.Waiting {
+	for _, conn := range lobby.Waiting {
 		if conn.Status == connectionLobby {
 			waitJobs.Add(1)
 			conn.sendGroupInformation(info, waitJobs)

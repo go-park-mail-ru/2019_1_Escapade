@@ -7,20 +7,21 @@ import (
 	"sync"
 )
 
+// NewRoom return new instance of room
 func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
 
 	room := &Room{
 		Name:   name,
 		Status: StatusPeopleFinding,
 
-		players:   NewConnections(rs.Players),
-		observers: NewConnections(10),
+		Players:   NewConnections(rs.Players),
+		Observers: NewConnections(10),
 
-		history: make([]*PlayerAction, 0),
+		History: make([]*PlayerAction, 0),
 		flags:   make(map[*Connection]*models.Cell),
 
 		lobby:       lobby,
-		field:       models.NewField(rs),
+		Field:       models.NewField(rs),
 		chanLeave:   make(chan *Connection),
 		chanRequest: make(chan *RoomRequest),
 	}
@@ -37,8 +38,8 @@ then if success be ready to receive Field and People models
 */
 func (room *Room) enterObserver(conn *Connection) bool {
 	// if we have a place
-	if room.observers.enoughPlace() {
-		room.observers.Add(conn, false)
+	if room.Observers.enoughPlace() {
+		room.Observers.Add(conn)
 		room.addAction(conn, ActionConnectAsObserver)
 		room.sendTAIRPeople()
 		room.sendTOCAll(conn)
@@ -47,7 +48,7 @@ func (room *Room) enterObserver(conn *Connection) bool {
 	return false
 }
 
-// addPlayer add Connection as player
+// EnterPlayer handle player try to enter room
 func (room *Room) EnterPlayer(conn *Connection) bool {
 	// if room have already started
 	if room.Status != StatusPeopleFinding {
@@ -55,19 +56,20 @@ func (room *Room) EnterPlayer(conn *Connection) bool {
 	}
 
 	// if room hasnt got places
-	if !room.players.enoughPlace() {
+	if !room.Players.enoughPlace() {
 		return false
 	}
 
-	cell := room.field.RandomCell()
+	cell := room.Field.RandomCell()
 	cell.PlayerID = conn.GetPlayerID()
-	room.players.Add(conn, false)
+	conn.Player.Reset()
+	room.Players.Add(conn)
 
 	room.addAction(conn, ActionConnectAsPlayer)
 	room.sendTAIRPeople()
 	room.sendTOCAll(conn)
 
-	if !room.players.enoughPlace() {
+	if !room.Players.enoughPlace() {
 		room.startFlagPlacing()
 	}
 
@@ -77,8 +79,8 @@ func (room *Room) EnterPlayer(conn *Connection) bool {
 // RecoverPlayer call it in lobby.join if player disconnected
 func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) {
 
-	room.players.Add(new, room.players.Get[old])
-	room.players.Remove(old)
+	new.Player = old.Player
+	room.Players.Change(new)
 
 	sendError(old, "RecoverPlayer", "another enter in account ")
 	room.addAction(new, ActionReconnect)
@@ -91,8 +93,7 @@ func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) 
 // RecoverObserver call it in lobby.join if observer disconnected
 func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool) {
 
-	room.observers.Add(new, room.observers.Get[old])
-	room.observers.Remove(old)
+	room.Observers.Change(new)
 
 	sendError(old, "RecoverObserver", "another enter in account ")
 	room.addAction(new, ActionReconnect)
@@ -107,8 +108,9 @@ func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool
 // or if somebody use second tab it will delete old
 // and activate new
 func (room *Room) alreadyPlaying(conn *Connection) (played bool) {
-	for oldConn := range room.players.Get {
-		if oldConn.GetPlayerID() == conn.GetPlayerID() {
+	thatID := conn.GetPlayerID()
+	for id, oldConn := range room.Players.Get {
+		if id == thatID {
 			room.RecoverPlayer(oldConn, conn)
 			break
 		}
@@ -127,9 +129,9 @@ func (room *Room) alreadyPlaying(conn *Connection) (played bool) {
 
 // flagFound is called, when somebody find cell flag
 func (room *Room) flagFound(found *models.Cell) {
-	id := found.Value - models.CellIncrement
-	for conn := range room.players.Get {
-		if conn.GetPlayerID() == id {
+	thatID := found.Value - models.CellIncrement
+	for id, conn := range room.Players.Get {
+		if thatID == id {
 			room.kill(conn)
 		}
 	}
@@ -137,10 +139,11 @@ func (room *Room) flagFound(found *models.Cell) {
 
 // kill make user die, decrement size and check for finish battle
 func (room *Room) kill(conn *Connection) {
-	if !room.players.Get[conn] {
-		room.players.Get[conn] = true
-		room.players.Size--
-		if room.players.Size <= 1 {
+	// cause all in pointers
+	if conn.Player.Finished {
+		conn.Player.Finished = true
+		room.Players.Size--
+		if room.Players.Size <= 1 {
 			room.lobby.roomFinish(room)
 		}
 		room.addAction(conn, ActionGiveUp)
@@ -148,6 +151,7 @@ func (room *Room) kill(conn *Connection) {
 	}
 }
 
+// GiveUp kill conn
 func (room *Room) GiveUp(conn *Connection) {
 	room.kill(conn)
 	room.addAction(conn, ActionGiveUp)
@@ -155,7 +159,7 @@ func (room *Room) GiveUp(conn *Connection) {
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
-	room.players.Remove(conn)
+	room.Players.Remove(conn)
 	// if room.PlayersSize == 0 {
 	// 	room.close()
 	// }
@@ -164,31 +168,31 @@ func (room *Room) removeBeforeLaunch(conn *Connection) {
 // removeFinishedGame
 func (room *Room) removeAfterLaunch(conn *Connection) {
 
-	if _, ok := room.observers.Get[conn]; ok {
-		room.observers.Remove(conn)
+	if _, ok := room.Observers.Get[conn.GetPlayerID()]; ok {
+		room.Observers.Remove(conn)
 	}
 	return
 }
 
 func (room *Room) setFlags() {
 	for conn, cell := range room.flags {
-		room.field.SetFlag(cell.X, cell.Y, conn.GetPlayerID())
+		room.Field.SetFlag(cell.X, cell.Y, conn.GetPlayerID())
 	}
 }
 
 func (room *Room) fillField() {
 	room.setFlags()
-	room.field.SetMines()
+	room.Field.SetMines()
 }
 
 func (room *Room) sendToAllInRoom(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
-	for conn := range room.players.Get {
+	for _, conn := range room.Players.Get {
 		waitJobs.Add(1)
 		conn.sendGroupInformation(info, waitJobs)
 	}
 
-	for conn := range room.observers.Get {
+	for _, conn := range room.Observers.Get {
 		waitJobs.Add(1)
 		conn.sendGroupInformation(info, waitJobs)
 	}
@@ -198,9 +202,9 @@ func (room *Room) sendToAllInRoom(info interface{}) {
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendTAIRPeople() {
 	get := &RoomGet{
-		players:   true,
-		observers: true,
-		history:   true,
+		Players:   true,
+		Observers: true,
+		History:   true,
 	}
 	send := room.makeGetModel(get)
 	room.sendToAllInRoom(send)
@@ -209,7 +213,7 @@ func (room *Room) sendTAIRPeople() {
 // sendTAIRField send field to all in room
 func (room *Room) sendTAIRField() {
 	get := &RoomGet{
-		field: true,
+		Field: true,
 	}
 	send := room.makeGetModel(get)
 	room.sendToAllInRoom(send)
@@ -218,7 +222,7 @@ func (room *Room) sendTAIRField() {
 // sendTAIRHistory send actions history to all in room
 func (room *Room) sendTAIRHistory() {
 	get := &RoomGet{
-		history: true,
+		History: true,
 	}
 	send := room.makeGetModel(get)
 	room.sendToAllInRoom(send)
@@ -234,13 +238,13 @@ func (room *Room) sendTAIRStatus() {
 // sendTAIRAll send everything to one connection
 func (room *Room) sendTOCAll(conn *Connection) {
 	get := &RoomGet{
-		players:   true,
-		observers: true,
-		field:     true,
-		history:   true,
+		Players:   true,
+		Observers: true,
+		Field:     true,
+		History:   true,
 	}
 	if room.Status == StatusPeopleFinding {
-		get.field = false
+		get.Field = false
 	}
 	send := room.makeGetModel(get)
 	conn.SendInformation(send)
@@ -257,17 +261,17 @@ func (room *Room) makeGetModel(get *RoomGet) *Room {
 		Status: room.Status,
 	}
 
-	if get.players {
-		sendRoom.players = room.players
+	if get.Players {
+		sendRoom.Players = room.Players
 	}
-	if get.observers {
-		sendRoom.observers = room.observers
+	if get.Observers {
+		sendRoom.Observers = room.Observers
 	}
-	if get.field {
-		sendRoom.field = room.field
+	if get.Field {
+		sendRoom.Field = room.Field
 	}
-	if get.history {
-		sendRoom.history = room.history
+	if get.History {
+		sendRoom.History = room.History
 	}
 	return sendRoom
 }

@@ -39,33 +39,39 @@ func (conn *Connection) GetPlayerID() int {
 	return conn.Player.ID
 }
 
-func (conn *Connection) lobbyWork() {
+func (conn *Connection) lobbyWork() bool {
 	var request = &LobbyRequest{}
 	err := conn.ws.ReadJSON(request)
 	if err != nil {
 		fmt.Println("Error reading json.", err)
-		return
+		return false
 	}
 	request.Connection = conn
 	conn.lobby.chanRequest <- request
+	return true
 }
 
-func (conn *Connection) roomWork() {
+func (conn *Connection) roomWork() bool {
 	var request = &RoomRequest{}
 	err := conn.ws.ReadJSON(request)
 	if err != nil {
 		fmt.Println("Error reading json.", err)
-		return
+		return false
 	}
 	conn.room.chanRequest <- request
+	return true
 }
 
 func (conn *Connection) run() {
 	for {
 		if conn.Status == connectionLobby {
-			conn.lobbyWork()
+			if !conn.lobbyWork() {
+				break
+			}
 		} else {
-			conn.roomWork()
+			if !conn.roomWork() {
+				break
+			}
 		}
 	}
 	switch conn.Status {
