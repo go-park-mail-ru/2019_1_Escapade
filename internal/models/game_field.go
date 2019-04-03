@@ -17,6 +17,12 @@ type Field struct {
 	// Flags int
 }
 
+func (field *Field) SameAs(another *Field) bool {
+	return field.Width == another.Width &&
+		field.Height == another.Height &&
+		field.CellsLeft == another.CellsLeft
+}
+
 // SetFlag works only when mines not set
 func (field *Field) SetFlag(x int, y int, id int) {
 
@@ -32,15 +38,14 @@ func (field *Field) SetFlag(x int, y int, id int) {
 func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.Matrix[x][y]
+
 		if v < CellMine {
-			cell := NewCell(x, y, v)
-			cell.PlayerID = ID
-			field.History = append(field.History, *cell)
-			*cells = append(*cells, *cell)
-			field.Matrix[x][y] = CellOpened
+			cell := NewCellWithID(x, y, v, ID)
+			field.saveCell(cell, cells)
+			field.CellsLeft--
+			field.setCellOpen(x, y)
 		}
 		if v == 0 {
-			field.Matrix[x][y] = CellOpened
 			field.openCellArea(x-1, y-1, ID, cells)
 			field.openCellArea(x-1, y, ID, cells)
 			field.openCellArea(x-1, y+1, ID, cells)
@@ -55,21 +60,38 @@ func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	}
 }
 
+func (field *Field) setCellOpen(x, y int) {
+	field.Matrix[x][y] = CellOpened
+}
+
+func (field *Field) IsCleared() bool {
+	return field.CellsLeft == 0
+}
+
+func (field *Field) setCellFlagTaken(x, y int) {
+	field.Matrix[x][y] = CellFlagTaken
+}
+
+func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
+	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
+		field.History = append(field.History, *cell)
+	}
+	*cells = append(*cells, *cell)
+}
+
 func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	cell.Value = field.Matrix[cell.X][cell.Y]
 
 	cells = make([]Cell, 0)
-	if cell.Value == 0 {
+	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		cells = append(cells, *cell)
-		field.History = append(field.History, *cell)
-		if cell.Value < CellMine {
-			field.Matrix[cell.X][cell.Y] = CellOpened
-		} else if cell.Value == CellFlag {
-			field.Matrix[cell.X][cell.Y] = CellFlagTaken
+		field.saveCell(cell, &cells)
+		if cell.Value == CellFlag {
+			field.setCellFlagTaken(cell.X, cell.Y)
 		}
 	}
+
 	return
 }
 

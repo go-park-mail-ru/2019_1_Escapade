@@ -6,24 +6,6 @@ import (
 	//"math/rand"
 )
 
-type Request struct {
-	Connection *Connection
-	Data       *models.ClientData
-}
-
-func NewRequest(conn *Connection, data *models.ClientData) *Request {
-	request := &Request{
-		Connection: conn,
-		Data:       data,
-	}
-	return request
-}
-
-type Rooms struct {
-	Size  int
-	Rooms []Room
-}
-
 // Game status
 const (
 	StatusPeopleFinding = iota
@@ -34,42 +16,62 @@ const (
 	StatusClosed
 )
 
+type RoomRequest struct {
+	Connection *Connection `json:"connection"`
+	Send       *RoomSend   `json:"send"`
+	Get        *RoomGet    `json:"get"`
+}
+
+func (rr *RoomRequest) IsGet() bool {
+	return rr.Get != nil
+}
+
+type RoomSend struct {
+	Cell   *models.Cell `json:"cell"`
+	Action *int         `json:"action"`
+}
+
+type RoomGet struct {
+	players   bool `json:"players"`
+	observers bool `json:"observers"`
+	field     bool `json:"field"`
+	history   bool `json:"history"`
+}
+
 type Room struct {
-	ID     int
-	Status int
+	Name   string `json:"name"`
+	Status int    `json:"status"`
 
-	PlayersCapacity int
-	PlayersSize     int
-	Players         map[*Connection]*Playing
+	players   *Connections `json:"players"`
+	observers *Connections `json:"observers"`
 
-	ObserversCapacity int
-	ObserversSize     int
-	Observers         map[*Connection]*models.Player
+	history []*PlayerAction `json:"history"`
 
-	lobby *Lobby
-	Field *models.Field
-	//chanUpdateAll chan *struct{}
+	flags map[*Connection]*models.Cell `json:"-"`
 
-	//chanJoin    chan *Connection
-	chanLeave   chan *Connection
-	chanRequest chan *Request
+	lobby *Lobby        `json:"-"`
+	field *models.Field `json:"get"`
+
+	chanLeave   chan *Connection  `json:"-"`
+	chanRequest chan *RoomRequest `json:"-"`
 }
 
-// sendPrepareInfo send preparing info
-func (room *Room) sendPrepareInfo(conn *Connection) {
-
-	room.sendPeople(conn)
-	room.sendField(conn)
+func (room *Room) addAction(conn *Connection, action int) {
+	pa := NewPlayerAction(conn.player, action)
+	room.history = append(room.history, pa)
 }
 
-/*
+func (room *Room) SameAs(another *Room) bool {
+	return room.field.SameAs(another.field)
+}
+
 // join handle user joining as player or observer
-func (room *Room) Join(conn *Connection) {
+func (room *Room) Join(conn *Connection) bool {
 
 	// if game not finish, lets check is that conn already in game
-	if room.Status != models.StatusFinished {
+	if room.Status != StatusFinished {
 		if room.alreadyPlaying(conn) {
-			return
+			return true
 		}
 	}
 
@@ -77,34 +79,31 @@ func (room *Room) Join(conn *Connection) {
 	conn.player.Reset()
 
 	// if room is searching new players
-	if room.Status == models.StatusPeopleFinding {
-		if room.enterPlayer(conn) {
-			return
+	if room.Status == StatusPeopleFinding {
+		if room.EnterPlayer(conn) {
+			return true
 		}
 	}
 
 	// if you cant play, try observe
 	if room.enterObserver(conn) {
-		return
+		return true
 	}
 
-	// room not ready to accept you
-	sendNotAllowed(conn)
+	return false
 }
-*/
 
 func (room *Room) Leave(conn *Connection) {
 
 	// cant delete players, cause they always need
 	// if game began
-	switch room.Status {
-	case StatusPeopleFinding:
+	if room.Status == StatusPeopleFinding {
 		room.removeBeforeLaunch(conn)
-	case StatusRunning:
-		room.removeDuringGame(conn)
-	default:
-		room.removeAfterFinish(conn)
+	} else {
+		room.removeAfterLaunch(conn)
 	}
+	room.addAction(conn, ActionDisconnect)
+	room.sendTAIRPeople()
 	return
 }
 
@@ -114,36 +113,14 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 		return false
 	}
 
-	if !room.Field.IsInside(cell) {
+	if !room.field.IsInside(cell) {
 		return false
 	}
-
-	room.Players[conn].Flag = cell
-	// send for this user, that his flag posision accepted
-	conn.SendInformation(models.ActionFlagSet)
+	room.flags[conn] = cell
 	return true
 }
 
-func (room *Room) kill(conn *Connection) {
-	if !room.Players[conn].Finished {
-		room.Players[conn].Finished = true
-		room.PlayersSize--
-		if room.PlayersSize <= 1 {
-			room.lobby.roomFinish(room)
-		}
-		room.sendAllPlayerAction(conn, models.ActionLose)
-	}
-}
-
-func (room *Room) flagFound(found *models.Cell) {
-	id := found.Value - models.CellIncrement
-	for conn, _ := range room.Players {
-		if conn.GetPlayerID() == id {
-			room.kill(conn)
-		}
-	}
-}
-
+// nanfle openCell
 func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
@@ -151,30 +128,24 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	}
 
 	// if wrong cell
-	if !room.Field.IsInside(cell) {
+	if !room.field.IsInside(cell) {
 		return false
 	}
 
 	// if user died
-	if room.Players[conn].Finished == true {
+	if room.players.Get[conn] == true {
 		return false
 	}
 
 	// set who try open cell(for history)
 	cell.PlayerID = conn.GetPlayerID()
-	cells := room.Field.OpenCell(cell)
-	if len(cells) == 1 {
-		if cells[0].Value == models.CellMine {
-			room.kill(conn)
-		} else if cells[0].Value == models.CellFlag {
-			room.flagFound(&cells[0])
-		}
+	room.field.OpenCell(cell)
 
+	room.sendTAIRField()
+
+	if room.field.IsCleared() {
+		room.lobby.roomFinish(room)
 	}
-	room.sendCells(cells)
-
-	// send for this user, that his flag posision accepted
-	conn.SendInformation(models.ActionFlagSet)
 	return true
 }
 
@@ -188,25 +159,35 @@ func (room *Room) cellHandle(conn *Connection, cell *models.Cell) (done bool) {
 }
 
 func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
-	if action == models.ActionGiveUp {
-		room.Players[conn].Finished = true
+	if action == ActionGiveUp {
+		room.GiveUp(conn)
 		return true
 	}
 	return false
 }
 
-func (room *Room) GetRequest(req *Request) {
-	done := false
-	switch req.Data.Send {
-	//case models.SendRoomSettings:
-	//
-	case models.SendPlayerAction:
-		done = room.actionHandle(req.Connection, req.Data.PlayerAction)
-	case models.SendCells:
-		done = room.cellHandle(req.Connection, req.Data.Cell)
+func (room *Room) isInvalid(rr *RoomRequest) bool {
+	return rr == nil || rr.Connection == nil || (rr.Get == nil && rr.Send == nil)
+}
+
+// handleRequest
+func (room *Room) handleRequest(rr *RoomRequest) {
+	if room.isInvalid(rr) {
+		return
 	}
-	if !done {
-		sendNotAllowed(req.Connection)
+
+	if rr.IsGet() {
+		room.requestGet(rr)
+	} else {
+		done := false
+		if rr.Send.Cell != nil {
+			done = room.cellHandle(rr.Connection, rr.Send.Cell)
+		} else if rr.Send.Action != nil {
+			done = room.actionHandle(rr.Connection, *rr.Send.Action)
+		}
+		if !done {
+			sendError(rr.Connection, "room request", "Cant execute request ")
+		}
 	}
 }
 
@@ -230,7 +211,7 @@ func (room *Room) run() {
 		case connection := <-room.chanLeave:
 			room.Leave(connection)
 		case request := <-room.chanRequest:
-			room.GetRequest(request)
+			room.handleRequest(request)
 		}
 	}
 }

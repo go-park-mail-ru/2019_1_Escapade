@@ -1,77 +1,104 @@
 package game
 
-import "escapade/internal/models"
+import (
+	"escapade/internal/models"
+	"sync"
+)
 
 //re "escapade/internal/return_errors"
 //"math/rand"
 
+type LobbyRequest struct {
+	Connection *Connection `json:"connection"`
+	Send       *LobbySend  `json:"send"`
+	Get        *LobbyGet   `json:"get"`
+}
+
+func (lr *LobbyRequest) IsGet() bool {
+	return lr.Get != nil
+}
+
+type LobbySend struct {
+	RoomSettings *models.RoomSettings
+}
+
+type LobbyGet struct {
+	allRooms  bool `json:"allRooms"`
+	freeRooms bool `json:"freeRooms"`
+	waiting   bool `json:"waiting"`
+	playing   bool `json:"playing"`
+}
+
+// user will get Lobby
 type Lobby struct {
-	allRoomsCapacity int
+	allRooms  *Rooms `json:"allRooms"`
+	freeRooms *Rooms `json:"freeRooms"`
 
-	allRoomsSize  int
-	allRooms      map[int]*Room
-	freeRoomsSize int
-	freeRooms     map[int]*Room
+	// room cause they can observe game
+	waiting map[*Connection]*Room `json:"waiting"`
+	playing map[*Connection]*Room `json:"playing"`
 
-	waiting map[*Connection]*Room // room cause they can observe game
-	playing map[*Connection]*Room
+	// connection joined lobby
+	ChanJoin chan *Connection `json:"-"`
+	// connection left lobby
+	chanLeave   chan *Connection   `json:"-"`
+	chanRequest chan *LobbyRequest `json:"-"`
 
-	ChanJoin    chan *Connection // connection joined lobby
-	chanLeave   chan *Connection // connection left lobby
-	chanRequest chan *Request
+	semJoin    chan bool `json:"-"`
+	semRequest chan bool `json:"-"`
 	//chanRoom  chan *Room       // room change status
 }
 
-func NewLobby() *Lobby {
+func NewLobby(roomsCapacity int) *Lobby {
 
+	// Вынести в конфиг
+	maxJoin := 1
+	maxRequest := 1
 	lobby := &Lobby{
-		allRoomsCapacity: 500, // вынести в конфиг
-		allRoomsSize:     0,
-		allRooms:         make(map[int]*Room),
-
-		freeRoomsSize: 500, // вынести в конфиг
-		freeRooms:     make(map[int]*Room),
+		allRooms:  NewRooms(roomsCapacity),
+		freeRooms: NewRooms(roomsCapacity),
 
 		waiting: make(map[*Connection]*Room),
 		playing: make(map[*Connection]*Room),
 
 		ChanJoin:    make(chan *Connection),
 		chanLeave:   make(chan *Connection),
-		chanRequest: make(chan *Request),
+		chanRequest: make(chan *LobbyRequest),
+
+		semJoin:    make(chan bool, maxJoin),
+		semRequest: make(chan bool, maxRequest),
 	}
 	return lobby
 }
 
-func (lobby *Lobby) createRoomID() (id int) {
-
-	id = 0
-	for _, ok := lobby.allRooms[id]; ok; {
-		id++
-	}
-	return
-}
-
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
-	if lobby.allRoomsSize == lobby.allRoomsCapacity {
+
+	name := RandString(16)
+	room := NewRoom(rs, name, lobby)
+	if !lobby.allRooms.Add(room, name) {
 		return nil
 	}
-
-	id := lobby.createRoomID()
-	room := NewRoom(rs, id, lobby)
-	lobby.addFreeRoom(room)
-	lobby.addRoom(room)
+	lobby.freeRooms.Add(room, name)
+	go lobby.sendTAILRooms() // inform all about new room
 	go room.run()
 	return room
 }
 
 // Join handle user join to lobby
 func (lobby *Lobby) Join(conn *Connection) {
+	conn.debug("lobby", "ChanJoin", "Join", "waiting for semJoin")
+	lobby.semJoin <- true
+	conn.debug("lobby", "ChanJoin", "Join", "taken semJoin")
+	defer func() {
+		conn.debug("lobby", "ChanJoin", "Join", "free semJoin")
+		<-lobby.semJoin
+	}()
 
 	// maybe user disconnected and we need return him
-	for _, room := range lobby.allRooms {
+	for _, room := range lobby.allRooms.Rooms {
 		// work only when game launched, because
 		// otherwise player delete from room
-		for foundConn := range room.Players {
+		for foundConn := range room.players.Get {
 			if foundConn.GetPlayerID() == conn.GetPlayerID() {
 				conn.Status = connectionPlayer
 				room.RecoverPlayer(foundConn, conn)
@@ -79,7 +106,7 @@ func (lobby *Lobby) Join(conn *Connection) {
 			}
 		}
 		// if the second account entered as observer
-		for foundConn := range room.Observers {
+		for foundConn := range room.observers.Get {
 			if foundConn.GetPlayerID() == conn.GetPlayerID() {
 				conn.Status = connectionPlayer
 				room.RecoverObserver(foundConn, conn)
@@ -91,50 +118,31 @@ func (lobby *Lobby) Join(conn *Connection) {
 	conn.Status = connectionLobby
 	lobby.sendRooms(conn)
 	lobby.waiting[conn] = nil
-
-	return
+	go lobby.sendTAILPeople()
 }
 
 // Join handle user join to lobby
 func (lobby *Lobby) Leave(conn *Connection) {
 
 	lobby.removeWaiter(conn)
+	lobby.sendTAILPeople()
 	return
 }
 
-// ----- handle allRooms and freeRooms
-func (lobby *Lobby) addFreeRoom(room *Room) {
-	lobby.freeRooms[room.ID] = room
-	lobby.freeRoomsSize++
-}
-
-func (lobby *Lobby) addRoom(room *Room) {
-	lobby.allRooms[room.ID] = room
-	lobby.allRoomsSize++
-}
-
-func (lobby *Lobby) removeFreeRoom(room *Room) {
-	delete(lobby.freeRooms, room.ID)
-}
-
-func (lobby *Lobby) removeRoom(room *Room) {
-	delete(lobby.allRooms, room.ID)
-}
-
-// -----
-
 // ----- handle room status
 func (lobby *Lobby) roomStart(room *Room) {
-	lobby.removeFreeRoom(room)
+	lobby.freeRooms.Remove(room)
+	go lobby.sendTAILRooms()
 }
 
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
-	for conn, playing := range room.Players {
-		playing.Finished = true
+	for conn := range room.players.Get {
+		room.players.Get[conn] = true
 		lobby.playerToWaiter(conn)
 	}
-	lobby.removeRoom(room)
+	lobby.allRooms.Remove(room)
+	go lobby.sendTAILRooms()
 }
 
 // -----
@@ -177,16 +185,17 @@ func (lobby *Lobby) playerToWaiter(conn *Connection) {
 
 // -----
 
-func (lobby *Lobby) EnterFreeRoom(conn *Connection) (done bool) {
+func (lobby *Lobby) EnterFreeRoom(conn *Connection, rs *models.RoomSettings) (done bool) {
 	// if there is no room
-	if lobby.freeRoomsSize == 0 {
+	if lobby.freeRooms.Empty() {
 		// if room capacity ended return nil
-		room := lobby.createRoom(models.NewUsualRoom())
+		room := lobby.createRoom(rs)
 		return room != nil
 	}
 
 	// lets find room for him
-	for _, room := range lobby.freeRooms {
+	for _, room := range lobby.freeRooms.Rooms {
+		//if room.SameAs()
 		if room.EnterPlayer(conn) {
 			done = true
 			break
@@ -197,44 +206,57 @@ func (lobby *Lobby) EnterFreeRoom(conn *Connection) (done bool) {
 
 // EnterBusyRoom try connect as observer
 func (lobby *Lobby) EnterBusyRoom(conn *Connection) bool {
-	return conn.room.enterObserver(conn)
+
+	return conn.room.Join(conn)
+}
+
+func (lobby *Lobby) isInvalid(lr *LobbyRequest) bool {
+	return lr == nil || lr.Connection == nil || (lr.Get == nil && lr.Send == nil)
+}
+
+// handleRequest
+func (lobby *Lobby) handleRequest(lr *LobbyRequest) {
+	if lobby.isInvalid(lr) {
+		return
+	}
+
+	lr.Connection.debug("lobby", "ChanRequest", "handleRequest", "waiting semRequest")
+	lobby.semRequest <- true
+	lr.Connection.debug("lobby", "ChanRequest", "handleRequest", "taken semRequest")
+	defer func() {
+		lr.Connection.debug("lobby", "ChanRequest", "handleRequest", "free semRequest")
+		<-lobby.semRequest
+	}()
+
+	if lr.IsGet() {
+		lobby.requestGet(lr)
+	} else {
+		lobby.EnterRoom(lr.Connection, lr.Send.RoomSettings)
+	}
 }
 
 // EnterRoom handle user join to room
-func (lobby *Lobby) EnterRoom(request *Request) {
+func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	done := false
-	if room, ok := lobby.allRooms[request.Data.RoomSettings.ID]; ok {
-		request.Connection.room = room
-		done = lobby.EnterBusyRoom(request.Connection)
+	if room, ok := lobby.allRooms.Rooms[rs.Name]; ok {
+		conn.room = room
+		done = lobby.EnterBusyRoom(conn)
 	} else {
-		done = lobby.EnterFreeRoom(request.Connection)
+		done = lobby.EnterFreeRoom(conn, rs)
 	}
 
 	if done {
-		lobby.waiterToPlayer(request.Connection)
+		lobby.waiterToPlayer(conn)
+		go lobby.sendTAILPeople()
 	} else {
-		sendNotAllowed(request.Connection)
+		sendError(conn, "EnterRoom", "cant enter room")
 	}
-	return
 }
 
 // sendRooms send rooms info for user
 func (lobby *Lobby) sendRooms(conn *Connection) {
-
-	roomsSlice := make([]Room, lobby.allRoomsSize)
-
-	i := 0
-	for _, room := range lobby.allRooms {
-		roomsSlice[i] = *room
-		i++
-	}
-
-	rooms := &Rooms{
-		Size:  lobby.allRoomsSize,
-		Rooms: roomsSlice,
-	}
-	conn.SendInformation(rooms)
+	conn.SendInformation(lobby.allRooms)
 }
 
 // Run the room in goroutine
@@ -243,30 +265,74 @@ func (lobby *Lobby) Run() {
 	for {
 		select {
 		case connection := <-lobby.ChanJoin:
-			lobby.Join(connection)
+			go lobby.Join(connection)
 
 		case request := <-lobby.chanRequest:
-			lobby.EnterRoom(request)
+			go lobby.handleRequest(request)
 
 		case connection := <-lobby.chanLeave:
-			lobby.Leave(connection)
+			go lobby.Leave(connection)
 		}
 	}
 }
 
-func sendNotAllowed(conn *Connection) {
-	gameInfo := models.GameInfo{
-		Send:   models.SendGameStatus,
-		Status: StatusAborted,
+func sendError(conn *Connection, place, message string) {
+	res := &models.Result{
+		Place:   place,
+		Success: false,
+		Message: message,
 	}
-	conn.SendInformation(gameInfo)
+	conn.SendInformation(res)
 }
 
-func sendDisconnected(conn *Connection) {
-	conn.player.LastAction = models.ActionDisconnect
-	gameInfo := models.GameInfo{
-		Send:         models.SendPlayerAction,
-		PlayerAction: *conn.player,
+func (lobby *Lobby) sendToAllInLobby(info interface{}) {
+	waitJobs := &sync.WaitGroup{}
+	for conn := range lobby.waiting {
+		if conn.Status == connectionLobby {
+			waitJobs.Add(1)
+			conn.sendGroupInformation(info, waitJobs)
+		}
 	}
-	conn.SendInformation(gameInfo)
+	waitJobs.Wait()
+}
+
+// send to all in lobby
+func (lobby *Lobby) sendTAILRooms() {
+	get := &LobbyGet{
+		allRooms:  true,
+		freeRooms: true,
+	}
+	send := lobby.makeGetModel(get)
+	lobby.sendToAllInLobby(send)
+}
+
+func (lobby *Lobby) sendTAILPeople() {
+	get := &LobbyGet{
+		waiting: true,
+		playing: true,
+	}
+	send := lobby.makeGetModel(get)
+	lobby.sendToAllInLobby(send)
+}
+
+func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
+	sendLobby := &Lobby{}
+	if get.allRooms {
+		sendLobby.allRooms = lobby.allRooms
+	}
+	if get.freeRooms {
+		sendLobby.freeRooms = lobby.freeRooms
+	}
+	if get.waiting {
+		sendLobby.waiting = lobby.waiting
+	}
+	if get.playing {
+		sendLobby.playing = lobby.playing
+	}
+	return sendLobby
+}
+
+func (lobby *Lobby) requestGet(lr *LobbyRequest) {
+	sendLobby := lobby.makeGetModel(lr.Get)
+	lr.Connection.SendInformation(sendLobby)
 }

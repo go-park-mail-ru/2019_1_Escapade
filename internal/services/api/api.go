@@ -534,6 +534,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// GameOnline launch multiplayer
 func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	const place = "GameOnline"
 	var (
@@ -576,7 +577,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player := models.NewPlayer(userName, userID)
+	player := game.NewPlayer(userName, userID)
 	conn := game.NewConnection(ws, player, h.Lobby)
 	// Join Player to lobby
 	h.Lobby.ChanJoin <- conn

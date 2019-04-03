@@ -1,7 +1,6 @@
 package game
 
 import (
-	"escapade/internal/models"
 	"fmt"
 	"sync"
 
@@ -19,14 +18,14 @@ const (
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	ws     *websocket.Conn
-	player *models.Player
+	player *Player
 	lobby  *Lobby
 	room   *Room
 	Status int
 }
 
 // NewConnection creates a new connection and run it
-func NewConnection(ws *websocket.Conn, player *models.Player, lobby *Lobby) *Connection {
+func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection {
 	conn := &Connection{ws, player, lobby, nil, connectionLobby}
 	go conn.run()
 	return conn
@@ -37,24 +36,33 @@ func (conn *Connection) GetPlayerID() int {
 	return conn.player.ID
 }
 
-// GiveUp give up
-func (conn *Connection) GiveUp() {
-	conn.player.LastAction = models.ActionGiveUp
-	conn.room.chanLeave <- conn
+func (conn *Connection) lobbyWork() {
+	var request = &LobbyRequest{}
+	err := conn.ws.ReadJSON(request)
+	if err != nil {
+		fmt.Println("Error reading json.", err)
+		return
+	}
+	request.Connection = conn
+	conn.lobby.chanRequest <- request
+}
+
+func (conn *Connection) roomWork() {
+	var request = &RoomRequest{}
+	err := conn.ws.ReadJSON(request)
+	if err != nil {
+		fmt.Println("Error reading json.", err)
+		return
+	}
+	conn.room.chanRequest <- request
 }
 
 func (conn *Connection) run() {
 	for {
-		var data *models.ClientData
-		err := conn.ws.ReadJSON(data)
-		if err != nil {
-			fmt.Println("Error reading json.", err)
-			break
-		}
 		if conn.Status == connectionLobby {
-			conn.lobby.chanRequest <- NewRequest(conn, data)
+			conn.lobbyWork()
 		} else {
-			conn.room.chanRequest <- NewRequest(conn, data)
+			conn.roomWork()
 		}
 	}
 	switch conn.Status {
@@ -81,4 +89,8 @@ func (conn *Connection) sendGroupInformation(info interface{}, wg *sync.WaitGrou
 
 	defer wg.Done()
 	conn.SendInformation(info)
+}
+
+func (conn *Connection) debug(place string, channel string, function string, message string) {
+	fmt.Println(conn.GetPlayerID(), place+"- channel:", channel, ". Handle by ", function, message)
 }

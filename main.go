@@ -30,7 +30,7 @@ func main() {
 		return
 	}
 
-	API.Lobby = game.NewLobby()
+	API.Lobby = game.NewLobby(500)
 	go API.Lobby.Run()
 
 	r := mux.NewRouter()
