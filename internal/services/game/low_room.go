@@ -258,6 +258,7 @@ func (room *Room) sendTOCAll(conn *Connection) {
 
 func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
 	send := room.makeGetModel(rr.Get)
+	fmt.Println("here you go?", rr.Get)
 	bytes, _ := json.Marshal(send)
 	conn.SendInformation(bytes)
 }

@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"escapade/internal/models"
+	"fmt"
 	"sync"
 )
 
@@ -108,6 +109,7 @@ func (lobby *Lobby) Join(conn *Connection) {
 func (lobby *Lobby) Leave(conn *Connection) {
 
 	conn.debug("disconnected")
+	close(conn.send)
 	lobby.removeWaiter(conn)
 	lobby.sendTAILPeople()
 	return
@@ -274,6 +276,9 @@ func (lobby *Lobby) analize(req *Request) {
 			lobby.handleRequest(req.Connection, send)
 		}
 	} else {
+		if req.Connection.room == nil {
+			return
+		}
 		var send *RoomRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			bytes, _ := json.Marshal(err)
@@ -344,6 +349,7 @@ func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
 
 func (lobby *Lobby) requestGet(conn *Connection, lr *LobbyRequest) {
 	sendLobby := lobby.makeGetModel(lr.Get)
+	fmt.Println("here sendLobby go?", lr.Get)
 	bytes, _ := json.Marshal(sendLobby)
 	conn.SendInformation(bytes)
 }

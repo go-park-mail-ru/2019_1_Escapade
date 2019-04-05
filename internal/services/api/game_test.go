@@ -19,26 +19,6 @@ import (
 
 var addr = flag.String("addr", "localhost:3001", "http service address")
 
-var upgrader = websocket.Upgrader{}
-
-func echo(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	defer c.Close()
-	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			break
-		}
-		err = c.WriteMessage(mt, message)
-		if err != nil {
-			break
-		}
-	}
-}
-
 func TestExample(t *testing.T) {
 
 	H, _, err := GetHandler(confPath)
@@ -96,16 +76,23 @@ func TestCreateRoom(t *testing.T) {
 	}
 	sendLR(t, ws[0])
 	//getRooms(t, ws[1])
-	askAllFromLobby(t, ws[1])
-	getLobby(t, ws[1])
-	askAllFromLobby(t, ws[2])
-	getLobby(t, ws[2])
-	askAllFromLobby(t, ws[3])
-	getLobby(t, ws[3])
+	// askAllFromLobby(t, ws[1])
+	// getLobby(t, ws[1])
+	// askAllFromLobby(t, ws[2])
+	// getLobby(t, ws[2])
+	// askAllFromLobby(t, ws[3])
+	// getLobby(t, ws[3])
+	// askAllFromLobby(t, ws[0])
+	// getLobby(t, ws[0])
+	// askAllFromLobby(t, ws[1])
+	// getLobby(t, ws[1])
+
 	askAllFromLobby(t, ws[4])
-	getLobby(t, ws[4])
-	askAllFromLobby(t, ws[1])
-	getLobby(t, ws[1])
+	for {
+		if err := getLobby(t, ws[4]); err != nil {
+			break
+		}
+	}
 
 	time.Sleep(2 * time.Second)
 	t.Fatalf("stop")
@@ -149,12 +136,12 @@ func askAllFromLobby(t *testing.T, ws *websocket.Conn) {
 	}
 }
 
-func getLobby(t *testing.T, ws *websocket.Conn) {
+func getLobby(t *testing.T, ws *websocket.Conn) error {
 
 	_, r, err := ws.ReadMessage()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	//if err != nil {
+	//	t.Fatalf("%v", err)
+	//}
 	real := string(r)
 	//expected := `{"Capacity":500,"Size":0,"Rooms":{}}`
 	fmt.Println("GOT", real)
@@ -163,6 +150,7 @@ func getLobby(t *testing.T, ws *websocket.Conn) {
 	// } else {
 	// 	fmt.Println("getRooms done")
 	// }
+	return err
 }
 
 func launchServer(t *testing.T, n int) []*httptest.Server {

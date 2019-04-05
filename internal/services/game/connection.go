@@ -43,47 +43,13 @@ func (conn *Connection) GetPlayerID() int {
 	return conn.Player.ID
 }
 
-/*
-func (conn *Connection) lobbyWork() bool {
-	var request = &LobbyRequest{}
-	err := conn.ws.ReadJSON(request)
-
-	if err != nil {
-		fmt.Println("Error reading json.", err)
-		return false
-	}
-	conn.debug("lobbyWork", "lobbyWork", "lobbyWork", "lobbyWork")
-	request.Connection = conn
-	conn.lobby.chanRequest <- request
-	conn.debug("lobbyWork done", "lobbyWork done", "lobbyWork done", "lobbyWork done")
-	return true
-}
-
-// roomWork reed from websocket on
-func (conn *Connection) roomWork() bool {
-	var request = &RoomRequest{}
-
-	err := conn.ws.ReadJSON(request)
-	conn.debug("roomWork ReadJSON", "roomWork", "roomWork", "roomWork")
-	if err != nil {
-		fmt.Println("Error reading json.", err)
-		return false
-
-	}
-	conn.debug("roomWork", "roomWork", "roomWork", "roomWork")
-	request.Connection = conn
-	conn.room.chanRequest <- request
-	conn.debug("roomWork done", "roomWork done", "roomWork done", "roomWork done")
-	return true
-}
-*/
 // все в конфиг
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait = 60 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 10 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -125,39 +91,11 @@ func (conn *Connection) write(mt int, payload []byte) error {
 	return conn.ws.WriteMessage(mt, payload)
 }
 
-/*
-// run launch connection
-func (conn *Connection) run() {
-	for {
-		//if conn.Status == connectionLobby {
-		if !conn.lobbyWork() {
-			break
-
-		} else {
-			if !(conn.roomWork()) {
-				break
-			}
-		}
-	}
-	switch conn.Status {
-	case connectionLobby:
-		conn.lobby.chanLeave <- conn
-	case connectionPlayer:
-		conn.room.chanLeave <- conn
-	case connectionObserver:
-		conn.lobby.chanLeave <- conn
-		conn.room.chanLeave <- conn
-	}
-	conn.ws.Close()
-	return
-}
-*/
 func (conn *Connection) WriteConn() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		conn.ws.Close()
-		conn.lobby.chanLeave <- conn
 	}()
 	for {
 		select {
