@@ -2,6 +2,7 @@ package game
 
 import (
 	"escapade/internal/models"
+	"fmt"
 	//re "escapade/internal/return_errors"
 	//"math/rand"
 )
@@ -47,13 +48,13 @@ type Room struct {
 
 	History []*PlayerAction `json:"history"`
 
-	flags map[*Connection]*models.Cell `json:"-"`
+	flags map[*Connection]*models.Cell
 
-	lobby *Lobby        `json:"-"`
+	lobby *Lobby
 	Field *models.Field `json:"field"`
 
-	chanLeave   chan *Connection  `json:"-"`
-	chanRequest chan *RoomRequest `json:"-"`
+	chanLeave   chan *Connection
+	chanRequest chan *RoomRequest
 }
 
 func (room *Room) addAction(conn *Connection, action int) {
@@ -124,6 +125,7 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 // nanfle openCell
 func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// if user try set open cell before game launch
+	conn.debug("openCell", "", "", "")
 	if room.Status != StatusRunning {
 		return false
 	}
@@ -151,6 +153,7 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 }
 
 func (room *Room) cellHandle(conn *Connection, cell *models.Cell) (done bool) {
+	fmt.Println("cellHandle")
 	if cell.Value == models.CellFlag {
 		done = room.setFlag(conn, cell)
 	} else {
@@ -180,6 +183,7 @@ func (room *Room) handleRequest(rr *RoomRequest) {
 	if rr.IsGet() {
 		room.requestGet(rr)
 	} else {
+		fmt.Println("handleRequest")
 		done := false
 		if rr.Send.Cell != nil {
 			done = room.cellHandle(rr.Connection, rr.Send.Cell)
@@ -193,9 +197,13 @@ func (room *Room) handleRequest(rr *RoomRequest) {
 }
 
 func (room *Room) startFlagPlacing() {
-	room.Status = StatusFlagPlacing
+	room.Status = StatusRunning //StatusFlagPlacing
+	fmt.Println("startFlagPlacing 1 ")
 	room.lobby.roomStart(room)
+	fmt.Println("startFlagPlacing 2 ")
 	room.fillField()
+	fmt.Println("startFlagPlacing 3 ")
+	room.sendTAIRField()
 }
 
 func (room *Room) startGame() {

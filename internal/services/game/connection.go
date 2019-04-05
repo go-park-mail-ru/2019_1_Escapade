@@ -42,39 +42,49 @@ func (conn *Connection) GetPlayerID() int {
 func (conn *Connection) lobbyWork() bool {
 	var request = &LobbyRequest{}
 	err := conn.ws.ReadJSON(request)
+
 	if err != nil {
 		fmt.Println("Error reading json.", err)
 		return false
 	}
+	conn.debug("lobbyWork", "lobbyWork", "lobbyWork", "lobbyWork")
 	request.Connection = conn
 	conn.lobby.chanRequest <- request
+	conn.debug("lobbyWork done", "lobbyWork done", "lobbyWork done", "lobbyWork done")
 	return true
 }
 
 // roomWork reed from websocket on
 func (conn *Connection) roomWork() bool {
 	var request = &RoomRequest{}
+
 	err := conn.ws.ReadJSON(request)
+	conn.debug("roomWork ReadJSON", "roomWork", "roomWork", "roomWork")
 	if err != nil {
 		fmt.Println("Error reading json.", err)
 		return false
+
 	}
+	conn.debug("roomWork", "roomWork", "roomWork", "roomWork")
+	request.Connection = conn
 	conn.room.chanRequest <- request
+	conn.debug("roomWork done", "roomWork done", "roomWork done", "roomWork done")
 	return true
 }
 
 // run launch connection
 func (conn *Connection) run() {
 	for {
-		if conn.Status == connectionLobby {
-			if !conn.lobbyWork() {
-				break
-			}
-		} else {
-			if !conn.roomWork() {
-				break
-			}
+		//if conn.Status == connectionLobby {
+		if !conn.lobbyWork() {
+			break
 		}
+		/*	}
+			} else {
+				if !(conn.roomWork()) {
+					break
+				}
+			}*/
 	}
 	switch conn.Status {
 	case connectionLobby:
