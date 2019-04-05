@@ -3,8 +3,6 @@ package game
 import (
 	"escapade/internal/models"
 	"fmt"
-	//re "escapade/internal/return_errors"
-	//"math/rand"
 )
 
 // Game status
@@ -16,28 +14,6 @@ const (
 	StatusFinished
 	StatusClosed
 )
-
-type RoomRequest struct {
-	Connection *Connection `json:"connection"`
-	Send       *RoomSend   `json:"send"`
-	Get        *RoomGet    `json:"get"`
-}
-
-func (rr *RoomRequest) IsGet() bool {
-	return rr.Get != nil
-}
-
-type RoomSend struct {
-	Cell   *models.Cell `json:"cell"`
-	Action *int         `json:"action"`
-}
-
-type RoomGet struct {
-	Players   bool `json:"players"`
-	Observers bool `json:"observers"`
-	Field     bool `json:"field"`
-	History   bool `json:"history"`
-}
 
 type Room struct {
 	Name   string `json:"name"`
@@ -53,8 +29,8 @@ type Room struct {
 	lobby *Lobby
 	Field *models.Field `json:"field"`
 
-	chanLeave   chan *Connection
-	chanRequest chan *RoomRequest
+	chanLeave chan *Connection
+	//chanRequest chan *RoomRequest
 }
 
 func (room *Room) addAction(conn *Connection, action int) {
@@ -125,7 +101,6 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 // nanfle openCell
 func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	// if user try set open cell before game launch
-	conn.debug("openCell", "", "", "")
 	if room.Status != StatusRunning {
 		return false
 	}
@@ -170,28 +145,20 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 	return false
 }
 
-func (room *Room) isInvalid(rr *RoomRequest) bool {
-	return rr == nil || rr.Connection == nil || (rr.Get == nil && rr.Send == nil)
-}
-
 // handleRequest
-func (room *Room) handleRequest(rr *RoomRequest) {
-	if room.isInvalid(rr) {
-		return
-	}
+func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 
 	if rr.IsGet() {
-		room.requestGet(rr)
-	} else {
-		fmt.Println("handleRequest")
+		room.requestGet(conn, rr)
+	} else if rr.IsSend() {
 		done := false
 		if rr.Send.Cell != nil {
-			done = room.cellHandle(rr.Connection, rr.Send.Cell)
+			done = room.cellHandle(conn, rr.Send.Cell)
 		} else if rr.Send.Action != nil {
-			done = room.actionHandle(rr.Connection, *rr.Send.Action)
+			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			sendError(rr.Connection, "room request", "Cant execute request ")
+			sendError(conn, "room request", "Cant execute request ")
 		}
 	}
 }
@@ -216,11 +183,8 @@ func (room *Room) run() {
 	//timer := time.NewTimer()
 	for {
 		select {
-
 		case connection := <-room.chanLeave:
 			room.Leave(connection)
-		case request := <-room.chanRequest:
-			room.handleRequest(request)
 		}
 	}
 }

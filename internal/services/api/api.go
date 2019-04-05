@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -561,6 +562,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		rand.Seed(time.Now().UnixNano())
 		userName = game.RandString(16)
 		userID = rand.Intn(10000)
 	}
@@ -588,6 +590,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	conn := game.NewConnection(ws, player, h.Lobby)
 	// Join Player to lobby
 	h.Lobby.ChanJoin <- conn
+	go conn.WriteConn()
+	go conn.ReadConn()
 
 	fmt.Printf("Player: %d has joined \n", conn.GetPlayerID())
 

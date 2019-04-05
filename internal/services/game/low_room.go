@@ -1,8 +1,9 @@
 package game
 
 import (
+	"encoding/json"
 	"escapade/internal/models"
-	//re "escapade/internal/return_errors"
+
 	"fmt"
 
 	"sync"
@@ -20,10 +21,10 @@ func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
 		History: make([]*PlayerAction, 0),
 		flags:   make(map[*Connection]*models.Cell),
 
-		lobby:       lobby,
-		Field:       models.NewField(rs),
-		chanLeave:   make(chan *Connection),
-		chanRequest: make(chan *RoomRequest),
+		lobby:     lobby,
+		Field:     models.NewField(rs),
+		chanLeave: make(chan *Connection),
+		//chanRequest: make(chan *RoomRequest),
 	}
 	return room
 }
@@ -69,7 +70,6 @@ func (room *Room) EnterPlayer(conn *Connection) bool {
 	room.sendTAIRPeople()
 
 	if !room.Players.enoughPlace() {
-		conn.debug("EnterPlayer", "EnterPlayer", "EnterPlayer", "EnterPlayer")
 		room.startFlagPlacing()
 	}
 
@@ -190,14 +190,15 @@ func (room *Room) fillField() {
 
 func (room *Room) sendToAllInRoom(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
+	bytes, _ := json.Marshal(info)
 	for _, conn := range room.Players.Get {
 		waitJobs.Add(1)
-		conn.sendGroupInformation(info, waitJobs)
+		conn.sendGroupInformation(bytes, waitJobs)
 	}
 
 	for _, conn := range room.Observers.Get {
 		waitJobs.Add(1)
-		conn.sendGroupInformation(info, waitJobs)
+		conn.sendGroupInformation(bytes, waitJobs)
 	}
 	waitJobs.Wait()
 }
@@ -251,12 +252,14 @@ func (room *Room) sendTOCAll(conn *Connection) {
 		get.Field = false
 	}
 	send := room.makeGetModel(get)
-	conn.SendInformation(send)
+	bytes, _ := json.Marshal(send)
+	conn.SendInformation(bytes)
 }
 
-func (room *Room) requestGet(rr *RoomRequest) {
+func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
 	send := room.makeGetModel(rr.Get)
-	rr.Connection.SendInformation(send)
+	bytes, _ := json.Marshal(send)
+	conn.SendInformation(bytes)
 }
 
 func (room *Room) makeGetModel(get *RoomGet) *Room {
