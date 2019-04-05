@@ -21,11 +21,13 @@ const (
 	ActionGiveUp
 )
 
+// PlayerAction combine player and his action
 type PlayerAction struct {
 	Player *Player `json:"player"`
 	Action int     `json:"action"`
 }
 
+// NewPlayerAction return new instance of PlayerAction
 func NewPlayerAction(player *Player, action int) *PlayerAction {
 	pa := &PlayerAction{
 		Player: player,

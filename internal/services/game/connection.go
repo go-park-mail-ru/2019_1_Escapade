@@ -51,6 +51,7 @@ func (conn *Connection) lobbyWork() bool {
 	return true
 }
 
+// roomWork reed from websocket on
 func (conn *Connection) roomWork() bool {
 	var request = &RoomRequest{}
 	err := conn.ws.ReadJSON(request)
@@ -62,6 +63,7 @@ func (conn *Connection) roomWork() bool {
 	return true
 }
 
+// run launch connection
 func (conn *Connection) run() {
 	for {
 		if conn.Status == connectionLobby {
