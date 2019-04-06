@@ -19,11 +19,11 @@ const (
 
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
-	ws     *websocket.Conn
-	Player *Player `json:"player"`
-	lobby  *Lobby
-	room   *Room
-	Status int `json:"status"`
+	ws           *websocket.Conn
+	Player       *Player `json:"player"`
+	lobby        *Lobby
+	room         *Room
+	disconnected bool
 
 	send chan []byte
 
@@ -31,11 +31,32 @@ type Connection struct {
 	//chanWrite chan *RoomRequest `json:"-"`
 }
 
+// Kill send last image signals about killing, close websocket
+// and close chanells
+func (conn *Connection) Kill(message []byte) {
+	conn.disconnected = true
+	conn.SendInformation(message)
+	conn.ws.Close()
+	conn.debug("killed with message:" + string(message))
+	close(conn.send)
+}
+
 // NewConnection creates a new connection
 func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection {
-	conn := &Connection{ws, player, lobby, nil, connectionLobby, make(chan []byte)}
-	//go conn.run()
-	return conn
+	return &Connection{
+		ws,
+		player,
+		lobby,
+		nil,
+		false,
+		make(chan []byte),
+	}
+}
+
+// NewConnection check is player in room
+func (conn *Connection) InRoom() bool {
+
+	return conn.room != nil
 }
 
 // GetPlayerID get player id

@@ -12,7 +12,6 @@ type Lobby struct {
 	AllRooms  *Rooms `json:"allRooms"`
 	FreeRooms *Rooms `json:"freeRooms"`
 
-	// room cause they can observe game
 	Waiting map[int]*Connection `json:"waiting"`
 	Playing map[int]*Connection `json:"playing"`
 
@@ -49,24 +48,32 @@ func NewLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 	return lobby
 }
 
+func (lobby *Lobby) CloseRoom(room *Room) {
+	// if not in freeRooms nothing bad will happen
+	// there is check inside, it will just return without errors
+	lobby.FreeRooms.Remove(room)
+	lobby.AllRooms.Remove(room)
+	lobby.sendTAILRooms()
+}
+
 // createRoom create room, add to all and free rooms
 // and run it
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 
 	name := RandString(16)
 	room := NewRoom(rs, name, lobby)
-	if !lobby.AllRooms.Add(room, name) {
+	if !lobby.AllRooms.Add(room) {
 		return nil
 	}
 
-	lobby.FreeRooms.Add(room, name)
+	lobby.FreeRooms.Add(room)
 	go lobby.sendTAILRooms() // inform all about new room
-	go room.run()
+	//go room.run()
 	return room
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(conn *Connection) {
+func (lobby *Lobby) Join(new *Connection) {
 	//conn.debug("lobby", "ChanJoin", "Join", "waiting for semJoin")
 	lobby.semJoin <- true
 	//conn.debug("lobby", "ChanJoin", "Join", "taken semJoin")
@@ -75,33 +82,24 @@ func (lobby *Lobby) Join(conn *Connection) {
 		<-lobby.semJoin
 	}()
 
-	thatID := conn.GetPlayerID()
-	// maybe user disconnected and we need return him
-	for _, room := range lobby.AllRooms.Rooms {
-		// work only when game launched, because
-		// otherwise player delete from room
-		for id, foundConn := range room.Players.Get {
-			if id == thatID {
-				conn.Status = connectionPlayer
-				room.RecoverPlayer(foundConn, conn)
-				conn.debug("recover player")
-				return
-			}
-		}
-		// if the second account entered as observer
-		for id, foundConn := range room.Observers.Get {
-			if id == thatID {
-				conn.Status = connectionPlayer
-				room.RecoverObserver(foundConn, conn)
-				return
-			}
-		}
+	// find such player
+	old := lobby.AllRooms.SearchPlayer(new)
+	if old != nil {
+		old.room.RecoverPlayer(old, new)
+		return // found
 	}
+
+	// find such observer
+	old = lobby.AllRooms.SearchObserver(new)
+	if old != nil {
+		old.room.RecoverObserver(old, new)
+		return // found
+	}
+
 	// player is new
-	conn.Status = connectionLobby
-	lobby.sendRooms(conn)
-	lobby.addWaiter(conn)
-	conn.debug("new waiter")
+	lobby.sendRooms(new)
+	lobby.addWaiter(new)
+	new.debug("new waiter")
 	go lobby.sendTAILPeople()
 }
 
@@ -138,19 +136,14 @@ func (lobby *Lobby) roomFinish(room *Room) {
 
 // ----- handle connection status
 func (lobby *Lobby) addWaiter(conn *Connection) {
-	conn.Status = connectionLobby
 	lobby.Waiting[conn.GetPlayerID()] = conn
 }
 
 func (lobby *Lobby) setWaiterRoom(conn *Connection, room *Room) {
-	conn.Status = connectionRoomEnter
-	conn.room = room
 	lobby.Waiting[conn.GetPlayerID()] = conn
 }
 
 func (lobby *Lobby) addPlayer(conn *Connection, room *Room) {
-	conn.Status = connectionRoomEnter
-	conn.room = room
 	lobby.Playing[conn.GetPlayerID()] = conn
 }
 
@@ -174,31 +167,32 @@ func (lobby *Lobby) playerToWaiter(conn *Connection) {
 
 // -----
 
-func (lobby *Lobby) enterFreeRoom(conn *Connection, rs *models.RoomSettings) (done bool) {
+// pickUpRoom find room for player
+func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done bool) {
 	// if there is no room
 	if lobby.FreeRooms.Empty() {
 		// if room capacity ended return nil
 		room := lobby.createRoom(rs)
 		if room != nil {
 			room.Players.Add(conn)
+		} else {
+			Answer(conn, []byte("Error. Cant create room"))
 		}
 		return room != nil
 	}
 
 	// lets find room for him
-	for _, room := range lobby.FreeRooms.Rooms {
+	for _, room := range lobby.FreeRooms.Get {
 		//if room.SameAs()
-		if room.EnterPlayer(conn) {
+		if room.addPlayer(conn) {
 			done = true
 			break
 		}
 	}
+	if !done {
+		Answer(conn, []byte("Error. Cant find room"))
+	}
 	return done
-}
-
-func (lobby *Lobby) enterBusyRoom(conn *Connection) bool {
-
-	return conn.room.Join(conn)
 }
 
 // handleRequest
@@ -220,18 +214,15 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	done := false
-	if room, ok := lobby.AllRooms.Rooms[rs.Name]; ok {
-		conn.room = room
-		done = lobby.enterBusyRoom(conn)
+	if _, room := lobby.AllRooms.SearchRoom(rs.Name); room != nil {
+		done = conn.room.Enter(conn)
 	} else {
-		done = lobby.enterFreeRoom(conn, rs)
+		done = lobby.pickUpRoom(conn, rs)
 	}
 
 	if done {
 		lobby.waiterToPlayer(conn)
 		go lobby.sendTAILPeople()
-	} else {
-		sendError(conn, "EnterRoom", "cant enter room")
 	}
 }
 
@@ -267,7 +258,7 @@ func (lobby *Lobby) Run() {
 }
 
 func (lobby *Lobby) analize(req *Request) {
-	if req.Connection.Status == connectionLobby {
+	if !req.Connection.InRoom() {
 		var send *LobbyRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			bytes, _ := json.Marshal(err)
@@ -289,21 +280,11 @@ func (lobby *Lobby) analize(req *Request) {
 	}
 }
 
-func sendError(conn *Connection, place, message string) {
-	res := &models.Result{
-		Place:   place,
-		Success: false,
-		Message: message,
-	}
-	bytes, _ := json.Marshal(res)
-	conn.SendInformation(bytes)
-}
-
 func (lobby *Lobby) sendToAllInLobby(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
 	bytes, _ := json.Marshal(info)
 	for _, conn := range lobby.Waiting {
-		if conn.Status == connectionLobby {
+		if !conn.InRoom() {
 			waitJobs.Add(1)
 			conn.sendGroupInformation(bytes, waitJobs)
 		}

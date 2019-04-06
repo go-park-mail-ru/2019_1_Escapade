@@ -1,4 +1,4 @@
-package models
+package game
 
 // Cell send to user one cell
 type Cell struct {

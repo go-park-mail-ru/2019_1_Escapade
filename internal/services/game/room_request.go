@@ -1,10 +1,7 @@
 package game
 
-import (
-	"escapade/internal/models"
-	//re "escapade/internal/return_errors"
-	//"math/rand"
-)
+//re "escapade/internal/return_errors"
+//"math/rand"
 
 type RoomRequest struct {
 	Send *RoomSend `json:"send"`
@@ -20,8 +17,8 @@ func (rr *RoomRequest) IsSend() bool {
 }
 
 type RoomSend struct {
-	Cell   *models.Cell `json:"cell"`
-	Action *int         `json:"action"`
+	Cell   *Cell `json:"cell"`
+	Action *int  `json:"action"`
 }
 
 type RoomGet struct {

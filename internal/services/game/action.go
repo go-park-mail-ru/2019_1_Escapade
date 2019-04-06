@@ -16,6 +16,7 @@ const (
 	ActionExplode
 	ActionWin
 	ActionLose
+	ActionFlagLost
 	ActionGetPoints
 	ActionFlagSet
 	ActionGiveUp
@@ -34,4 +35,9 @@ func NewPlayerAction(player *Player, action int) *PlayerAction {
 		Action: action,
 	}
 	return pa
+}
+
+func (room *Room) addAction(conn *Connection, action int) {
+	pa := NewPlayerAction(conn.Player, action)
+	room.History = append(room.History, pa)
 }

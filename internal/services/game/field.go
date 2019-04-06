@@ -1,6 +1,7 @@
-package models
+package game
 
 import (
+	"escapade/internal/models"
 	"fmt"
 	"math/rand"
 	"time"
@@ -15,6 +16,15 @@ type Field struct {
 	Height    int     `json:"height"`
 	CellsLeft int     `json:"-"`
 	Mines     int
+}
+
+// Clear clear matrix and history
+func (field *Field) Clear() {
+	for i := 0; i < len(field.Matrix); i++ {
+		field.Matrix[i] = nil
+	}
+	field.Matrix = nil
+	field.History = nil
 }
 
 // SameAs compare two fields
@@ -135,7 +145,7 @@ func (field *Field) SetMines() {
 }
 
 // generate matrix
-func generate(rs *RoomSettings) (matrix [][]int) {
+func generate(rs *models.RoomSettings) (matrix [][]int) {
 	width := rs.Width
 	height := rs.Height
 
@@ -147,7 +157,7 @@ func generate(rs *RoomSettings) (matrix [][]int) {
 }
 
 // NewField create new instance of field
-func NewField(rs *RoomSettings) *Field {
+func NewField(rs *models.RoomSettings) *Field {
 	matrix := generate(rs)
 	field := &Field{
 		Matrix:    matrix,

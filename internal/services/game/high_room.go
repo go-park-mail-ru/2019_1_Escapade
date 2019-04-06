@@ -1,7 +1,7 @@
 package game
 
 import (
-	"escapade/internal/models"
+	"encoding/json"
 	"fmt"
 )
 
@@ -24,18 +24,13 @@ type Room struct {
 
 	History []*PlayerAction `json:"history"`
 
-	flags map[*Connection]*models.Cell
+	flags map[*Connection]*Cell
 
 	lobby *Lobby
-	Field *models.Field `json:"field"`
+	Field *Field `json:"field"`
 
-	chanLeave chan *Connection
+	//chanLeave chan *Connection
 	//chanRequest chan *RoomRequest
-}
-
-func (room *Room) addAction(conn *Connection, action int) {
-	pa := NewPlayerAction(conn.Player, action)
-	room.History = append(room.History, pa)
 }
 
 // SameAs compare  one room with another
@@ -43,34 +38,22 @@ func (room *Room) SameAs(another *Room) bool {
 	return room.Field.SameAs(another.Field)
 }
 
-// Join handle user joining as player or observer
-func (room *Room) Join(conn *Connection) bool {
-
-	// if game not finish, lets check is that conn already in game
-	if room.Status != StatusFinished {
-		if room.alreadyPlaying(conn) {
-			return true
-		}
-	}
-
-	// reset old points
-	conn.Player.Reset()
+// Enter handle user joining as player or observer
+func (room *Room) Enter(conn *Connection) bool {
 
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {
-		if room.EnterPlayer(conn) {
+		if room.addPlayer(conn) {
 			return true
 		}
-	}
-
-	// if you cant play, try observe
-	if room.enterObserver(conn) {
+	} else if room.addObserver(conn) {
 		return true
 	}
 
 	return false
 }
 
+// Leave handle user going back to lobby
 func (room *Room) Leave(conn *Connection) {
 
 	// cant delete players, cause they always need
@@ -78,14 +61,11 @@ func (room *Room) Leave(conn *Connection) {
 	if room.Status == StatusPeopleFinding {
 		room.removeBeforeLaunch(conn)
 	} else {
-		room.removeAfterLaunch(conn)
+		room.removeDuringGame(conn)
 	}
-	room.addAction(conn, ActionDisconnect)
-	room.sendTAIRPeople()
-	return
 }
 
-func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
+func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	// if user try set flag after game launch
 	if room.Status != StatusFlagPlacing {
 		return false
@@ -99,7 +79,7 @@ func (room *Room) setFlag(conn *Connection, cell *models.Cell) bool {
 }
 
 // nanfle openCell
-func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
+func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
 		return false
@@ -119,7 +99,7 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	cell.PlayerID = conn.GetPlayerID()
 	room.Field.OpenCell(cell)
 
-	room.sendTAIRField()
+	room.sendField(room.all())
 
 	if room.Field.IsCleared() {
 		room.lobby.roomFinish(room)
@@ -127,9 +107,9 @@ func (room *Room) openCell(conn *Connection, cell *models.Cell) bool {
 	return true
 }
 
-func (room *Room) cellHandle(conn *Connection, cell *models.Cell) (done bool) {
+func (room *Room) cellHandle(conn *Connection, cell *Cell) (done bool) {
 	fmt.Println("cellHandle")
-	if cell.Value == models.CellFlag {
+	if cell.Value == CellFlag {
 		done = room.setFlag(conn, cell)
 	} else {
 		done = room.openCell(conn, cell)
@@ -158,7 +138,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			sendError(conn, "room request", "Cant execute request ")
+			Answer(conn, []byte("Cant execute request "))
 		}
 	}
 }
@@ -170,7 +150,7 @@ func (room *Room) startFlagPlacing() {
 	fmt.Println("startFlagPlacing 2 ")
 	room.fillField()
 	fmt.Println("startFlagPlacing 3 ")
-	room.sendTAIRField()
+	room.sendField(room.all())
 }
 
 func (room *Room) startGame() {
@@ -179,12 +159,19 @@ func (room *Room) startGame() {
 }
 
 // Run the room in goroutine
-func (room *Room) run() {
-	//timer := time.NewTimer()
-	for {
-		select {
-		case connection := <-room.chanLeave:
-			room.Leave(connection)
-		}
-	}
+// func (room *Room) run() {
+// 	//timer := time.NewTimer()
+// 	for {
+// 		//select {
+// 		//case connection := <-room.chanLeave:
+// 		//room.Leave(connection)
+// 		//}
+// 	}
+// }
+
+func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
+	send := room.copy(rr.Get)
+	fmt.Println("here you go?", rr.Get)
+	bytes, _ := json.Marshal(send)
+	conn.SendInformation(bytes)
 }

@@ -75,27 +75,27 @@ func TestCreateRoom(t *testing.T) {
 		getRooms(t, ws[i])
 	}
 	sendLR(t, ws[0])
-	//getRooms(t, ws[1])
-	// askAllFromLobby(t, ws[1])
-	// getLobby(t, ws[1])
-	// askAllFromLobby(t, ws[2])
-	// getLobby(t, ws[2])
-	// askAllFromLobby(t, ws[3])
-	// getLobby(t, ws[3])
-	// askAllFromLobby(t, ws[0])
-	// getLobby(t, ws[0])
-	// askAllFromLobby(t, ws[1])
-	// getLobby(t, ws[1])
+	getRooms(t, ws[1])
+	askAllFromLobby(t, ws[1])
+	getLobby(t, ws[1])
+	askAllFromLobby(t, ws[2])
+	getLobby(t, ws[2])
+	askAllFromLobby(t, ws[3])
+	getLobby(t, ws[3])
+	askAllFromLobby(t, ws[0])
+	getLobby(t, ws[0])
+	askAllFromLobby(t, ws[1])
+	getLobby(t, ws[1])
 
-	askAllFromLobby(t, ws[4])
-	for {
-		if err := getLobby(t, ws[4]); err != nil {
-			break
-		}
-	}
+	// askAllFromLobby(t, ws[4])
+	// for {
+	// 	if err := getLobby(t, ws[4]); err != nil {
+	// 		break
+	// 	}
+	// }
 
 	time.Sleep(2 * time.Second)
-	t.Fatalf("stop")
+	//t.Fatalf("stop")
 }
 
 // send lobby request
@@ -155,6 +155,9 @@ func getLobby(t *testing.T, ws *websocket.Conn) error {
 
 func launchServer(t *testing.T, n int) []*httptest.Server {
 	H, _, err := GetHandler(confPath)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
 	H.Test = true
 	if err != nil || H == nil {
 		t.Fatalf("%v", err)
@@ -191,7 +194,7 @@ func getRooms(t *testing.T, ws *websocket.Conn) {
 		t.Fatalf("%v", err)
 	}
 	real := string(r)
-	expected := `{"Capacity":500,"Size":0,"Rooms":{}}`
+	expected := `{"capacity":500,"get":[]}`
 	if real != expected {
 		t.Fatalf("Expected %v, got %v", expected, real)
 	} else {
