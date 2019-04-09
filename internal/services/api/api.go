@@ -17,8 +17,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	//"reflect"
-
 	"github.com/gorilla/mux"
 )
 
@@ -329,6 +327,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsersPageAmount"
 
 	var (
+		//per_page int
 		pages models.Pages
 		err   error
 	)
@@ -521,6 +520,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	sendSuccessJSON(rw, nil, place)
+	printResult(err, http.StatusCreated, place)
 	rw.WriteHeader(http.StatusCreated)
 }
 
