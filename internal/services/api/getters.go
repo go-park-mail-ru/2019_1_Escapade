@@ -6,6 +6,7 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -16,47 +17,61 @@ import (
 
 func (h *Handler) getPage(r *http.Request) (page int, err error) {
 
+	page, err = getIntFromPath(r, "page", 1, nil)
+	fmt.Println("Page:", page)
+	return
+}
+
+func getStringFromPath(r *http.Request, name string,
+	expected error) (str string, err error) {
 	var (
 		vars map[string]string
 	)
 
 	vars = mux.Vars(r)
 
-	if vars["page"] == "" {
-		page = 1
-	} else {
-		if page, err = strconv.Atoi(vars["page"]); err != nil {
-			err = errors.New("Error page")
-			return
-		}
-		if page < 1 {
-			page = 1
-		}
+	if str = vars[name]; str == "" {
+		err = expected
+		return
+	}
+	return
+}
 
+func getIntFromPath(r *http.Request, name string,
+	defaultVelue int, expected error) (val int, err error) {
+	var (
+		str string
+	)
+
+	vals := r.URL.Query()
+	keys, ok := vals[name]
+	if ok {
+		if len(keys) >= 1 {
+			str = keys[0]
+		}
+	}
+
+	val = defaultVelue
+
+	if str == "" {
+		err = expected
+		return
+	}
+	if val, err = strconv.Atoi(str); err != nil {
+		err = expected
+		return
+	}
+	if val < 0 {
+		err = expected
+		return
 	}
 	return
 }
 
 func (h *Handler) getPerPage(r *http.Request) (page int, err error) {
 
-	var (
-		vars map[string]string
-	)
-
-	vars = mux.Vars(r)
-
-	if vars["per_page"] == "" {
-		page = 1
-	} else {
-		if page, err = strconv.Atoi(vars["page"]); err != nil {
-			err = errors.New("Error page")
-			return
-		}
-		if page < 1 {
-			page = 1
-		}
-
-	}
+	page, err = getIntFromPath(r, "per_page", 100, nil)
+	fmt.Println("page:", page)
 	return
 }
 

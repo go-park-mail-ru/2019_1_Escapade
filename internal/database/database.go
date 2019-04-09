@@ -183,6 +183,12 @@ func (db *DataBase) GetUsers(page int, perPage int, sort string) (players []mode
 
 	size := perPage
 	players = make([]models.UserPublicInfo, 0, size)
+	if size*(page-1) > db.PageUsers {
+		return
+	}
+	if size*(page-1)+size > db.PageUsers {
+		size = db.PageUsers - size*(page-1)
+	}
 	rows, erro := db.Db.Query(sqlStatement, size*(page-1), size)
 
 	if erro != nil {
