@@ -144,7 +144,7 @@ INSERT INTO Player(name, password, email, best_score, best_time) VALUES
     ('coala1', 'cheese', 'thesame@mail.ru', 12050, 10),
     ('prten1', 'apple', 'knowit@mail.ru', 23, 20),
     ('april', 'aprilapril', 'april@mail.ru', 10, 5),
-    ('useruser', 'password', 'mail@mail.ru', 111, 1000);
+    ('useruser', 'password', 'mail@mail.ru', 111, 1000),
     ('tiger1', 'Bananas', 'tinan@mail.ru', 1000, 10),
     ('panda1', 'apple', 'today@mail.ru', 2323, 20),
     ('catmate1', 'juice', 'allday@mail.ru', 10000, 5),
