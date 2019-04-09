@@ -156,14 +156,14 @@ func (db *DataBase) GetUserIdBySessionID(sessionID string) (id int, err error) {
 
 // GetUsersPageAmount returns amount of rows in table Player
 // deleted on amount of rows in one page
-func (db *DataBase) GetUsersPageAmount() (amount int, err error) {
+func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := db.Db.QueryRow(sqlStatement)
 	if err = row.Scan(&amount); err != nil {
 		fmt.Println("GetUsersAmount failed")
 		return
 	}
-	amount = int(math.Ceil(float64(amount) / float64(db.PageUsers)))
+	amount = int(math.Ceil(float64(amount) / float64(per_page)))
 	return
 }
 

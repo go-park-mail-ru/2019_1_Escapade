@@ -37,6 +37,29 @@ func (h *Handler) getPage(r *http.Request) (page int, err error) {
 	return
 }
 
+func (h *Handler) getPerPage(r *http.Request) (page int, err error) {
+
+	var (
+		vars map[string]string
+	)
+
+	vars = mux.Vars(r)
+
+	if vars["per_page"] == "" {
+		page = 1
+	} else {
+		if page, err = strconv.Atoi(vars["page"]); err != nil {
+			err = errors.New("Error page")
+			return
+		}
+		if page < 1 {
+			page = 1
+		}
+
+	}
+	return
+}
+
 func (h *Handler) getName(r *http.Request) (username string, err error) {
 	var (
 		vars map[string]string

@@ -327,12 +327,19 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsersPageAmount"
 
 	var (
-		//per_page int
-		pages models.Pages
-		err   error
+		per_page int
+		pages    models.Pages
+		err      error
 	)
 
-	if pages.Amount, err = h.DB.GetUsersPageAmount(); err != nil {
+	if per_page, err = h.getPerPage(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	if pages.Amount, err = h.DB.GetUsersPageAmount(per_page); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, re.ErrorDataBase(), place)
 		printResult(err, http.StatusInternalServerError, place)
