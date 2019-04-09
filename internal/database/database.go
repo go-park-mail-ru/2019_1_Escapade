@@ -169,20 +169,19 @@ func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
 
 // GetUsers returns information about users
 // for leaderboard
-func (db *DataBase) GetUsers(page int) (players []models.UserPublicInfo, err error) {
+func (db *DataBase) GetUsers(page int, perPage int, sort string) (players []models.UserPublicInfo, err error) {
 
 	sqlStatement := `
 	SELECT P1.name, P1.email, P1.best_score, P1.best_time  
-	FROM Player as P1
-	JOIN (
-		SELECT id, name, email, best_score, best_time  
-		FROM Player
-		ORDER BY (best_score) desc
-		)
-		as P2 ON P1.id = P2.id
-		OFFSET $1 Limit $2
-`
-	size := db.PageUsers
+	FROM Player as P1 `
+	if sort == "best_score" {
+		sqlStatement += ` ORDER BY (best_score) desc `
+	} else {
+		sqlStatement += ` ORDER BY (best_time) desc `
+	}
+	sqlStatement += ` OFFSET $1 Limit $2 `
+
+	size := perPage
 	players = make([]models.UserPublicInfo, 0, size)
 	rows, erro := db.Db.Query(sqlStatement, size*(page-1), size)
 

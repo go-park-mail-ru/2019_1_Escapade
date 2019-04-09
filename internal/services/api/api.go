@@ -327,19 +327,19 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsersPageAmount"
 
 	var (
-		per_page int
-		pages    models.Pages
-		err      error
+		perPage int
+		pages   models.Pages
+		err     error
 	)
 
-	if per_page, err = h.getPerPage(r); err != nil {
+	if perPage, err = h.getPerPage(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if pages.Amount, err = h.DB.GetUsersPageAmount(per_page); err != nil {
+	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, re.ErrorDataBase(), place)
 		printResult(err, http.StatusInternalServerError, place)
@@ -363,10 +363,22 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsers"
 	var (
-		err   error
-		users []models.UserPublicInfo
-		page  int
+		err     error
+		users   []models.UserPublicInfo
+		page    int
+		perPage int
+		sort    string
 	)
+
+	vars := mux.Vars(r)
+	sort = vars["sort"]
+
+	if perPage, err = h.getPerPage(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
 
 	if page, err = h.getPage(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
@@ -375,7 +387,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if users, err = h.DB.GetUsers(page); err != nil {
+	if users, err = h.DB.GetUsers(page, perPage, sort); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
