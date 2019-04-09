@@ -19,7 +19,7 @@
 	},
 	"cors": {
 		"origins": [
-			"https://escapade-frontend.herokuapp.com"
+			"http://localhost:8080"
 		],
 		"headers": [
 			"Content-type"

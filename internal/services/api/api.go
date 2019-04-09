@@ -413,9 +413,17 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filepath = h.PlayersAvatarsStorage + strconv.Itoa(userID) + "/" + filename
+	h.PlayersAvatarsStorage = "resources/avatars/"
 
-	if file, err = ioutil.ReadFile(filepath); err != nil {
+	fmt.Println("filename is", filename)
+	if filename == "default" {
+		filepath = h.PlayersAvatarsStorage + filename + "/1.png"
+		file, err = ioutil.ReadFile(filepath)
+	} else {
+		filepath = h.PlayersAvatarsStorage + "users/" + strconv.Itoa(userID) + "/" + filename
+		file, err = ioutil.ReadFile(filepath)
+	}
+	if err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
@@ -464,6 +472,9 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	fileType := handle.Header.Get("Content-Type")
 	fileName := handle.Filename
 	storagePath := h.PlayersAvatarsStorage
+	storagePath = "resources/avatars/users/"
+	fmt.Println("PlayersAvatarsStorage:", h.PlayersAvatarsStorage)
+
 	filePath := storagePath + strconv.Itoa(userID)
 
 	switch fileType {

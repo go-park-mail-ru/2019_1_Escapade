@@ -11,13 +11,13 @@ func saveFile(path string, name string, file multipart.File, mode os.FileMode) (
 		data []byte
 	)
 
-	os.MkdirAll(path, mode)
+	os.MkdirAll(path, 0755)
 
 	if data, err = ioutil.ReadAll(file); err != nil {
 		return
 	}
 
-	if err = ioutil.WriteFile(path+"/"+name, data, mode); err != nil {
+	if err = ioutil.WriteFile(path+"/"+name, data, 0755); err != nil {
 		return
 	}
 
