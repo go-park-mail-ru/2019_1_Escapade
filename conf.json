@@ -33,6 +33,10 @@
 			"OPTIONS"
 		]
 	},
+	"storage": {
+		"playersAvatarsStorage": "resources/avatars/",
+		"fileMode":755
+	},
 	"game": {
 		"roomsCapacity": 500,
 		"lobbyJoin": 1,

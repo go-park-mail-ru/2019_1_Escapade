@@ -43,9 +43,9 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	}
 	fmt.Println("database/Init open")
 	//if !db.areTablesCreated(CDB.Tables) {
-	if err = db.CreateTables(); err != nil {
+	/*if err = db.CreateTables(); err != nil {
 		return
-	}
+	}*/
 	//}
 
 	return

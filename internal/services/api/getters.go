@@ -37,6 +37,21 @@ func (h *Handler) getPage(r *http.Request) (page int, err error) {
 	return
 }
 
+func (h *Handler) getName(r *http.Request) (username string, err error) {
+	var (
+		vars map[string]string
+	)
+
+	vars = mux.Vars(r)
+
+	if username = vars["name"]; username == "" {
+		err = re.ErrorInvalidName()
+		return
+	}
+
+	return
+}
+
 func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, err error) {
 	var (
 		vars map[string]string

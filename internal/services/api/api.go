@@ -393,12 +393,28 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
 		err      error
+		userName string
 		userID   int
 		filename string
 		filepath string
 		file     []byte
 	)
 
+	if userName, err = h.getName(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, re.ErrorInvalidName(), place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	if userID, err = h.DB.GetPlayerIDbyName(userName); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, re.ErrorInvalidName(), place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	//
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		sendErrorJSON(rw, re.ErrorAuthorization(), place)
@@ -413,9 +429,9 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.PlayersAvatarsStorage = "resources/avatars/"
+	//h.PlayersAvatarsStorage = "resources/avatars/"
 
-	fmt.Println("filename is", filename)
+	//fmt.Println("filename is", filename)
 	if filename == "default" {
 		filepath = h.PlayersAvatarsStorage + filename + "/1.png"
 		file, err = ioutil.ReadFile(filepath)
@@ -463,6 +479,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	if input, handle, err = r.FormFile("file"); err != nil || input == nil || handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, re.ErrorInvalidFile(), place)
+		fmt.Println("postImage wrong input")
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
@@ -471,8 +488,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	fileType := handle.Header.Get("Content-Type")
 	fileName := handle.Filename
-	storagePath := h.PlayersAvatarsStorage
-	storagePath = "resources/avatars/users/"
+	storagePath := h.PlayersAvatarsStorage + "users/"
 	fmt.Println("PlayersAvatarsStorage:", h.PlayersAvatarsStorage)
 
 	filePath := storagePath + strconv.Itoa(userID)

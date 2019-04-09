@@ -50,7 +50,7 @@ func main() {
 	v1.HandleFunc("/session", mi.CORS(conf.Cors)(API.Login)).Methods("POST")
 	v1.HandleFunc("/session", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
-	v1.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
+	v1.HandleFunc("/avatar/{name}", mi.CORS(conf.Cors)(API.GetImage)).Methods("GET")
 	v1.HandleFunc("/avatar", mi.CORS(conf.Cors)(API.PostImage)).Methods("POST")
 	v1.HandleFunc("/avatar", mi.PRCORS(conf.Cors)(API.Ok)).Methods("OPTIONS")
 
