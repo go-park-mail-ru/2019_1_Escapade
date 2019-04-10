@@ -1,8 +1,5 @@
 package game
 
-//re "escapade/internal/return_errors"
-//"math/rand"
-
 type RoomRequest struct {
 	Send *RoomSend `json:"send"`
 	Get  *RoomGet  `json:"get"`
