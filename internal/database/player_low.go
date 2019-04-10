@@ -146,10 +146,11 @@ func (db DataBase) confirmUnique(tx *sql.Tx, user *models.UserPrivateInfo) (err 
 // GetUsers returns information about users
 // for leaderboard
 func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
-	sort string) (players []models.UserPublicInfo, err error) {
+	sort string) (players []*models.UserPublicInfo, err error) {
 
 	sqlStatement := `
-	SELECT P.name, P.email, R.score, R.time, R.Difficult
+	SELECT P.id, P.photo_title, P.name, P.email,
+				 R.score, R.time, R.Difficult
 	FROM Player as P
 	join Record as R 
 	on R.player_id = P.id
@@ -162,7 +163,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 	}
 	sqlStatement += ` OFFSET $2 Limit $3 `
 
-	players = make([]models.UserPublicInfo, 0, limit)
+	players = make([]*models.UserPublicInfo, 0, limit)
 	rows, erro := tx.Query(sqlStatement, difficult, offset, limit)
 
 	if erro != nil {
@@ -174,8 +175,8 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 	defer rows.Close()
 
 	for rows.Next() {
-		player := models.UserPublicInfo{}
-		if err = rows.Scan(&player.Name, &player.Email, &player.BestScore,
+		player := &models.UserPublicInfo{}
+		if err = rows.Scan(&player.ID, &player.FileName, &player.Name, &player.Email, &player.BestScore,
 			&player.BestTime, &player.Difficult); err != nil {
 
 			fmt.Println("database/GetUsers wrong row catched")

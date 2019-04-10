@@ -39,6 +39,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, userID i
 		return
 	}
 
+	fmt.Println("sessionID:", str)
 	fmt.Println("database/register +")
 
 	err = tx.Commit()
@@ -123,7 +124,7 @@ func (db *DataBase) UpdatePlayerPersonalInfo(curName string, user *models.UserPr
 }
 
 func (db *DataBase) GetUsers(difficult int, page int, perPage int,
-	sort string) (players []models.UserPublicInfo, err error) {
+	sort string) (players []*models.UserPublicInfo, err error) {
 	var (
 		offset int
 		limit  int
