@@ -86,12 +86,12 @@ func (db *DataBase) areTablesCreated(tables []string) (created bool) {
 
 func (db *DataBase) CreateTables() error {
 	sqlStatement := `
-	DROP TABLE IF EXISTS Session cascade;
-    DROP TABLE IF EXISTS Game cascade;
-    DROP TABLE IF EXISTS Player cascade;
-    DROP TABLE IF EXISTS Gamer cascade;
-    DROP TABLE IF EXISTS Cell cascade;
-    DROP TABLE IF EXISTS Record cascade;
+	DROP TABLE  Session cascade;
+    DROP TABLE  Game cascade;
+    DROP TABLE  Player cascade;
+    DROP TABLE  Gamer cascade;
+    DROP TABLE  Cell cascade;
+    DROP TABLE  Record cascade;
 
 	CREATE TABLE Player (
         id SERIAL PRIMARY KEY,
