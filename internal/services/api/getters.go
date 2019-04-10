@@ -6,7 +6,6 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -15,33 +14,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (h *Handler) getPage(r *http.Request) (page int, err error) {
-
-	page, err = getIntFromPath(r, "page", 1, nil)
-	fmt.Println("Page:", page)
-	return
-}
-
-func getStringFromPath(r *http.Request, name string,
-	expected error) (str string, err error) {
-	var (
-		vars map[string]string
-	)
-
-	vars = mux.Vars(r)
-
-	if str = vars[name]; str == "" {
-		err = expected
-		return
-	}
-	return
-}
-
-func getIntFromPath(r *http.Request, name string,
-	defaultVelue int, expected error) (val int, err error) {
-	var (
-		str string
-	)
+func getStringFromPath(r *http.Request, name string, defaultValue string) (str string) {
+	str = defaultValue
 
 	vals := r.URL.Query()
 	keys, ok := vals[name]
@@ -50,13 +24,18 @@ func getIntFromPath(r *http.Request, name string,
 			str = keys[0]
 		}
 	}
+	return
+}
 
-	val = defaultVelue
-
-	if str == "" {
+func getIntFromPath(r *http.Request, name string,
+	defaultVelue int, expected error) (val int, err error) {
+	var str string
+	if str = getStringFromPath(r, name, ""); str == "" {
 		err = expected
 		return
 	}
+	val = defaultVelue
+
 	if val, err = strconv.Atoi(str); err != nil {
 		err = expected
 		return
@@ -68,11 +47,30 @@ func getIntFromPath(r *http.Request, name string,
 	return
 }
 
-func (h *Handler) getPerPage(r *http.Request) (page int, err error) {
+func (h *Handler) getPage(r *http.Request) (page int) {
 
-	page, err = getIntFromPath(r, "per_page", 100, nil)
-	fmt.Println("page:", page)
+	page, _ = getIntFromPath(r, "page", 1, nil)
 	return
+}
+
+func (h *Handler) getPerPage(r *http.Request) (page int) {
+
+	page, _ = getIntFromPath(r, "per_page", 100, nil)
+	return
+}
+
+func (h *Handler) getDifficult(r *http.Request) (diff int) {
+
+	diff, _ = getIntFromPath(r, "difficult", 0, nil)
+	if diff > 3 {
+		diff = 3
+	}
+	return
+}
+
+func (h *Handler) getSort(r *http.Request) string {
+
+	return getStringFromPath(r, "getStringFromPath", "time")
 }
 
 func (h *Handler) getName(r *http.Request) (username string, err error) {

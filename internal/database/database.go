@@ -19,66 +19,6 @@ type DataBase struct {
 	PageUsers int
 }
 
-// Login check sql-injections and is password right
-// Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo) (sessionCode string, username string, err error) {
-
-	if err = ValidatePrivateUI(user); err != nil {
-		fmt.Println("database/login - fail validation")
-		return
-	}
-
-	var userID int
-	if userID, err = db.checkBunch(user.Email, user.Password); err != nil {
-		fmt.Println("database/login - fail enter")
-		return
-	}
-
-	if sessionCode, err = db.createSession(userID); err != nil {
-		fmt.Println("database/login - fail creating Session")
-		return
-	}
-
-	if username, err = db.GetPlayerNamebyID(userID); err != nil {
-		fmt.Println("database/login - fail get name by id")
-		return
-	}
-
-	fmt.Println("database/login +")
-
-	return
-}
-
-// Register check sql-injections and are email and name unique
-// Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, err error) {
-
-	if err = ValidatePrivateUI(user); err != nil {
-		fmt.Println("database/register - fail validation")
-		return
-	}
-
-	if err = db.confirmUnique(user); err != nil {
-		fmt.Println("database/register - fail uniqie")
-		return
-	}
-
-	var userID int
-	if userID, err = db.createPlayer(user); err != nil {
-		fmt.Println("database/register - fail creating User")
-		return
-	}
-
-	if str, err = db.createSession(userID); err != nil {
-		fmt.Println("database/register - fail creating Session")
-		return
-	}
-
-	fmt.Println("database/register +")
-
-	return
-}
-
 // Logout delete session_id row  from session table
 func (db *DataBase) Logout(sessionCode string) (err error) {
 	err = db.deleteSession(sessionCode)
@@ -163,57 +103,10 @@ func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
 		fmt.Println("GetUsersAmount failed")
 		return
 	}
+	if amount > db.PageUsers {
+		amount = db.PageUsers
+	}
 	amount = int(math.Ceil(float64(amount) / float64(per_page)))
-	return
-}
-
-// GetUsers returns information about users
-// for leaderboard
-func (db *DataBase) GetUsers(page int, perPage int, sort string) (players []models.UserPublicInfo, err error) {
-
-	sqlStatement := `
-	SELECT P1.name, P1.email, P1.best_score, P1.best_time  
-	FROM Player as P1 `
-	if sort == "best_score" {
-		sqlStatement += ` ORDER BY (best_score) desc `
-	} else {
-		sqlStatement += ` ORDER BY (best_time) desc `
-	}
-	sqlStatement += ` OFFSET $1 Limit $2 `
-
-	size := perPage
-	players = make([]models.UserPublicInfo, 0, size)
-	if size*(page-1) > db.PageUsers {
-		return
-	}
-	if size*(page-1)+size > db.PageUsers {
-		size = db.PageUsers - size*(page-1)
-	}
-	rows, erro := db.Db.Query(sqlStatement, size*(page-1), size)
-
-	if erro != nil {
-		err = erro
-
-		fmt.Println("database/GetUsers cant access to database:", erro.Error())
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		player := models.UserPublicInfo{}
-		if err = rows.Scan(&player.Name, &player.Email, &player.BestScore,
-			&player.BestTime); err != nil {
-
-			fmt.Println("database/GetUsers wrong row catched")
-
-			break
-		}
-
-		players = append(players, player)
-	}
-
-	fmt.Println("database/GetUsers +")
-
 	return
 }
 
@@ -229,7 +122,8 @@ func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err err
 
 	user.Name = name
 
-	if err = row.Scan(&user.Email, &user.BestScore, &user.BestTime); err != nil {
+	if err = row.Scan(&user.Email, &user.BestScore,
+		&user.BestTime); err != nil {
 		fmt.Println("database/GetProfile failed")
 		return
 	}
@@ -239,28 +133,32 @@ func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err err
 	return
 }
 
-// GetGames returns games, played by player with some name
-func (db *DataBase) GetGames(name string, page int) (games []models.Game, err error) {
+// GetFullGamesInformation returns games, played by player with some name
+func (db *DataBase) GetFullGamesInformation(name string,
+	page int) (games []models.GameInformation, err error) {
 
 	size := db.PageGames
 	sqlStatement := `
-	SELECT 	a.FieldWidth, a.FieldHeight,
-					a.MinsTotal, a.MinsFound,
-					a.Finished, a.Exploded 
+	SELECT 	ge.width, ge.height, ge.difficult,
+					ge.players, ge.mines, ge.date, ge.online,
+					gr.score, gr.time, gr.mines_open,
+					gr.left_click, gr.right_click,
+					gr.explosion, gr.won
 	 FROM Player as p 
 		JOIN
 			(
-				SELECT player_id,
-					FieldWidth, FieldHeight,
-					MinsTotal, MinsFound,
-					Finished, Exploded 
-					FROM Game Order by id
-			) as a
-			ON p.id = a.player_id and p.name like $1
+				SELECT * FROM Game
+			) as ge
+		ON p.id = ge.player_id and p.name like $1
+		JOIN
+			(
+				SELECT * FROM Gamer
+			) as gr
+			ON p.id = gr.player_id and ge.id = gr.game_id
 			OFFSET $2 Limit $3
 	`
 
-	games = make([]models.Game, 0, size)
+	games = make([]models.GameInformation, 0, size)
 	rows, erro := db.Db.Query(sqlStatement, name, size*(page-1), size) // //, name)
 
 	if erro != nil {
@@ -272,10 +170,22 @@ func (db *DataBase) GetGames(name string, page int) (games []models.Game, err er
 	defer rows.Close()
 
 	for rows.Next() {
-		game := models.Game{}
-		if err = rows.Scan(&game.FieldWidth, &game.FieldHeight,
-			&game.MinsTotal, &game.MinsFound, &game.Finished,
-			&game.Exploded); err != nil {
+		game := models.GameInformation{}
+		game.Game = &models.Game{}
+		game.Gamer = &models.Gamer{}
+		/*
+			ge.width, ge.height, ge.difficult,
+							ge.players, ge.mines, ge.date, ge.online,
+							gr.score, gr.time, gr.mines_open,
+							gr.left_click, gr.right_click,
+							gr.explosion, gr.won
+			 FROM Player as p */
+		if err = rows.Scan(&game.Game.Height,
+			&game.Game.Difficult, &game.Game.Players,
+			&game.Game.Mines, &game.Game.Date, &game.Game.Online,
+			&game.Gamer.Score, &game.Gamer.Time, &game.Gamer.MinesOpen,
+			&game.Gamer.LeftClick, &game.Gamer.RightClick,
+			&game.Gamer.Explosion, &game.Gamer.Won); err != nil {
 
 			fmt.Println("database/GetGames wrong row catched")
 
@@ -292,11 +202,6 @@ func (db *DataBase) GetGames(name string, page int) (games []models.Game, err er
 
 // DeleteAccount deletes account
 func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
-
-	if err = ValidatePrivateUI(user); err != nil {
-		fmt.Println("database/DeleteAccount - fail validation")
-		return
-	}
 
 	if err = db.confirmEmailNamePassword(user); err != nil {
 		fmt.Println("database/DeleteAccount - fail confirmition")

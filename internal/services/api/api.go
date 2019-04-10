@@ -102,7 +102,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionID, err = h.DB.Register(&user); err != nil {
+	if sessionID, _, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadRequest, place)
@@ -147,7 +147,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.UpdatePlayerByName(name, &user); err != nil {
+	if err = h.DB.UpdatePlayerPersonalInfo(name, &user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadRequest, place)
@@ -174,7 +174,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		user      models.UserPrivateInfo
 		err       error
 		sessionID string
-		username  string
+		found     *models.UserPublicInfo
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -184,7 +184,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionID, username, err = h.DB.Login(&user); err != nil {
+	if sessionID, found, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		printResult(err, http.StatusBadRequest, place)
@@ -192,12 +192,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 	misc.CreateAndSet(rw, sessionID)
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorDataBase(), place)
-		printResult(err, http.StatusInternalServerError, place)
-		return
-	}
+	sendSuccessJSON(rw, found, place)
 
 	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
@@ -291,7 +286,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 
 	var (
 		err      error
-		games    []models.Game
+		games    []models.GameInformation
 		username string
 		page     int
 	)
@@ -303,7 +298,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if games, err = h.DB.GetGames(username, page); err != nil {
+	if games, err = h.DB.GetFullGamesInformation(username, page); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
@@ -332,12 +327,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 
-	if perPage, err = h.getPerPage(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
+	perPage = h.getPerPage(r)
 
 	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -363,31 +353,20 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsers"
 	var (
-		err     error
-		users   []models.UserPublicInfo
-		page    int
-		perPage int
-		sort    string
+		err       error
+		users     []models.UserPublicInfo
+		page      int
+		perPage   int
+		difficult int
+		sort      string
 	)
 
-	vars := mux.Vars(r)
-	sort = vars["sort"]
+	sort = h.getSort(r)
+	perPage = h.getPerPage(r)
+	page = h.getPage(r)
+	difficult = h.getDifficult(r)
 
-	if perPage, err = h.getPerPage(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-
-	if page, err = h.getPage(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidPage(), place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-
-	if users, err = h.DB.GetUsers(page, perPage, sort); err != nil {
+	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
