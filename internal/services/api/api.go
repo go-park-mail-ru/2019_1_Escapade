@@ -109,6 +109,8 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	
+
 	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	sendSuccessJSON(rw, nil, place)
@@ -354,7 +356,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetUsers"
 	var (
 		err       error
-		users     []models.UserPublicInfo
+		users     []*models.UserPublicInfo
 		page      int
 		perPage   int
 		difficult int
@@ -369,6 +371,13 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
+		printResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	if err = h.setfiles(users); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusNotFound, place)
 		return
 	}
