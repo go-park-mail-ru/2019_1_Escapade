@@ -72,7 +72,13 @@ func main() {
 
 	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT")) //+ os.Getenv("PORT"))
 
-	if err = http.ListenAndServe(os.Getenv("PORT"), r); err != nil {
+	var port string
+	if os.Getenv("PORT")[0] != ':' {
+		port = ":" + os.Getenv("PORT")
+	} else {
+		port = os.Getenv("PORT")
+	}
+	if err = http.ListenAndServe(port, r); err != nil {
 		fmt.Println("oh, this is error:" + err.Error())
 	}
 }
