@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
@@ -30,6 +31,7 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 		if err != nil {
 			return re.ErrorAvatarNotFound()
 		}
+		fmt.Println("setfiles ", (user.Photo))
 	}
 	return nil
 }
