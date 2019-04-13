@@ -19,6 +19,9 @@ import (
 // if failed - return error
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
+	//Ключи, необходимые для работы облака aws
+	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
 		//db://postgres:postgres@db:5432/postgres?sslmode=disable
@@ -98,7 +101,9 @@ func (db *DataBase) CreateTables() error {
         name varchar(30) NOT NULL,
         password varchar(30) NOT NULL,
         email varchar(30) NOT NULL,
-        photo_title varchar(50) default 'default',
+		photo_title varchar(50) default '1.png',
+		best_score int default 0,
+		best_time int default 0,
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ
     );
@@ -346,7 +351,7 @@ INSERT INTO Game(player_id, FieldWidth, FieldHeight,
 	`
 	_, err := db.Db.Exec(sqlStatement)
 
-	db.insert(100)
+	db.insert(10)
 
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())
