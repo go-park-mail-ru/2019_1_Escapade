@@ -25,6 +25,7 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 		if err != nil {
 			return re.ErrorAvatarNotFound()
 		}
+		fmt.Println("setfiles ", (user.PhotoURL))
 	}
 	return nil
 }

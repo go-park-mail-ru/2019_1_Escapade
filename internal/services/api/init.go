@@ -11,12 +11,11 @@ func Init(DB *database.DataBase, config *config.Configuration) (handler *Handler
 	lobby := game.NewLobby(config.Game.RoomsCapacity,
 		config.Game.LobbyJoin, config.Game.LobbyRequest)
 	handler = &Handler{
-		DB:                    *DB,
-		PlayersAvatarsStorage: config.Storage.PlayersAvatarsStorage,
-		FileMode:              config.Storage.FileMode,
-		WriteBufferSize:       config.Server.WriteBufferSize,
-		ReadBufferSize:        config.Server.ReadBufferSize,
-		Lobby:                 lobby,
+		DB:              *DB,
+		Storage:         config.Storage,
+		WriteBufferSize: config.Server.WriteBufferSize,
+		ReadBufferSize:  config.Server.ReadBufferSize,
+		Lobby:           lobby,
 	}
 	go handler.Lobby.Run()
 	return

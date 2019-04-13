@@ -45,7 +45,7 @@ type DatabaseConfig struct {
 //    what mode set to files/directories
 type FileStorageConfig struct {
 	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
-	FileMode              int    `json:"fileMode"`
+	DefaultAvatar         string `json:"defaultAvatar"`
 }
 
 type GameConfig struct {
