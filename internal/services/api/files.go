@@ -2,54 +2,95 @@ package api
 
 import (
 	"fmt"
-	"io/ioutil"
 	"mime/multipart"
-	"os"
-	"strconv"
+	"time"
 
 	//"escapade/internal/misc"
 	//"escapade/internal/models"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 
 	for _, user := range users {
-		if user.FileName == "" {
+		if user.FileKey == "" {
 			return re.ErrorAvatarNotFound()
 		}
-		var filepath string
-		if user.FileName == "default" {
-			filepath = h.PlayersAvatarsStorage + user.FileName + "/1.png"
-			user.Photo, err = ioutil.ReadFile(filepath)
-		} else {
-			filepath = h.PlayersAvatarsStorage + "users/" +
-				strconv.Itoa(user.ID) + "/" + user.FileName
-			user.Photo, err = ioutil.ReadFile(filepath)
-		}
+		user.PhotoURL, err = h.getURLToAvatar(user.FileKey)
 		if err != nil {
 			return re.ErrorAvatarNotFound()
 		}
-		fmt.Println("setfiles ", (user.Photo))
+		fmt.Println("setfiles ", (user.PhotoURL))
 	}
 	return nil
 }
 
-func saveFile(path string, name string, file multipart.File, mode os.FileMode) (err error) {
-	var (
-		data []byte
+func (h *Handler) saveFile(key string, file multipart.File) (err error) {
+
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:   aws.String("ru-msk"),
+		Endpoint: aws.String("http://hb.bizmrg.com"),
+	}))
+
+	// Create S3 service client
+	svc := s3.New(sess)
+
+	//snippet-start:[s3.go.put_object.call]
+	_, err = svc.PutObject((&s3.PutObjectInput{}).
+		SetBucket(h.Storage.PlayersAvatarsStorage).
+		SetKey(key).
+		SetBody(file),
 	)
 
-	os.MkdirAll(path, mode)
+	return
+}
 
-	if data, err = ioutil.ReadAll(file); err != nil {
+func (h *Handler) getURLToAvatar(key string) (url string, err error) {
+
+	sess, err := session.NewSession(&aws.Config{
+		Region:   aws.String("ru-msk"),
+		Endpoint: aws.String("http://hb.bizmrg.com")},
+	)
+	svc := s3.New(sess)
+
+	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(h.Storage.PlayersAvatarsStorage),
+		Key:    aws.String(key),
+	})
+	url, err = req.Presign(24 * time.Hour)
+	return
+}
+
+func (h *Handler) deleteAvatar(key string) (err error) {
+	sess, err := session.NewSession(&aws.Config{
+		Region:   aws.String("ru-msk"),
+		Endpoint: aws.String("http://hb.bizmrg.com")},
+	)
+	svc := s3.New(sess)
+
+	// Delete the item
+	_, err = svc.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(h.Storage.PlayersAvatarsStorage),
+		Key:    aws.String(key)})
+	if err != nil {
+		fmt.Printf("Unable to delete object %q from bucket %q, %v\n", key, h.Storage.PlayersAvatarsStorage, err)
 		return
 	}
 
-	if err = ioutil.WriteFile(path+"/"+name, data, mode); err != nil {
+	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(h.Storage.PlayersAvatarsStorage),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		fmt.Printf("Error occurred while waiting for object %q to be deleted\n", key)
 		return
 	}
 
+	fmt.Printf("Object %q successfully deleted\n", key)
 	return
 }
