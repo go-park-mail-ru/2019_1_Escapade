@@ -25,17 +25,13 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 		if err != nil {
 			return re.ErrorAvatarNotFound()
 		}
-		fmt.Println("setfiles ", (user.PhotoURL))
 	}
 	return nil
 }
 
 func (h *Handler) saveFile(key string, file multipart.File) (err error) {
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:   aws.String("ru-msk"),
-		Endpoint: aws.String("http://hb.bizmrg.com"),
-	}))
+	sess := session.Must(session.NewSession(h.Storage.AwsConfig))
 
 	// Create S3 service client
 	svc := s3.New(sess)
@@ -52,10 +48,7 @@ func (h *Handler) saveFile(key string, file multipart.File) (err error) {
 
 func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 
-	sess, err := session.NewSession(&aws.Config{
-		Region:   aws.String("ru-msk"),
-		Endpoint: aws.String("http://hb.bizmrg.com")},
-	)
+	sess, err := session.NewSession(h.Storage.AwsConfig)
 	svc := s3.New(sess)
 
 	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
@@ -67,10 +60,7 @@ func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 }
 
 func (h *Handler) deleteAvatar(key string) (err error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region:   aws.String("ru-msk"),
-		Endpoint: aws.String("http://hb.bizmrg.com")},
-	)
+	sess, err := session.NewSession(h.Storage.AwsConfig)
 	svc := s3.New(sess)
 
 	// Delete the item

@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 type Configuration struct {
@@ -46,6 +48,9 @@ type DatabaseConfig struct {
 type FileStorageConfig struct {
 	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
 	DefaultAvatar         string `json:"defaultAvatar"`
+	Region                string `json:"region"`
+	Endpoint              string `json:"endpoint"`
+	AwsConfig             *aws.Config
 }
 
 type GameConfig struct {
@@ -63,6 +68,9 @@ func Init(path string) (conf *Configuration, err error) {
 		return
 	}
 	err = json.Unmarshal(data, conf)
+	conf.Storage.AwsConfig = &aws.Config{
+		Region:   aws.String("ru-msk"),
+		Endpoint: aws.String("http://hb.bizmrg.com")}
 
 	return
 }
