@@ -54,8 +54,10 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
-	v1.HandleFunc("/users", mi.ApplyMiddleware(API.GetUsers,
+	v1.HandleFunc("/users/pages", mi.ApplyMiddleware(API.GetUsers,
 		mi.CORS(conf.Cors, false))).Methods("GET")
+	v1.HandleFunc("/users/pages", mi.ApplyMiddleware(API.Ok,
+		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 	v1.HandleFunc("/users/pages_amount", mi.ApplyMiddleware(API.GetUsersPageAmount,
 		mi.CORS(conf.Cors, false))).Methods("GET")
 
