@@ -159,6 +159,20 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	return
 }
 
+func getRecord(r *http.Request) (record *models.Record, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+
+	_ = json.NewDecoder(r.Body).Decode(&record)
+
+	return
+}
+
 func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err error) {
 
 	user, err = getUser(r)

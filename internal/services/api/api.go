@@ -74,7 +74,6 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 	return
 }
@@ -336,7 +335,6 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	sendSuccessJSON(rw, pages, place)
-	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 }
 
@@ -380,7 +378,6 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	sendSuccessJSON(rw, users, place)
-	rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 }
 
@@ -441,7 +438,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	sendSuccessJSON(rw, url, place)
-	rw.WriteHeader(http.StatusOK)
+	//rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 }
 
@@ -522,7 +519,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	sendSuccessJSON(rw, url, place)
 	printResult(err, http.StatusCreated, place)
-	rw.WriteHeader(http.StatusCreated)
+	//rw.WriteHeader(http.StatusCreated)
 }
 
 // GetProfile returns model UserPublicInfo
@@ -626,4 +623,32 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	//rw.WriteHeader(http.StatusOK)
 	printResult(err, http.StatusOK, place)
 	return
+}
+
+// GameOnline launch multiplayer
+func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
+	const place = "SaveRecords"
+	var (
+		err    error
+		userID int
+		record *models.Record
+	)
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+	if record, err = getRecord(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+	if err = h.DB.UpdateRecords(userID, record); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
 }

@@ -23,7 +23,7 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	if os.Getenv(CDB.URL) == "" {
 		//db://postgres:postgres@db:5432/postgres?sslmode=disable
 		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
-		os.Setenv(CDB.URL, "url:dbname=escabase user=rolepade password=escapade sslmode=disable")
+		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
 		//"user=docker password=docker dbname=docker sslmode=disable")
 	}
 
@@ -353,7 +353,7 @@ INSERT INTO Game(player_id, FieldWidth, FieldHeight,
 	`
 	_, err := db.Db.Exec(sqlStatement)
 
-	db.insert(10)
+	db.insert(110)
 
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())

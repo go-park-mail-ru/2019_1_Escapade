@@ -61,6 +61,9 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	v1.HandleFunc("/users/pages_amount", mi.ApplyMiddleware(API.GetUsersPageAmount,
 		mi.CORS(conf.Cors, false))).Methods("GET")
 
+	v1.HandleFunc("/game", mi.ApplyMiddleware(API.SaveRecords,
+		mi.CORS(conf.Cors, false), mi.Auth())).Methods("POST")
+
 	// v1.HandleFunc("/users/{name}/games", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	// v1.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	// v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
