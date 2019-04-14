@@ -68,6 +68,13 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	return r
 }
 
+func GetConf() string {
+	if os.Getenv("PORT") == "" {
+		return "conf.json"
+	}
+	return "deploy.json"
+}
+
 // GetPort return port
 func GetPort(conf *config.Configuration) (port string) {
 	if os.Getenv("PORT") == "" {

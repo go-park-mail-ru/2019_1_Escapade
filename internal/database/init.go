@@ -25,6 +25,10 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
 		os.Setenv(CDB.URL, "user=docker password=docker dbname=docker sslmode=disable")
 	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
+
 	//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@127.0.0.1:5432/escabase")
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 

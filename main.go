@@ -17,7 +17,9 @@ import (
 // @host https://escapade-backend.herokuapp.com
 // @BasePath /api/v1
 func main() {
-	const confPath = "conf.json"
+	confPath := router.GetConf() //"conf.json"
+
+	fmt.Println("we use configuration", confPath)
 
 	API, conf, err := api.GetHandler(confPath) // init.go
 	if err != nil {
