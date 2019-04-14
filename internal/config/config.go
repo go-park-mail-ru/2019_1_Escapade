@@ -70,7 +70,7 @@ func Init(path string) (conf *Configuration, err error) {
 	err = json.Unmarshal(data, conf)
 	conf.Storage.AwsConfig = &aws.Config{
 		Region:   aws.String("ru-msk"),
-		Endpoint: aws.String("http://hb.bizmrg.com")}
+		Endpoint: aws.String("https://hb.bizmrg.com")}
 
 	return
 }
