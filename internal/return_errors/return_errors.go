@@ -16,6 +16,12 @@ func ErrorNotWebsocket() error {
 
 // ErrorInvalidName call it, if client give you
 // 	invalid username
+func ErrorInvalidUserID() error {
+	return errors.New("No such id")
+}
+
+// ErrorInvalidName call it, if client give you
+// 	invalid username
 func ErrorInvalidName() error {
 	return errors.New("Invalid username")
 }

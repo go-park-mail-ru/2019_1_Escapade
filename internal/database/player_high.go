@@ -155,3 +155,24 @@ func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 	err = tx.Commit()
 	return
 }
+
+func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicInfo, err error) {
+
+	var (
+		tx *sql.Tx
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if user, err = db.getUser(tx, userID, difficult); err != nil {
+		return
+	}
+
+	err = tx.Commit()
+	return
+
+	return
+}

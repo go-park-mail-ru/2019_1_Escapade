@@ -15,7 +15,6 @@ import (
 
 	"escapade/internal/config"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
@@ -56,25 +55,19 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetMyProfile"
 	var (
-		err      error
-		username string
+		err    error
+		userID int
 	)
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		sendErrorJSON(rw, re.ErrorAuthorization(), place)
 		printResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorServer(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
-	}
+	h.getUser(rw, r, userID)
 
-	printResult(err, http.StatusOK, place)
 	return
 }
 
@@ -535,30 +528,18 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetProfile"
 
 	var (
-		err      error
-		username string
+		err    error
+		userID int
 	)
 
-	vars := mux.Vars(r)
-	username = vars["name"]
-
-	if username == "" {
-		err = re.ErrorInvalidName()
-		rw.WriteHeader(http.StatusBadGateway)
+	if userID, err = h.getUserID(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadGateway, place)
+		printResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	h.getUser(rw, r, userID)
 	return
 }
 
@@ -651,4 +632,36 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
+}
+
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+	const place = "GetProfile"
+
+	var (
+		err       error
+		difficult int
+		user      *models.UserPublicInfo
+	)
+
+	difficult = h.getDifficult(r)
+
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, re.ErrorServer(), place)
+		printResult(err, http.StatusInternalServerError, place)
+		return
+	}
+
+	sendSuccessJSON(rw, user, place)
+
+	rw.WriteHeader(http.StatusOK)
+	printResult(err, http.StatusOK, place)
+	return
 }

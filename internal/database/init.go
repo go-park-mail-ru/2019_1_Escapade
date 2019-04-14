@@ -104,8 +104,6 @@ func (db *DataBase) CreateTables() error {
         password varchar(30) NOT NULL,
         email varchar(30) NOT NULL,
 		photo_title varchar(50) default '1.png',
-		best_score int default 0,
-		best_time int default 0,
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ
     );

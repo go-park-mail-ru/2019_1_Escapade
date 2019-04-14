@@ -47,6 +47,12 @@ func getIntFromPath(r *http.Request, name string,
 	return
 }
 
+func (h *Handler) getUserID(r *http.Request) (id int, err error) {
+
+	id, err = getIntFromPath(r, "id", 1, re.ErrorInvalidUserID())
+	return
+}
+
 func (h *Handler) getPage(r *http.Request) (page int) {
 
 	page, _ = getIntFromPath(r, "page", 1, nil)
