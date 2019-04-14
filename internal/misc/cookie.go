@@ -14,7 +14,7 @@ const (
 	months          = 0
 	days            = 7
 	LifetimeCookie  = days * 24 * 60
-	LengthImageName = 24
+	LengthImageName = 24 //s
 )
 
 func CreateExpiration() time.Time {
