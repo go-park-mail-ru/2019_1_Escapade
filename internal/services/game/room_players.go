@@ -38,8 +38,8 @@ func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool
 
 // observe try to connect user as observer
 func (room *Room) addObserver(conn *Connection) bool {
-	// if we have a place
-	if room.Observers.enoughPlace() {
+	// if we havent a place
+	if !room.Observers.enoughPlace() {
 		Answer(conn, []byte("Error. No place in room."))
 		return false
 	}
@@ -60,15 +60,16 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	// 	return false
 	// }
 
+	conn.debug("Room(" + room.Name + ") wanna connect you")
+
 	// if room hasnt got places
 	if !room.Players.enoughPlace() {
-		Answer(conn, []byte("Error. No place in room."))
+		conn.debug("Room(" + room.Name + ") hasnt any place")
 		return false
 	}
 
 	cell := room.Field.RandomCell()
 	cell.PlayerID = conn.GetPlayerID()
-	conn.Player.Reset()
 
 	room.MakePlayer(conn)
 
@@ -86,20 +87,25 @@ func (room *Room) addPlayer(conn *Connection) bool {
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
 func (room *Room) MakePlayer(conn *Connection) {
-	conn.room = room
+	conn.PushToRoom(room)
+	conn.Player.SetAsPlayer()
 	room.Players.Add(conn)
 }
 
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
 func (room *Room) MakeObserver(conn *Connection) {
-	conn.room = room
+	conn.PushToRoom(room)
+	conn.Player.SetAsObserver()
 	room.Observers.Add(conn)
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
 	room.Players.Remove(conn)
-	room.TryClose()
+	conn.debug("you went back to lobby")
+	if room.TryClose() {
+		conn.debug("We closed room :С")
+	}
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {

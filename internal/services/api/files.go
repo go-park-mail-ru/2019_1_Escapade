@@ -21,6 +21,16 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 		if user.FileKey == "" {
 			return re.ErrorAvatarNotFound()
 		}
+		//var filepath string
+		// if user.FileName == "default" {
+		// 	filepath = h.PlayersAvatarsStorage + user.FileName + "/1.png"
+		// 	user.Photo, err = ioutil.ReadFile(filepath)
+		// } else {
+		// 	filepath = h.PlayersAvatarsStorage + "users/" +
+		// 		strconv.Itoa(user.ID) + "/" + user.FileName
+		// 	user.Photo, err = ioutil.ReadFile(filepath)
+		// }
+		// //fmt.Println("user.Photo:" + string(user.Photo))
 		user.PhotoURL, err = h.getURLToAvatar(user.FileKey)
 		if err != nil {
 			return re.ErrorAvatarNotFound()

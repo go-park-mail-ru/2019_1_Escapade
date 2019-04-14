@@ -4,6 +4,7 @@ import (
 	"escapade/internal/config"
 	"escapade/internal/database"
 	"escapade/internal/services/game"
+	"fmt"
 )
 
 // Init creates Handler
@@ -30,11 +31,13 @@ func GetHandler(confPath string) (handler *Handler, conf *config.Configuration, 
 	if conf, err = config.Init(confPath); err != nil {
 		return
 	}
+	fmt.Println("confPath done")
 
 	if db, err = database.Init(conf.DataBase); err != nil {
 		return
 	}
 
+	fmt.Println("database done")
 	handler = Init(db, conf)
 	return
 }

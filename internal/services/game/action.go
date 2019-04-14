@@ -20,6 +20,7 @@ const (
 	ActionGetPoints
 	ActionFlagSet
 	ActionGiveUp
+	ActionBackToLobby
 )
 
 // PlayerAction combine player and his action
