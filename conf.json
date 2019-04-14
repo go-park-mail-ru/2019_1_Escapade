@@ -2,8 +2,8 @@
 	"server": {
 		"host": "http://localhost",
 		"port": ":3001",
-		"readBufferSize" : 1024,
-		"writeBufferSize" : 1024
+		"readBufferSize": 1024,
+		"writeBufferSize": 1024
 	},
 	"dataBase": {
 		"driverName": "postgres",
@@ -19,7 +19,7 @@
 	},
 	"cors": {
 		"origins": [
-			"http://localhost:8080"
+			"https://escapade-frontend.herokuapp.com/"
 		],
 		"headers": [
 			"Content-type"
@@ -34,8 +34,8 @@
 		]
 	},
 	"storage": {
-		"playersAvatarsStorage": "resources/avatars/",
-		"fileMode":755
+		"playersAvatarsStorage": "escapade",
+		"defaultAvatar": "1.png"
 	},
 	"game": {
 		"roomsCapacity": 500,

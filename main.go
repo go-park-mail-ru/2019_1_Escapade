@@ -66,19 +66,13 @@ func main() {
 	v1.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
+	fmt.Println("launched, look at us on " + conf.Server.Host + conf.Server.Port) //+ os.Getenv("PORT"))
+
 	if os.Getenv("PORT") == "" {
 		os.Setenv("PORT", conf.Server.Port)
 	}
 
-	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT")) //+ os.Getenv("PORT"))
-
-	var port string
-	if os.Getenv("PORT")[0] != ':' {
-		port = ":" + os.Getenv("PORT")
-	} else {
-		port = os.Getenv("PORT")
-	}
-	if err = http.ListenAndServe(port, r); err != nil {
+	if err = http.ListenAndServe(os.Getenv("PORT"), r); err != nil {
 		fmt.Println("oh, this is error:" + err.Error())
 	}
 }

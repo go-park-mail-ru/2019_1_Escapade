@@ -7,28 +7,27 @@ import (
 	re "escapade/internal/return_errors"
 	"escapade/internal/services/game"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"escapade/internal/config"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Handler is struct
 type Handler struct {
-	DB                    database.DataBase
-	PlayersAvatarsStorage string
-	FileMode              int
-	ReadBufferSize        int
-	WriteBufferSize       int
-	Lobby                 *game.Lobby
-	Test                  bool
+	DB              database.DataBase
+	Storage         config.FileStorageConfig
+	ReadBufferSize  int
+	WriteBufferSize int
+	Lobby           *game.Lobby
+	Test            bool
 }
 
 // catch CORS preflight
@@ -108,8 +107,6 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
-
-	
 
 	misc.CreateAndSet(rw, sessionID)
 	rw.WriteHeader(http.StatusCreated)
@@ -401,9 +398,8 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		err      error
 		userName string
 		userID   int
-		filename string
-		filepath string
-		file     []byte
+		fileKey  string
+		url      models.Avatar
 	)
 
 	if userName, err = h.getName(r); err != nil {
@@ -428,32 +424,24 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if filename, err = h.DB.GetImage(userID); err != nil {
+	if fileKey, err = h.DB.GetImage(userID); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	//h.PlayersAvatarsStorage = "resources/avatars/"
-
-	//fmt.Println("filename is", filename)
-	if filename == "default" {
-		filepath = h.PlayersAvatarsStorage + filename + "/1.png"
-		file, err = ioutil.ReadFile(filepath)
-	} else {
-		filepath = h.PlayersAvatarsStorage + "users/" + strconv.Itoa(userID) + "/" + filename
-		file, err = ioutil.ReadFile(filepath)
-	}
+	url.URL, err = h.getURLToAvatar(fileKey)
 	if err != nil {
+		log.Println("Failed to sign request", err)
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
 		return
 	}
 
+	sendSuccessJSON(rw, url, place)
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(file)
 	printResult(err, http.StatusOK, place)
 }
 
@@ -473,6 +461,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		input  multipart.File
 		userID int
 		handle *multipart.FileHeader
+		url    models.Avatar
 	)
 
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
@@ -493,17 +482,14 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	defer input.Close()
 
 	fileType := handle.Header.Get("Content-Type")
-	fileName := handle.Filename
-	storagePath := h.PlayersAvatarsStorage + "users/"
-	fmt.Println("PlayersAvatarsStorage:", h.PlayersAvatarsStorage)
-
-	filePath := storagePath + strconv.Itoa(userID)
+	//Генерация уник.ключа для хранения картинки
+	fileKey := uuid.NewV4()
 
 	switch fileType {
 	case "image/jpeg":
-		err = saveFile(filePath, fileName, input, os.FileMode(h.FileMode))
+		err = h.saveFile(fileKey.String(), input)
 	case "image/png":
-		err = saveFile(filePath, fileName, input, os.FileMode(h.FileMode))
+		err = h.saveFile(fileKey.String(), input)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
@@ -518,15 +504,23 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.PostImage(fileName, userID); err != nil {
-		_ = os.Remove(filePath) // if error then lets delete uploaded image
+	if err = h.DB.PostImage(fileKey.String(), userID); err != nil {
+		h.deleteAvatar(fileKey.String())
 		rw.WriteHeader(http.StatusInternalServerError)
 		sendErrorJSON(rw, re.ErrorDataBase(), place)
 		printResult(err, http.StatusInternalServerError, place)
 		return
 	}
+	url.URL, err = h.getURLToAvatar(fileKey.String())
+	if err != nil {
+		log.Println("Failed to sign request", err)
+		rw.WriteHeader(http.StatusNotFound)
+		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		printResult(err, http.StatusNotFound, place)
+		return
+	}
 
-	sendSuccessJSON(rw, nil, place)
+	sendSuccessJSON(rw, url, place)
 	printResult(err, http.StatusCreated, place)
 	rw.WriteHeader(http.StatusCreated)
 }

@@ -176,7 +176,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 
 	for rows.Next() {
 		player := &models.UserPublicInfo{}
-		if err = rows.Scan(&player.ID, &player.FileName, &player.Name, &player.Email, &player.BestScore,
+		if err = rows.Scan(&player.ID, &player.FileKey, &player.Name, &player.Email, &player.BestScore,
 			&player.BestTime, &player.Difficult); err != nil {
 
 			fmt.Println("database/GetUsers wrong row catched")
