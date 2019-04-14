@@ -19,7 +19,7 @@
 	},
 	"cors": {
 		"origins": [
-			"https://escapade-frontend.herokuapp.com/"
+			"https://escapade-frontend.herokuapp.com"
 		],
 		"headers": [
 			"Content-type"
