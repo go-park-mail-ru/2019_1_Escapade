@@ -23,7 +23,8 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	if os.Getenv(CDB.URL) == "" {
 		//db://postgres:postgres@db:5432/postgres?sslmode=disable
 		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
-		os.Setenv(CDB.URL, "user=docker password=docker dbname=docker sslmode=disable")
+		os.Setenv(CDB.URL, "url:dbname=escabase user=rolepade password=escapade sslmode=disable")
+		//"user=docker password=docker dbname=docker sslmode=disable")
 	}
 
 	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
