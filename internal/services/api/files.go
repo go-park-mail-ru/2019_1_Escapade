@@ -27,6 +27,7 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 				strconv.Itoa(user.ID) + "/" + user.FileName
 			user.Photo, err = ioutil.ReadFile(filepath)
 		}
+		//fmt.Println("user.Photo:" + string(user.Photo))
 		if err != nil {
 			return re.ErrorAvatarNotFound()
 		}

@@ -5,6 +5,7 @@ import (
 	cors "escapade/internal/cors"
 	cookie "escapade/internal/misc"
 	"fmt"
+	"log"
 
 	"net/http"
 	"strings"
@@ -20,8 +21,8 @@ func setCORS(rw http.ResponseWriter, cc config.CORSConfig) {
 }
 
 // CORS Access-Control-Allow-Origin
-func CORS(cc config.CORSConfig) handleDecorator {
-	return func(hf http.HandlerFunc) http.HandlerFunc {
+func CORS(cc config.CORSConfig, preCORS bool) handleDecorator {
+	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 
@@ -33,7 +34,11 @@ func CORS(cc config.CORSConfig) handleDecorator {
 			setCORS(rw, cc)
 			fmt.Println("CORS disabled")
 
-			hf(rw, r)
+			if preCORS {
+				rw.WriteHeader(http.StatusOK)
+			} else {
+				next(rw, r)
+			}
 			return
 		}
 	}
@@ -41,28 +46,28 @@ func CORS(cc config.CORSConfig) handleDecorator {
 
 // В будущем отрефакторить, ибо явно дублирует CORS
 // PreflightRequest
-func PRCORS(cc config.CORSConfig) handleDecorator {
-	return func(hf http.HandlerFunc) http.HandlerFunc {
-		return func(rw http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
+// func PRCORS(cc config.CORSConfig) handleDecorator {
+// 	return func(next http.HandlerFunc) http.HandlerFunc {
+// 		return func(rw http.ResponseWriter, r *http.Request) {
+// 			origin := r.Header.Get("Origin")
 
-			if !cors.IsAllowed(origin, cc.Origins) {
-				rw.WriteHeader(http.StatusForbidden)
-				return
-			}
+// 			if !cors.IsAllowed(origin, cc.Origins) {
+// 				rw.WriteHeader(http.StatusForbidden)
+// 				return
+// 			}
 
-			setCORS(rw, cc)
+// 			setCORS(rw, cc)
 
-			rw.WriteHeader(http.StatusOK)
+// 			rw.WriteHeader(http.StatusOK)
 
-			return
-		}
-	}
-}
+// 			return
+// 		}
+// 	}
+// }
 
 // Check cookie
 func Auth() handleDecorator {
-	return func(hf http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(cookie.NameCookie)
 
@@ -72,7 +77,32 @@ func Auth() handleDecorator {
 				return
 			}
 
-			hf(rw, r)
+			next(rw, r)
 		}
 	}
+}
+
+func Recover() handleDecorator {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(rw http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Printf("panic: %+v", err)
+					rw.WriteHeader(http.StatusInternalServerError)
+				}
+			}()
+
+			next(rw, r)
+		}
+	}
+}
+
+// ApplyDecorators
+func ApplyMiddleware(handler http.HandlerFunc,
+	decorators ...handleDecorator) http.HandlerFunc {
+	handler = Recover()(handler)
+	for _, m := range decorators {
+		handler = m(handler)
+	}
+	return handler
 }

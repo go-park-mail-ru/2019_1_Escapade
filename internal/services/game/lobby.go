@@ -9,11 +9,11 @@ import (
 
 // Lobby there are all rooms and users placed
 type Lobby struct {
-	AllRooms  *Rooms `json:"allRooms"`
-	FreeRooms *Rooms `json:"freeRooms"`
+	AllRooms  *Rooms `json:"allRooms,omitempty"`
+	FreeRooms *Rooms `json:"freeRooms,omitempty"`
 
-	Waiting map[int]*Connection `json:"waiting"`
-	Playing map[int]*Connection `json:"playing"`
+	Waiting map[int]*Connection `json:"waiting,omitempty"`
+	Playing map[int]*Connection `json:"playing,omitempty"`
 
 	// connection joined lobby
 	ChanJoin chan *Connection `json:"-"`
@@ -84,6 +84,7 @@ func (lobby *Lobby) Join(new *Connection) {
 
 	// find such player
 	old := lobby.AllRooms.SearchPlayer(new)
+
 	if old != nil {
 		old.room.RecoverPlayer(old, new)
 		return // found
@@ -100,16 +101,22 @@ func (lobby *Lobby) Join(new *Connection) {
 	lobby.sendRooms(new)
 	lobby.addWaiter(new)
 	new.debug("new waiter")
-	go lobby.sendTAILPeople()
+	lobby.sendTAILPeople()
 }
 
 // Leave handle user leave lobby
 func (lobby *Lobby) Leave(conn *Connection) {
 
-	conn.debug("disconnected")
-	close(conn.send)
-	lobby.removeWaiter(conn)
-	lobby.sendTAILPeople()
+	fmt.Println("disconnected -  #", conn.GetPlayerID())
+	if !conn.InRoom() {
+		lobby.removeWaiter(conn)
+		lobby.sendTAILPeople()
+	} else {
+		lobby.removePlayer(conn)
+		conn.room.addAction(conn, ActionDisconnect)
+		conn.room.sendHistory(conn.room.all())
+	}
+	conn.Kill([]byte("Good day!"))
 	return
 }
 
@@ -117,19 +124,17 @@ func (lobby *Lobby) Leave(conn *Connection) {
 // roomStart - room remove from free
 func (lobby *Lobby) roomStart(room *Room) {
 	lobby.FreeRooms.Remove(room)
-
-	go lobby.sendTAILRooms()
+	lobby.sendTAILRooms()
 }
 
 // roomFinish - room remove from all
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
 	for _, conn := range room.Players.Get {
-		conn.Player.Finished = true
 		lobby.playerToWaiter(conn)
 	}
 	lobby.AllRooms.Remove(room)
-	go lobby.sendTAILRooms()
+	lobby.sendTAILRooms()
 }
 
 // -----
@@ -174,12 +179,14 @@ func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done 
 		// if room capacity ended return nil
 		room := lobby.createRoom(rs)
 		if room != nil {
-			room.Players.Add(conn)
+			conn.debug("We create your own room, cool!")
+			room.addPlayer(conn)
 		} else {
-			Answer(conn, []byte("Error. Cant create room"))
+			conn.debug("cant create. Why?")
 		}
 		return room != nil
 	}
+	conn.debug("We have some rooms!")
 
 	// lets find room for him
 	for _, room := range lobby.FreeRooms.Get {
@@ -197,7 +204,7 @@ func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done 
 
 // handleRequest
 func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
-
+	conn.debug("lobby handle conn")
 	lobby.semRequest <- true
 	defer func() {
 		<-lobby.semRequest
@@ -206,6 +213,10 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 	if lr.IsGet() {
 		lobby.requestGet(conn, lr)
 	} else if lr.IsSend() {
+		if lr.Send.RoomSettings == nil {
+			conn.debug("lobby cant execute request")
+			return
+		}
 		lobby.EnterRoom(conn, lr.Send.RoomSettings)
 	}
 }
@@ -215,14 +226,19 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	done := false
 	if _, room := lobby.AllRooms.SearchRoom(rs.Name); room != nil {
-		done = conn.room.Enter(conn)
+		conn.debug("lobby found required room")
+		done = room.Enter(conn)
 	} else {
+		conn.debug("lobby search room for you")
 		done = lobby.pickUpRoom(conn, rs)
 	}
 
 	if done {
+		conn.debug("lobby done")
 		lobby.waiterToPlayer(conn)
-		go lobby.sendTAILPeople()
+		lobby.sendTAILPeople()
+	} else {
+		conn.debug("lobby cant execute request")
 	}
 }
 
@@ -283,10 +299,14 @@ func (lobby *Lobby) analize(req *Request) {
 func (lobby *Lobby) sendToAllInLobby(info interface{}) {
 	waitJobs := &sync.WaitGroup{}
 	bytes, _ := json.Marshal(info)
+	fmt.Println("sendToAllInLobby began")
 	for _, conn := range lobby.Waiting {
 		if !conn.InRoom() {
 			waitJobs.Add(1)
+			conn.debug("send response")
 			conn.sendGroupInformation(bytes, waitJobs)
+		} else {
+			conn.debug("lobby know about you :)")
 		}
 	}
 	waitJobs.Wait()
@@ -298,6 +318,7 @@ func (lobby *Lobby) sendTAILRooms() {
 		AllRooms:  true,
 		FreeRooms: true,
 	}
+	fmt.Println("sendTAILRooms began")
 	send := lobby.makeGetModel(get)
 	lobby.sendToAllInLobby(send)
 }
@@ -307,6 +328,7 @@ func (lobby *Lobby) sendTAILPeople() {
 		Waiting: true,
 		Playing: true,
 	}
+	fmt.Println("sendTAILPeople began")
 	send := lobby.makeGetModel(get)
 	lobby.sendToAllInLobby(send)
 }
@@ -330,7 +352,7 @@ func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
 
 func (lobby *Lobby) requestGet(conn *Connection, lr *LobbyRequest) {
 	sendLobby := lobby.makeGetModel(lr.Get)
-	fmt.Println("here sendLobby go?", lr.Get)
 	bytes, _ := json.Marshal(sendLobby)
+	conn.debug("lobby execute get request")
 	conn.SendInformation(bytes)
 }

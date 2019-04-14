@@ -2,6 +2,7 @@ package game
 
 import (
 	"crypto/rand"
+	"fmt"
 ) //
 
 // Connections - slice of connections with capacity
@@ -49,9 +50,9 @@ func RandString(n int) string {
 
 ////////////////// Rooms //////////////////////
 
-// Empty check rooms capacity is 0
+// Empty check rooms length is 0
 func (rooms *Rooms) Empty() bool {
-	return rooms.Capacity == 0
+	return len(rooms.Get) == 0
 }
 
 // Clear set slice to nil
@@ -67,10 +68,13 @@ func (rooms *Rooms) enoughPlace() bool {
 // SearchRoom find room with selected name and return it if success
 // otherwise nil
 func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
+	fmt.Println("search length", len(rooms.Get))
 	for i, room = range rooms.Get {
+		fmt.Println("try compare these:", room.Name, name)
 		if room.Name == name {
 			return
 		}
+		fmt.Println("no")
 	}
 	i, room = -1, nil
 	return
@@ -81,10 +85,27 @@ func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
 func (rooms *Rooms) SearchPlayer(new *Connection) (old *Connection) {
 	for _, room := range rooms.Get {
 		i := room.Players.Search(new)
+		// cant found
 		if i < 0 {
 			continue
 		}
-		return room.Players.Get[i]
+		/*
+			Players are never deleted from rooms, because the room always
+			must know its players. So, if you exit from room to lobby
+			and refresh page you can return to room. To solve the  problem
+			the following is done:
+			When you exit to lobby, the room marks your connection
+			as 'without room'(Connection has field - pointer to room.
+			When it is nil, the connection connect to lobby). And
+			when you disconnected from page(for example because of
+			problems on the interner), the room doesnt change your room pointer
+		*/
+		foundConn := room.Players.Get[i]
+		if foundConn.room != room {
+			continue
+		}
+
+		return foundConn
 	}
 	return nil
 }
@@ -97,6 +118,7 @@ func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 		if i < 0 {
 			continue
 		}
+
 		return room.Observers.Get[i]
 	}
 	return nil
@@ -152,7 +174,7 @@ func (conns *Connections) Clear() {
 // it will happen, when finish is over, cause
 // when somebody explodes, the capacity decrements
 func (conns *Connections) Empty() bool {
-	return conns.Capacity == 0
+	return len(conns.Get) == 0
 }
 
 // Search find connection in slice and return its index if success

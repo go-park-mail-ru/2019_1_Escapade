@@ -33,7 +33,7 @@ func (room *Room) sendToGroup(info interface{}, predicate SendPredicate) {
 // it will send everybody except selected one and disconnected
 func (room *Room) allExceptThat(me *Connection) func(conn *Connection) bool {
 	return func(conn *Connection) bool {
-		return conn != me && conn.disconnected == false
+		return conn != me && conn.disconnected == false && conn.room == room
 	}
 }
 
@@ -41,7 +41,7 @@ func (room *Room) allExceptThat(me *Connection) func(conn *Connection) bool {
 // it will send everybody except disconnected
 func (room *Room) all() func(conn *Connection) bool {
 	return func(conn *Connection) bool {
-		return conn.disconnected == false
+		return conn.disconnected == false && conn.room == room
 	}
 }
 
@@ -60,6 +60,10 @@ func (room *Room) sendPlayers(predicate SendPredicate) {
 	}
 	send := room.copyLast(get)
 	room.sendToGroup(send, predicate)
+}
+
+func (room *Room) sendMessage(text string, predicate SendPredicate) {
+	room.sendToGroup("Room("+room.Name+"):"+text, predicate)
 }
 
 func (room *Room) sendObservers(predicate SendPredicate) {

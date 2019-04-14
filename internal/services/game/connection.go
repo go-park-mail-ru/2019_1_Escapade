@@ -31,13 +31,28 @@ type Connection struct {
 	//chanWrite chan *RoomRequest `json:"-"`
 }
 
+func (conn *Connection) PushToRoom(room *Room) {
+	conn.room = room
+}
+
+func (conn *Connection) PushToLobby() {
+	conn.room = nil
+}
+
+func (conn *Connection) IsPlayerAlive() bool {
+	return conn.Player.IsAlive()
+}
+
 // Kill send last image signals about killing, close websocket
 // and close chanells
 func (conn *Connection) Kill(message []byte) {
 	conn.disconnected = true
 	conn.SendInformation(message)
 	conn.ws.Close()
-	conn.debug("killed with message:" + string(message))
+	fmt.Println("killed with message:" + string(message))
+	/*
+		need some time before close. Maybe set timer?
+	*/
 	close(conn.send)
 }
 
@@ -93,10 +108,12 @@ func (conn *Connection) ReadConn() {
 		})
 	for {
 		_, message, err := conn.ws.ReadMessage()
+		conn.debug("read from conn")
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
 			}
+			conn.debug("error found")
 			break
 		}
 		conn.lobby.chanBroadcast <- &Request{
@@ -112,6 +129,7 @@ func (conn *Connection) write(mt int, payload []byte) error {
 	return conn.ws.WriteMessage(mt, payload)
 }
 
+// dont put conn.debug here
 func (conn *Connection) WriteConn() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -154,7 +172,9 @@ func (conn *Connection) WriteConn() {
 
 // SendInformation send info
 func (conn *Connection) SendInformation(bytes []byte) {
-	conn.send <- bytes
+	if !conn.disconnected {
+		conn.send <- bytes
+	}
 }
 
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
@@ -165,4 +185,5 @@ func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.GetPlayerID(), "-", message)
+	Answer(conn, []byte(message))
 }
