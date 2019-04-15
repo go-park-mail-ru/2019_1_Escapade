@@ -6,6 +6,7 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -44,6 +45,12 @@ func getIntFromPath(r *http.Request, name string,
 		err = expected
 		return
 	}
+	return
+}
+
+func (h *Handler) getUserID(r *http.Request) (id int, err error) {
+
+	id, err = getIntFromPath(r, "id", 1, re.ErrorInvalidUserID())
 	return
 }
 
@@ -155,6 +162,23 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	defer r.Body.Close()
 
 	_ = json.NewDecoder(r.Body).Decode(&user)
+
+	return
+}
+
+func getRecord(r *http.Request) (record models.Record, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+	err = json.NewDecoder(r.Body).Decode(&record)
+	if err != nil {
+		fmt.Println("getRecordErr ", err.Error())
+	}
+	fmt.Println("getRecord ", record.Score, record.Time, record.Difficult)
 
 	return
 }

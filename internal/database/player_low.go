@@ -193,3 +193,24 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 
 	return
 }
+
+// GetUsers returns information about users
+// for leaderboard
+func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *models.UserPublicInfo, err error) {
+
+	sqlStatement := `
+	SELECT P.id, P.photo_title, P.name, P.email,
+				 R.score, R.time, R.Difficult
+	FROM Player as P
+	join Record as R 
+	on R.player_id = P.id
+	where R.player_id = $1 and
+		R.difficult = $2
+	`
+
+	player = &models.UserPublicInfo{}
+	row := tx.QueryRow(sqlStatement, userID, difficult)
+	err = row.Scan(&player.ID, &player.FileKey, &player.Name,
+		&player.Email, &player.BestScore, &player.BestTime, &player.Difficult)
+	return
+}

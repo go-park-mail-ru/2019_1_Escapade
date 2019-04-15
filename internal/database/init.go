@@ -23,8 +23,13 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	if os.Getenv(CDB.URL) == "" {
 		//db://postgres:postgres@db:5432/postgres?sslmode=disable
 		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
-		os.Setenv(CDB.URL, "user=docker password=docker dbname=docker sslmode=disable")
+		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
+		//"user=docker password=docker dbname=docker sslmode=disable")
 	}
+
+	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
+
 	//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@127.0.0.1:5432/escabase")
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 
@@ -99,8 +104,6 @@ func (db *DataBase) CreateTables() error {
         password varchar(30) NOT NULL,
         email varchar(30) NOT NULL,
 		photo_title varchar(50) default '1.png',
-		best_score int default 0,
-		best_time int default 0,
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ
     );
@@ -234,7 +237,7 @@ INSERT INTO Player(name, password, email, best_score, best_time) VALUES
 CREATE Table Record (
     id SERIAL PRIMARY KEY,
     player_id int NOT NULL,
-    score int default 100,
+    score int default 0,
     time interval default '24 hour'::interval,
     difficult int default 0,
     singleTotal int default 0 CHECK (SingleTotal > -1),
@@ -348,7 +351,7 @@ INSERT INTO Game(player_id, FieldWidth, FieldHeight,
 	`
 	_, err := db.Db.Exec(sqlStatement)
 
-	db.insert(10)
+	db.insert(110)
 
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())
@@ -369,7 +372,7 @@ func (db *DataBase) insert(limit int) {
 		for j := 0; j < 4; j++ {
 			record := &models.Record{
 				Score:       ran.Intn(1000000),
-				Time:        ran.Intn(10000),
+				Time:        float64(ran.Intn(10000)),
 				Difficult:   j,
 				SingleTotal: ran.Intn(2),
 				OnlineTotal: ran.Intn(2),

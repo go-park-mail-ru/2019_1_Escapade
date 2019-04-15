@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	//
 	"database/sql"
 	"escapade/internal/models"
@@ -47,7 +48,7 @@ func (db *DataBase) updateRecords(tx *sql.Tx, id int,
 	RETURNING id
 `
 	record.Fix()
-
+	fmt.Println("record.Score = ", record.Score)
 	_, err = tx.Exec(sqlStatement, record.Score, record.Time,
 		record.SingleTotal, record.OnlineTotal, record.SingleWin,
 		record.OnlineWin, id, record.Difficult)

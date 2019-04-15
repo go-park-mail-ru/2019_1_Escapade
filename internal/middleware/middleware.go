@@ -32,7 +32,6 @@ func CORS(cc config.CORSConfig, preCORS bool) handleDecorator {
 				return
 			}
 			setCORS(rw, cc)
-			fmt.Println("CORS disabled")
 
 			if preCORS {
 				rw.WriteHeader(http.StatusOK)
@@ -43,27 +42,6 @@ func CORS(cc config.CORSConfig, preCORS bool) handleDecorator {
 		}
 	}
 }
-
-// В будущем отрефакторить, ибо явно дублирует CORS
-// PreflightRequest
-// func PRCORS(cc config.CORSConfig) handleDecorator {
-// 	return func(next http.HandlerFunc) http.HandlerFunc {
-// 		return func(rw http.ResponseWriter, r *http.Request) {
-// 			origin := r.Header.Get("Origin")
-
-// 			if !cors.IsAllowed(origin, cc.Origins) {
-// 				rw.WriteHeader(http.StatusForbidden)
-// 				return
-// 			}
-
-// 			setCORS(rw, cc)
-
-// 			rw.WriteHeader(http.StatusOK)
-
-// 			return
-// 		}
-// 	}
-// }
 
 // Check cookie
 func Auth() handleDecorator {

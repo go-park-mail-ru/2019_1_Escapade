@@ -110,29 +110,6 @@ func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
 	return
 }
 
-func (db *DataBase) GetProfile(name string) (user models.UserPublicInfo, err error) {
-
-	sqlStatement := `
-	SELECT email, best_score, best_time 
-	FROM Player 
-	WHERE name like $1 
-`
-
-	row := db.Db.QueryRow(sqlStatement, name)
-
-	user.Name = name
-
-	if err = row.Scan(&user.Email, &user.BestScore,
-		&user.BestTime); err != nil {
-		fmt.Println("database/GetProfile failed")
-		return
-	}
-
-	fmt.Println("database/GetProfile +")
-
-	return
-}
-
 // GetFullGamesInformation returns games, played by player with some name
 func (db *DataBase) GetFullGamesInformation(name string,
 	page int) (games []models.GameInformation, err error) {
