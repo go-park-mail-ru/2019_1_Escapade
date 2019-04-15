@@ -6,6 +6,7 @@ import (
 	"escapade/internal/misc"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -165,7 +166,7 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	return
 }
 
-func getRecord(r *http.Request) (record *models.Record, err error) {
+func getRecord(r *http.Request) (record models.Record, err error) {
 
 	if r.Body == nil {
 		err = re.ErrorNoBody()
@@ -173,8 +174,11 @@ func getRecord(r *http.Request) (record *models.Record, err error) {
 		return
 	}
 	defer r.Body.Close()
-
-	_ = json.NewDecoder(r.Body).Decode(&record)
+	err = json.NewDecoder(r.Body).Decode(&record)
+	if err != nil {
+		fmt.Println("getRecordErr ", err.Error())
+	}
+	fmt.Println("getRecord ", record.Score, record.Time, record.Difficult)
 
 	return
 }

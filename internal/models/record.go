@@ -2,13 +2,13 @@ package models
 
 // Record show best score/time of that 'difficult' lvl.
 type Record struct {
-	Score       int `json:"score"`
-	Time        int `json:"time"`
-	Difficult   int `json:"difficult"`
-	SingleTotal int `json:"singleTotal"`
-	OnlineTotal int `json:"onlineTotal"`
-	SingleWin   int `json:"singleWin"`
-	OnlineWin   int `json:"onlineWin"`
+	Score       int     `json:"score,omitempty"`
+	Time        float64 `json:"time,omitempty"`
+	Difficult   int     `json:"difficult,omitempty"`
+	SingleTotal int     `json:"singleTotal,omitempty"`
+	OnlineTotal int     `json:"onlineTotal,omitempty"`
+	SingleWin   int     `json:"singleWin,omitempty"`
+	OnlineWin   int     `json:"onlineWin,omitempty"`
 }
 
 func zeroOrOne(value *int) {

@@ -237,7 +237,7 @@ INSERT INTO Player(name, password, email, best_score, best_time) VALUES
 CREATE Table Record (
     id SERIAL PRIMARY KEY,
     player_id int NOT NULL,
-    score int default 100,
+    score int default 0,
     time interval default '24 hour'::interval,
     difficult int default 0,
     singleTotal int default 0 CHECK (SingleTotal > -1),
@@ -372,7 +372,7 @@ func (db *DataBase) insert(limit int) {
 		for j := 0; j < 4; j++ {
 			record := &models.Record{
 				Score:       ran.Intn(1000000),
-				Time:        ran.Intn(10000),
+				Time:        float64(ran.Intn(10000)),
 				Difficult:   j,
 				SingleTotal: ran.Intn(2),
 				OnlineTotal: ran.Intn(2),
