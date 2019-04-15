@@ -619,7 +619,7 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 	var (
 		err    error
 		userID int
-		record *models.Record
+		record models.Record
 	)
 	if userID, err = h.getUserIDFromCookie(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
@@ -633,7 +633,7 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 		printResult(err, http.StatusBadRequest, place)
 		return
 	}
-	if err = h.DB.UpdateRecords(userID, record); err != nil {
+	if err = h.DB.UpdateRecords(userID, &record); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadRequest, place)

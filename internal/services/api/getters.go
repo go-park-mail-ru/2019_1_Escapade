@@ -165,7 +165,7 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	return
 }
 
-func getRecord(r *http.Request) (record *models.Record, err error) {
+func getRecord(r *http.Request) (record models.Record, err error) {
 
 	if r.Body == nil {
 		err = re.ErrorNoBody()
@@ -174,8 +174,7 @@ func getRecord(r *http.Request) (record *models.Record, err error) {
 	}
 	defer r.Body.Close()
 
-	record = &models.Record{}
-	err = json.NewDecoder(r.Body).Decode(record)
+	err = json.NewDecoder(r.Body).Decode(&record)
 
 	return
 }
