@@ -13,7 +13,8 @@ type Connections struct {
 
 // NewConnections create instance of Connections
 func NewConnections(capacity int) *Connections {
-	return &Connections{capacity, make([]*Connection, 0, capacity)}
+	return &Connections{capacity,
+		make([]*Connection, 0, capacity)}
 }
 
 // Rooms - slice of rooms with capacity
@@ -24,7 +25,8 @@ type Rooms struct {
 
 // NewRooms create instance of Rooms
 func NewRooms(capacity int) *Rooms {
-	return &Rooms{capacity, make([]*Room, 0, capacity)}
+	return &Rooms{capacity,
+		make([]*Room, 0, capacity)}
 }
 
 // search element in slice

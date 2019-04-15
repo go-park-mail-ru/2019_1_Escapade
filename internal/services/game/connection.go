@@ -185,5 +185,5 @@ func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.GetPlayerID(), "-", message)
-	Answer(conn, []byte(message))
+	conn.SendInformation([]byte(message))
 }

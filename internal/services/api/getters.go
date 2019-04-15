@@ -174,7 +174,23 @@ func getRecord(r *http.Request) (record *models.Record, err error) {
 	}
 	defer r.Body.Close()
 
-	_ = json.NewDecoder(r.Body).Decode(&record)
+	record = &models.Record{}
+	err = json.NewDecoder(r.Body).Decode(record)
+
+	return
+}
+
+func getGameInformation(r *http.Request) (info *models.GameInformation, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+
+	info = &models.GameInformation{}
+	err = json.NewDecoder(r.Body).Decode(info)
 
 	return
 }

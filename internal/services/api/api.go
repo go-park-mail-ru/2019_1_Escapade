@@ -277,9 +277,10 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 
 	var (
 		err      error
-		games    []models.GameInformation
+		games    []*models.GameInformation
 		username string
 		page     int
+		userID   int
 	)
 
 	if page, username, err = h.getNameAndPage(r); err != nil {
@@ -289,7 +290,13 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if games, err = h.DB.GetFullGamesInformation(username, page); err != nil {
+	if userID, err = h.DB.GetUserIdByName(username); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+	}
+
+	if games, err = h.DB.GetGames(userID, page); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
 		printResult(err, http.StatusNotFound, place)
@@ -627,6 +634,34 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = h.DB.UpdateRecords(userID, record); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+}
+
+// GameOnline launch multiplayer
+func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
+	const place = "SaveOfflineGame"
+	var (
+		err             error
+		userID          int
+		gameInformation *models.GameInformation
+	)
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+	if gameInformation, err = getGameInformation(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+	if err = h.DB.SaveGame(userID, gameInformation); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		sendErrorJSON(rw, err, place)
 		printResult(err, http.StatusBadRequest, place)
