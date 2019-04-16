@@ -21,6 +21,7 @@ func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) 
 	return
 }
 
+// RecoverObserver recover connection as observer
 func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool) {
 
 	if !old.disconnected {
@@ -92,8 +93,8 @@ func (room *Room) MakePlayer(conn *Connection) {
 	room.Players.Add(conn)
 }
 
-// MakePlayer mark connection as connected as Player
-// add to players slice and set flag inRoom true
+// MakeObserver mark connection as connected as Observer
+// add to observers slice and set flag inRoom true
 func (room *Room) MakeObserver(conn *Connection) {
 	conn.PushToRoom(room)
 	conn.Player.SetAsObserver()

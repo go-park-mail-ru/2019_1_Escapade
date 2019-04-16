@@ -1,10 +1,11 @@
 package database
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"escapade/internal/config"
+	"escapade/internal/cookie"
 	"escapade/internal/models"
+	"escapade/internal/utils"
 	"fmt"
 	ran "math/rand"
 	"os"
@@ -216,10 +217,12 @@ func (db *DataBase) insert(limit int) {
 	for i := 0; i < limit; i++ {
 		ran.Seed(time.Now().UnixNano())
 		user := &models.UserPrivateInfo{
-			Name:     RandString(n),
-			Email:    RandString(n),
-			Password: RandString(n)}
-		_, id, _ := db.Register(user)
+			Name:     utils.RandomString(n),
+			Email:    utils.RandomString(n),
+			Password: utils.RandomString(n)}
+		sessionID := cookie.CreateID(n)
+		fmt.Println("sessionID:", sessionID)
+		id, _ := db.Register(user, sessionID)
 		for j := 0; j < 4; j++ {
 			record := &models.Record{
 				Score:       ran.Intn(1000000),
@@ -234,15 +237,4 @@ func (db *DataBase) insert(limit int) {
 		}
 
 	}
-}
-
-// RandString create random string with n length
-func RandString(n int) string {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	var bytes = make([]byte, n)
-	rand.Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = alphanum[b%byte(len(alphanum))]
-	}
-	return string(bytes)
 }

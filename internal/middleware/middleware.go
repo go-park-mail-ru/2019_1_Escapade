@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	config "escapade/internal/config"
-	cors "escapade/internal/cors"
-	cookie "escapade/internal/misc"
-	"fmt"
-	"log"
+	"escapade/internal/config"
+	cookie "escapade/internal/cookie"
+	"escapade/internal/cors"
+	re "escapade/internal/return_errors"
+	"escapade/internal/utils"
 
 	"net/http"
 	"strings"
@@ -25,14 +25,15 @@ func setCORS(rw http.ResponseWriter, cc config.CORSConfig, name string) {
 func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
 
+			origin := cors.GetOrigin(r)
 			if !cors.IsAllowed(origin, cc.Origins) {
-				fmt.Println("CORS doesnt want work with you, mr " + origin)
+				place := "middleware/CORS"
+				utils.PrintResult(re.ErrorCORS(origin), http.StatusForbidden, place)
 				rw.WriteHeader(http.StatusForbidden)
 				return
 			}
-			setCORS(rw, cc, origin)
+			cors.SetCORS(rw, cc, origin)
 
 			if preCORS {
 				rw.WriteHeader(http.StatusOK)
@@ -45,13 +46,13 @@ func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 }
 
 // Auth Check cookie exists
-func Auth() HandleDecorator {
+func Auth(cc config.CookieConfig) HandleDecorator {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(cookie.NameCookie)
-
-			if err != nil || cookie.Value == "" {
-
+			if _, err := cookie.GetSessionCookie(r, cc); err != nil {
+				const place = "middleware/Auth"
+				utils.PrintResult(err, http.StatusUnauthorized, place)
+				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
 				rw.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -67,7 +68,9 @@ func Recover() HandleDecorator {
 		return func(rw http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Printf("panic: %+v", err)
+					const place = "middleware/Recover"
+					utils.PrintResult(re.ErrorPanic(), http.StatusInternalServerError, place)
+					utils.SendErrorJSON(rw, re.ErrorPanic(), place)
 					rw.WriteHeader(http.StatusInternalServerError)
 				}
 			}()

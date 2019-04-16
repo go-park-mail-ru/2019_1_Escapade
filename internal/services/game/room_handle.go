@@ -16,6 +16,7 @@ const (
 	StatusClosed
 )
 
+// Room consist of players and observers, field and history
 type Room struct {
 	Name   string `json:"name"`
 	Status int    `json:"status"`
@@ -30,10 +31,7 @@ type Room struct {
 	lobby *Lobby
 	Field *Field `json:"field,omitempty"`
 
-	killed int
-
-	//chanLeave chan *Connection
-	//chanRequest chan *RoomRequest
+	killed int //amount of killed users
 }
 
 // SameAs compare  one room with another
@@ -87,7 +85,7 @@ func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	return true
 }
 
-// nanfle openCell
+// openCell open cell
 func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
@@ -194,8 +192,10 @@ func (room *Room) finishGame() {
 }
 
 func (room *Room) run() {
+	// перенести в настройки комнаты
 	timerPrepare := time.NewTimer(time.Second * 20)
 	timerPlaying := time.NewTimer(time.Second * 60)
+	// в конфиг
 	ticker := time.NewTicker(time.Second * 10)
 
 	for {

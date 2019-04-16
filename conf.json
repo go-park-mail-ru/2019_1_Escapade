@@ -9,18 +9,14 @@
 		"driverName": "postgres",
 		"url": "DATABASE_URL",
 		"maxOpenConns": 20,
-		"tables": [
-			"Player",
-			"Session",
-			"Game"
-		],
 		"PageGames": 2,
 		"PageUsers": 100
 	},
 	"cors": {
 		"origins": [
 			"http://localhost:8080",
-			"http://localhost:3001"
+			"http://localhost:3001",
+			"https://escapade-frontend.herokuapp.com"
 		],
 		"headers": [
 			"Content-type"
@@ -38,9 +34,22 @@
 		"playersAvatarsStorage": "escapade",
 		"defaultAvatar": "1.png"
 	},
+	"cookie": {
+		"nameCookie": "sessionid",
+		"pathCookie": "/",
+		"lengthCookie": 16,
+		"lifetimeCookie": 720,
+		"httpOnly": true
+	},
 	"game": {
 		"roomsCapacity": 500,
 		"lobbyJoin": 1,
 		"lobbyRequest": 1
+	},
+	"websocket": {
+		"writeWait": 60,
+		"pongWait": 10,
+		"pingPeriod": 9,
+		"maxMessageSize": 512
 	}
 }

@@ -11,6 +11,7 @@ type LobbyRequest struct {
 	Get  *LobbyGet  `json:"get"`
 }
 
+// NewLobbyRequest creates Lobby instance
 func NewLobbyRequest(s *LobbySend, g *LobbyGet) *LobbyRequest {
 	return &LobbyRequest{
 		Send: s,
@@ -18,11 +19,12 @@ func NewLobbyRequest(s *LobbySend, g *LobbyGet) *LobbyRequest {
 	}
 }
 
-// IsGet checks wanna client get info
+// IsGet checks, if client want get info
 func (lr *LobbyRequest) IsGet() bool {
 	return lr.Get != nil
 }
 
+// IsSend checks, if client want send info
 func (lr *LobbyRequest) IsSend() bool {
 	return lr.Send != nil
 }

@@ -3,9 +3,16 @@ package game
 import (
 	"encoding/json"
 	"escapade/internal/models"
+	"escapade/internal/utils"
 	"fmt"
 	"sync"
 )
+
+// Request connect Connection and his message
+type Request struct {
+	Connection *Connection
+	Message    []byte
+}
 
 // Lobby there are all rooms and users placed
 type Lobby struct {
@@ -24,7 +31,6 @@ type Lobby struct {
 
 	semJoin    chan bool
 	semRequest chan bool
-	//chanRoom  chan *Room       // room change status
 }
 
 // NewLobby create new instance of Lobby
@@ -48,6 +54,7 @@ func NewLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 	return lobby
 }
 
+// CloseRoom free room resources
 func (lobby *Lobby) CloseRoom(room *Room) {
 	// if not in freeRooms nothing bad will happen
 	// there is check inside, it will just return without errors
@@ -60,7 +67,7 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 // and run it
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 
-	name := RandString(16)
+	name := utils.RandomString(16) // вынести в кофиг
 	room := NewRoom(rs, name, lobby)
 	if !lobby.AllRooms.Add(room) {
 		return nil
@@ -68,17 +75,13 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 
 	lobby.FreeRooms.Add(room)
 	go lobby.sendTAILRooms() // inform all about new room
-	//go room.run()
 	return room
 }
 
 // Join handle user join to lobby
 func (lobby *Lobby) Join(new *Connection) {
-	//conn.debug("lobby", "ChanJoin", "Join", "waiting for semJoin")
 	lobby.semJoin <- true
-	//conn.debug("lobby", "ChanJoin", "Join", "taken semJoin")
 	defer func() {
-		//conn.debug("lobby", "ChanJoin", "Join", "free semJoin")
 		<-lobby.semJoin
 	}()
 
@@ -248,11 +251,6 @@ func (lobby *Lobby) sendRooms(conn *Connection) {
 	conn.SendInformation(bytes)
 }
 
-type Request struct {
-	Connection *Connection
-	Message    []byte
-}
-
 // Run the room in goroutine
 func (lobby *Lobby) Run() {
 
@@ -260,9 +258,6 @@ func (lobby *Lobby) Run() {
 		select {
 		case connection := <-lobby.ChanJoin:
 			go lobby.Join(connection)
-
-		//case request := <-lobby.chanRequest:
-		//	go lobby.handleRequest(request)
 
 		case message := <-lobby.chanBroadcast:
 			go lobby.analize(message)

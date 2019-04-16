@@ -110,7 +110,7 @@ type Handler struct {
 // @Router /user [OPTIONS]
 func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, "Ok")
+        utils.SendSuccessJSON(rw, nil, "Ok")
 
         fmt.Println("api/ok - ok")
         return
@@ -134,20 +134,20 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) <span cl
 
         if username, err = h.getNameFromCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
-                sendErrorJSON(rw, re.ErrorAuthorization(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorServer(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorServer(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov8" title="1">rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -168,22 +168,22 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) <span clas
 
         if user, err = getUserWithAllFields(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if sessionID, err = h.DB.Register(&amp;user); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">misc.CreateAndSet(rw, sessionID)
         rw.WriteHeader(http.StatusCreated)
-        sendSuccessJSON(rw, nil, place)
-        printResult(err, http.StatusCreated, place)
+        utils.SendSuccessJSON(rw, nil, place)
+        utils.PrintResult(err, http.StatusCreated, place)
         return</span>
 }
 
@@ -206,28 +206,28 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) <span c
 
         if user, err = getUser(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if name, err = h.getNameFromCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
-                sendErrorJSON(rw, re.ErrorAuthorization(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if err = h.DB.UpdatePlayerByName(name, &amp;user); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, place)
-        printResult(err, http.StatusOK, place)
+        utils.SendSuccessJSON(rw, nil, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -250,28 +250,28 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) <span class="co
 
         if user, err = getUser(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if sessionID, username, err = h.DB.Login(&amp;user); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
         <span class="cov8" title="1">misc.CreateAndSet(rw, sessionID)
 
         if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorDataBase(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
         <span class="cov8" title="1">rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -292,22 +292,22 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) <span class="c
 
         if sessionID, err = misc.GetSessionCookie(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusUnauthorized)
-                sendErrorJSON(rw, re.ErrorAuthorization(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if err = h.DB.Logout(sessionID); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorDataBase(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
         <span class="cov8" title="1">misc.CreateAndSet(rw, "")
         rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, place)
-        printResult(err, http.StatusOK, place)
+        utils.SendSuccessJSON(rw, nil, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -329,22 +329,22 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) <span clas
 
         if user, err = getUserWithAllFields(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if err = h.DB.DeleteAccount(&amp;user); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">misc.CreateAndSet(rw, "")
         rw.WriteHeader(http.StatusOK)
-        sendSuccessJSON(rw, nil, place)
-        printResult(err, http.StatusOK, place)
+        utils.SendSuccessJSON(rw, nil, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -369,21 +369,21 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) <span 
 
         if page, username, err = h.getNameAndPage(r); err != nil </span><span class="cov8" title="1">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov8" title="1">if games, err = h.DB.GetGames(username, page); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
-                sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
-                printResult(err, http.StatusNotFound, place)
+                utils.SendErrorJSON(rw, re.ErrorGamesNotFound(), place)
+                utils.PrintResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
-        <span class="cov8" title="1">sendSuccessJSON(rw, games, place)
+        <span class="cov8" title="1">utils.SendSuccessJSON(rw, games, place)
         rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 
@@ -404,14 +404,14 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) <s
 
         if pages.Amount, err = h.DB.GetUsersPageAmount(); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorDataBase(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
-        <span class="cov8" title="1">sendSuccessJSON(rw, pages, place)
+        <span class="cov8" title="1">utils.SendSuccessJSON(rw, pages, place)
         rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)</span>
+        utils.PrintResult(err, http.StatusOK, place)</span>
 }
 
 // GetUsers get users list
@@ -433,21 +433,21 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) <span class=
 
         if page, err = h.getPage(r); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, re.ErrorInvalidPage(), place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, re.ErrorInvalidPage(), place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return
         }</span>
 
         <span class="cov0" title="0">if users, err = h.DB.GetUsers(page); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
-                sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
-                printResult(err, http.StatusNotFound, place)
+                utils.SendErrorJSON(rw, re.ErrorUsersNotFound(), place)
+                utils.PrintResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">sendSuccessJSON(rw, users, place)
+        <span class="cov0" title="0">utils.SendSuccessJSON(rw, users, place)
         rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)</span>
+        utils.PrintResult(err, http.StatusOK, place)</span>
 }
 
 // GetImage returns user avatar
@@ -470,15 +470,15 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) <span class=
 
         if userID, err = h.getUserIDFromCookie(r); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusUnauthorized)
-                sendErrorJSON(rw, re.ErrorAuthorization(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov0" title="0">if filename, err = h.DB.GetImage(userID); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
-                sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-                printResult(err, http.StatusNotFound, place)
+                utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+                utils.PrintResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
@@ -486,14 +486,14 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) <span class=
 
         if file, err = ioutil.ReadFile(filepath); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
-                sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-                printResult(err, http.StatusNotFound, place)
+                utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+                utils.PrintResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
         <span class="cov0" title="0">rw.WriteHeader(http.StatusOK)
         rw.Write(file)
-        printResult(err, http.StatusOK, place)</span>
+        utils.PrintResult(err, http.StatusOK, place)</span>
 }
 
 // PostImage create avatar
@@ -516,15 +516,15 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) <span class
 
         if userID, err = h.getUserIDFromCookie(r); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusUnauthorized)
-                sendErrorJSON(rw, re.ErrorAuthorization(), place)
-                printResult(err, http.StatusUnauthorized, place)
+                utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+                utils.PrintResult(err, http.StatusUnauthorized, place)
                 return
         }</span>
 
         <span class="cov0" title="0">if input, handle, err = r.FormFile("file"); err != nil || input == nil || handle == nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorInvalidFile(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorInvalidFile(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
@@ -542,27 +542,27 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) <span class
                 err = saveFile(filePath, fileName, input, os.FileMode(h.FileMode))</span>
         default:<span class="cov0" title="0">
                 rw.WriteHeader(http.StatusBadRequest)
-                sendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
-                printResult(err, http.StatusBadRequest, place)
+                utils.SendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
+                utils.PrintResult(err, http.StatusBadRequest, place)
                 return</span>
         }
 
         <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorServer(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorServer(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
         <span class="cov0" title="0">if err = h.DB.PostImage(fileName, userID); err != nil </span><span class="cov0" title="0">{
                 _ = os.Remove(filePath) // if error then lets delete uploaded image
                 rw.WriteHeader(http.StatusInternalServerError)
-                sendErrorJSON(rw, re.ErrorDataBase(), place)
-                printResult(err, http.StatusInternalServerError, place)
+                utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+                utils.PrintResult(err, http.StatusInternalServerError, place)
                 return
         }</span>
 
-        <span class="cov0" title="0">sendSuccessJSON(rw, nil, place)
+        <span class="cov0" title="0">utils.SendSuccessJSON(rw, nil, place)
         rw.WriteHeader(http.StatusCreated)</span>
 }
 
@@ -589,20 +589,20 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) <span clas
         if username == "" </span><span class="cov0" title="0">{
                 err = re.ErrorInvalidName()
                 rw.WriteHeader(http.StatusBadGateway)
-                sendErrorJSON(rw, err, place)
-                printResult(err, http.StatusBadGateway, place)
+                utils.SendErrorJSON(rw, err, place)
+                utils.PrintResult(err, http.StatusBadGateway, place)
                 return
         }</span>
 
         <span class="cov0" title="0">if err = sendPublicUser(h, rw, username, place); err != nil </span><span class="cov0" title="0">{
                 rw.WriteHeader(http.StatusNotFound)
-                sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-                printResult(err, http.StatusNotFound, place)
+                utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+                utils.PrintResult(err, http.StatusNotFound, place)
                 return
         }</span>
 
         <span class="cov0" title="0">rw.WriteHeader(http.StatusOK)
-        printResult(err, http.StatusOK, place)
+        utils.PrintResult(err, http.StatusOK, place)
         return</span>
 }
 </pre>
@@ -812,7 +812,7 @@ import (
         "net/http"
 )
 
-func printResult(catched error, number int, place string) <span class="cov8" title="1">{
+func utils.PrintResult(catched error, number int, place string) <span class="cov8" title="1">{
         if catched != nil </span><span class="cov8" title="1">{
                 fmt.Println("api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
         }</span> else<span class="cov8" title="1"> {
@@ -820,7 +820,7 @@ func printResult(catched error, number int, place string) <span class="cov8" tit
         }</span>
 }
 
-func sendErrorJSON(rw http.ResponseWriter, catched error, place string) <span class="cov8" title="1">{
+func utils.SendErrorJSON(rw http.ResponseWriter, catched error, place string) <span class="cov8" title="1">{
         result := models.Result{
                 Place:   place,
                 Success: false,
@@ -830,7 +830,7 @@ func sendErrorJSON(rw http.ResponseWriter, catched error, place string) <span cl
         json.NewEncoder(rw).Encode(result)
 }</span>
 
-func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) <span class="cov8" title="1">{
+func utils.SendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) <span class="cov8" title="1">{
         if result == nil </span><span class="cov8" title="1">{
                 result = models.Result{
                         Place:   place,
@@ -852,7 +852,7 @@ func sendPublicUser(h *Handler, rw http.ResponseWriter, username string, place s
                 return err
         }</span>
 
-        <span class="cov8" title="1">sendSuccessJSON(rw, user, place)
+        <span class="cov8" title="1">utils.SendSuccessJSON(rw, user, place)
         return err</span>
 }
 </pre>

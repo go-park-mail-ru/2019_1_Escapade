@@ -3,7 +3,7 @@ package main
 import (
 	"escapade/internal/router"
 	"escapade/internal/services/api"
-	"fmt"
+	"escapade/internal/utils"
 
 	"net/http"
 )
@@ -17,19 +17,20 @@ import (
 // @host https://escapade-backend.herokuapp.com
 // @BasePath /api/v1
 func main() {
-	confPath := router.GetConf() //"test.json"
-
-	fmt.Println("we use configuration", confPath)
+	const (
+		place    = "main"
+		confPath = "conf.json"
+	)
 
 	API, conf, err := api.GetHandler(confPath) // init.go
 	if err != nil {
-		fmt.Println("Some error happened with configuration file or database" + err.Error())
+		utils.PrintResult(err, 0, "main")
 		return
 	}
 	r := router.GetRouter(API, conf)
 	port := router.GetPort(conf)
 
 	if err = http.ListenAndServe(port, r); err != nil {
-		fmt.Println("Server error:" + err.Error())
+		utils.PrintResult(err, 0, "main")
 	}
 }

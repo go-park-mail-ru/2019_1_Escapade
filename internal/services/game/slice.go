@@ -1,10 +1,5 @@
 package game
 
-import (
-	"crypto/rand"
-	"fmt"
-) //
-
 // Connections - slice of connections with capacity
 type Connections struct {
 	Capacity int           `json:"capacity"`
@@ -39,17 +34,6 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-// RandString create random string with n length
-func RandString(n int) string {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	var bytes = make([]byte, n)
-	rand.Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = alphanum[b%byte(len(alphanum))]
-	}
-	return string(bytes)
-}
-
 ////////////////// Rooms //////////////////////
 
 // Empty check rooms length is 0
@@ -70,13 +54,10 @@ func (rooms *Rooms) enoughPlace() bool {
 // SearchRoom find room with selected name and return it if success
 // otherwise nil
 func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
-	fmt.Println("search length", len(rooms.Get))
 	for i, room = range rooms.Get {
-		fmt.Println("try compare these:", room.Name, name)
 		if room.Name == name {
 			return
 		}
-		fmt.Println("no")
 	}
 	i, room = -1, nil
 	return

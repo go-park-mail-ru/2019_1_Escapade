@@ -24,7 +24,7 @@ func (player *Player) SetAsPlayer() {
 	player.Finished = false
 }
 
-// SetAsPlayer set Finished = true
+// SetAsObserver set Finished = true
 func (player *Player) SetAsObserver() {
 	player.Points = 0
 	player.Finished = true
@@ -36,6 +36,8 @@ During the game the room doesnt know status of that player
 action. But the room process these requests only from players,
 which 'finish' flag is false(except action - Back to menu)
 */
+
+// IsAlive check is player alive
 func (player *Player) IsAlive() bool {
 	return player.Finished == false
 }

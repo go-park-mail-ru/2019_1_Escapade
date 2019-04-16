@@ -27,13 +27,13 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, false)))
 
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.GetMyProfile,
-		mi.CORS(conf.Cors, false), mi.Auth())).Methods("GET")
+		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("GET")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.CreateUser,
 		mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.DeleteUser,
-		mi.CORS(conf.Cors, false), mi.Auth())).Methods("DELETE")
+		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("DELETE")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.UpdateProfile,
-		mi.CORS(conf.Cors, false), mi.Auth())).Methods("PUT")
+		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("PUT")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -50,7 +50,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.PostImage,
-		mi.CORS(conf.Cors, false), mi.Auth())).Methods("POST")
+		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("POST")
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -62,7 +62,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, false))).Methods("GET")
 
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.SaveRecords,
-		mi.CORS(conf.Cors, false), mi.Auth())).Methods("POST")
+		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("POST")
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -71,13 +71,6 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	// v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
 	return r
-}
-
-func GetConf() string {
-	if os.Getenv("PORT") == "" {
-		return "conf.json"
-	}
-	return "deploy.json"
 }
 
 // GetPort return port

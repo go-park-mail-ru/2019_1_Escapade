@@ -2,14 +2,12 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
-	"escapade/internal/misc"
+	"escapade/internal/config"
+	"escapade/internal/cookie"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
-
-	//"reflect"
 
 	"github.com/gorilla/mux"
 )
@@ -121,13 +119,8 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error) {
-	var sessionID string
-
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		err = errors.New("Authorization required")
-		return
-	}
+func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
 		return
@@ -136,13 +129,8 @@ func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error
 	return
 }
 
-func (h *Handler) getUserIDFromCookie(r *http.Request) (userID int, err error) {
-	var sessionID string
-
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		err = errors.New("Authorization required")
-		return
-	}
+func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
+	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
 		return

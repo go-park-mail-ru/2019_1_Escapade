@@ -1,8 +1,5 @@
 package game
 
-//re "escapade/internal/return_errors"
-//"math/rand"
-
 // Player actions
 const (
 	ActionError = iota - 1

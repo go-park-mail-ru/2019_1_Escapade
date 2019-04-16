@@ -1,7 +1,7 @@
 package api
 
 import (
-	misc "escapade/internal/misc"
+	cookie "escapade/internal/cookie"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -433,7 +433,7 @@ func TestUpdateProfile(t *testing.T) {
 		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}
-	cookie = misc.CreateCookie(cookiestr)
+	cookie = cookie.CreateCookie(cookiestr)
 
 	// create user, which name/email we try to take(expected catch error)
 	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[1]))
@@ -540,7 +540,7 @@ func TestGetProfile(t *testing.T) {
 		t.Error("TestGetUser cant get cookie:", err.Error())
 		return
 	}
-	cookie = misc.CreateCookie(cookiestr)
+	cookie = cookie.CreateCookie(cookiestr)
 
 	for caseNum, item := range cases {
 		url := "/user"
@@ -722,14 +722,14 @@ func TestLogout(t *testing.T) {
 		return
 	}
 
-	reqLogin.AddCookie(misc.CreateCookie(str))
+	reqLogin.AddCookie(cookie.CreateCookie(str))
 	H.Login(wLogin, reqLogin)
 
 	//body, _ := ioutil.ReadAll(wLogin.Result().Body)
 	//t.Errorf(string(body))
 
 	var cookie *http.Cookie
-	if cookie, err = reqLogin.Cookie(misc.NameCookie); err != nil {
+	if cookie, err = reqLogin.Cookie(cookie.NameCookie); err != nil {
 		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}

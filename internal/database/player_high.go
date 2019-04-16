@@ -8,7 +8,7 @@ import (
 
 // Register check sql-injections and are email and name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -29,7 +29,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, userID i
 		return
 	}
 
-	if str, err = db.createSession(tx, userID); err != nil {
+	if err = db.createSession(tx, userID, sessionID); err != nil {
 		fmt.Println("database/register - fail creating Session")
 		return
 	}
@@ -39,7 +39,6 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, userID i
 		return
 	}
 
-	fmt.Println("sessionID:", str)
 	fmt.Println("database/register +")
 
 	err = tx.Commit()
@@ -48,7 +47,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (str string, userID i
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo) (sessionCode string, found *models.UserPublicInfo, err error) {
+func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found *models.UserPublicInfo, err error) {
 
 	var (
 		tx     *sql.Tx
@@ -65,7 +64,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (sessionCode string, fou
 		return
 	}
 
-	if sessionCode, err = db.createSession(tx, userID); err != nil {
+	if err = db.createSession(tx, userID, sessionID); err != nil {
 		fmt.Println("database/login - fail creating Session")
 		return
 	}
