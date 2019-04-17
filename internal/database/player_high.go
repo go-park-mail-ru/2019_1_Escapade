@@ -172,6 +172,32 @@ func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicI
 
 	err = tx.Commit()
 	return
+}
 
+// DeleteAccount deletes account
+func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
+
+	var (
+		tx *sql.Tx
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if err = db.deletePlayer(tx, user); err != nil {
+		fmt.Println("database/DeleteAccount - fail deletting User")
+		return
+	}
+
+	if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
+		fmt.Println("database/DeleteAccount - fail deleting all user sessions")
+		return
+	}
+
+	fmt.Println("database/DeleteAccount +")
+
+	err = tx.Commit()
 	return
 }

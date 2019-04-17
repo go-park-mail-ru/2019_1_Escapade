@@ -214,3 +214,17 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *mode
 		&player.Email, &player.BestScore, &player.BestTime, &player.Difficult)
 	return
 }
+
+func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
+	sqlStatement := `
+	DELETE FROM Player where name=$1 and password=$2 and email=$3
+		`
+	fmt.Println("+++++")
+
+	fmt.Println("user.Name, user.Password, user.Email", user.Name, user.Password, user.Email)
+
+	_, err := tx.Exec(sqlStatement, user.Name,
+		user.Password, user.Email)
+
+	return err
+}

@@ -28,7 +28,6 @@ func (db *DataBase) SaveGame(userID int,
 	}
 
 	err = tx.Commit()
-	fmt.Println("done")
 	return
 }
 
@@ -49,6 +48,5 @@ func (db *DataBase) GetGames(userID int, page int) (
 	}
 
 	err = tx.Commit()
-	fmt.Println("done")
 	return
 }

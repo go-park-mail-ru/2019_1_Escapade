@@ -1,14 +1,15 @@
 package api
 
 import (
-	cookie "escapade/internal/cookie"
+	cook "escapade/internal/cookie"
+	re "escapade/internal/return_errors"
+	"escapade/internal/utils"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/gorilla/mux"
 )
 
 type TestCase struct {
@@ -28,7 +29,9 @@ type TestCaseGames struct {
 // go test -coverprofile test/cover.out
 // go tool cover -html=test/cover.out -o test/coverage.html
 
-const confPath = "../../../conf.json"
+const PATH = "../../../conf.json"
+const RANDOM = "r"
+const DEFAULT = "d"
 
 var replacer = strings.NewReplacer("\n", "", "\t", "")
 
@@ -66,512 +69,384 @@ func checkCookies(t *testing.T, caseNum int, got http.Cookie, expected http.Cook
 	}
 }
 
-func TestCreateUser(t *testing.T) {
-	cases := []TestCase{
-		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"name": "username111",
-				"password": "1454543",
-				"email": "123123"
-			}`,
+func launchTests(t *testing.T, H *Handler, cases []TestCase,
+	url string, af apiFunc, c *http.Cookie, record bool) {
+	for caseNum, item := range cases {
+		w := af(H, url, strings.NewReader(item.Body), c)
+		fmt.Println("look at", item.Body)
+		if !record {
+			continue
+		}
+
+		if w.Code != item.StatusCode {
+			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
+				caseNum, w.Code, item.StatusCode)
+		}
+
+		resp := w.Result()
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			break
+		}
+
+		defer resp.Body.Close()
+
+		checkStrings(t, caseNum, string(body), item.Response)
+	}
+}
+
+func getUserCreateCases() []TestCase {
+	const place = "CreateUser"
+	name1 := utils.RandomString(16)
+	email1 := utils.RandomString(16)
+	return []TestCase{
+		TestCase{ // correct
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(name1, RANDOM, email1),
 			StatusCode: http.StatusCreated,
-		},
+		}, // email is taken
 		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Invalid password"}`,
-			Body: `{
-				"name": "TestCase2",
-				"email": "123123"
-			}`,
+			Response:   createResult(place, re.ErrorEmailIstaken()),
+			Body:       createPrivateUser(RANDOM, RANDOM, email1),
+			StatusCode: http.StatusBadRequest,
+		}, // name is taken
+		TestCase{
+			Response:   createResult(place, re.ErrorNameIstaken()),
+			Body:       createPrivateUser(name1, RANDOM, RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no password
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidPassword()),
+			Body:       createPrivateUser(RANDOM, "", RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no email
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidEmail()),
+			Body:       createPrivateUser(RANDOM, RANDOM, ""),
+			StatusCode: http.StatusBadRequest,
+		}, // no name
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createPrivateUser("", RANDOM, RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no anything
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createPrivateUser("", "", ""),
 			StatusCode: http.StatusBadRequest,
 		},
+		// wrong json
 		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Invalid username"}`,
-			Body: `{
-				"password": "username111",
-				"email": "123123"
-			}`,
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createResult("", nil),
 			StatusCode: http.StatusBadRequest,
 		},
+		// no json
 		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Invalid email"}`,
-			Body: `{
-				"name": "username111",
-				"password": "123123"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Invalid username"}`,
-			Body: `{
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Username is taken"}
-			`,
-			Body: `{
-				"name": "username111",
-				"password": "1454543",
-				"email": "emailtest"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"CreateUser",
-				"success":false,
-				"message":"Email is taken"}
-			`,
-			Body: `{
-				"name": "usertest",
-				"password": "1454543",
-				"email": "123123"
-			}`,
+			Response:   createResult(place, re.ErrorInvalidJSON()),
+			Body:       "",
 			StatusCode: http.StatusBadRequest,
 		},
 	}
+}
 
-	H, _, err := GetHandler(confPath)
+func getUserDeleteCases() []TestCase {
+	const place = "DeleteUser"
+	name1 := utils.RandomString(16)
+	email1 := utils.RandomString(16)
+	return []TestCase{
+		TestCase{ // correct
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(name1, RANDOM, email1),
+			StatusCode: http.StatusOK,
+		}, // user almost deleted
+		TestCase{
+			Response:   createResult(place, re.ErrorUserNotFound()),
+			Body:       createPrivateUser(RANDOM, RANDOM, email1),
+			StatusCode: http.StatusBadRequest,
+		}, // user almost deleted
+		TestCase{
+			Response:   createResult(place, re.ErrorUserNotFound()),
+			Body:       createPrivateUser(name1, RANDOM, RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no password
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidPassword()),
+			Body:       createPrivateUser(RANDOM, "", RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no email
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidEmail()),
+			Body:       createPrivateUser(RANDOM, RANDOM, ""),
+			StatusCode: http.StatusBadRequest,
+		}, // no name
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createPrivateUser("", RANDOM, RANDOM),
+			StatusCode: http.StatusBadRequest,
+		}, // no anything
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createPrivateUser("", "", ""),
+			StatusCode: http.StatusBadRequest,
+		},
+		// wrong json
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidName()),
+			Body:       createResult("", nil),
+			StatusCode: http.StatusBadRequest,
+		},
+		// no json
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidJSON()),
+			Body:       "",
+			StatusCode: http.StatusBadRequest,
+		},
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	H, _, err := GetHandler(PATH)
 	if err != nil || H == nil {
 		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
-
 	url := "/user"
-	preq := httptest.NewRequest("DELETE", url, strings.NewReader(cases[0].Body))
-	H.DeleteUser(httptest.NewRecorder(), preq)
-	for caseNum, item := range cases {
-		req := httptest.NewRequest("POST", url, strings.NewReader(item.Body))
-		w := httptest.NewRecorder()
 
-		H.CreateUser(w, req)
+	cases := getUserCreateCases()
 
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
+	launchTests(t, H, cases, url, createUser, nil, true)
 
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		defer resp.Body.Close()
-
-		checkStrings(t, caseNum, string(body), item.Response)
-	}
+	launchTests(t, H, cases, url, deleteUser, nil, false)
 }
 
 func TestDeleteUser(t *testing.T) {
-	cases := []TestCase{
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"name": "username111",
-				"password": "1454543",
-				"email": "123123"
-			}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"Invalid password"}`,
-			Body: `{
-				"name": "TestCase2",
-				"email": "123123"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"Invalid username"}`,
-			Body: `{
-				"password": "username111",
-				"email": "123123"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"Invalid email"}`,
-			Body: `{
-				"name": "username111",
-				"password": "123123"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"Invalid username"}`,
-			Body: `{
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"User not found"}
-			`,
-			Body: `{
-				"name": "username111",
-				"password": "1454543",
-				"email": "emailtest"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: `{
-				"place":"DeleteUser",
-				"success":false,
-				"message":"User not found"}
-			`,
-			Body: `{
-				"name": "usertest",
-				"password": "1454543",
-				"email": "123123"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-	}
-
-	H, _, err := GetHandler(confPath)
+	H, _, err := GetHandler(PATH)
 	if err != nil || H == nil {
-		t.Error("TestDeleteUser catched error:", err.Error())
+		t.Error("TestCreateUser catched error:", err.Error())
 		return
 	}
-
 	url := "/user"
-	preq := httptest.NewRequest("POST", url, strings.NewReader(cases[0].Body))
-	H.CreateUser(httptest.NewRecorder(), preq)
 
-	for caseNum, item := range cases {
-		req := httptest.NewRequest("DELETE", url, strings.NewReader(item.Body))
-		w := httptest.NewRecorder()
+	cases := getUserDeleteCases()
 
-		H.DeleteUser(w, req)
-
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
-
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		defer resp.Body.Close()
-
-		checkStrings(t, caseNum, string(body), item.Response)
-	}
+	launchTests(t, H, cases, url, createUser, nil, false)
+	launchTests(t, H, cases, url, deleteUser, nil, true)
 }
-
 func TestUpdateProfile(t *testing.T) {
-	users := []string{
-		`{
-				"name": "TestUpdateUser",
-				"password": "TestUpdateUser",
-				"email": "TestUpdateUser"
-			}`,
-		`{
-				"name": "taken",
-				"password": "taken",
-				"email": "taken"
-			}`,
-	}
-	cases := []TestCase{
+	const place = "UpdateProfile"
+	firstName := utils.RandomString(16)
+	takenName := utils.RandomString(16)
+	takenEmail := utils.RandomString(16)
+
+	users := []TestCase{
 		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":false,
-				"message":"Required authorization"
-			}
-			`,
-			Body:       ``,
+			Body:       createPrivateUser(firstName, RANDOM, RANDOM),
+			Response:   ``,
 			StatusCode: http.StatusUnauthorized,
 		},
 		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":false,
-				"message":"Cant found parameters"
-			}
-			`,
+			Body:       createPrivateUser(takenName, RANDOM, takenEmail),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+	}
+	updates := []TestCase{
+		TestCase{
+			Response:   createResult(place, re.ErrorAuthorization()),
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser("", RANDOM, RANDOM),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(RANDOM, "", RANDOM),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(RANDOM, RANDOM, ""),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser("", "", RANDOM),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser("", RANDOM, ""),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser(RANDOM, "", ""),
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, re.ErrorEmailIstaken()),
+			Body:       createPrivateUser(takenName, "", takenEmail),
 			StatusCode: http.StatusBadRequest,
 		},
 		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"name": "TestUpdateUser1"
-			}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"email": "TestUpdateUser2"
-			}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"password": "TestUpdateUser3"
-			}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"name": "TestUpdateUser",
-				"password": "TestUpdateUser",
-				"email": "TestUpdateUser"
-			}`,
-			StatusCode: http.StatusOK,
-		},
-		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":false,
-				"message":"Invalid email"}
-			`,
-			Body: `{
-				"email": "taken"
-			}`,
+			Response:   createResult(place, re.ErrorNameIstaken()),
+			Body:       createPrivateUser(takenName, "", ""),
 			StatusCode: http.StatusBadRequest,
 		},
 		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":false,
-				"message":"Invalid username"}
-			`,
-			Body: `{
-				"name": "taken"
-			}`,
+			Response:   createResult(place, re.ErrorEmailIstaken()),
+			Body:       createPrivateUser("", "", takenEmail),
 			StatusCode: http.StatusBadRequest,
 		},
 		TestCase{
-			Response: `{
-				"place":"UpdateProfile",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body:       ``,
+			Response:   createResult(place, nil),
+			Body:       createPrivateUser("", "", ""),
 			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidJSON()),
+			Body:       "not json",
+			StatusCode: http.StatusBadRequest,
 		},
 	}
 
 	var (
-		H         *Handler
-		err       error
-		url       string
-		createReq *http.Request
-		deleteReq *http.Request
 		cookiestr string
 		cookie    *http.Cookie
 	)
 
-	if H, _, err = GetHandler(confPath); err != nil || H == nil {
+	H, _, err := GetHandler(PATH)
+
+	if err != nil || H == nil {
+		t.Error("TestUpdateUser catched error:", err.Error())
+		return
+	}
+	url := "/user"
+
+	launchTests(t, H, users, url, createUser, nil, false)
+
+	if cookiestr, err = H.DB.GetSessionByName(firstName); err != nil {
+		t.Error("TestUpdateUser cant get cookie:", err.Error())
+		return
+	}
+
+	cookie = cook.CreateCookie(cookiestr, H.Cookie)
+
+	launchTests(t, H, updates[:1], url, updateUser, nil, true)
+	launchTests(t, H, updates[1:], url, updateUser, cookie, true)
+	launchTests(t, H, users, url, deleteUser, nil, false)
+}
+
+func TestGetMyProfile(t *testing.T) {
+	const place = "GetMyProfile"
+	name := utils.RandomString(16)
+	email := utils.RandomString(16)
+
+	users := []TestCase{
+		TestCase{
+			Body:       createPrivateUser(name, RANDOM, email),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+	}
+	gets := []TestCase{
+		TestCase{
+			Response:   createResult(place, re.ErrorAuthorization()),
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Response: createPublicUser(name, email, "",
+				DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
+			StatusCode: http.StatusOK,
+		},
+	}
+
+	H, _, err := GetHandler(PATH)
+
+	if err != nil || H == nil {
+		t.Error("TestUpdateUser catched error:", err.Error())
+		return
+	}
+	url := "/user"
+
+	launchTests(t, H, users, url, createUser, nil, false)
+
+	var cookiestr string
+	if cookiestr, err = H.DB.GetSessionByName(name); err != nil {
+		t.Error("TestUpdateUser cant get cookie:", err.Error())
+		return
+	}
+
+	cookie := cook.CreateCookie(cookiestr, H.Cookie)
+
+	launchTests(t, H, gets[:1], url, getMyProfile, nil, true)
+	launchTests(t, H, gets[1:], url, getMyProfile, cookie, true)
+	launchTests(t, H, users, url, deleteUser, nil, false)
+}
+
+func TestGetProfile(t *testing.T) {
+	const place = "GetProfile"
+	name := utils.RandomString(16)
+	email := utils.RandomString(16)
+
+	users := []TestCase{
+		TestCase{
+			Body:       createPrivateUser(name, RANDOM, email),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+	}
+	gets := []TestCase{
+		TestCase{
+			Response:   createResult(place, re.ErrorInvalidUserID()),
+			StatusCode: http.StatusBadRequest,
+		},
+		TestCase{
+			Response:   createResult(place, re.ErrorUserNotFound()),
+			StatusCode: http.StatusNotFound,
+		},
+		TestCase{
+			Response: createPublicUser(name, email, "",
+				DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
+			StatusCode: http.StatusOK,
+		},
+	}
+
+	H, _, err := GetHandler(PATH)
+
+	if err != nil || H == nil {
 		t.Error("TestUpdateUser catched error:", err.Error())
 		return
 	}
 
+	url := "/user"
+	launchTests(t, H, users, url, createUser, nil, false)
+
+	launchTests(t, H, gets[:1], url, getProfile, nil, true)
+	url = "/user?id=dfdf"
+	launchTests(t, H, gets[:1], url, getProfile, nil, true)
+	url = "/user?id=10"
+	launchTests(t, H, gets[1:2], url, getProfile, nil, true)
+	url = "/user?id=1"
+	launchTests(t, H, gets[2:], url, getProfile, nil, true)
 	url = "/user"
-
-	// create the user, which we will update
-	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[0]))
-	w := httptest.NewRecorder()
-	H.CreateUser(w, createReq)
-
-	if cookiestr, err = H.DB.GetSessionByName("TestUpdateUser"); err != nil {
-		t.Error("TestUpdateUser cant get cookie:", err.Error())
-		return
-	}
-	cookie = cookie.CreateCookie(cookiestr)
-
-	// create user, which name/email we try to take(expected catch error)
-	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[1]))
-	H.CreateUser(httptest.NewRecorder(), createReq)
-
-	for caseNum, item := range cases {
-		url := "/user"
-		var req *http.Request
-
-		req = httptest.NewRequest("PUT", url, strings.NewReader(item.Body))
-
-		if caseNum == 1 {
-			req.Body = nil
-		}
-
-		w := httptest.NewRecorder()
-		if caseNum != 0 {
-			req.AddCookie(cookie)
-		}
-		H.UpdateProfile(w, req)
-
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
-
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		defer resp.Body.Close()
-
-		checkStrings(t, caseNum, string(body), item.Response)
-	}
-
-	// delete created users
-	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[0]))
-	H.DeleteUser(httptest.NewRecorder(), deleteReq)
-	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[1]))
-	H.DeleteUser(httptest.NewRecorder(), deleteReq)
+	launchTests(t, H, users, url, deleteUser, nil, false)
 }
 
-func TestGetProfile(t *testing.T) {
-	users := []string{
-		`{
-				"name": "TestGetProfile",
-				"password": "TestGetProfile",
-				"email": "TestGetProfile"
-			}`,
-	}
-	cases := []TestCase{
-		TestCase{
-			Response: `{
-				"place":"GetMyProfile",
-				"success":false,
-				"message":"Required authorization"
-			}
-			`,
-			Body:       ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-		TestCase{
-			Response: `{
-				"name":"TestGetProfile",
-				"email":"TestGetProfile",
-				"bestScore":{
-					"String":"0",
-					"Valid":true
-					},
-					"bestTime":{
-						"String":"0",
-						"Valid":true
-					}
-				}
-			`,
-			StatusCode: http.StatusOK,
-		},
-	}
+// old tests
 
-	var (
-		H         *Handler
-		err       error
-		url       string
-		createReq *http.Request
-		deleteReq *http.Request
-		cookiestr string
-		cookie    *http.Cookie
-	)
-
-	if H, _, err = GetHandler(confPath); err != nil || H == nil {
-		t.Error("TestGetUser catched error:", err.Error())
-		return
-	}
-
-	url = "/user"
-
-	// create the user, which we will update
-	createReq = httptest.NewRequest("POST", url, strings.NewReader(users[0]))
-	H.CreateUser(httptest.NewRecorder(), createReq)
-
-	okreq := httptest.NewRequest("GET", url, nil)
-	H.Ok(httptest.NewRecorder(), okreq)
-
-	if cookiestr, err = H.DB.GetSessionByName("TestGetProfile"); err != nil {
-		t.Error("TestGetUser cant get cookie:", err.Error())
-		return
-	}
-	cookie = cookie.CreateCookie(cookiestr)
-
-	for caseNum, item := range cases {
-		url := "/user"
-		var req *http.Request
-
-		req = httptest.NewRequest("GET", url, strings.NewReader(item.Body))
-
-		w := httptest.NewRecorder()
-		if caseNum != 0 {
-			req.AddCookie(cookie)
-		}
-		H.GetMyProfile(w, req)
-
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
-
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		defer resp.Body.Close()
-
-		checkStrings(t, caseNum, string(body), item.Response)
-	}
-
-	// delete created users
-	deleteReq = httptest.NewRequest("DELETE", url, strings.NewReader(users[0]))
-	H.DeleteUser(httptest.NewRecorder(), deleteReq)
-}
-
+// +
 func TestLogin(t *testing.T) {
 	cases := []TestCase{
 		TestCase{
@@ -590,12 +465,8 @@ func TestLogin(t *testing.T) {
 			StatusCode: http.StatusBadRequest,
 		},
 		TestCase{
-			Response: `{
-				"name":"username",
-				"email":"test@mail.ru",
-				"bestScore":{"String":"0","Valid":true},
-				"bestTime":{"String":"0","Valid":true}}
-				`,
+			Response: createPublicUser("username", "test@mail.ru", "",
+				DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
 			Body: `{
 				"name": "username",
 				"password": "1454543",
@@ -632,7 +503,7 @@ func TestLogin(t *testing.T) {
 
 	urlSignUp := "/user"
 
-	H, _, err := GetHandler(confPath)
+	H, _, err := GetHandler(PATH)
 	if err != nil || H == nil {
 		t.Error("TestCreateUser catched error:", err.Error())
 		return
@@ -670,6 +541,7 @@ func TestLogin(t *testing.T) {
 	}
 }
 
+// +
 func TestLogout(t *testing.T) {
 	cases := []TestCase{
 		TestCase{
@@ -702,7 +574,7 @@ func TestLogout(t *testing.T) {
 
 	urlSignUp := "/user"
 
-	H, _, err := GetHandler(confPath)
+	H, _, err := GetHandler(PATH)
 	if err != nil || H == nil {
 		t.Error("TestCreateUser catched error:", err.Error())
 		return
@@ -722,14 +594,14 @@ func TestLogout(t *testing.T) {
 		return
 	}
 
-	reqLogin.AddCookie(cookie.CreateCookie(str))
+	reqLogin.AddCookie(cook.CreateCookie(str, H.Cookie))
 	H.Login(wLogin, reqLogin)
 
 	//body, _ := ioutil.ReadAll(wLogin.Result().Body)
 	//t.Errorf(string(body))
 
 	var cookie *http.Cookie
-	if cookie, err = reqLogin.Cookie(cookie.NameCookie); err != nil {
+	if cookie, err = reqLogin.Cookie(H.Cookie.NameCookie); err != nil {
 		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}
@@ -770,6 +642,7 @@ func TestLogout(t *testing.T) {
 
 }
 
+/*
 func TestGetPlayerGames(t *testing.T) {
 	cases := []TestCaseGames{
 		TestCaseGames{
@@ -812,7 +685,7 @@ func TestGetPlayerGames(t *testing.T) {
 		},
 	}
 
-	H, _, err := GetHandler(confPath)
+	H, _, err := GetHandler(PATH)
 	if err != nil || H == nil {
 		t.Error("TestCreateUser catched error:", err.Error())
 		return
@@ -838,37 +711,304 @@ func TestGetPlayerGames(t *testing.T) {
 		checkStrings(t, caseNum, string(body1), item.Response)
 	}
 }
+*/
 
 func TestGetUsersPageAmount(t *testing.T) {
-	cases := []TestCaseGames{
-		TestCaseGames{
-			Response: `{"amount":1}
+	cases := []TestCase{
+		TestCase{
+			Response: `{"amount":0}
+			`,
+			StatusCode: http.StatusOK,
+		},
+		TestCase{
+			Response: `{"amount":3}
 			`,
 			StatusCode: http.StatusOK,
 		},
 	}
 
-	H, _, err := GetHandler(confPath)
+	users := []TestCase{
+		TestCase{
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+		TestCase{
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+	}
+
+	H, _, err := GetHandler(PATH)
+
 	if err != nil || H == nil {
-		t.Error("TestCreateUser catched error:", err.Error())
+		t.Error("catched error:", err.Error())
+		return
+	}
+	url := "/users/pages_amount"
+
+	launchTests(t, H, cases[:1], url, getUsersPageAmount, nil, true)
+	launchTests(t, H, users, url, createUser, nil, false)
+	launchTests(t, H, cases[1:], url, getUsersPageAmount, nil, true)
+	launchTests(t, H, users, url, deleteUser, nil, false)
+}
+
+func TestGetUsers(t *testing.T) {
+	H, _, err := GetHandler(PATH)
+	if err != nil || H == nil {
+		t.Error("Catched error:", err.Error())
+		return
+	}
+	url := "/users/pages"
+
+	cases := getUserCreateCases()
+
+	launchTests(t, H, cases, url, getUsers, nil, false)
+
+	launchTests(t, H, cases, url, deleteUser, nil, false)
+}
+
+func TestPostImage(t *testing.T) {
+	H, _, err := GetHandler(PATH)
+	if err != nil || H == nil {
+		t.Error("Catched error:", err.Error())
+		return
+	}
+	url := "/avatar"
+
+	cases := getUserCreateCases()
+
+	launchTests(t, H, cases, url, postImage, nil, false)
+
+	launchTests(t, H, cases, url, deleteUser, nil, false)
+}
+
+func TestGetImage(t *testing.T) {
+	H, _, err := GetHandler(PATH)
+	if err != nil || H == nil {
+		t.Error("Catched error:", err.Error())
+		return
+	}
+	url := "/avatar"
+
+	cases := getUserCreateCases()
+
+	const place = "UpdateProfile"
+	firstName := utils.RandomString(16)
+
+	users := []TestCase{
+		TestCase{
+			Body:       createPrivateUser(firstName, RANDOM, RANDOM),
+			Response:   ``,
+			StatusCode: http.StatusUnauthorized,
+		},
+	}
+
+	launchTests(t, H, users, url, createUser, nil, false)
+
+	var cookiestr string
+	if cookiestr, err = H.DB.GetSessionByName(firstName); err != nil {
+		t.Error("TestUpdateUser cant get cookie:", err.Error())
 		return
 	}
 
-	url := "/users/pages_amount"
+	cookie := cook.CreateCookie(cookiestr, H.Cookie)
 
-	/* 1 test */
-	req1 := httptest.NewRequest("GET", url, nil)
-	w1 := httptest.NewRecorder()
-	H.GetUsersPageAmount(w1, req1)
+	launchTests(t, H, cases, url, getImage, cookie, false)
+	launchTests(t, H, cases, url, getImage, nil, false)
+	launchTests(t, H, users, url, deleteUser, nil, false)
+}
 
-	if w1.Code != cases[0].StatusCode {
-		t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-			1, w1.Code, cases[0].StatusCode)
+/////////// api handlers //////
+
+type apiFunc func(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder
+
+func createUser(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("POST", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.CreateUser(w, req)
+	return w
+}
+
+func deleteUser(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("DELETE", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.DeleteUser(w, req)
+	return w
+}
+
+func updateUser(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("PUT", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.UpdateProfile(w, req)
+	return w
+}
+
+func getMyProfile(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("GET", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.GetMyProfile(w, req)
+	return w
+}
+
+func getProfile(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("GET", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.GetProfile(w, req)
+	return w
+}
+
+func getUsersPageAmount(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("GET", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.GetUsersPageAmount(w, req)
+	return w
+}
+
+func postImage(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("POST", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.PostImage(w, req)
+	return w
+}
+
+func getImage(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("GET", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.GetImage(w, req)
+	return w
+}
+
+func getUsers(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("GET", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.GetUsers(w, req)
+	return w
+}
+
+/////// create string models ///////
+
+func createString(key, value string) string {
+	if value == "" {
+		return value
+	}
+	return `"` + key + `":"` + value + `"`
+}
+
+func createNotString(key, value string) string {
+	return `"` + key + `":` + value
+}
+
+func createModel(fields ...string) string {
+	var (
+		returnString string
+		count        int
+	)
+	returnString = "{"
+	for _, field := range fields {
+		if field != "" {
+			if count != 0 {
+				if field[0] != '{' {
+					returnString += ","
+				}
+			}
+			returnString += field
+			count++
+		}
+	}
+	return returnString + "}"
+}
+
+func createResult(place string, err error) string {
+	errText := "no error"
+	success := "true"
+	if err != nil {
+		errText = err.Error()
+		success = "false"
+	}
+	return createModel(
+		createString("place", place),
+		createNotString("success", success),
+		createString("message", errText))
+}
+
+func createPrivateUser(name, password, email string) string {
+	if name == RANDOM {
+		name = utils.RandomString(16)
+	}
+	if password == RANDOM {
+		password = utils.RandomString(16)
+	}
+	if email == RANDOM {
+		email = utils.RandomString(16)
+	}
+	return createModel(
+		createString("name", name),
+		createString("password", password),
+		createString("email", email))
+}
+
+// Only server can send it, so Random not available
+func createPublicUser(name, email, photo, bestScore, valid1, bestTime, valid2, difficult string) string {
+	if bestScore == DEFAULT {
+		bestScore = "0"
+		valid1 = "true"
 	}
 
-	resp1 := w1.Result()
-	body1, _ := ioutil.ReadAll(resp1.Body)
-	defer resp1.Body.Close()
+	if bestTime == DEFAULT {
+		bestTime = "24:00:00"
+		valid2 = "true"
+	}
 
-	checkStrings(t, 1, string(body1), cases[0].Response)
+	if difficult == DEFAULT {
+		difficult = "0"
+	}
+
+	return createModel(
+		createString("name", name),
+		createString("email", email),
+		createString("photo", photo),
+		`"bestScore":`,
+		createModel(
+			createString("String", bestScore),
+			createNotString("Valid", valid1),
+		),
+		`"bestTime":`,
+		createModel(
+			createString("String", bestTime),
+			createNotString("Valid", valid2)),
+		createNotString("difficult", difficult))
 }

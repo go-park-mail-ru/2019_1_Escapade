@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"escapade/internal/models"
 	"math"
 
 	"fmt"
@@ -120,35 +119,15 @@ func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := db.Db.QueryRow(sqlStatement)
 	if err = row.Scan(&amount); err != nil {
-		fmt.Println("GetUsersAmount failed")
 		return
 	}
+
 	if amount > db.PageUsers {
 		amount = db.PageUsers
 	}
+	if per_page == 0 {
+		per_page = 1
+	}
 	amount = int(math.Ceil(float64(amount) / float64(per_page)))
-	return
-}
-
-// DeleteAccount deletes account
-func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
-
-	if err = db.confirmEmailNamePassword(user); err != nil {
-		fmt.Println("database/DeleteAccount - fail confirmition")
-		return
-	}
-
-	if err = db.deleteAllUserSessions(user.Name); err != nil {
-		fmt.Println("database/DeleteAccount - fail deleting all user sessions")
-		return
-	}
-
-	if err = db.deletePlayer(user); err != nil {
-		fmt.Println("database/DeleteAccount - fail deletting User")
-		return
-	}
-
-	fmt.Println("database/DeleteAccount +")
-
 	return
 }

@@ -23,6 +23,7 @@ func main() {
 	)
 
 	API, conf, err := api.GetHandler(confPath) // init.go
+	API.DB.RandomUsers(10)                     // create 10 users for tests
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return

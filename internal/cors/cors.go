@@ -17,7 +17,9 @@ func IsAllowed(origin string, origins []string) (allowed bool) {
 			break
 		}
 	}
-	fmt.Println("Cant found:", origin)
+	if !allowed {
+		fmt.Println("Cant found:", origin)
+	}
 	return
 }
 

@@ -661,17 +661,10 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 
 	difficult = h.getDifficult(r)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
-	}
-
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorServer(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 

@@ -22,16 +22,9 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
-		//db://postgres:postgres@db:5432/postgres?sslmode=disable
-		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
 		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
-		//"user=docker password=docker dbname=docker sslmode=disable")
 	}
 
-	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
-
-	//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@127.0.0.1:5432/escabase")
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 
 	var database *sql.DB
@@ -52,44 +45,16 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		return
 	}
 	fmt.Println("database/Init open")
-	// добавить в json проверку последнего апдейта
-	//if !db.areTablesCreated(CDB.Tables) {
 
+	// добавить в json проверку последнего апдейта
 	if err = db.CreateTables(); err != nil {
 		return
 	}
-	//}
 
 	return
 }
 
-func (db *DataBase) checkTable(tableName string) (err error) {
-	sqlStatement := `
-    SELECT count(1)
-  FROM information_schema.tables tbl 
-  where tbl.table_name like $1;`
-	row := db.Db.QueryRow(sqlStatement, tableName)
-
-	var result int
-	if err = row.Scan(&result); err != nil {
-		fmt.Println(tableName + " doesnt exists. Create it!" + err.Error())
-
-		return
-	}
-	return
-}
-
-func (db *DataBase) areTablesCreated(tables []string) (created bool) {
-	created = true
-	for _, table := range tables {
-		if err := db.checkTable(table); err != nil {
-			created = false
-			break
-		}
-	}
-	return
-}
-
+// CreateTables drop old tables and create new
 func (db *DataBase) CreateTables() error {
 	sqlStatement := `
 	DROP TABLE IF EXISTS Session cascade;
@@ -101,9 +66,9 @@ func (db *DataBase) CreateTables() error {
 
 	CREATE TABLE Player (
         id SERIAL PRIMARY KEY,
-        name varchar(30) NOT NULL,
+        name varchar(30) NOT NULL unique,
         password varchar(30) NOT NULL,
-        email varchar(30) NOT NULL,
+        email varchar(30) NOT NULL unique,
 		photo_title varchar(50) default '1.png',
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ
@@ -122,10 +87,6 @@ ADD CONSTRAINT session_player
    ON DELETE CASCADE;
 
 --GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
-
-INSERT INTO Player(name, password, email) VALUES
-    ('tiger', 'Bananas', 'tinan@mail.ru'),
-    ('panda', 'apple', 'today@mail.ru');
 
 CREATE Table Record (
     id SERIAL PRIMARY KEY,
@@ -203,15 +164,13 @@ ADD CONSTRAINT cell_gamer
 	`
 	_, err := db.Db.Exec(sqlStatement)
 
-	db.insert(110)
-
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())
 	}
 	return err
 }
 
-func (db *DataBase) insert(limit int) {
+func (db *DataBase) RandomUsers(limit int) {
 
 	n := 16
 	for i := 0; i < limit; i++ {
@@ -232,7 +191,6 @@ func (db *DataBase) insert(limit int) {
 				OnlineTotal: ran.Intn(2),
 				SingleWin:   ran.Intn(2),
 				OnlineWin:   ran.Intn(2)}
-			//fmt.Println("record:",record.Score, record.Time)
 			db.UpdateRecords(id, record)
 		}
 

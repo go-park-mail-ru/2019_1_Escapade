@@ -148,7 +148,9 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	}
 	defer r.Body.Close()
 
-	_ = json.NewDecoder(r.Body).Decode(&user)
+	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
 
 	return
 }
@@ -162,7 +164,9 @@ func getRecord(r *http.Request) (record models.Record, err error) {
 	}
 	defer r.Body.Close()
 
-	err = json.NewDecoder(r.Body).Decode(&record)
+	if err = json.NewDecoder(r.Body).Decode(&record); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
 
 	return
 }
@@ -177,14 +181,18 @@ func getGameInformation(r *http.Request) (info *models.GameInformation, err erro
 	defer r.Body.Close()
 
 	info = &models.GameInformation{}
-	err = json.NewDecoder(r.Body).Decode(info)
+	if err = json.NewDecoder(r.Body).Decode(info); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
 
 	return
 }
 
 func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err error) {
 
-	user, err = getUser(r)
+	if user, err = getUser(r); err != nil {
+		return
+	}
 	if user.Name == "" {
 		err = re.ErrorInvalidName()
 		return
