@@ -4,24 +4,36 @@ import (
 	"escapade/internal/config"
 	"escapade/internal/database"
 	"escapade/internal/services/game"
+	"fmt"
+	"time"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, config *config.Configuration) (handler *Handler) {
-	lobby := game.NewLobby(config.Game.RoomsCapacity,
-		config.Game.LobbyJoin, config.Game.LobbyRequest)
+func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
+	lobby := game.NewLobby(c.Game.RoomsCapacity,
+		c.Game.LobbyJoin, c.Game.LobbyRequest)
+	ws := config.WebSocketSettings{
+		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
+		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
+		PingPeriod:     time.Duration(c.WebSocket.PingPeriod) * time.Second,
+		MaxMessageSize: c.WebSocket.MaxMessageSize,
+	}
 	handler = &Handler{
 		DB:              *DB,
-		Storage:         config.Storage,
-		WriteBufferSize: config.Server.WriteBufferSize,
-		ReadBufferSize:  config.Server.ReadBufferSize,
+		Storage:         c.Storage,
+		Cookie:          c.Cookie,
+		WebSocket:       ws,
+		WriteBufferSize: c.Server.WriteBufferSize,
+		ReadBufferSize:  c.Server.ReadBufferSize,
 		Lobby:           lobby,
 	}
 	go handler.Lobby.Run()
 	return
 }
 
-func GetHandler(confPath string) (handler *Handler, conf *config.Configuration, err error) {
+// GetHandler return created handler with database and configuration
+func GetHandler(confPath string) (handler *Handler,
+	conf *config.Configuration, err error) {
 
 	var (
 		db *database.DataBase
@@ -30,11 +42,13 @@ func GetHandler(confPath string) (handler *Handler, conf *config.Configuration, 
 	if conf, err = config.Init(confPath); err != nil {
 		return
 	}
+	fmt.Println("confPath done")
 
 	if db, err = database.Init(conf.DataBase); err != nil {
 		return
 	}
 
+	fmt.Println("database done")
 	handler = Init(db, conf)
 	return
 }

@@ -1,9 +1,5 @@
 package game
 
-import (
-	"crypto/rand"
-) //
-
 // Connections - slice of connections with capacity
 type Connections struct {
 	Capacity int           `json:"capacity"`
@@ -12,7 +8,8 @@ type Connections struct {
 
 // NewConnections create instance of Connections
 func NewConnections(capacity int) *Connections {
-	return &Connections{capacity, make([]*Connection, 0, capacity)}
+	return &Connections{capacity,
+		make([]*Connection, 0, capacity)}
 }
 
 // Rooms - slice of rooms with capacity
@@ -23,7 +20,8 @@ type Rooms struct {
 
 // NewRooms create instance of Rooms
 func NewRooms(capacity int) *Rooms {
-	return &Rooms{capacity, make([]*Room, 0, capacity)}
+	return &Rooms{capacity,
+		make([]*Room, 0, capacity)}
 }
 
 // search element in slice
@@ -36,22 +34,11 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-// RandString create random string with n length
-func RandString(n int) string {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	var bytes = make([]byte, n)
-	rand.Read(bytes)
-	for i, b := range bytes {
-		bytes[i] = alphanum[b%byte(len(alphanum))]
-	}
-	return string(bytes)
-}
-
 ////////////////// Rooms //////////////////////
 
-// Empty check rooms capacity is 0
+// Empty check rooms length is 0
 func (rooms *Rooms) Empty() bool {
-	return rooms.Capacity == 0
+	return len(rooms.Get) == 0
 }
 
 // Clear set slice to nil
@@ -81,10 +68,27 @@ func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
 func (rooms *Rooms) SearchPlayer(new *Connection) (old *Connection) {
 	for _, room := range rooms.Get {
 		i := room.Players.Search(new)
+		// cant found
 		if i < 0 {
 			continue
 		}
-		return room.Players.Get[i]
+		/*
+			Players are never deleted from rooms, because the room always
+			must know its players. So, if you exit from room to lobby
+			and refresh page you can return to room. To solve the  problem
+			the following is done:
+			When you exit to lobby, the room marks your connection
+			as 'without room'(Connection has field - pointer to room.
+			When it is nil, the connection connect to lobby). And
+			when you disconnected from page(for example because of
+			problems on the interner), the room doesnt change your room pointer
+		*/
+		foundConn := room.Players.Get[i]
+		if foundConn.room != room {
+			continue
+		}
+
+		return foundConn
 	}
 	return nil
 }
@@ -97,6 +101,7 @@ func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 		if i < 0 {
 			continue
 		}
+
 		return room.Observers.Get[i]
 	}
 	return nil
@@ -152,7 +157,7 @@ func (conns *Connections) Clear() {
 // it will happen, when finish is over, cause
 // when somebody explodes, the capacity decrements
 func (conns *Connections) Empty() bool {
-	return conns.Capacity == 0
+	return len(conns.Get) == 0
 }
 
 // Search find connection in slice and return its index if success

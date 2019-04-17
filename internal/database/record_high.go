@@ -23,6 +23,5 @@ func (db *DataBase) UpdateRecords(id int,
 	}
 
 	err = tx.Commit()
-	fmt.Println("done")
 	return
 }

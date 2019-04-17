@@ -10,12 +10,12 @@ type Game struct {
 	Players   int       `json:"players"`
 	Mines     int       `json:"mines"`
 	Date      time.Time `json:"date"`
-	Online    bool      `json:"online"`
+	Exploded  bool      `json:"exploded"`
 	Difficult int       `json:"difficult"`
 }
 
 // GameInformation show everything about game and his gamer
 type GameInformation struct {
-	Game  *Game  `json:"game"`
-	Gamer *Gamer `json:"gamer"`
+	Game   *Game    `json:"game"`
+	Gamers []*Gamer `json:"gamer"`
 }

@@ -2,9 +2,10 @@ package game
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"escapade/internal/config"
 
 	"github.com/gorilla/websocket"
 )
@@ -26,9 +27,21 @@ type Connection struct {
 	disconnected bool
 
 	send chan []byte
+}
 
-	//chanRead   chan *Connection  `json:"-"`
-	//chanWrite chan *RoomRequest `json:"-"`
+// PushToRoom set field 'room' to real room
+func (conn *Connection) PushToRoom(room *Room) {
+	conn.room = room
+}
+
+// PushToLobby set field 'room' to nil
+func (conn *Connection) PushToLobby() {
+	conn.room = nil
+}
+
+// IsPlayerAlive call player's IsAlive
+func (conn *Connection) IsPlayerAlive() bool {
+	return conn.Player.IsAlive()
 }
 
 // Kill send last image signals about killing, close websocket
@@ -37,7 +50,10 @@ func (conn *Connection) Kill(message []byte) {
 	conn.disconnected = true
 	conn.SendInformation(message)
 	conn.ws.Close()
-	conn.debug("killed with message:" + string(message))
+	fmt.Println("killed with message:" + string(message))
+	/*
+		need some time before close. Maybe set timer?
+	*/
 	close(conn.send)
 }
 
@@ -53,7 +69,7 @@ func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection
 	}
 }
 
-// NewConnection check is player in room
+// InRoom check is player in room
 func (conn *Connection) InRoom() bool {
 
 	return conn.room != nil
@@ -64,39 +80,29 @@ func (conn *Connection) GetPlayerID() int {
 	return conn.Player.ID
 }
 
-// все в конфиг
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 60 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 10 * time.Second
-
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512
-)
-
-func (conn *Connection) ReadConn() {
+// ReadConn connection goroutine to read messages from websockets
+func (conn *Connection) ReadConn(wsc config.WebSocketSettings) {
 	defer func() {
 		conn.lobby.chanLeave <- conn
 		conn.ws.Close()
 	}()
-	conn.ws.SetReadLimit(maxMessageSize)
-	conn.ws.SetReadDeadline(time.Now().Add(pongWait))
+	conn.ws.SetReadLimit(wsc.MaxMessageSize)
+	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
 	conn.ws.SetPongHandler(
 		func(string) error {
-			conn.ws.SetReadDeadline(time.Now().Add(pongWait))
+			conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
 			return nil
 		})
 	for {
 		_, message, err := conn.ws.ReadMessage()
+		conn.debug("read from conn")
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("error: %v", err)
+				conn.debug("IsUnexpectedCloseError:" + err.Error())
+			} else {
+				conn.debug("expected error:" + err.Error())
 			}
+
 			break
 		}
 		conn.lobby.chanBroadcast <- &Request{
@@ -107,13 +113,15 @@ func (conn *Connection) ReadConn() {
 }
 
 // write writes a message with the given message type and payload.
-func (conn *Connection) write(mt int, payload []byte) error {
-	conn.ws.SetWriteDeadline(time.Now().Add(writeWait))
+func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettings) error {
+	conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
 	return conn.ws.WriteMessage(mt, payload)
 }
 
-func (conn *Connection) WriteConn() {
-	ticker := time.NewTicker(pingPeriod)
+// WriteConn connection goroutine to write messages to websockets
+// dont put conn.debug here
+func (conn *Connection) WriteConn(wsc config.WebSocketSettings) {
+	ticker := time.NewTicker(wsc.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		conn.ws.Close()
@@ -123,11 +131,11 @@ func (conn *Connection) WriteConn() {
 		// send here json!
 		case message, ok := <-conn.send:
 			if !ok {
-				conn.write(websocket.CloseMessage, []byte{})
+				conn.write(websocket.CloseMessage, []byte{}, wsc)
 				return
 			}
 
-			conn.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
 			w, err := conn.ws.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
@@ -145,7 +153,7 @@ func (conn *Connection) WriteConn() {
 				return
 			}
 		case <-ticker.C:
-			if err := conn.write(websocket.PingMessage, []byte{}); err != nil {
+			if err := conn.write(websocket.PingMessage, []byte{}, wsc); err != nil {
 				return
 			}
 		}
@@ -154,7 +162,9 @@ func (conn *Connection) WriteConn() {
 
 // SendInformation send info
 func (conn *Connection) SendInformation(bytes []byte) {
-	conn.send <- bytes
+	if !conn.disconnected {
+		conn.send <- bytes
+	}
 }
 
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
@@ -165,4 +175,5 @@ func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.GetPlayerID(), "-", message)
+	conn.SendInformation([]byte(message))
 }

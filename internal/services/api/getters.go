@@ -2,14 +2,12 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
-	"escapade/internal/misc"
+	"escapade/internal/config"
+	"escapade/internal/cookie"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
-
-	//"reflect"
 
 	"github.com/gorilla/mux"
 )
@@ -44,6 +42,12 @@ func getIntFromPath(r *http.Request, name string,
 		err = expected
 		return
 	}
+	return
+}
+
+func (h *Handler) getUserID(r *http.Request) (id int, err error) {
+
+	id, err = getIntFromPath(r, "id", 1, re.ErrorInvalidUserID())
 	return
 }
 
@@ -115,13 +119,8 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error) {
-	var sessionID string
-
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		err = errors.New("Authorization required")
-		return
-	}
+func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
 		return
@@ -130,13 +129,8 @@ func (h *Handler) getNameFromCookie(r *http.Request) (username string, err error
 	return
 }
 
-func (h *Handler) getUserIDFromCookie(r *http.Request) (userID int, err error) {
-	var sessionID string
-
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
-		err = errors.New("Authorization required")
-		return
-	}
+func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
+	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
 		return
@@ -154,14 +148,51 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	}
 	defer r.Body.Close()
 
-	_ = json.NewDecoder(r.Body).Decode(&user)
+	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
+
+	return
+}
+
+func getRecord(r *http.Request) (record models.Record, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+
+	if err = json.NewDecoder(r.Body).Decode(&record); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
+
+	return
+}
+
+func getGameInformation(r *http.Request) (info *models.GameInformation, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+
+	info = &models.GameInformation{}
+	if err = json.NewDecoder(r.Body).Decode(info); err != nil {
+		err = re.ErrorInvalidJSON()
+	}
 
 	return
 }
 
 func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err error) {
 
-	user, err = getUser(r)
+	if user, err = getUser(r); err != nil {
+		return
+	}
 	if user.Name == "" {
 		err = re.ErrorInvalidName()
 		return

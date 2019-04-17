@@ -51,7 +51,7 @@ func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 		v := field.Matrix[x][y]
 
 		if v < CellMine {
-			cell := NewCellWithID(x, y, v, ID)
+			cell := NewCell(x, y, v, ID)
 			field.saveCell(cell, cells)
 			field.CellsLeft--
 			field.setCellOpen(x, y)

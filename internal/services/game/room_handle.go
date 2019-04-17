@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // Game status
@@ -15,22 +16,22 @@ const (
 	StatusClosed
 )
 
+// Room consist of players and observers, field and history
 type Room struct {
 	Name   string `json:"name"`
 	Status int    `json:"status"`
 
-	Players   *Connections `json:"players"`
-	Observers *Connections `json:"observers"`
+	Players   *Connections `json:"players,omitempty"`
+	Observers *Connections `json:"observers,omitempty"`
 
-	History []*PlayerAction `json:"history"`
+	History []*PlayerAction `json:"history,omitempty"`
 
 	flags map[*Connection]*Cell
 
 	lobby *Lobby
-	Field *Field `json:"field"`
+	Field *Field `json:"field,omitempty"`
 
-	//chanLeave chan *Connection
-	//chanRequest chan *RoomRequest
+	killed int //amount of killed users
 }
 
 // SameAs compare  one room with another
@@ -43,12 +44,15 @@ func (room *Room) Enter(conn *Connection) bool {
 
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {
+		conn.debug("You will be player!")
 		if room.addPlayer(conn) {
 			return true
 		}
 	} else if room.addObserver(conn) {
+		conn.debug("You will be observer!")
 		return true
 	}
+	conn.debug("No way!")
 
 	return false
 }
@@ -58,11 +62,14 @@ func (room *Room) Leave(conn *Connection) {
 
 	// cant delete players, cause they always need
 	// if game began
-	if room.Status == StatusPeopleFinding {
+	conn.PushToLobby()
+	room.lobby.playerToWaiter(conn)
+	if !room.IsActive() {
 		room.removeBeforeLaunch(conn)
 	} else {
 		room.removeDuringGame(conn)
 	}
+	conn.debug("Welcome back to lobby!")
 }
 
 func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
@@ -78,7 +85,7 @@ func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	return true
 }
 
-// nanfle openCell
+// openCell open cell
 func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
@@ -109,17 +116,30 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 
 func (room *Room) cellHandle(conn *Connection, cell *Cell) (done bool) {
 	fmt.Println("cellHandle")
-	if cell.Value == CellFlag {
+	if room.Status == StatusFlagPlacing {
 		done = room.setFlag(conn, cell)
-	} else {
+	} else if room.Status == StatusRunning {
 		done = room.openCell(conn, cell)
 	}
 	return
 }
 
+// IsActive check if game is started and results not known
+func (room *Room) IsActive() bool {
+	return room.Status == StatusFlagPlacing || room.Status == StatusRunning
+}
+
 func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
-	if action == ActionGiveUp {
-		room.GiveUp(conn)
+	if room.IsActive() {
+		if action == ActionGiveUp {
+			conn.debug("we see you wanna give up?")
+			room.GiveUp(conn)
+			return true
+		}
+	}
+	if action == ActionBackToLobby {
+		conn.debug("we see you wanna back to lobby?")
+		room.Leave(conn) // exit to lobby
 		return true
 	}
 	return false
@@ -128,50 +148,71 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 // handleRequest
 func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 
+	conn.debug("room handle conn")
 	if rr.IsGet() {
 		room.requestGet(conn, rr)
 	} else if rr.IsSend() {
 		done := false
 		if rr.Send.Cell != nil {
-			done = room.cellHandle(conn, rr.Send.Cell)
+			if conn.IsPlayerAlive() {
+				done = room.cellHandle(conn, rr.Send.Cell)
+			}
 		} else if rr.Send.Action != nil {
+
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			Answer(conn, []byte("Cant execute request "))
+			//conn.debug("Room cant execute request")
+			Answer(conn, []byte("Room cant execute request "))
 		}
 	}
 }
 
 func (room *Room) startFlagPlacing() {
-	room.Status = StatusRunning //StatusFlagPlacing
-	fmt.Println("startFlagPlacing 1 ")
+	room.Status = StatusFlagPlacing
 	room.lobby.roomStart(room)
-	fmt.Println("startFlagPlacing 2 ")
-	room.fillField()
-	fmt.Println("startFlagPlacing 3 ")
+	go room.run()
 	room.sendField(room.all())
+	room.sendMessage("Battle will be start soon! Set your flag!", room.all())
 }
 
 func (room *Room) startGame() {
 	room.Status = StatusRunning
 	room.fillField()
+	room.sendMessage("Battle began! Destroy your enemy!", room.all())
 }
 
-// Run the room in goroutine
-// func (room *Room) run() {
-// 	//timer := time.NewTimer()
-// 	for {
-// 		//select {
-// 		//case connection := <-room.chanLeave:
-// 		//room.Leave(connection)
-// 		//}
-// 	}
-// }
+func (room *Room) finishGame() {
+	room.Status = StatusFinished
+	go room.lobby.roomFinish(room)
+	for _, conn := range room.Players.Get {
+		conn.Player.Finished = true
+	}
+	room.sendMessage("Battle finished!", room.all())
+}
+
+func (room *Room) run() {
+	// перенести в настройки комнаты
+	timerPrepare := time.NewTimer(time.Second * 20)
+	timerPlaying := time.NewTimer(time.Second * 60)
+	// в конфиг
+	ticker := time.NewTicker(time.Second * 10)
+
+	for {
+		select {
+		case <-timerPrepare.C:
+			room.startGame()
+		case <-timerPlaying.C:
+			room.finishGame()
+			return
+		case clock := <-ticker.C:
+			room.sendMessage(clock.String()+" passed", room.all())
+		}
+	}
+}
 
 func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
 	send := room.copy(rr.Get)
-	fmt.Println("here you go?", rr.Get)
 	bytes, _ := json.Marshal(send)
 	conn.SendInformation(bytes)
 }

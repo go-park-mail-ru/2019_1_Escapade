@@ -18,8 +18,9 @@ func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
 		History: make([]*PlayerAction, 0),
 		flags:   make(map[*Connection]*Cell),
 
-		lobby: lobby,
-		Field: NewField(rs),
+		lobby:  lobby,
+		Field:  NewField(rs),
+		killed: 0,
 		//chanLeave: make(chan *Connection),
 		//chanRequest: make(chan *RoomRequest),
 	}
@@ -41,12 +42,14 @@ func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
 	if !conn.Player.Finished {
 		conn.Player.Finished = true
-		room.Players.Capacity--
-		if room.Players.Capacity <= 1 {
+		room.killed++
+		if room.Players.Capacity <= room.killed+1 {
+			// остановить таймеры в run!!!
 			room.lobby.roomFinish(room)
 		}
 		room.addAction(conn, action)
 		room.sendHistory(room.all())
+		conn.debug("give up. Check history")
 	}
 }
 
@@ -65,11 +68,15 @@ func (room *Room) Close() {
 	room.Field.Clear()
 }
 
-func (room *Room) TryClose() {
+func (room *Room) TryClose() bool {
 	if room.Players.Empty() && room.Observers.Empty() {
 		room.Close()
 		room.lobby.CloseRoom(room)
+		return true
+	} else {
+
 	}
+	return false
 }
 
 func (room *Room) setFlags() {

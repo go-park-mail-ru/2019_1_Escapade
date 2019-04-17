@@ -1,12 +1,12 @@
 package api
 
 import (
-	database "escapade/internal/database"
-	"escapade/internal/misc"
+	"escapade/internal/cookie"
+	"escapade/internal/database"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"escapade/internal/services/game"
-	"fmt"
+	"escapade/internal/utils"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -15,7 +15,6 @@ import (
 
 	"escapade/internal/config"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
@@ -24,6 +23,8 @@ import (
 type Handler struct {
 	DB              database.DataBase
 	Storage         config.FileStorageConfig
+	Cookie          config.CookieConfig
+	WebSocket       config.WebSocketSettings
 	ReadBufferSize  int
 	WriteBufferSize int
 	Lobby           *game.Lobby
@@ -38,9 +39,9 @@ type Handler struct {
 // @Router /user [OPTIONS]
 func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, "Ok")
-
-	fmt.Println("api/ok - ok")
+	const place = "api/Ok"
+	utils.SendSuccessJSON(rw, nil, place)
+	utils.PrintResult(nil, http.StatusOK, place)
 	return
 }
 
@@ -56,26 +57,19 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetMyProfile"
 	var (
-		err      error
-		username string
+		err    error
+		userID int
 	)
 
-	if username, err = h.getNameFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorServer(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
-	}
+	h.getUser(rw, r, userID)
 
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
 	return
 }
 
@@ -96,22 +90,23 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 
 	if user, err = getUserWithAllFields(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if sessionID, _, err = h.DB.Register(&user); err != nil {
+	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
+	if _, err = h.DB.Register(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	misc.CreateAndSet(rw, sessionID)
+	cookie.CreateAndSet(rw, h.Cookie, sessionID)
 	rw.WriteHeader(http.StatusCreated)
-	sendSuccessJSON(rw, nil, place)
-	printResult(err, http.StatusCreated, place)
+	utils.SendSuccessJSON(rw, nil, place)
+	utils.PrintResult(err, http.StatusCreated, place)
 	return
 }
 
@@ -134,28 +129,28 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if name, err = h.getNameFromCookie(r); err != nil {
+	if name, err = h.getNameFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if err = h.DB.UpdatePlayerPersonalInfo(name, &user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, place)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, nil, place)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
 
@@ -178,23 +173,24 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 
 	if user, err = getUser(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if sessionID, found, err = h.DB.Login(&user); err != nil {
+	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
+	if found, err = h.DB.Login(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
-	misc.CreateAndSet(rw, sessionID)
+	cookie.CreateAndSet(rw, h.Cookie, sessionID)
 
-	sendSuccessJSON(rw, found, place)
+	utils.SendSuccessJSON(rw, found, place)
 
 	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
 
@@ -213,28 +209,28 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
-	if sessionID, err = misc.GetSessionCookie(r); err != nil {
+	if sessionID, err = cookie.GetSessionCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if err = h.DB.Logout(sessionID); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorDataBase(), place)
-		printResult(err, http.StatusInternalServerError, place)
+		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
-	misc.CreateAndSet(rw, "")
+	cookie.CreateAndSet(rw, h.Cookie, "")
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, place)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, nil, place)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
 
-// DeleteAccount delete account
+// DeleteUser delete account
 // @Summary delete account
 // @Description delete account
 // @ID DeleteAccount
@@ -252,22 +248,22 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 
 	if user, err = getUserWithAllFields(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if err = h.DB.DeleteAccount(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	misc.CreateAndSet(rw, "")
+	cookie.CreateAndSet(rw, h.Cookie, "")
 	rw.WriteHeader(http.StatusOK)
-	sendSuccessJSON(rw, nil, place)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, nil, place)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
 
@@ -285,28 +281,35 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 
 	var (
 		err      error
-		games    []models.GameInformation
+		games    []*models.GameInformation
 		username string
 		page     int
+		userID   int
 	)
 
 	if page, username, err = h.getNameAndPage(r); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if games, err = h.DB.GetFullGamesInformation(username, page); err != nil {
+	if userID, err = h.DB.GetUserIdByName(username); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+	}
+
+	if games, err = h.DB.GetGames(userID, page); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorGamesNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, re.ErrorGamesNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	sendSuccessJSON(rw, games, place)
+	utils.SendSuccessJSON(rw, games, place)
 	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
 
@@ -330,14 +333,13 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 
 	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorDataBase(), place)
-		printResult(err, http.StatusInternalServerError, place)
+		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
-	sendSuccessJSON(rw, pages, place)
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, pages, place)
+	utils.PrintResult(err, http.StatusOK, place)
 }
 
 // GetUsers get users list
@@ -367,21 +369,20 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 
 	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorUsersNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, re.ErrorUsersNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
 	if err = h.setfiles(users); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	sendSuccessJSON(rw, users, place)
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, users, place)
+	utils.PrintResult(err, http.StatusOK, place)
 }
 
 // GetImage returns user avatar
@@ -395,39 +396,24 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
-		err      error
-		userName string
-		userID   int
-		fileKey  string
-		url      models.Avatar
+		err     error
+		userID  int
+		fileKey string
+		url     models.Avatar
 	)
 
-	if userName, err = h.getName(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidName(), place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-
-	if userID, err = h.DB.GetPlayerIDbyName(userName); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidName(), place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-
 	//
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if fileKey, err = h.DB.GetImage(userID); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
@@ -435,14 +421,13 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Failed to sign request", err)
 		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	sendSuccessJSON(rw, url, place)
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	utils.SendSuccessJSON(rw, url, place)
+	utils.PrintResult(err, http.StatusOK, place)
 }
 
 // PostImage create avatar
@@ -464,18 +449,17 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		url    models.Avatar
 	)
 
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
 	if input, handle, err = r.FormFile("file"); err != nil || input == nil || handle == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorInvalidFile(), place)
-		fmt.Println("postImage wrong input")
-		printResult(err, http.StatusInternalServerError, place)
+		utils.SendErrorJSON(rw, re.ErrorInvalidFile(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
@@ -492,37 +476,35 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		err = h.saveFile(fileKey.String(), input)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
-		printResult(err, http.StatusBadRequest, place)
+		utils.SendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorServer(), place)
-		printResult(err, http.StatusInternalServerError, place)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
 	if err = h.DB.PostImage(fileKey.String(), userID); err != nil {
 		h.deleteAvatar(fileKey.String())
 		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorDataBase(), place)
-		printResult(err, http.StatusInternalServerError, place)
-		return
-	}
-	url.URL, err = h.getURLToAvatar(fileKey.String())
-	if err != nil {
-		log.Println("Failed to sign request", err)
-		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
+		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
-	sendSuccessJSON(rw, url, place)
-	printResult(err, http.StatusCreated, place)
-	rw.WriteHeader(http.StatusCreated)
+	if url.URL, err = h.getURLToAvatar(fileKey.String()); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	utils.SendSuccessJSON(rw, url, place)
+	utils.PrintResult(err, http.StatusCreated, place)
 }
 
 // GetProfile returns model UserPublicInfo
@@ -538,30 +520,18 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetProfile"
 
 	var (
-		err      error
-		username string
+		err    error
+		userID int
 	)
 
-	vars := mux.Vars(r)
-	username = vars["name"]
-
-	if username == "" {
-		err = re.ErrorInvalidName()
-		rw.WriteHeader(http.StatusBadGateway)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadGateway, place)
+	if userID, err = h.getUserID(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	if err = sendPublicUser(h, rw, username, place); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		sendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		printResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+	h.getUser(rw, r, userID)
 	return
 }
 
@@ -576,22 +546,22 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if !h.Test {
-		if userName, err = h.getNameFromCookie(r); err != nil {
+		if userName, err = h.getNameFromCookie(r, h.Cookie); err != nil {
 			rw.WriteHeader(http.StatusUnauthorized)
-			sendErrorJSON(rw, re.ErrorAuthorization(), place)
-			printResult(err, http.StatusUnauthorized, place)
+			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+			utils.PrintResult(err, http.StatusUnauthorized, place)
 			return
 		}
 
-		if userID, err = h.getUserIDFromCookie(r); err != nil {
+		if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 			rw.WriteHeader(http.StatusUnauthorized)
-			sendErrorJSON(rw, re.ErrorAuthorization(), place)
-			printResult(err, http.StatusUnauthorized, place)
+			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+			utils.PrintResult(err, http.StatusUnauthorized, place)
 			return
 		}
 	} else {
 		rand.Seed(time.Now().UnixNano())
-		userName = game.RandString(16)
+		userName = utils.RandomString(16)
 		userID = rand.Intn(10000)
 	}
 
@@ -606,11 +576,11 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
-			sendErrorJSON(rw, re.ErrorHandshake(), place)
+			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
 		} else {
-			sendErrorJSON(rw, re.ErrorNotWebsocket(), place)
+			utils.SendErrorJSON(rw, re.ErrorNotWebsocket(), place)
 		}
-		printResult(err, http.StatusBadRequest, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
@@ -618,12 +588,89 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	conn := game.NewConnection(ws, player, h.Lobby)
 	// Join Player to lobby
 	h.Lobby.ChanJoin <- conn
-	go conn.WriteConn()
-	go conn.ReadConn()
+	go conn.WriteConn(h.WebSocket)
+	go conn.ReadConn(h.WebSocket)
+	utils.PrintResult(err, http.StatusOK, place)
+	return
+}
 
-	fmt.Printf("Player: %d has joined \n", conn.GetPlayerID())
+// GameOnline launch multiplayer
+func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
+	const place = "SaveRecords"
+	var (
+		err    error
+		userID int
+		record models.Record
+	)
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
+		return
+	}
+	if record, err = getRecord(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+	if err = h.DB.UpdateRecords(userID, &record); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+}
 
-	//rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
+// GameOnline launch multiplayer
+func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
+	const place = "SaveOfflineGame"
+	var (
+		err             error
+		userID          int
+		gameInformation *models.GameInformation
+	)
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
+		return
+	}
+	if gameInformation, err = getGameInformation(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+	if err = h.DB.SaveGame(userID, gameInformation); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+}
+
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+	const place = "GetProfile"
+
+	var (
+		err       error
+		difficult int
+		user      *models.UserPublicInfo
+	)
+
+	difficult = h.getDifficult(r)
+
+	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	utils.SendSuccessJSON(rw, user, place)
+
+	rw.WriteHeader(http.StatusOK)
+	utils.PrintResult(err, http.StatusOK, place)
 	return
 }

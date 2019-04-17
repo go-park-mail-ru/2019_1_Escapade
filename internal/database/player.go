@@ -1,9 +1,9 @@
 package database
 
 import (
-	"escapade/internal/models"
-
 	//
+	"fmt"
+
 	_ "github.com/lib/pq"
 )
 
@@ -13,6 +13,32 @@ func (db *DataBase) GetPlayerIDbyName(username string) (id int, err error) {
 	row := db.Db.QueryRow(sqlStatement, username)
 
 	err = row.Scan(&id)
+	return
+}
+
+// TODO delete it, when all tests will be done
+// GetPlayerNames get all players name
+func (db *DataBase) GetPlayerNames() (names []string, err error) {
+	sqlStatement := `SELECT name FROM Player`
+	names = make([]string, 0)
+	rows, erro := db.Db.Query(sqlStatement)
+
+	if erro != nil {
+		err = erro
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var str string
+		if err = rows.Scan(&str); err != nil {
+			break
+		}
+
+		fmt.Println("add:", str)
+		names = append(names, str)
+	}
+
 	return
 }
 
@@ -36,25 +62,4 @@ func (db DataBase) GetNameByEmail(email string) (name string, err error) {
 		return
 	}
 	return
-}
-
-// confirmRightEmail checks that Player with such
-// email and name exists
-func (db DataBase) confirmEmailNamePassword(user *models.UserPrivateInfo) error {
-	sqlStatement := "SELECT 1 FROM Player where name like $1 and password like $2 and email like $3"
-
-	row := db.Db.QueryRow(sqlStatement, user.Name, user.Password, user.Email)
-	var res int
-	err := row.Scan(&res)
-	return err
-}
-
-func (db *DataBase) deletePlayer(user *models.UserPrivateInfo) error {
-	sqlStatement := `
-	DELETE FROM Player where name=$1 and password=$2 and email=$3
-		`
-	_, err := db.Db.Exec(sqlStatement, user.Name,
-		user.Password, user.Email)
-
-	return err
 }

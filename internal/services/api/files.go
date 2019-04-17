@@ -5,7 +5,7 @@ import (
 	"mime/multipart"
 	"time"
 
-	//"escapade/internal/misc"
+	//"escapade/internal/cookie"
 	//"escapade/internal/models"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
@@ -21,8 +21,7 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 		if user.FileKey == "" {
 			return re.ErrorAvatarNotFound()
 		}
-		user.PhotoURL, err = h.getURLToAvatar(user.FileKey)
-		if err != nil {
+		if user.PhotoURL, err = h.getURLToAvatar(user.FileKey); err != nil {
 			return re.ErrorAvatarNotFound()
 		}
 	}
