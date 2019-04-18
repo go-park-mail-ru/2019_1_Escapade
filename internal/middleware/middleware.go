@@ -55,27 +55,25 @@ func Auth(cc config.CookieConfig) HandleDecorator {
 }
 
 //Recover catch panic
-func Recover() HandleDecorator {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(rw http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					const place = "middleware/Recover"
-					utils.PrintResult(re.ErrorPanic(), http.StatusInternalServerError, place)
-					utils.SendErrorJSON(rw, re.ErrorPanic(), place)
-					rw.WriteHeader(http.StatusInternalServerError)
-				}
-			}()
+func Recover(next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				const place = "middleware/Recover"
+				utils.PrintResult(re.ErrorPanic(), http.StatusInternalServerError, place)
+				utils.SendErrorJSON(rw, re.ErrorPanic(), place)
+				rw.WriteHeader(http.StatusInternalServerError)
+			}
+		}()
 
-			next(rw, r)
-		}
+		next(rw, r)
 	}
 }
 
 // ApplyMiddleware apply middleware
 func ApplyMiddleware(handler http.HandlerFunc,
 	decorators ...HandleDecorator) http.HandlerFunc {
-	handler = Recover()(handler)
+	handler = Recover(handler)
 	for _, m := range decorators {
 		handler = m(handler)
 	}
