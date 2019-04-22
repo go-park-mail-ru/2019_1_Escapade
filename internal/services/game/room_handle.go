@@ -8,12 +8,12 @@ import (
 
 // Game status
 const (
-	StatusPeopleFinding = iota
-	StatusAborted       // in case of error
-	StatusFlagPlacing
-	StatusRunning
-	StatusFinished
-	StatusClosed
+	StatusPeopleFinding = 0
+	StatusAborted       = 1 // in case of error
+	StatusFlagPlacing   = 2
+	StatusRunning       = 3
+	StatusFinished      = 4
+	StatusClosed        = 5
 )
 
 // Room consist of players and observers, field and history
