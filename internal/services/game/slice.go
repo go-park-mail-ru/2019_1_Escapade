@@ -7,7 +7,7 @@ type OnlinePlayers struct {
 	Capacity    int           `json:"capacity"`
 	Players     []Player      `json:"players"`
 	Flags       []Cell        `json:"flags"`
-	Connections []*Connection `json:"-"`
+	Connections []*Connection `json:"connections"`
 }
 
 // Connections - slice of connections with capacity
