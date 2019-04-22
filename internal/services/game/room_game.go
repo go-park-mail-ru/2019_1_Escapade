@@ -17,6 +17,7 @@ func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
 
 		History: make([]*PlayerAction, 0),
 
+		Type:   "Room",
 		lobby:  lobby,
 		Field:  NewField(rs),
 		killed: 0,

@@ -29,6 +29,8 @@ type Room struct {
 	lobby *Lobby
 	Field *Field `json:"field,omitempty"`
 
+	Type string `json:"type,omitempty"`
+
 	killed int //amount of killed users
 }
 

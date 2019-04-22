@@ -34,6 +34,8 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
+	Type string `json:"type,omitempty"`
+
 	semJoin    chan bool
 	semRequest chan bool
 }
@@ -131,6 +133,7 @@ func newLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
+		Type:          "Lobby",
 
 		semJoin:    make(chan bool, maxJoin),
 		semRequest: make(chan bool, maxRequest),
