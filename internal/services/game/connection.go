@@ -7,6 +7,8 @@ import (
 
 	"escapade/internal/config"
 
+	"context"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -26,7 +28,8 @@ type Connection struct {
 	room         *Room
 	disconnected bool
 
-	send chan []byte
+	cancel context.CancelFunc
+	send   chan []byte
 }
 
 // PushToRoom set field 'room' to real room
@@ -39,33 +42,47 @@ func (conn *Connection) PushToLobby() {
 	conn.room = nil
 }
 
+// IsConnected check player isnt disconnected
+func (conn *Connection) IsConnected() bool {
+	return conn.disconnected == false
+}
+
 // IsPlayerAlive call player's IsAlive
 func (conn *Connection) IsPlayerAlive() bool {
 	return conn.Player.IsAlive()
 }
 
-// Kill send last image signals about killing, close websocket
-// and close chanells
-func (conn *Connection) Kill(message []byte) {
-	conn.disconnected = true
-	conn.SendInformation(message)
-	conn.ws.Close()
-	fmt.Println("killed with message:" + string(message))
-	/*
-		need some time before close. Maybe set timer?
-	*/
+func (conn *Connection) Kill(message string) {
+	conn.SendInformation([]byte(message))
+	conn.cancel()
+}
+
+// Free free memory, if flag disconnect true then connection and player will not become nil
+func (conn *Connection) Free(disconnect bool) {
+	if conn == nil {
+		return
+	}
+	//conn.ws.Close()
 	close(conn.send)
+	if disconnect {
+		conn.disconnected = true
+	} else {
+		conn.Player = nil //player doenst need Free()
+		conn.lobby = nil
+		conn.room = nil
+		conn = nil
+	}
 }
 
 // NewConnection creates a new connection
 func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection {
 	return &Connection{
-		ws,
-		player,
-		lobby,
-		nil,
-		false,
-		make(chan []byte),
+		ws:           ws,
+		Player:       player,
+		lobby:        lobby,
+		room:         nil,
+		disconnected: false,
+		send:         make(chan []byte),
 	}
 }
 
@@ -80,11 +97,33 @@ func (conn *Connection) GetPlayerID() int {
 	return conn.Player.ID
 }
 
+func (conn *Connection) Launch(ws config.WebSocketSettings) {
+
+	if lobby == nil {
+		fmt.Println("lobby nil!")
+		return
+	}
+
+	all := &sync.WaitGroup{}
+	var connContext context.Context
+	connContext, conn.cancel = context.WithCancel(lobby.Context)
+
+	conn.lobby.ChanJoin <- conn
+	all.Add(1)
+	go conn.WriteConn(ws, all, connContext)
+	all.Add(1)
+	go conn.ReadConn(ws, all, connContext)
+
+	all.Wait()
+	fmt.Println("conn finished")
+	conn.lobby.chanLeave <- conn
+	conn.Free(true)
+}
+
 // ReadConn connection goroutine to read messages from websockets
-func (conn *Connection) ReadConn(wsc config.WebSocketSettings) {
+func (conn *Connection) ReadConn(wsc config.WebSocketSettings, wg *sync.WaitGroup, parent context.Context) {
 	defer func() {
-		conn.lobby.chanLeave <- conn
-		conn.ws.Close()
+		wg.Done()
 	}()
 	conn.ws.SetReadLimit(wsc.MaxMessageSize)
 	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
@@ -94,20 +133,27 @@ func (conn *Connection) ReadConn(wsc config.WebSocketSettings) {
 			return nil
 		})
 	for {
-		_, message, err := conn.ws.ReadMessage()
-		conn.debug("read from conn")
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				conn.debug("IsUnexpectedCloseError:" + err.Error())
-			} else {
-				conn.debug("expected error:" + err.Error())
+		select {
+		case <-parent.Done():
+			fmt.Println("ReadConn done catched")
+			conn.ws.Close()
+			return
+		default:
+			_, message, err := conn.ws.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+					fmt.Println("IsUnexpectedCloseError:" + err.Error())
+				} else {
+					fmt.Println("expected error:" + err.Error())
+				}
+				conn.Kill("Client websocket died")
+				return
 			}
-
-			break
-		}
-		conn.lobby.chanBroadcast <- &Request{
-			Connection: conn,
-			Message:    message,
+			conn.debug("read from conn")
+			conn.lobby.chanBroadcast <- &Request{
+				Connection: conn,
+				Message:    message,
+			}
 		}
 	}
 }
@@ -120,15 +166,18 @@ func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettin
 
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
-func (conn *Connection) WriteConn(wsc config.WebSocketSettings) {
+func (conn *Connection) WriteConn(wsc config.WebSocketSettings, wg *sync.WaitGroup, parent context.Context) {
 	ticker := time.NewTicker(wsc.PingPeriod)
 	defer func() {
+		wg.Done()
 		ticker.Stop()
-		conn.ws.Close()
 	}()
 	for {
 		select {
-		// send here json!
+		case <-parent.Done():
+			fmt.Println("WriteConn done catched")
+			conn.ws.Close()
+			return
 		case message, ok := <-conn.send:
 			if !ok {
 				conn.write(websocket.CloseMessage, []byte{}, wsc)
@@ -141,13 +190,6 @@ func (conn *Connection) WriteConn(wsc config.WebSocketSettings) {
 				return
 			}
 			w.Write(message)
-
-			var newline = []byte{'\n'}
-			n := len(conn.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-conn.send)
-			}
 
 			if err := w.Close(); err != nil {
 				return
@@ -168,7 +210,6 @@ func (conn *Connection) SendInformation(bytes []byte) {
 }
 
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
-
 	defer wg.Done()
 	conn.SendInformation(bytes)
 }

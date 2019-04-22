@@ -2,31 +2,13 @@ package game
 
 import (
 	"encoding/json"
-	"sync"
 )
-
-// SendPredicate - returns true if the parcel send to that conn
-type SendPredicate func(conn *Connection) bool
 
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
-func (room *Room) sendToGroup(info interface{}, predicate SendPredicate) {
-	waitJobs := &sync.WaitGroup{}
-	bytes, _ := json.Marshal(info)
-	for _, conn := range room.Players.Get {
-		if predicate(conn) {
-			waitJobs.Add(1)
-			conn.sendGroupInformation(bytes, waitJobs)
-		}
-	}
-
-	for _, conn := range room.Observers.Get {
-		if predicate(conn) {
-			waitJobs.Add(1)
-			conn.sendGroupInformation(bytes, waitJobs)
-		}
-	}
-	waitJobs.Wait()
+func (room *Room) send(info interface{}, predicate SendPredicate) {
+	SendToConnections(info, predicate, room.Players.Connections,
+		room.Observers.Get)
 }
 
 // allExceptThat is predicat to sendToAllInRoom
@@ -58,20 +40,20 @@ func (room *Room) sendPlayers(predicate SendPredicate) {
 	get := &RoomGet{
 		Players: true,
 	}
-	send := room.copyLast(get)
-	room.sendToGroup(send, predicate)
+	send := room.copy(get)
+	room.send(send, predicate)
 }
 
 func (room *Room) sendMessage(text string, predicate SendPredicate) {
-	room.sendToGroup("Room("+room.Name+"):"+text, predicate)
+	room.send("Room("+room.Name+"):"+text, predicate)
 }
 
 func (room *Room) sendObservers(predicate SendPredicate) {
 	get := &RoomGet{
 		Observers: true,
 	}
-	send := room.copyLast(get)
-	room.sendToGroup(send, predicate)
+	send := room.copy(get)
+	room.send(send, predicate)
 }
 
 // sendTAIRField send field to all in room
@@ -79,8 +61,8 @@ func (room *Room) sendField(predicate SendPredicate) {
 	get := &RoomGet{
 		Field: true,
 	}
-	send := room.copyLast(get)
-	room.sendToGroup(send, predicate)
+	send := room.copy(get)
+	room.send(send, predicate)
 }
 
 // sendTAIRHistory send actions history to all in room
@@ -88,8 +70,8 @@ func (room *Room) sendHistory(predicate SendPredicate) {
 	get := &RoomGet{
 		History: true,
 	}
-	send := room.copyLast(get)
-	room.sendToGroup(send, predicate)
+	send := room.copy(get)
+	room.send(send, predicate)
 }
 
 /*
@@ -148,23 +130,23 @@ func (room *Room) copy(get *RoomGet) *Room {
 }
 
 // copyLast returns last element of slices of selected fields
-func (room *Room) copyLast(get *RoomGet) *Room {
-	sendRoom := &Room{
-		Name:   room.Name,
-		Status: room.Status,
-	}
+// func (room *Room) copyLast(get *RoomGet) *Room {
+// 	sendRoom := &Room{
+// 		Name:   room.Name,
+// 		Status: room.Status,
+// 	}
 
-	if get.Players {
-		sendRoom.Players = room.Players
-	}
-	if get.Observers {
-		sendRoom.Observers = room.Observers
-	}
-	if get.Field {
-		sendRoom.Field = room.Field
-	}
-	if get.History {
-		sendRoom.History = room.History
-	}
-	return sendRoom
-}
+// 	if get.Players {
+// 		sendRoom.Players = room.Players
+// 	}
+// 	if get.Observers {
+// 		sendRoom.Observers = room.Observers
+// 	}
+// 	if get.Field {
+// 		sendRoom.Field = room.Field
+// 	}
+// 	if get.History {
+// 		sendRoom.History = room.History
+// 	}
+// 	return sendRoom
+// }

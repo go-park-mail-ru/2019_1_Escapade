@@ -25,9 +25,9 @@ type Handler struct {
 	Storage         config.FileStorageConfig
 	Cookie          config.CookieConfig
 	WebSocket       config.WebSocketSettings
+	GameConfig      config.GameConfig
 	ReadBufferSize  int
 	WriteBufferSize int
-	Lobby           *game.Lobby
 	Test            bool
 }
 
@@ -122,9 +122,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "UpdateProfile"
 
 	var (
-		user models.UserPrivateInfo
-		err  error
-		name string
+		user   models.UserPrivateInfo
+		err    error
+		userID int
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -134,14 +134,14 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if name, err = h.getNameFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
-	if err = h.DB.UpdatePlayerPersonalInfo(name, &user); err != nil {
+	if err = h.DB.UpdatePlayerPersonalInfo(userID, &user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
@@ -565,6 +565,13 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		userID = rand.Intn(10000)
 	}
 
+	lobby := game.GetLobby()
+	if lobby == nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
+	}
+
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  h.ReadBufferSize,
 		WriteBufferSize: h.WriteBufferSize,
@@ -585,11 +592,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	player := game.NewPlayer(userName, userID)
-	conn := game.NewConnection(ws, player, h.Lobby)
-	// Join Player to lobby
-	h.Lobby.ChanJoin <- conn
-	go conn.WriteConn(h.WebSocket)
-	go conn.ReadConn(h.WebSocket)
+	conn := game.NewConnection(ws, player, lobby)
+	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }

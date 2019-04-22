@@ -1,21 +1,56 @@
 package game
 
+import "fmt"
+
+type OnlinePlayers struct {
+	Capacity    int           `json:"capacity"`
+	Players     []Player      `json:"players"`
+	Flags       []Cell        `json:"flags"`
+	Connections []*Connection `json:"-"`
+}
+
 // Connections - slice of connections with capacity
 type Connections struct {
 	Capacity int           `json:"capacity"`
 	Get      []*Connection `json:"get"`
 }
 
-// NewConnections create instance of Connections
-func NewConnections(capacity int) *Connections {
-	return &Connections{capacity,
-		make([]*Connection, 0, capacity)}
-}
-
 // Rooms - slice of rooms with capacity
 type Rooms struct {
 	Capacity int     `json:"capacity"`
 	Get      []*Room `json:"get"`
+}
+
+// NewConnections create instance of Connections
+func newOnlinePlayers(size int) *OnlinePlayers {
+	return &OnlinePlayers{
+		Capacity:    size,
+		Players:     make([]Player, size),
+		Flags:       make([]Cell, size),
+		Connections: make([]*Connection, 0, size),
+	}
+}
+
+// NewConnections create instance of Connections
+func (onlinePlayers *OnlinePlayers) Init(field *Field) {
+
+	for i, conn := range onlinePlayers.Connections {
+		if i > onlinePlayers.Capacity {
+			conn.room.Leave(conn)
+			continue
+		}
+		onlinePlayers.Players[i] = *conn.Player
+	}
+	onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
+	onlinePlayers.Connections = onlinePlayers.Connections
+
+	return
+}
+
+// NewConnections create instance of Connections
+func NewConnections(capacity int) *Connections {
+	return &Connections{capacity,
+		make([]*Connection, 0, capacity)}
 }
 
 // NewRooms create instance of Rooms
@@ -34,16 +69,100 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-////////////////// Rooms //////////////////////
+// Clear set slice to nil
+func (onlinePlayers *OnlinePlayers) Free() {
+
+	if onlinePlayers == nil {
+		return
+	}
+	for i := 0; i < len(onlinePlayers.Connections); i++ {
+		onlinePlayers.Connections[i] = nil
+	}
+
+	onlinePlayers.Players = nil
+	onlinePlayers.Flags = nil
+	onlinePlayers.Connections = nil
+	onlinePlayers = nil
+}
+
+// Search find connection in slice and return its index if success
+// otherwise -1
+func (onlinePlayers *OnlinePlayers) Search(conn *Connection) (i int) {
+	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
+		return onlinePlayers.Players[i].ID == conn.GetPlayerID()
+	})
+}
+
+// Clear set slice to nil
+func (rooms *Rooms) Free() {
+	if rooms == nil {
+		return
+	}
+	for _, room := range rooms.Get {
+		room.Free()
+	}
+	rooms.Get = nil
+	rooms.Capacity = 0
+	rooms = nil
+}
+
+// Clear set slice to nil
+func (conns *Connections) Free() {
+	if conns == nil {
+		return
+	}
+	for _, conn := range conns.Get {
+		conn.Free(false)
+	}
+	conns.Get = nil
+	conns.Capacity = 0
+}
 
 // Empty check rooms length is 0
 func (rooms *Rooms) Empty() bool {
 	return len(rooms.Get) == 0
 }
 
-// Clear set slice to nil
-func (rooms *Rooms) Clear() {
-	rooms.Get = nil
+func (onlinePlayers *OnlinePlayers) Empty() bool {
+	return len(onlinePlayers.Connections) == 0
+}
+
+// Add try add element if its possible. Return bool result
+// if element not exists it will be create, otherwise it will change its value
+func (onlinePlayers *OnlinePlayers) Add(conn *Connection) bool {
+	if onlinePlayers.enoughPlace() {
+		var i int
+		if i = onlinePlayers.Search(conn); i < 0 {
+			i = len(onlinePlayers.Connections)
+			onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
+		} else {
+			onlinePlayers.Connections[i] = conn
+		}
+		onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].GetPlayerID()
+		return true
+	}
+	return false
+}
+
+// Remove delete element and decrement size if element
+// exists in map
+func (onlinePlayers *OnlinePlayers) Remove(conn *Connection) {
+	size := len(onlinePlayers.Connections)
+	i := onlinePlayers.Search(conn)
+	if i < 0 {
+		fmt.Println("cant found", i, size)
+		return
+	}
+	fmt.Println("i and size,", i, size)
+	onlinePlayers.Connections[i], onlinePlayers.Connections[size-1] = onlinePlayers.Connections[size-1], onlinePlayers.Connections[i]
+	onlinePlayers.Connections[size-1] = nil
+	onlinePlayers.Connections = onlinePlayers.Connections[:size-1]
+	//sendError(conn, "Remove", "You disconnected ")
+}
+
+// enoughPlace check that you can add more elements
+func (onlinePlayers *OnlinePlayers) enoughPlace() bool {
+	return len(onlinePlayers.Connections) < onlinePlayers.Capacity
 }
 
 // enoughPlace check that you can add more elements
@@ -65,32 +184,21 @@ func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
 
 // SearchPlayer find connection in rooms players and return it if success
 // otherwise nil
-func (rooms *Rooms) SearchPlayer(new *Connection) (old *Connection) {
+func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) {
 	for _, room := range rooms.Get {
 		i := room.Players.Search(new)
 		// cant found
 		if i < 0 {
 			continue
 		}
-		/*
-			Players are never deleted from rooms, because the room always
-			must know its players. So, if you exit from room to lobby
-			and refresh page you can return to room. To solve the  problem
-			the following is done:
-			When you exit to lobby, the room marks your connection
-			as 'without room'(Connection has field - pointer to room.
-			When it is nil, the connection connect to lobby). And
-			when you disconnected from page(for example because of
-			problems on the interner), the room doesnt change your room pointer
-		*/
-		foundConn := room.Players.Get[i]
-		if foundConn.room != room {
+		player := room.Players.Players[i]
+		if player.Finished {
 			continue
 		}
 
-		return foundConn
+		return i, room
 	}
-	return nil
+	return -1, nil
 }
 
 // SearchObserver find connection in rooms obserers and return it if success
@@ -146,11 +254,6 @@ func (rooms *Rooms) CopyLast(from *Rooms) {
 func (conns *Connections) CopyLast(from *Connections) {
 	conns.Capacity = 1
 	conns.Get = from.Get[len(from.Get)-1:]
-}
-
-// Clear set slice to nil
-func (conns *Connections) Clear() {
-	conns.Get = nil
 }
 
 // Empty check rooms capacity is 0

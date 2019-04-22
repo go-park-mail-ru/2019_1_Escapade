@@ -21,12 +21,10 @@ type Room struct {
 	Name   string `json:"name"`
 	Status int    `json:"status"`
 
-	Players   *Connections `json:"players,omitempty"`
-	Observers *Connections `json:"observers,omitempty"`
+	Players   *OnlinePlayers `json:"players,omitempty"`
+	Observers *Connections   `json:"observers,omitempty"`
 
 	History []*PlayerAction `json:"history,omitempty"`
-
-	flags map[*Connection]*Cell
 
 	lobby *Lobby
 	Field *Field `json:"field,omitempty"`
@@ -81,7 +79,13 @@ func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	if !room.Field.IsInside(cell) {
 		return false
 	}
-	room.flags[conn] = cell
+	i := room.Players.Search(conn)
+	if i < 0 {
+		return false
+	}
+
+	room.Players.Flags[i].X = cell.X
+	room.Players.Flags[i].Y = cell.Y
 	return true
 }
 
@@ -171,6 +175,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 func (room *Room) startFlagPlacing() {
 	room.Status = StatusFlagPlacing
 	room.lobby.roomStart(room)
+	room.Players.Init(room.Field)
 	go room.run()
 	room.sendField(room.all())
 	room.sendMessage("Battle will be start soon! Set your flag!", room.all())
@@ -185,8 +190,8 @@ func (room *Room) startGame() {
 func (room *Room) finishGame() {
 	room.Status = StatusFinished
 	go room.lobby.roomFinish(room)
-	for _, conn := range room.Players.Get {
-		conn.Player.Finished = true
+	for _, player := range room.Players.Players {
+		player.Finished = true
 	}
 	room.sendMessage("Battle finished!", room.all())
 }
@@ -194,9 +199,9 @@ func (room *Room) finishGame() {
 func (room *Room) run() {
 	// перенести в настройки комнаты
 	timerPrepare := time.NewTimer(time.Second * 20)
-	timerPlaying := time.NewTimer(time.Second * 60)
+	timerPlaying := time.NewTimer(time.Second * 180)
 	// в конфиг
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * 5)
 
 	for {
 		select {

@@ -35,6 +35,15 @@ func NewPlayerAction(player *Player, action int) *PlayerAction {
 	return pa
 }
 
+// Free free memory
+func (pa *PlayerAction) Free() {
+	if pa == nil {
+		return
+	}
+	pa.Player = nil
+	pa = nil
+}
+
 func (room *Room) addAction(conn *Connection, action int) {
 	pa := NewPlayerAction(conn.Player, action)
 	room.History = append(room.History, pa)

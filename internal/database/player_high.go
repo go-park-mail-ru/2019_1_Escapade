@@ -19,10 +19,10 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 	}
 	defer tx.Rollback()
 
-	if err = db.confirmUnique(tx, user); err != nil {
-		fmt.Println("database/register - fail uniqie")
-		return
-	}
+	// if err = db.confirmUnique(tx, user); err != nil {
+	// 	fmt.Println("database/register - fail uniqie")
+	// 	return
+	// }
 
 	if userID, err = db.createPlayer(tx, user); err != nil {
 		fmt.Println("database/register - fail creating User")
@@ -82,12 +82,10 @@ func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found
 
 // UpdatePlayerPersonalInfo gets name of Player from
 // relation Session, cause we know that user has session
-func (db *DataBase) UpdatePlayerPersonalInfo(curName string, user *models.UserPrivateInfo) (err error) {
+func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivateInfo) (err error) {
 	var (
-		curEmail string
-		curPass  string
-		oldName  string
-		tx       *sql.Tx
+		confirmedUser *models.UserPrivateInfo
+		tx            *sql.Tx
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
@@ -95,26 +93,13 @@ func (db *DataBase) UpdatePlayerPersonalInfo(curName string, user *models.UserPr
 	}
 	defer tx.Rollback()
 
-	oldName = curName
-	if curEmail, curPass, err = db.GetPasswordEmailByName(tx, curName); err != nil {
+	if confirmedUser, err = db.getPrivateInfo(tx, userID); err != nil {
 		return
 	}
 
-	if curEmail, err = db.checkParameter(tx, curEmail, user.Email, db.isEmailUnique); err != nil {
-		return
-	}
+	confirmedUser.Update(user)
 
-	if curName, err = db.checkParameter(tx, curName, user.Name, db.isNameUnique); err != nil {
-		return
-	}
-
-	if user.Password != curPass && user.Password != "" {
-		curPass = user.Password
-	}
-
-	user.Update(curName, curEmail, curPass)
-
-	if _, err = db.updatePlayerPersonalInfo(tx, user, oldName); err != nil {
+	if err = db.updatePlayerPersonalInfo(tx, user); err != nil {
 		return
 	}
 

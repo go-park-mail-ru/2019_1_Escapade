@@ -3,7 +3,11 @@ package main
 import (
 	"escapade/internal/router"
 	"escapade/internal/services/api"
+	"escapade/internal/services/game"
 	"escapade/internal/utils"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"net/http"
 )
@@ -30,6 +34,17 @@ func main() {
 	}
 	r := router.GetRouter(API, conf)
 	port := router.GetPort(conf)
+
+	game.Launch(&conf.Game)
+	defer game.GetLobby().Stop()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		game.GetLobby().Free()
+		os.Exit(1)
+	}()
 
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")

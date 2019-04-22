@@ -125,6 +125,17 @@ func (field *Field) setMine(x, y int) {
 	}
 }
 
+func (field *Field) RandomFlags(players []Player) (cells []Cell) {
+	rand.Seed(time.Now().UnixNano())
+	cells = make([]Cell, len(players))
+	for i, player := range players {
+		x := rand.Intn(field.Width)
+		y := rand.Intn(field.Height)
+		cells[i] = *NewCell(x, y, player.ID+CellIncrement, player.ID)
+	}
+	return cells
+}
+
 // SetMines fill matrix with mines
 func (field *Field) SetMines() {
 	width := field.Width

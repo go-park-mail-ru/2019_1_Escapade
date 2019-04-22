@@ -1,38 +1,38 @@
 package game
 
-// RecoverPlayer call it in lobby.join if player disconnected
-func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) {
+import "fmt"
 
-	// if old in game, disconnect him
-	if !old.disconnected {
-		old.Kill([]byte("Another connection found"))
+// RecoverPlayer call it in lobby.join if player disconnected
+func (room *Room) RecoverPlayer(i int, newConn *Connection) {
+
+	oldConn := room.Players.Connections[i]
+
+	if !oldConn.disconnected {
+		oldConn.Kill("Another connection found")
 	}
 
-	// copy information about player to new connection
-	new.Player = old.Player
-
 	// add connection as player
-	room.MakePlayer(new)
+	room.MakePlayer(newConn)
 
-	room.addAction(new, ActionReconnect)
-	room.sendHistory(room.allExceptThat(new))
-	room.sendRoom(new)
+	room.addAction(newConn, ActionReconnect)
+	room.sendHistory(room.allExceptThat(newConn))
+	room.sendRoom(newConn)
 
 	return
 }
 
 // RecoverObserver recover connection as observer
-func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool) {
+func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
-	if !old.disconnected {
-		old.Kill([]byte("Another connection found"))
+	if !oldConn.disconnected {
+		oldConn.Kill("Another connection found")
 	}
 
-	room.MakeObserver(new)
+	room.MakeObserver(newConn)
 
-	room.addAction(new, ActionReconnect)
-	room.sendHistory(room.allExceptThat(new))
-	room.sendRoom(new)
+	room.addAction(newConn, ActionReconnect)
+	room.sendHistory(room.allExceptThat(newConn))
+	room.sendRoom(newConn)
 
 	return
 }
@@ -103,8 +103,10 @@ func (room *Room) MakeObserver(conn *Connection) {
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
 	room.Players.Remove(conn)
+	fmt.Println("removing", len(room.Players.Connections))
 	conn.debug("you went back to lobby")
-	if room.TryClose() {
+	if room.Players.Empty() {
+		room.Close()
 		conn.debug("We closed room :С")
 	}
 }
@@ -115,13 +117,15 @@ func (room *Room) removeDuringGame(conn *Connection) {
 		room.GiveUp(conn)
 		room.sendHistory(room.all())
 		room.sendPlayers(room.all())
-		room.TryClose()
-		return
-	}
+	} else {
 
-	room.Observers.Remove(conn)
-	room.sendObservers(room.all())
-	room.TryClose()
+		room.Observers.Remove(conn)
+		room.sendObservers(room.all())
+	}
+	if room.Players.Empty() {
+		room.Close()
+		conn.debug("We closed room :С")
+	}
 }
 
 // removeFinishedGame

@@ -3,14 +3,11 @@ package database
 import (
 	"database/sql"
 	"escapade/internal/models"
-	re "escapade/internal/return_errors"
 	"fmt"
 	"time"
 )
 
-// Check function
-type Check func(tx *sql.Tx, value string) error
-
+// createPlayer create player
 func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id int, err error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, email, firstSeen, lastSeen) VALUES
@@ -31,17 +28,16 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 	return
 }
 
-func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo, oldName string) (id int, err error) {
+func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo) (err error) {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, email = $2, password = $3, lastSeen = $4
-			WHERE name like $5
+			WHERE id = $5
 			RETURNING id
 		`
 
-	row := tx.QueryRow(sqlStatement, user.Name,
-		user.Email, user.Password, time.Now(), oldName)
-	err = row.Scan(&id)
+	_, err = tx.Exec(sqlStatement, user.Name,
+		user.Email, user.Password, time.Now(), user.ID)
 	return
 }
 
@@ -55,53 +51,6 @@ func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) (err error) {
 
 	_, err = tx.Exec(sqlStatement, time.Now(), id)
 	return
-}
-
-func (db *DataBase) checkParameter(tx *sql.Tx, old string, new string, check Check) (choosen string, err error) {
-	choosen = old
-	if new != old && new != "" {
-		if err = check(tx, new); err != nil {
-			return
-		}
-		choosen = new
-	}
-	return
-}
-
-// isNameUnique checks if there are Players with
-// this('taken') name and returns corresponding error if yes
-func (db DataBase) isNameUnique(tx *sql.Tx, taken string) error {
-	sqlStatement := "SELECT name " +
-		"FROM Player where name=$1"
-
-	row := tx.QueryRow(sqlStatement, taken)
-
-	var tmp string
-	if err := row.Scan(&tmp); err != sql.ErrNoRows {
-		if err == nil {
-			return re.ErrorNameIstaken()
-		}
-		return err
-	}
-	return nil
-}
-
-// isEmailUnique checks if there are Players with
-// this('taken') email and returns corresponding error if yes
-func (db DataBase) isEmailUnique(tx *sql.Tx, taken string) error {
-	sqlStatement := "SELECT name " +
-		"FROM Player where email=$1"
-
-	row := tx.QueryRow(sqlStatement, taken)
-
-	var tmp string
-	if err := row.Scan(&tmp); err != sql.ErrNoRows {
-		if err == nil {
-			return re.ErrorEmailIstaken()
-		}
-		return err
-	}
-	return nil
 }
 
 func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int, user *models.UserPublicInfo, err error) {
@@ -120,26 +69,17 @@ func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int
 	return
 }
 
-// GetNameByEmail get player's name by his email
-func (db DataBase) GetPasswordEmailByName(tx *sql.Tx, name string) (email string, password string, err error) {
-	sqlStatement := "SELECT email, password " +
-		"FROM Player where name like $1"
+// GetPrivateInfo get player's personal info
+func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPrivateInfo, err error) {
+	sqlStatement := "SELECT name, email, password " +
+		"FROM Player where id = $1"
 
-	row := tx.QueryRow(sqlStatement, name)
+	row := tx.QueryRow(sqlStatement, userID)
 
-	if err = row.Scan(&email, &password); err != nil {
-		return
-	}
-	return
-}
+	user = &models.UserPrivateInfo{}
+	user.ID = userID
+	err = row.Scan(&user.Name, &user.Email, &user.Password)
 
-// confirmUnique confirm that user.Email and user.Name
-// dont use by another Player
-func (db DataBase) confirmUnique(tx *sql.Tx, user *models.UserPrivateInfo) (err error) {
-	if err = db.isEmailUnique(tx, user.Email); err != nil {
-		return
-	}
-	err = db.isNameUnique(tx, user.Name)
 	return
 }
 

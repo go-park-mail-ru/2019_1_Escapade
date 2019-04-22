@@ -1,11 +1,12 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
+	"escapade/internal/config"
 	"escapade/internal/models"
 	"escapade/internal/utils"
 	"fmt"
-	"sync"
 )
 
 // Request connect Connection and his message
@@ -19,8 +20,10 @@ type Lobby struct {
 	AllRooms  *Rooms `json:"allRooms,omitempty"`
 	FreeRooms *Rooms `json:"freeRooms,omitempty"`
 
-	Waiting map[int]*Connection `json:"waiting,omitempty"`
-	Playing map[int]*Connection `json:"playing,omitempty"`
+	Waiting *Connections `json:"waiting,omitempty"`
+	Playing *Connections `json:"playing,omitempty"`
+
+	Context context.Context
 
 	// connection joined lobby
 	ChanJoin chan *Connection `json:"-"`
@@ -29,24 +32,104 @@ type Lobby struct {
 	//chanRequest   chan *LobbyRequest
 	chanBroadcast chan *Request
 
+	chanBreak chan interface{}
+
 	semJoin    chan bool
 	semRequest chan bool
 }
 
-// NewLobby create new instance of Lobby
-func NewLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
+// lobby singleton
+var (
+	lobby *Lobby
+)
 
+func Launch(gc *config.GameConfig) {
+
+	if lobby == nil {
+		lobby = newLobby(gc.RoomsCapacity,
+			gc.LobbyJoin, gc.LobbyRequest)
+		go lobby.Run()
+	}
+}
+
+// GetLobby create lobby if it is nil and get it
+func GetLobby() *Lobby {
+	return lobby
+}
+
+// Run the room in goroutine
+func (lobby *Lobby) Stop() {
+	if lobby != nil {
+		fmt.Println("Stop called!")
+		lobby.chanBreak <- nil
+	}
+}
+
+// Run the room in goroutine
+func (lobby *Lobby) Run() {
+	defer func() {
+		fmt.Println("defer run!")
+		lobby.Free()
+		if r := recover(); r != nil {
+			fmt.Println("Recovered Run", r)
+		}
+	}()
+
+	var lobbyCancel context.CancelFunc
+	lobby.Context, lobbyCancel = context.WithCancel(context.Background())
+	fmt.Println("create context!")
+	for {
+		select {
+		case connection := <-lobby.ChanJoin:
+			go lobby.Join(connection)
+
+		case message := <-lobby.chanBroadcast:
+			go lobby.analize(message)
+
+		case connection := <-lobby.chanLeave:
+			go lobby.Leave(connection, "You disconnected!")
+		case <-lobby.chanBreak:
+			fmt.Println("Stop saw!")
+			lobbyCancel()
+			return
+		}
+	}
+}
+
+// Free delete all rooms and conenctions. Inform all players
+// about closing
+func (lobby *Lobby) Free() {
+	if lobby == nil {
+		return
+	}
+	fmt.Println("All resources clear!")
+	SendToConnections("server closed", All(), lobby.Waiting.Get, lobby.Playing.Get)
+
+	lobby.AllRooms.Free()
+	lobby.FreeRooms.Free()
+	lobby.Waiting.Free()
+	lobby.Playing.Free()
+	close(lobby.ChanJoin)
+	close(lobby.chanLeave)
+	close(lobby.chanBroadcast)
+	lobby = nil
+}
+
+// newLobby create new instance of Lobby
+func newLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
+
+	connectionsCapacity := 500
 	lobby := &Lobby{
 		AllRooms:  NewRooms(roomsCapacity),
 		FreeRooms: NewRooms(roomsCapacity),
 
-		Waiting: make(map[int]*Connection),
-		Playing: make(map[int]*Connection),
+		Waiting: NewConnections(connectionsCapacity),
+		Playing: NewConnections(connectionsCapacity),
 
-		ChanJoin:  make(chan *Connection),
-		chanLeave: make(chan *Connection),
-		//chanRequest:   make(chan *LobbyRequest),
+		ChanJoin:      make(chan *Connection),
+		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
+		chanBreak:     make(chan interface{}),
 
 		semJoin:    make(chan bool, maxJoin),
 		semRequest: make(chan bool, maxRequest),
@@ -70,47 +153,64 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 	name := utils.RandomString(16) // вынести в кофиг
 	room := NewRoom(rs, name, lobby)
 	if !lobby.AllRooms.Add(room) {
+		fmt.Println("cant create room")
 		return nil
 	}
 
 	lobby.FreeRooms.Add(room)
-	go lobby.sendTAILRooms() // inform all about new room
+	lobby.sendTAILRooms() // inform all about new room
 	return room
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(new *Connection) {
-	lobby.semJoin <- true
-	defer func() {
-		<-lobby.semJoin
-	}()
+func (lobby *Lobby) Join(newConn *Connection) {
+	// lobby.semJoin <- true
+	// defer func() {
+	// 	<-lobby.semJoin
+	// }()
+
+	// find such waiter
+	who := lobby.Waiting.Search(newConn)
+
+	if who >= 0 {
+		fmt.Println("found")
+		deleteConn := lobby.Waiting.Get[who]
+		deleteConn.Kill("Someone logged into your account")
+		fmt.Println("killed")
+		lobby.Waiting.Add(newConn)
+		fmt.Println("add new")
+		lobby.sendRooms(newConn)
+		return // found
+	}
 
 	// find such player
-	old := lobby.AllRooms.SearchPlayer(new)
+	i, room := lobby.AllRooms.SearchPlayer(newConn)
 
-	if old != nil {
-		old.room.RecoverPlayer(old, new)
+	if i > 0 {
+		room.RecoverPlayer(i, newConn)
 		return // found
 	}
 
 	// find such observer
-	old = lobby.AllRooms.SearchObserver(new)
+	old := lobby.AllRooms.SearchObserver(newConn)
 	if old != nil {
-		old.room.RecoverObserver(old, new)
+		old.room.RecoverObserver(old, newConn)
 		return // found
 	}
 
 	// player is new
-	lobby.sendRooms(new)
-	lobby.addWaiter(new)
-	new.debug("new waiter")
+	lobby.sendRooms(newConn)
+	lobby.Waiting.Add(newConn)
+	newConn.debug("new waiter")
 	lobby.sendTAILPeople()
 }
 
 // Leave handle user leave lobby
-func (lobby *Lobby) Leave(conn *Connection) {
+func (lobby *Lobby) Leave(conn *Connection, message string) {
 
 	fmt.Println("disconnected -  #", conn.GetPlayerID())
+	//lobby.SendMessage(conn, message)
+
 	if !conn.InRoom() {
 		lobby.removeWaiter(conn)
 		lobby.sendTAILPeople()
@@ -119,8 +219,13 @@ func (lobby *Lobby) Leave(conn *Connection) {
 		conn.room.addAction(conn, ActionDisconnect)
 		conn.room.sendHistory(conn.room.all())
 	}
-	conn.Kill([]byte("Good day!"))
+	conn.Kill(message)
 	return
+}
+
+// SendMessage sends message to Connection from lobby
+func (lobby *Lobby) SendMessage(conn *Connection, message string) {
+	conn.SendInformation([]byte("Lobby message: " + message))
 }
 
 // ----- handle room status
@@ -133,7 +238,7 @@ func (lobby *Lobby) roomStart(room *Room) {
 // roomFinish - room remove from all
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
-	for _, conn := range room.Players.Get {
+	for _, conn := range room.Players.Connections {
 		lobby.playerToWaiter(conn)
 	}
 	lobby.AllRooms.Remove(room)
@@ -143,34 +248,27 @@ func (lobby *Lobby) roomFinish(room *Room) {
 // -----
 
 // ----- handle connection status
-func (lobby *Lobby) addWaiter(conn *Connection) {
-	lobby.Waiting[conn.GetPlayerID()] = conn
-}
 
-func (lobby *Lobby) setWaiterRoom(conn *Connection, room *Room) {
-	lobby.Waiting[conn.GetPlayerID()] = conn
-}
-
-func (lobby *Lobby) addPlayer(conn *Connection, room *Room) {
-	lobby.Playing[conn.GetPlayerID()] = conn
+func (lobby *Lobby) addPlayer(conn *Connection) {
+	lobby.Playing.Add(conn)
 }
 
 func (lobby *Lobby) removeWaiter(conn *Connection) {
-	delete(lobby.Waiting, conn.GetPlayerID())
+	lobby.Waiting.Remove(conn)
 }
 
 func (lobby *Lobby) removePlayer(conn *Connection) {
-	delete(lobby.Playing, conn.GetPlayerID())
+	lobby.Playing.Remove(conn)
 }
 
 func (lobby *Lobby) waiterToPlayer(conn *Connection) {
 	lobby.removeWaiter(conn)
-	lobby.addPlayer(conn, conn.room)
+	lobby.addPlayer(conn)
 }
 
 func (lobby *Lobby) playerToWaiter(conn *Connection) {
 	lobby.removePlayer(conn)
-	lobby.addWaiter(conn) // it send finished player to lobby
+	lobby.Waiting.Add(conn)
 }
 
 // -----
@@ -251,23 +349,6 @@ func (lobby *Lobby) sendRooms(conn *Connection) {
 	conn.SendInformation(bytes)
 }
 
-// Run the room in goroutine
-func (lobby *Lobby) Run() {
-
-	for {
-		select {
-		case connection := <-lobby.ChanJoin:
-			go lobby.Join(connection)
-
-		case message := <-lobby.chanBroadcast:
-			go lobby.analize(message)
-
-		case connection := <-lobby.chanLeave:
-			go lobby.Leave(connection)
-		}
-	}
-}
-
 func (lobby *Lobby) analize(req *Request) {
 	if !req.Connection.InRoom() {
 		var send *LobbyRequest
@@ -289,60 +370,6 @@ func (lobby *Lobby) analize(req *Request) {
 			req.Connection.room.handleRequest(req.Connection, send)
 		}
 	}
-}
-
-func (lobby *Lobby) sendToAllInLobby(info interface{}) {
-	waitJobs := &sync.WaitGroup{}
-	bytes, _ := json.Marshal(info)
-	fmt.Println("sendToAllInLobby began")
-	for _, conn := range lobby.Waiting {
-		if !conn.InRoom() {
-			waitJobs.Add(1)
-			conn.debug("send response")
-			conn.sendGroupInformation(bytes, waitJobs)
-		} else {
-			conn.debug("lobby know about you :)")
-		}
-	}
-	waitJobs.Wait()
-}
-
-// send to all in lobby
-func (lobby *Lobby) sendTAILRooms() {
-	get := &LobbyGet{
-		AllRooms:  true,
-		FreeRooms: true,
-	}
-	fmt.Println("sendTAILRooms began")
-	send := lobby.makeGetModel(get)
-	lobby.sendToAllInLobby(send)
-}
-
-func (lobby *Lobby) sendTAILPeople() {
-	get := &LobbyGet{
-		Waiting: true,
-		Playing: true,
-	}
-	fmt.Println("sendTAILPeople began")
-	send := lobby.makeGetModel(get)
-	lobby.sendToAllInLobby(send)
-}
-
-func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
-	sendLobby := &Lobby{}
-	if get.AllRooms {
-		sendLobby.AllRooms = lobby.AllRooms
-	}
-	if get.FreeRooms {
-		sendLobby.FreeRooms = lobby.FreeRooms
-	}
-	if get.Waiting {
-		sendLobby.Waiting = lobby.Waiting
-	}
-	if get.Playing {
-		sendLobby.Playing = lobby.Playing
-	}
-	return sendLobby
 }
 
 func (lobby *Lobby) requestGet(conn *Connection, lr *LobbyRequest) {

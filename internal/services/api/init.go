@@ -3,15 +3,12 @@ package api
 import (
 	"escapade/internal/config"
 	"escapade/internal/database"
-	"escapade/internal/services/game"
 	"fmt"
 	"time"
 )
 
 // Init creates Handler
 func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
-	lobby := game.NewLobby(c.Game.RoomsCapacity,
-		c.Game.LobbyJoin, c.Game.LobbyRequest)
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -22,12 +19,11 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		DB:              *DB,
 		Storage:         c.Storage,
 		Cookie:          c.Cookie,
+		GameConfig:      c.Game,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
-		Lobby:           lobby,
 	}
-	go handler.Lobby.Run()
 	return
 }
 
