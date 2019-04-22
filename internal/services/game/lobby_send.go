@@ -1,8 +1,18 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 )
+
+func (lobby *Lobby) greet(conn *Connection) {
+	bytes, _ := json.Marshal(lobby)
+	conn.SendInformation(bytes)
+}
+
+func (lobby *Lobby) sendToWaiters(info interface{}, predicate SendPredicate) {
+	SendToConnections(info, predicate, lobby.Waiting.Get)
+}
 
 func (lobby *Lobby) sendToAllInLobby(info interface{}) {
 	SendToConnections(info, All(), lobby.Waiting.Get)

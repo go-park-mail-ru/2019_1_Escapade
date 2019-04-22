@@ -43,6 +43,7 @@ var (
 	lobby *Lobby
 )
 
+// Launch launchs lobby goroutine
 func Launch(gc *config.GameConfig) {
 
 	if lobby == nil {
@@ -57,7 +58,7 @@ func GetLobby() *Lobby {
 	return lobby
 }
 
-// Run the room in goroutine
+// Stop lobby goroutine
 func (lobby *Lobby) Stop() {
 	if lobby != nil {
 		fmt.Println("Stop called!")
@@ -162,6 +163,57 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 	return room
 }
 
+func (lobby *Lobby) addWaiter(newConn *Connection) {
+	lobby.Waiting.Add(newConn)
+	lobby.greet(newConn)
+}
+
+func (lobby *Lobby) addPlayer(newConn *Connection, room *Room) {
+	lobby.Playing.Add(newConn)
+	room.greet(newConn)
+}
+
+func (lobby *Lobby) waiterToPlayer(newConn *Connection, room *Room) {
+	lobby.Waiting.Remove(newConn)
+	lobby.addPlayer(newConn, room)
+}
+
+func (lobby *Lobby) playerToWaiter(conn *Connection) {
+	lobby.Playing.Remove(conn)
+	lobby.addWaiter(conn)
+	conn.PushToLobby()
+}
+
+func (lobby *Lobby) recoverInLobby(newConn *Connection) bool {
+	who := lobby.Waiting.Search(newConn)
+
+	if who >= 0 {
+		deleteConn := lobby.Waiting.Get[who]
+		deleteConn.Kill("Someone logged into your account")
+
+		return true
+	}
+	return false
+}
+
+func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
+	// find such player
+	i, room := lobby.AllRooms.SearchPlayer(newConn)
+
+	if i > 0 {
+		room.RecoverPlayer(i, newConn)
+		return true
+	}
+
+	// find such observer
+	old := lobby.AllRooms.SearchObserver(newConn)
+	if old != nil {
+		old.room.RecoverObserver(old, newConn)
+		return true
+	}
+	return false
+}
+
 // Join handle user join to lobby
 func (lobby *Lobby) Join(newConn *Connection) {
 	// lobby.semJoin <- true
@@ -169,54 +221,35 @@ func (lobby *Lobby) Join(newConn *Connection) {
 	// 	<-lobby.semJoin
 	// }()
 
-	// find such waiter
-	who := lobby.Waiting.Search(newConn)
-
-	if who >= 0 {
-		fmt.Println("found")
-		deleteConn := lobby.Waiting.Get[who]
-		deleteConn.Kill("Someone logged into your account")
-		fmt.Println("killed")
-		lobby.Waiting.Add(newConn)
-		fmt.Println("add new")
-		lobby.sendRooms(newConn)
-		return // found
+	if lobby.recoverInLobby(newConn) {
+		return
 	}
 
-	// find such player
-	i, room := lobby.AllRooms.SearchPlayer(newConn)
+	lobby.addWaiter(newConn)
 
-	if i > 0 {
-		fmt.Println("RecoverPlayer")
-		room.RecoverPlayer(i, newConn)
-		return // found
+	if lobby.recoverInRoom(newConn) {
+		return
 	}
 
-	// find such observer
-	old := lobby.AllRooms.SearchObserver(newConn)
-	if old != nil {
-		old.room.RecoverObserver(old, newConn)
-		return // found
-	}
+	lobby.sendToWaiters(lobby.Waiting, AllExceptThat(newConn))
 
-	// player is new
-	lobby.sendRooms(newConn)
-	lobby.Waiting.Add(newConn)
 	newConn.debug("new waiter")
-	lobby.sendTAILPeople()
 }
 
 // Leave handle user leave lobby
 func (lobby *Lobby) Leave(conn *Connection, message string) {
 
-	fmt.Println("disconnected -  #", conn.ID)
-	//lobby.SendMessage(conn, message)
+	fmt.Println("disconnected -  #", conn.ID())
 
-	if !conn.InRoom() {
-		lobby.removeWaiter(conn)
+	if conn.both || !conn.InRoom() {
+		lobby.Waiting.Remove(conn)
 		lobby.sendTAILPeople()
-	} else {
-		lobby.removePlayer(conn)
+	}
+	if conn.both || conn.InRoom() {
+		lobby.Playing.Remove(conn)
+		if !conn.room.IsActive() {
+			conn.room.removeBeforeLaunch(conn)
+		}
 		conn.room.addAction(conn, ActionDisconnect)
 		conn.room.sendHistory(conn.room.all())
 	}
@@ -239,37 +272,8 @@ func (lobby *Lobby) roomStart(room *Room) {
 // roomFinish - room remove from all
 func (lobby *Lobby) roomFinish(room *Room) {
 	room.Status = StatusFinished
-	for _, conn := range room.Players.Connections {
-		lobby.playerToWaiter(conn)
-	}
 	lobby.AllRooms.Remove(room)
 	lobby.sendTAILRooms()
-}
-
-// -----
-
-// ----- handle connection status
-
-func (lobby *Lobby) addPlayer(conn *Connection) {
-	lobby.Playing.Add(conn)
-}
-
-func (lobby *Lobby) removeWaiter(conn *Connection) {
-	lobby.Waiting.Remove(conn)
-}
-
-func (lobby *Lobby) removePlayer(conn *Connection) {
-	lobby.Playing.Remove(conn)
-}
-
-func (lobby *Lobby) waiterToPlayer(conn *Connection) {
-	lobby.removeWaiter(conn)
-	lobby.addPlayer(conn)
-}
-
-func (lobby *Lobby) playerToWaiter(conn *Connection) {
-	lobby.removePlayer(conn)
-	lobby.Waiting.Add(conn)
 }
 
 // -----
@@ -298,9 +302,6 @@ func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done 
 			break
 		}
 	}
-	if !done {
-		Answer(conn, []byte("Error. Cant find room"))
-	}
 	return done
 }
 
@@ -326,19 +327,30 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 // EnterRoom handle user join to room
 func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
-	done := false
-	if _, room := lobby.AllRooms.SearchRoom(rs.Name); room != nil {
-		conn.debug("lobby found required room")
-		done = room.Enter(conn)
+	var done bool
+	if conn.InRoom() {
+		conn.debug("lobby cant execute request")
+		return
+	}
+	if rs.Name == "create" {
+		room := lobby.createRoom(rs)
+		done = room != nil
+		if done {
+			room.addPlayer(conn)
+		}
 	} else {
-		conn.debug("lobby search room for you")
-		done = lobby.pickUpRoom(conn, rs)
+		if _, room := lobby.AllRooms.SearchRoom(rs.Name); room != nil {
+			conn.debug("lobby found required room")
+			done = room.Enter(conn)
+		} else {
+			conn.debug("lobby search room for you")
+			done = lobby.pickUpRoom(conn, rs)
+		}
 	}
 
 	if done {
 		conn.debug("lobby done")
-		lobby.waiterToPlayer(conn)
-		lobby.sendTAILPeople()
+		lobby.sendToWaiters(lobby, All())
 	} else {
 		conn.debug("lobby cant execute request")
 	}
@@ -351,7 +363,7 @@ func (lobby *Lobby) sendRooms(conn *Connection) {
 }
 
 func (lobby *Lobby) analize(req *Request) {
-	if !req.Connection.InRoom() {
+	if req.Connection.both || !req.Connection.InRoom() {
 		var send *LobbyRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			bytes, _ := json.Marshal(err)
@@ -359,7 +371,8 @@ func (lobby *Lobby) analize(req *Request) {
 		} else {
 			lobby.handleRequest(req.Connection, send)
 		}
-	} else {
+	}
+	if req.Connection.both || req.Connection.InRoom() {
 		if req.Connection.room == nil {
 			return
 		}

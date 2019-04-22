@@ -18,7 +18,6 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 
 	room.addAction(newConn, ActionReconnect)
 	room.sendHistory(room.allExceptThat(newConn))
-	room.sendRoom(newConn)
 
 	return
 }
@@ -34,7 +33,6 @@ func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
 	room.addAction(newConn, ActionReconnect)
 	room.sendHistory(room.allExceptThat(newConn))
-	room.sendRoom(newConn)
 
 	return
 }
@@ -43,7 +41,7 @@ func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 func (room *Room) addObserver(conn *Connection) bool {
 	// if we havent a place
 	if !room.Observers.enoughPlace() {
-		Answer(conn, []byte("Error. No place in room."))
+		conn.SendInformation([]byte("Room cant execute request "))
 		return false
 	}
 	room.MakeObserver(conn)
@@ -52,7 +50,6 @@ func (room *Room) addObserver(conn *Connection) bool {
 
 	room.sendObservers(room.allExceptThat(conn))
 
-	room.AnswerOK(conn)
 	return true
 }
 
@@ -86,15 +83,27 @@ func (room *Room) addPlayer(conn *Connection) bool {
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
 func (room *Room) MakePlayer(conn *Connection) {
-	conn.PushToRoom(room)
+	if room.Status != StatusPeopleFinding {
+		room.lobby.waiterToPlayer(conn, room)
+		conn.both = false
+	} else {
+		conn.both = true
+	}
 	room.Players.Add(conn)
+	conn.PushToRoom(room)
 }
 
 // MakeObserver mark connection as connected as Observer
 // add to observers slice and set flag inRoom true
 func (room *Room) MakeObserver(conn *Connection) {
-	conn.PushToRoom(room)
+	if room.Status != StatusPeopleFinding {
+		room.lobby.waiterToPlayer(conn, room)
+		conn.both = false
+	} else {
+		conn.both = true
+	}
 	room.Observers.Add(conn)
+	conn.PushToRoom(room)
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {

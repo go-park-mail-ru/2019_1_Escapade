@@ -25,6 +25,17 @@ func SendToConnections(info interface{},
 	waitJobs.Wait()
 }
 
+func BuildPredicate(conditions ...SendPredicate) func(*Connection) bool {
+	return func(conn *Connection) bool {
+		for _, condition := range conditions {
+			if !condition(conn) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // allExceptThat is predicate to sendToAllInRoom
 // it will send everybody except selected one and disconnected
 func AllExceptThat(me *Connection) func(*Connection) bool {
@@ -38,6 +49,12 @@ func AllExceptThat(me *Connection) func(*Connection) bool {
 func All() func(*Connection) bool {
 	return func(conn *Connection) bool {
 		return conn.IsConnected()
+	}
+}
+
+func InLobby() func(*Connection) bool {
+	return func(conn *Connection) bool {
+		return conn.IsConnected() && conn.room == nil
 	}
 }
 

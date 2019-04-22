@@ -83,28 +83,9 @@ func (room *Room) sendTAIRStatus() {
 }
 */
 // sendTAIRAll send everything to one connection
-func (room *Room) sendRoom(conn *Connection) {
-	get := &RoomGet{
-		Players:   true,
-		Observers: true,
-		Field:     true,
-		History:   true,
-	}
-	if room.Status == StatusPeopleFinding {
-		get.Field = false
-	}
-	send := room.copy(get)
-	bytes, _ := json.Marshal(send)
+func (room *Room) greet(conn *Connection) {
+	bytes, _ := json.Marshal(room)
 	conn.SendInformation(bytes)
-}
-
-func (room *Room) AnswerOK(conn *Connection) {
-	Answer(conn, []byte("OK"))
-	room.sendRoom(conn)
-}
-
-func Answer(conn *Connection, message []byte) {
-	conn.SendInformation(message)
 }
 
 // copy returns full slices of selected fields

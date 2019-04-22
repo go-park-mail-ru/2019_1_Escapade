@@ -2,6 +2,7 @@ package game
 
 import "fmt"
 
+// OnlinePlayers online players
 type OnlinePlayers struct {
 	Capacity    int           `json:"capacity"`
 	Players     []Player      `json:"players"`
@@ -69,7 +70,7 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-// Clear set slice to nil
+// Free free memory
 func (onlinePlayers *OnlinePlayers) Free() {
 
 	if onlinePlayers == nil {
@@ -123,6 +124,7 @@ func (rooms *Rooms) Empty() bool {
 	return len(rooms.Get) == 0
 }
 
+// Empty check no connections connected
 func (onlinePlayers *OnlinePlayers) Empty() bool {
 	return len(onlinePlayers.Connections) == 0
 }

@@ -39,28 +39,33 @@ func (room *Room) SameAs(another *Room) bool {
 
 // Enter handle user joining as player or observer
 func (room *Room) Enter(conn *Connection) bool {
+	var done bool
 
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {
 		conn.debug("You will be player!")
 		if room.addPlayer(conn) {
-			return true
+			done = true
 		}
 	} else if room.addObserver(conn) {
 		conn.debug("You will be observer!")
-		return true
+		done = true
 	}
-	conn.debug("No way!")
 
-	return false
+	if done {
+		if room.Status != StatusPeopleFinding {
+			room.lobby.waiterToPlayer(conn, room)
+		}
+	} else {
+		conn.debug("No way!")
+	}
+
+	return done
 }
 
 // Leave handle user going back to lobby
 func (room *Room) Leave(conn *Connection) {
 
-	// cant delete players, cause they always need
-	// if game began
-	conn.PushToLobby()
 	room.lobby.playerToWaiter(conn)
 	if !room.IsActive() {
 		room.removeBeforeLaunch(conn)
@@ -166,14 +171,19 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			//conn.debug("Room cant execute request")
-			Answer(conn, []byte("Room cant execute request "))
+			conn.SendInformation([]byte("Room cant execute request "))
 		}
 	}
 }
 
 func (room *Room) startFlagPlacing() {
 	room.Status = StatusFlagPlacing
+	for _, conn := range room.Players.Connections {
+		room.MakePlayer(conn)
+	}
+	for _, conn := range room.Observers.Get {
+		room.MakeObserver(conn)
+	}
 	room.lobby.roomStart(room)
 	room.Players.Init(room.Field)
 	go room.run()

@@ -27,6 +27,7 @@ type Connection struct {
 	lobby        *Lobby
 	room         *Room
 	disconnected bool
+	both         bool
 
 	index int
 	User  *models.UserPublicInfo `json:"user,omitempty"`
