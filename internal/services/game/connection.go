@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"escapade/internal/config"
+	"escapade/internal/models"
 
 	"context"
 
@@ -23,10 +24,12 @@ const (
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	ws           *websocket.Conn
-	Player       *Player `json:"player"`
 	lobby        *Lobby
 	room         *Room
 	disconnected bool
+
+	index int
+	User  *models.UserPublicInfo `json:"user,omitempty"`
 
 	cancel context.CancelFunc
 	send   chan []byte
@@ -47,38 +50,33 @@ func (conn *Connection) IsConnected() bool {
 	return conn.disconnected == false
 }
 
-// IsPlayerAlive call player's IsAlive
-func (conn *Connection) IsPlayerAlive() bool {
-	return conn.Player.IsAlive()
-}
-
+// Kill call context.CancFunc, that finish goroutines of
+// writer and reader and free connection memory
 func (conn *Connection) Kill(message string) {
 	conn.SendInformation([]byte(message))
+	conn.disconnected = true
 	conn.cancel()
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
-func (conn *Connection) Free(disconnect bool) {
-	if conn == nil {
+func (conn *Connection) Free() {
+	if conn == nil || conn.disconnected {
 		return
 	}
 	//conn.ws.Close()
 	close(conn.send)
-	if disconnect {
-		conn.disconnected = true
-	} else {
-		conn.Player = nil //player doenst need Free()
-		conn.lobby = nil
-		conn.room = nil
-		conn = nil
-	}
+	conn.disconnected = true
+	conn.lobby = nil
+	conn.room = nil
+	conn = nil
 }
 
 // NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection {
+func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
 	return &Connection{
 		ws:           ws,
-		Player:       player,
+		index:        -1,
+		User:         user,
 		lobby:        lobby,
 		room:         nil,
 		disconnected: false,
@@ -88,15 +86,10 @@ func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection
 
 // InRoom check is player in room
 func (conn *Connection) InRoom() bool {
-
 	return conn.room != nil
 }
 
-// GetPlayerID get player id
-func (conn *Connection) GetPlayerID() int {
-	return conn.Player.ID
-}
-
+// Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	if lobby == nil {
@@ -110,18 +103,18 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	conn.lobby.ChanJoin <- conn
 	all.Add(1)
-	go conn.WriteConn(ws, all, connContext)
+	go conn.WriteConn(connContext, ws, all)
 	all.Add(1)
-	go conn.ReadConn(ws, all, connContext)
+	go conn.ReadConn(connContext, ws, all)
 
 	all.Wait()
 	fmt.Println("conn finished")
 	conn.lobby.chanLeave <- conn
-	conn.Free(true)
+	conn.Free()
 }
 
 // ReadConn connection goroutine to read messages from websockets
-func (conn *Connection) ReadConn(wsc config.WebSocketSettings, wg *sync.WaitGroup, parent context.Context) {
+func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
@@ -166,7 +159,7 @@ func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettin
 
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
-func (conn *Connection) WriteConn(wsc config.WebSocketSettings, wg *sync.WaitGroup, parent context.Context) {
+func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(wsc.PingPeriod)
 	defer func() {
 		wg.Done()
@@ -209,12 +202,22 @@ func (conn *Connection) SendInformation(bytes []byte) {
 	}
 }
 
+// sendGroupInformation send info with WaitGroup
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 	defer wg.Done()
 	conn.SendInformation(bytes)
 }
 
+// ID return players id
+func (conn *Connection) ID() int {
+	if conn.User == nil {
+		return -1
+	}
+	return conn.User.ID
+}
+
+// debug print devug information to console and websocket
 func (conn *Connection) debug(message string) {
-	fmt.Println("Connection #", conn.GetPlayerID(), "-", message)
+	fmt.Println("Connection #", conn.ID(), "-", message)
 	conn.SendInformation([]byte(message))
 }

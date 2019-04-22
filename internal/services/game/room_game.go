@@ -34,12 +34,20 @@ func (room *Room) flagFound(found *Cell) {
 	}
 }
 
+func (room *Room) isAlive(conn *Connection) bool {
+	return conn.index >= 0 && !room.Players.Players[conn.index].Finished
+}
+
+func (room *Room) setFinished(conn *Connection) {
+	room.Players.Players[conn.index].Finished = true
+	room.killed++
+}
+
 // kill make user die, decrement size and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
-	if !conn.Player.Finished {
-		conn.Player.Finished = true
-		room.killed++
+	if room.isAlive(conn) {
+		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
 			// остановить таймеры в run!!!
 			room.lobby.roomFinish(room)

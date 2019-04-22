@@ -14,6 +14,8 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 	// add connection as player
 	room.MakePlayer(newConn)
 
+	//room.Players.Connections[i] = newConn
+
 	room.addAction(newConn, ActionReconnect)
 	room.sendHistory(room.allExceptThat(newConn))
 	room.sendRoom(newConn)
@@ -69,13 +71,9 @@ func (room *Room) addPlayer(conn *Connection) bool {
 		return false
 	}
 
-	cell := room.Field.RandomCell()
-	cell.PlayerID = conn.GetPlayerID()
-
 	room.MakePlayer(conn)
 
 	room.addAction(conn, ActionConnectAsPlayer)
-	Answer(conn, []byte("OK"))
 	room.sendPlayers(room.all())
 
 	if !room.Players.enoughPlace() {
@@ -89,7 +87,6 @@ func (room *Room) addPlayer(conn *Connection) bool {
 // add to players slice and set flag inRoom true
 func (room *Room) MakePlayer(conn *Connection) {
 	conn.PushToRoom(room)
-	conn.Player.SetAsPlayer()
 	room.Players.Add(conn)
 }
 
@@ -97,7 +94,6 @@ func (room *Room) MakePlayer(conn *Connection) {
 // add to observers slice and set flag inRoom true
 func (room *Room) MakeObserver(conn *Connection) {
 	conn.PushToRoom(room)
-	conn.Player.SetAsObserver()
 	room.Observers.Add(conn)
 }
 

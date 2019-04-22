@@ -539,20 +539,13 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	const place = "GameOnline"
 	var (
-		err      error
-		userID   int
-		userName string
-		ws       *websocket.Conn
+		err    error
+		userID int
+		ws     *websocket.Conn
+		user   *models.UserPublicInfo
 	)
 
 	if !h.Test {
-		if userName, err = h.getNameFromCookie(r, h.Cookie); err != nil {
-			rw.WriteHeader(http.StatusUnauthorized)
-			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-			utils.PrintResult(err, http.StatusUnauthorized, place)
-			return
-		}
-
 		if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 			rw.WriteHeader(http.StatusUnauthorized)
 			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
@@ -561,7 +554,6 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		rand.Seed(time.Now().UnixNano())
-		userName = utils.RandomString(16)
 		userID = rand.Intn(10000)
 	}
 
@@ -591,8 +583,14 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player := game.NewPlayer(userName, userID)
-	conn := game.NewConnection(ws, player, lobby)
+	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	conn := game.NewConnection(ws, user, lobby)
 	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
 	return

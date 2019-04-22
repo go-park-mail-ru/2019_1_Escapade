@@ -22,12 +22,12 @@ const (
 
 // PlayerAction combine player and his action
 type PlayerAction struct {
-	Player *Player `json:"player"`
-	Action int     `json:"action"`
+	Player int `json:"player"`
+	Action int `json:"action"`
 }
 
 // NewPlayerAction return new instance of PlayerAction
-func NewPlayerAction(player *Player, action int) *PlayerAction {
+func NewPlayerAction(player int, action int) *PlayerAction {
 	pa := &PlayerAction{
 		Player: player,
 		Action: action,
@@ -40,11 +40,10 @@ func (pa *PlayerAction) Free() {
 	if pa == nil {
 		return
 	}
-	pa.Player = nil
 	pa = nil
 }
 
 func (room *Room) addAction(conn *Connection, action int) {
-	pa := NewPlayerAction(conn.Player, action)
+	pa := NewPlayerAction(conn.ID(), action)
 	room.History = append(room.History, pa)
 }

@@ -31,7 +31,7 @@ func newOnlinePlayers(size int) *OnlinePlayers {
 	}
 }
 
-// NewConnections create instance of Connections
+// Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections {
@@ -39,10 +39,10 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			conn.room.Leave(conn)
 			continue
 		}
-		onlinePlayers.Players[i] = *conn.Player
+		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
+		conn.index = i
 	}
 	onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
-	onlinePlayers.Connections = onlinePlayers.Connections
 
 	return
 }
@@ -89,11 +89,11 @@ func (onlinePlayers *OnlinePlayers) Free() {
 // otherwise -1
 func (onlinePlayers *OnlinePlayers) Search(conn *Connection) (i int) {
 	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
-		return onlinePlayers.Players[i].ID == conn.GetPlayerID()
+		return onlinePlayers.Players[i].ID == conn.ID()
 	})
 }
 
-// Clear set slice to nil
+// Free free memory
 func (rooms *Rooms) Free() {
 	if rooms == nil {
 		return
@@ -106,13 +106,13 @@ func (rooms *Rooms) Free() {
 	rooms = nil
 }
 
-// Clear set slice to nil
+// Free free memory
 func (conns *Connections) Free() {
 	if conns == nil {
 		return
 	}
 	for _, conn := range conns.Get {
-		conn.Free(false)
+		conn.Free()
 	}
 	conns.Get = nil
 	conns.Capacity = 0
@@ -130,17 +130,17 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (onlinePlayers *OnlinePlayers) Add(conn *Connection) bool {
-	if onlinePlayers.enoughPlace() {
-		var i int
-		if i = onlinePlayers.Search(conn); i < 0 {
-			i = len(onlinePlayers.Connections)
-			onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
-		} else {
-			onlinePlayers.Connections[i] = conn
-		}
-		onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].GetPlayerID()
-		return true
+	var i int
+	if i = onlinePlayers.Search(conn); i >= 0 {
+		onlinePlayers.Connections[i] = conn
+	} else if onlinePlayers.enoughPlace() {
+		i = len(onlinePlayers.Connections)
+		onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
+	} else {
+		return false
 	}
+	onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
+	onlinePlayers.Connections[i].index = i
 	return false
 }
 
@@ -218,15 +218,14 @@ func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (rooms *Rooms) Add(room *Room) bool {
-	if rooms.enoughPlace() {
-		if i, _ := rooms.SearchRoom(room.Name); i < 0 {
-			rooms.Get = append(rooms.Get, room)
-		} else {
-			rooms.Get[i] = room
-		}
-		return true
+	if i, _ := rooms.SearchRoom(room.Name); i >= 0 {
+		rooms.Get[i] = room
+	} else if rooms.enoughPlace() {
+		rooms.Get = append(rooms.Get, room)
+	} else {
+		return false
 	}
-	return false
+	return true
 }
 
 // Remove delete element and decrement size if element
@@ -266,7 +265,7 @@ func (conns *Connections) Empty() bool {
 // Search find connection in slice and return its index if success
 // otherwise -1
 func (conns *Connections) Search(conn *Connection) (i int) {
-	return sliceIndex(len(conns.Get), func(i int) bool { return conns.Get[i].GetPlayerID() == conn.GetPlayerID() })
+	return sliceIndex(len(conns.Get), func(i int) bool { return conns.Get[i].ID() == conn.ID() })
 }
 
 // enoughPlace check that you can add more elements
@@ -277,15 +276,14 @@ func (conns *Connections) enoughPlace() bool {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (conns *Connections) Add(conn *Connection) bool {
-	if conns.enoughPlace() {
-		if i := conns.Search(conn); i < 0 {
-			conns.Get = append(conns.Get, conn)
-		} else {
-			conns.Get[i] = conn
-		}
-		return true
+	if i := conns.Search(conn); i >= 0 {
+		conns.Get[i] = conn
+	} else if conns.enoughPlace() {
+		conns.Get = append(conns.Get, conn)
+	} else {
+		return false
 	}
-	return false
+	return true
 }
 
 // Remove delete element and decrement size if element

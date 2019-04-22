@@ -125,6 +125,7 @@ func (field *Field) setMine(x, y int) {
 	}
 }
 
+// RandomFlags create random players flags
 func (field *Field) RandomFlags(players []Player) (cells []Cell) {
 	rand.Seed(time.Now().UnixNano())
 	cells = make([]Cell, len(players))

@@ -187,6 +187,7 @@ func (lobby *Lobby) Join(newConn *Connection) {
 	i, room := lobby.AllRooms.SearchPlayer(newConn)
 
 	if i > 0 {
+		fmt.Println("RecoverPlayer")
 		room.RecoverPlayer(i, newConn)
 		return // found
 	}
@@ -208,7 +209,7 @@ func (lobby *Lobby) Join(newConn *Connection) {
 // Leave handle user leave lobby
 func (lobby *Lobby) Leave(conn *Connection, message string) {
 
-	fmt.Println("disconnected -  #", conn.GetPlayerID())
+	fmt.Println("disconnected -  #", conn.ID)
 	//lobby.SendMessage(conn, message)
 
 	if !conn.InRoom() {

@@ -102,12 +102,12 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	}
 
 	// if user died
-	if conn.Player.Finished == true {
+	if !room.isAlive(conn) {
 		return false
 	}
 
 	// set who try open cell(for history)
-	cell.PlayerID = conn.GetPlayerID()
+	cell.PlayerID = conn.ID()
 	room.Field.OpenCell(cell)
 
 	room.sendField(room.all())
@@ -158,7 +158,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 	} else if rr.IsSend() {
 		done := false
 		if rr.Send.Cell != nil {
-			if conn.IsPlayerAlive() {
+			if room.isAlive(conn) {
 				done = room.cellHandle(conn, rr.Send.Cell)
 			}
 		} else if rr.Send.Action != nil {
