@@ -24,14 +24,16 @@ func main() {
 	const (
 		place    = "main"
 		confPath = "conf.json"
+		secretPath = "secret.json"
 	)
 
-	API, conf, err := api.GetHandler(confPath) // init.go
-	API.DB.RandomUsers(10)                     // create 10 users for tests
+	API, conf, err := api.GetHandler(confPath,secretPath) // init.go
+	
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
 	}
+	API.DB.RandomUsers(10)  // create 10 users for tests
 	r := router.GetRouter(API, conf)
 	port := router.GetPort(conf)
 

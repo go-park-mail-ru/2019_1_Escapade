@@ -45,7 +45,6 @@ func Auth(cc config.CookieConfig) HandleDecorator {
 				const place = "middleware/Auth"
 				utils.PrintResult(err, http.StatusUnauthorized, place)
 				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
-				rw.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 

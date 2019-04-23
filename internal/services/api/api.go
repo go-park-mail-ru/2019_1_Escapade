@@ -26,6 +26,7 @@ type Handler struct {
 	Cookie          config.CookieConfig
 	WebSocket       config.WebSocketSettings
 	GameConfig      config.GameConfig
+	AWS 						config.AwsPublicConfig
 	ReadBufferSize  int
 	WriteBufferSize int
 	Test            bool

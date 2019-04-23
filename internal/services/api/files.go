@@ -30,7 +30,7 @@ func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
 
 func (h *Handler) saveFile(key string, file multipart.File) (err error) {
 
-	sess := session.Must(session.NewSession(h.Storage.AwsConfig))
+	sess := session.Must(session.NewSession(h.AWS.AwsConfig))
 
 	// Create S3 service client
 	svc := s3.New(sess)
@@ -47,7 +47,10 @@ func (h *Handler) saveFile(key string, file multipart.File) (err error) {
 
 func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 
-	sess, err := session.NewSession(h.Storage.AwsConfig)
+	sess, err := session.NewSession(h.AWS.AwsConfig)
+	if err != nil {
+		return
+	}
 	svc := s3.New(sess)
 
 	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
@@ -59,7 +62,10 @@ func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 }
 
 func (h *Handler) deleteAvatar(key string) (err error) {
-	sess, err := session.NewSession(h.Storage.AwsConfig)
+	sess, err := session.NewSession(h.AWS.AwsConfig)
+	if err != nil {
+		return
+	}
 	svc := s3.New(sess)
 
 	// Delete the item

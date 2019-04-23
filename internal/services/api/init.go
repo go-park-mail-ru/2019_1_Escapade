@@ -20,6 +20,7 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		Storage:         c.Storage,
 		Cookie:          c.Cookie,
 		GameConfig:      c.Game,
+		AWS: 						 c.AWS,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
@@ -28,14 +29,14 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 }
 
 // GetHandler return created handler with database and configuration
-func GetHandler(confPath string) (handler *Handler,
+func GetHandler(confPath, secretPath string) (handler *Handler,
 	conf *config.Configuration, err error) {
 
 	var (
 		db *database.DataBase
 	)
 
-	if conf, err = config.Init(confPath); err != nil {
+	if conf, err = config.Init(confPath, secretPath); err != nil {
 		return
 	}
 	fmt.Println("confPath done")

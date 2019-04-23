@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 func (lobby *Lobby) greet(conn *Connection) {
@@ -33,7 +32,6 @@ func (lobby *Lobby) sendTAILPeople() {
 		Waiting: true,
 		Playing: true,
 	}
-	fmt.Println("sendTAILPeople began")
 	send := lobby.makeGetModel(get)
 	lobby.sendToAllInLobby(send)
 }

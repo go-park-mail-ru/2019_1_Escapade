@@ -17,13 +17,15 @@ type Request struct {
 
 // Lobby there are all rooms and users placed
 type Lobby struct {
+	Type string `json:"type,omitempty"`
+
 	AllRooms  *Rooms `json:"allRooms,omitempty"`
 	FreeRooms *Rooms `json:"freeRooms,omitempty"`
 
 	Waiting *Connections `json:"waiting,omitempty"`
 	Playing *Connections `json:"playing,omitempty"`
 
-	Context context.Context
+	Context context.Context `json:"-"`
 
 	// connection joined lobby
 	ChanJoin chan *Connection `json:"-"`
@@ -33,8 +35,6 @@ type Lobby struct {
 	chanBroadcast chan *Request
 
 	chanBreak chan interface{}
-
-	Type string `json:"type,omitempty"`
 
 	semJoin    chan bool
 	semRequest chan bool

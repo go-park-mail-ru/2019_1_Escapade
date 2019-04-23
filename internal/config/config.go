@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"time"
+	"os"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 )
@@ -14,6 +16,7 @@ type Configuration struct {
 	Cors      CORSConfig        `json:"cors"`
 	DataBase  DatabaseConfig    `json:"dataBase"`
 	Storage   FileStorageConfig `json:"storage"`
+	AWS   AwsPublicConfig `json:"aws"`
 	Game      GameConfig        `json:"game"`
 	Cookie    CookieConfig      `json:"cookie"`
 	WebSocket WebSocketConfig   `json:"websocket"`
@@ -54,7 +57,21 @@ type FileStorageConfig struct {
 	DefaultAvatar         string `json:"defaultAvatar"`
 	Region                string `json:"region"`
 	Endpoint              string `json:"endpoint"`
-	AwsConfig             *aws.Config
+}
+
+// AwsPublicConfig public aws information as region and endpoint
+type AwsPublicConfig struct {
+	AwsConfig	*aws.Config `json:"-"`
+	Region   	string `json:"region"`
+	Endpoint 	string `json:"endpoint"`
+}
+
+// AwsPrivateConfig private  aws information. Need another json.
+type AwsPrivateConfig struct {
+	AccessURL 	string `json:"accessUrl"`
+	AccessKey   string `json:"accessKey"`
+	SecretURL 	string `json:"secretUrl"`
+	SecretKey   string `json:"secretKey"`
 }
 
 // GameConfig set, how much rooms server can create and
@@ -92,17 +109,35 @@ type WebSocketSettings struct {
 }
 
 // Init load configuration file
-func Init(path string) (conf *Configuration, err error) {
+func Init(publicConfigPath, privateConfigPath string) (conf *Configuration, err error) {
 	conf = &Configuration{}
 	var data []byte
 
-	if data, err = ioutil.ReadFile(path); err != nil {
+	if data, err = ioutil.ReadFile(publicConfigPath); err != nil {
 		return
 	}
-	err = json.Unmarshal(data, conf)
-	conf.Storage.AwsConfig = &aws.Config{
-		Region:   aws.String("ru-msk"),
-		Endpoint: aws.String("https://hb.bizmrg.com")}
+	if err = json.Unmarshal(data, conf); err != nil {
+		return
+	}
 
+	conf.AWS.AwsConfig = &aws.Config{
+		Region:   aws.String(conf.AWS.Region),
+		Endpoint: aws.String(conf.AWS.Endpoint),
+	}
+
+	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
+		fmt.Println("no secret json found:", err.Error())
+		err = nil
+		return
+	}
+	var apc = &AwsPrivateConfig{}
+	if err = json.Unmarshal(data, apc); err != nil {
+		fmt.Println("wrong secret json:", err.Error())
+		err = nil
+		return
+	}
+	
+	os.Setenv(apc.AccessURL, apc.AccessKey)
+	os.Setenv(apc.SecretURL, apc.SecretKey)
 	return
 }

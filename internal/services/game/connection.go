@@ -23,6 +23,8 @@ const (
 
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
+	User *models.UserPublicInfo `json:"user,omitempty"`
+
 	ws           *websocket.Conn
 	lobby        *Lobby
 	room         *Room
@@ -30,7 +32,6 @@ type Connection struct {
 	both         bool
 
 	index int
-	User  *models.UserPublicInfo `json:"user,omitempty"`
 
 	cancel context.CancelFunc
 	send   chan []byte
