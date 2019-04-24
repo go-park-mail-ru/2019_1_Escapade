@@ -61,6 +61,8 @@ func (room *Room) copy(get *RoomGet) *Room {
 	sendRoom := &Room{
 		Name:   room.Name,
 		Status: room.Status,
+		Date:   room.Date,
+		Type:   room.Type,
 	}
 
 	if get.Players {

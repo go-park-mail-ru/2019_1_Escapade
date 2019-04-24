@@ -45,13 +45,10 @@ func (lobby *Lobby) Join(newConn *Connection) {
 	// 	<-lobby.semJoin
 	// }()
 
-	if lobby.recoverInLobby(newConn) {
-		return
-	}
-
 	lobby.addWaiter(newConn)
 
 	if lobby.recoverInRoom(newConn) {
+		lobby.send(lobby.Playing, AllExceptThat(newConn))
 		return
 	}
 
@@ -66,16 +63,20 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	fmt.Println("disconnected -  #", conn.ID())
 
 	if conn.both || !conn.InRoom() {
+		fmt.Println("lobby delete ", conn.ID())
 		who := lobby.Waiting.Search(conn)
 		lobby.Waiting.Remove(who)
 		lobby.sendTAILPeople()
 	}
 	if conn.both || conn.InRoom() {
-		who := lobby.Playing.Search(conn)
-		lobby.Playing.Remove(who)
-		if !conn.room.IsActive() {
-			conn.room.removeBeforeLaunch(conn)
-		}
+		fmt.Println("room delete ", conn.ID())
+		// who := lobby.Playing.Search(conn)
+		// lobby.Playing.Remove(who)
+		// if !conn.room.IsActive() {
+		// 	conn.room.removeBeforeLaunch(conn)
+		// } else {
+		// 	conn.room.removeDuringGame(conn)
+		// }
 		conn.room.addAction(conn, ActionDisconnect)
 		conn.room.sendHistory(conn.room.All)
 	}

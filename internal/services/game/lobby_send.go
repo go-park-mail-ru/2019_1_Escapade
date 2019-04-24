@@ -39,6 +39,7 @@ func (lobby *Lobby) sendTAILPeople() {
 
 func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
 	sendLobby := &Lobby{}
+	sendLobby.Type = lobby.Type
 	if get.AllRooms {
 		sendLobby.AllRooms = lobby.AllRooms
 	}

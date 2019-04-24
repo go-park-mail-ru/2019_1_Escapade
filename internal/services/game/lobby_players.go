@@ -5,41 +5,30 @@ import (
 )
 
 func (lobby *Lobby) addWaiter(newConn *Connection) {
-	lobby.Waiting.Add(newConn)
+	fmt.Println("addWaiter called")
+	lobby.Waiting.Add(newConn, false)
 	lobby.greet(newConn)
 }
 
 func (lobby *Lobby) addPlayer(newConn *Connection, room *Room) {
-	lobby.Playing.Add(newConn)
+	fmt.Println("addPlayer called")
+	lobby.Playing.Add(newConn, false)
 	room.greet(newConn)
 }
 
 func (lobby *Lobby) waiterToPlayer(newConn *Connection, room *Room) {
+	fmt.Println("waiterToPlayer called")
 	who := lobby.Waiting.Search(newConn)
 	lobby.Waiting.Remove(who)
 	lobby.addPlayer(newConn, room)
 }
 
 func (lobby *Lobby) playerToWaiter(conn *Connection) {
-	who := lobby.Waiting.Search(conn)
+	fmt.Println("playerToWaiter called")
+	who := lobby.Playing.Search(conn)
 	lobby.Playing.Remove(who)
 	lobby.addWaiter(conn)
 	conn.PushToLobby()
-}
-
-func (lobby *Lobby) recoverInLobby(newConn *Connection) bool {
-	who := lobby.Waiting.Search(newConn)
-
-	if who >= 0 {
-		fmt.Println("we found you in lobby!")
-		foundConn := lobby.Waiting.Get[who]
-		lobby.Waiting.Remove(who)
-		//foundConn.SendInformation([]byte("Another connection found"))
-		foundConn.Kill("Another connection found", true)
-		lobby.addWaiter(newConn)
-		return true
-	}
-	return false
 }
 
 func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
@@ -48,7 +37,7 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
 
 	if i > 0 {
 		fmt.Println("we found you in game!")
-		room.RecoverPlayer(i, newConn)
+		room.RecoverPlayer(newConn)
 		return true
 	}
 

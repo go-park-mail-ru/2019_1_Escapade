@@ -3,20 +3,10 @@ package game
 import "fmt"
 
 // RecoverPlayer call it in lobby.join if player disconnected
-func (room *Room) RecoverPlayer(i int, newConn *Connection) {
-
-	oldConn := room.Players.Connections[i]
-
-	if !oldConn.disconnected {
-		oldConn.Kill("Another connection found", true)
-		//oldConn.SendInformation([]byte("Another connection found"))
-	}
+func (room *Room) RecoverPlayer(newConn *Connection) {
 
 	// add connection as player
 	room.MakePlayer(newConn)
-
-	//room.Players.Connections[i] = newConn
-
 	room.addAction(newConn, ActionReconnect)
 	room.sendHistory(AllExceptThat(newConn))
 
@@ -26,13 +16,7 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 // RecoverObserver recover connection as observer
 func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
-	if !oldConn.disconnected {
-		oldConn.Kill("Another connection found", true)
-		//oldConn.SendInformation([]byte("Another connection found"))
-	}
-
 	room.MakeObserver(newConn)
-
 	room.addAction(newConn, ActionReconnect)
 	room.sendHistory(AllExceptThat(newConn))
 
@@ -91,7 +75,7 @@ func (room *Room) MakePlayer(conn *Connection) {
 	} else {
 		conn.both = true
 	}
-	room.Players.Add(conn)
+	room.Players.Add(conn, false)
 	conn.PushToRoom(room)
 }
 
@@ -104,7 +88,7 @@ func (room *Room) MakeObserver(conn *Connection) {
 	} else {
 		conn.both = true
 	}
-	room.Observers.Add(conn)
+	room.Observers.Add(conn, false)
 	conn.PushToRoom(room)
 }
 

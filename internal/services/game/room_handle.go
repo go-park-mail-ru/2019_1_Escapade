@@ -190,6 +190,7 @@ func (room *Room) startGame() {
 func (room *Room) finishGame() {
 	go room.lobby.roomFinish(room)
 
+	fmt.Println("We finish room!")
 	room.chanFinish <- nil
 	room.Status = StatusFinished
 	for _, player := range room.Players.Players {

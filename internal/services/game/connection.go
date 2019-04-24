@@ -82,6 +82,7 @@ func (conn *Connection) Free() {
 	// resources are cleared, but pointer alive, so we only make pointer = nil
 	if conn.disconnected {
 		conn = nil
+		return
 	}
 	conn.ws.Close()
 	close(conn.send)

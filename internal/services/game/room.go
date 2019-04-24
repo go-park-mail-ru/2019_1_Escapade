@@ -89,6 +89,11 @@ back to lobby
 get lobby all info
 {"send":null,"get":{"allRooms":true,"freeRooms":true,"waiting":true,"playing":true}}
 
+	Players   bool `json:"players"`
+	Observers bool `json:"observers"`
+	Field     bool `json:"field"`
+	History   bool `json:"history"`
+{"send":null,"get":{"players":true,"observers":true,"field":true,"history":true}}
 
 */
 
