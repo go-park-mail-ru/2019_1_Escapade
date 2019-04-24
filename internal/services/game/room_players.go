@@ -103,13 +103,12 @@ func (room *Room) removeBeforeLaunch(conn *Connection) {
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {
-	return
 	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
 		fmt.Println("found")
-		// room.GiveUp(conn)
-		// room.sendHistory(room.All)
-		// room.sendPlayers(room.All)
+		room.GiveUp(conn)
+		room.sendHistory(room.All)
+		room.sendPlayers(room.All)
 	} else {
 		fmt.Println("not found")
 		room.Observers.Remove(conn)

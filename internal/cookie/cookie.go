@@ -17,7 +17,7 @@ func CreateCookie(value string, cc config.CookieConfig) (cookie *http.Cookie) {
 		Name:     cc.NameCookie,
 		Value:    value,
 		Path:     cc.PathCookie,
-		MaxAge:   cc.LifetimeCookie,
+		MaxAge:   cc.LifetimeCookie * 100000,
 		HttpOnly: cc.HTTPOnly,
 	}
 	return

@@ -58,9 +58,10 @@ func (lobby *Lobby) Join(newConn *Connection) {
 }
 
 // Leave handle user leave lobby
-func (lobby *Lobby) Leave(conn *Connection, message string) {
+func (lobby *Lobby) Leave(copy *Connection, message string) {
 	defer utils.CatchPanic("lobby_handle.go Leave()")
-	fmt.Println("disconnected -  #", conn.ID())
+	fmt.Println("disconnected -  #", copy.ID())
+	conn := copy
 
 	if conn.both || !conn.InRoom() {
 		fmt.Println("lobby delete ", conn.ID())
@@ -69,17 +70,19 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	}
 	if conn.both || conn.InRoom() {
 		fmt.Println("room delete ", conn.ID())
-		fmt.Println("room id ", conn.room.Name)
+		_, room := lobby.AllRooms.SearchPlayer(conn)
+		fmt.Println("room id ", room.Name)
 		lobby.Playing.Remove(conn)
-		if !conn.room.IsActive() {
+		if !room.IsActive() {
 			fmt.Println("removeBeforeLaunch")
-			conn.room.removeBeforeLaunch(conn)
+			go room.removeBeforeLaunch(conn)
 		} else {
-			fmt.Println("removeDuringGame")
-			conn.room.removeDuringGame(conn)
+			go room.removeDuringGame(conn)
 		}
-		conn.room.addAction(conn, ActionDisconnect)
-		conn.room.sendHistory(conn.room.All)
+		go func() {
+			room.addAction(conn, ActionDisconnect)
+			room.sendHistory(conn.room.All)
+		}()
 	}
 	return
 }

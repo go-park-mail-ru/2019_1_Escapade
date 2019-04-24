@@ -225,7 +225,9 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 // SendInformation send info
 func (conn *Connection) SendInformation(bytes []byte) {
 	if !conn.disconnected {
+		fmt.Println("can send!")
 		conn.send <- bytes
+		fmt.Println("he did!")
 	}
 }
 
@@ -233,6 +235,7 @@ func (conn *Connection) SendInformation(bytes []byte) {
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
+		fmt.Println("done wait!")
 		utils.CatchPanic("connection.go sendGroupInformation()")
 	}()
 	conn.SendInformation(bytes)
