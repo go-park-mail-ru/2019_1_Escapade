@@ -19,22 +19,29 @@ func (lobby *Lobby) SendMessage(conn *Connection, message string) {
 }
 
 // send to all in lobby
-func (lobby *Lobby) sendTAILRooms() {
+func (lobby *Lobby) sendAllRooms(predicate SendPredicate) {
 	get := &LobbyGet{
-		AllRooms:  true,
-		FreeRooms: true,
+		AllRooms: true,
 	}
 	model := lobby.makeGetModel(get)
-	lobby.send(model, All)
+	lobby.send(model, predicate)
 }
 
-func (lobby *Lobby) sendTAILPeople() {
+func (lobby *Lobby) sendWaiting(predicate SendPredicate) {
+	get := &LobbyGet{
+		Waiting: true,
+	}
+	model := lobby.makeGetModel(get)
+	lobby.send(model, predicate)
+}
+
+func (lobby *Lobby) sendPlaying(predicate SendPredicate) {
 	get := &LobbyGet{
 		Waiting: true,
 		Playing: true,
 	}
 	model := lobby.makeGetModel(get)
-	lobby.send(model, All)
+	lobby.send(model, predicate)
 }
 
 func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {

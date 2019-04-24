@@ -52,7 +52,7 @@ func (lobby *Lobby) Join(newConn *Connection) {
 		return
 	}
 
-	lobby.send(lobby.Waiting, AllExceptThat(newConn))
+	lobby.sendWaiting(AllExceptThat(newConn))
 
 	newConn.debug("new waiter")
 }
@@ -64,19 +64,20 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 
 	if conn.both || !conn.InRoom() {
 		fmt.Println("lobby delete ", conn.ID())
-		who := lobby.Waiting.Search(conn)
-		lobby.Waiting.Remove(who)
-		lobby.sendTAILPeople()
+		lobby.Waiting.Remove(conn)
+		lobby.sendWaiting(AllExceptThat(conn))
 	}
 	if conn.both || conn.InRoom() {
 		fmt.Println("room delete ", conn.ID())
-		// who := lobby.Playing.Search(conn)
-		// lobby.Playing.Remove(who)
-		// if !conn.room.IsActive() {
-		// 	conn.room.removeBeforeLaunch(conn)
-		// } else {
-		// 	conn.room.removeDuringGame(conn)
-		// }
+		fmt.Println("room id ", conn.room.Name)
+		lobby.Playing.Remove(conn)
+		if !conn.room.IsActive() {
+			fmt.Println("removeBeforeLaunch")
+			conn.room.removeBeforeLaunch(conn)
+		} else {
+			fmt.Println("removeDuringGame")
+			conn.room.removeDuringGame(conn)
+		}
 		conn.room.addAction(conn, ActionDisconnect)
 		conn.room.sendHistory(conn.room.All)
 	}
@@ -117,6 +118,7 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 	defer func() {
 		<-lobby.semRequest
 	}()
+	conn.debug("sem throw")
 
 	if lr.IsGet() {
 		lobby.requestGet(conn, lr)
@@ -138,6 +140,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		return
 	}
 	if rs.Name == "create" {
+		conn.debug("try create")
 		room := lobby.createRoom(rs)
 		done = room != nil
 		if done {

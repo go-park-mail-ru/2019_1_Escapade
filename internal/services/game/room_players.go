@@ -103,18 +103,19 @@ func (room *Room) removeBeforeLaunch(conn *Connection) {
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {
-	i := room.Players.Search(conn)
+	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
-		room.GiveUp(conn)
-		room.sendHistory(room.All)
-		room.sendPlayers(room.All)
+		fmt.Println("found")
+		// room.GiveUp(conn)
+		// room.sendHistory(room.All)
+		// room.sendPlayers(room.All)
 	} else {
-
-		i := room.Observers.Search(conn)
-		room.Observers.Remove(i)
+		fmt.Println("not found")
+		room.Observers.Remove(conn)
 		room.sendObservers(room.All)
 	}
 	if room.Players.Empty() {
+		conn.debug("It is empty!")
 		room.Close()
 		conn.debug("We closed room :С")
 	}

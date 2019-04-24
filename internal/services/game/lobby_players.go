@@ -18,15 +18,13 @@ func (lobby *Lobby) addPlayer(newConn *Connection, room *Room) {
 
 func (lobby *Lobby) waiterToPlayer(newConn *Connection, room *Room) {
 	fmt.Println("waiterToPlayer called")
-	who := lobby.Waiting.Search(newConn)
-	lobby.Waiting.Remove(who)
+	lobby.Waiting.Remove(newConn)
 	lobby.addPlayer(newConn, room)
 }
 
 func (lobby *Lobby) playerToWaiter(conn *Connection) {
 	fmt.Println("playerToWaiter called")
-	who := lobby.Playing.Search(conn)
-	lobby.Playing.Remove(who)
+	lobby.Playing.Remove(conn)
 	lobby.addWaiter(conn)
 	conn.PushToLobby()
 }

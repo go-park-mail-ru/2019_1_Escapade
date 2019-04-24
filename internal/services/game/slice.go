@@ -88,9 +88,15 @@ func (onlinePlayers *OnlinePlayers) Free() {
 
 // Search find connection in slice and return its index if success
 // otherwise -1
-func (onlinePlayers *OnlinePlayers) Search(conn *Connection) (i int) {
+func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) {
 	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
 		return onlinePlayers.Players[i].ID == conn.ID()
+	})
+}
+
+func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (i int) {
+	return sliceIndex(len(onlinePlayers.Connections), func(i int) bool {
+		return onlinePlayers.Connections[i].ID() == conn.ID()
 	})
 }
 
@@ -133,12 +139,13 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 // if element not exists it will be create, otherwise it will change its value
 func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	var i int
-	if i = onlinePlayers.Search(conn); i >= 0 {
+	if i = onlinePlayers.SearchConnection(conn); i >= 0 {
 		oldConn := onlinePlayers.Connections[i]
 		if kill && !oldConn.disconnected {
 			oldConn.Kill("Another connection found", true)
 		}
 		onlinePlayers.Connections[i] = conn
+		i = oldConn.index
 	} else if onlinePlayers.enoughPlace() {
 		i = len(onlinePlayers.Connections)
 		onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
@@ -154,7 +161,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 // exists in map
 func (onlinePlayers *OnlinePlayers) Remove(conn *Connection) {
 	size := len(onlinePlayers.Connections)
-	i := onlinePlayers.Search(conn)
+	i := onlinePlayers.SearchConnection(conn)
 	if i < 0 {
 		fmt.Println("cant found", i, size)
 		return
@@ -192,7 +199,7 @@ func (rooms *Rooms) SearchRoom(name string) (i int, room *Room) {
 // otherwise nil
 func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) {
 	for _, room := range rooms.Get {
-		i := room.Players.Search(new)
+		i := room.Players.SearchIndexPlayer(new)
 		// cant found
 		if i < 0 {
 			continue
@@ -300,7 +307,8 @@ func (conns *Connections) Add(conn *Connection, kill bool) bool {
 
 // Remove delete element and decrement size if element
 // exists in map
-func (conns *Connections) Remove(i int) {
+func (conns *Connections) Remove(conn *Connection) {
+	i := conns.Search(conn)
 	if i < 0 {
 		return
 	}
