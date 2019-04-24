@@ -7,6 +7,7 @@ import (
 
 	"escapade/internal/config"
 	"escapade/internal/models"
+	"escapade/internal/utils"
 
 	"context"
 
@@ -45,6 +46,7 @@ func (conn *Connection) PushToRoom(room *Room) {
 // PushToLobby set field 'room' to nil
 func (conn *Connection) PushToLobby() {
 	conn.room = nil
+	conn.both = false
 }
 
 // IsConnected check player isnt disconnected
@@ -52,21 +54,39 @@ func (conn *Connection) IsConnected() bool {
 	return conn.disconnected == false
 }
 
+// dirty make connection dirty. it make connection ID
+// -1 and when connection try to leave lobby, lobby will not
+// delete this connections from list, cause it will not find
+// anybody with such id
+func (conn *Connection) dirty() {
+	conn.User.ID = -1
+}
+
 // Kill call context.CancFunc, that finish goroutines of
 // writer and reader and free connection memory
-func (conn *Connection) Kill(message string) {
+func (conn *Connection) Kill(message string, makeDirty bool) {
 	conn.SendInformation([]byte(message))
-	conn.disconnected = true
+	if makeDirty {
+		conn.dirty()
+	}
 	conn.cancel()
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
 func (conn *Connection) Free() {
-	if conn == nil || conn.disconnected {
+	if conn == nil {
 		return
 	}
-	//conn.ws.Close()
+	// dont delete. conn = nil make pointer nil, but other pointers
+	// arent nil. If conn.disconnected = true it is mean that all
+	// resources are cleared, but pointer alive, so we only make pointer = nil
+	if conn.disconnected {
+		conn = nil
+	}
+	conn.ws.Close()
 	close(conn.send)
+	// dont delete. conn = nil make pointer nil, but other pointers
+	// arent nil and we make 'conn.disconnected = true' for them
 	conn.disconnected = true
 	conn.lobby = nil
 	conn.room = nil
@@ -111,7 +131,7 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	all.Wait()
 	fmt.Println("conn finished")
-	conn.lobby.chanLeave <- conn
+	conn.lobby.Leave(conn, "finished")
 	conn.Free()
 }
 
@@ -119,6 +139,7 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
+		utils.CatchPanic("connection.go ReadConn()")
 	}()
 	conn.ws.SetReadLimit(wsc.MaxMessageSize)
 	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
@@ -141,7 +162,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				} else {
 					fmt.Println("expected error:" + err.Error())
 				}
-				conn.Kill("Client websocket died")
+				conn.Kill("Client websocket died", false)
 				return
 			}
 			conn.debug("read from conn")
@@ -162,11 +183,14 @@ func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettin
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
 func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
-	ticker := time.NewTicker(wsc.PingPeriod)
 	defer func() {
 		wg.Done()
-		ticker.Stop()
+		utils.CatchPanic("connection.go WriteConn()")
 	}()
+
+	ticker := time.NewTicker(wsc.PingPeriod)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-parent.Done():
@@ -206,7 +230,10 @@ func (conn *Connection) SendInformation(bytes []byte) {
 
 // sendGroupInformation send info with WaitGroup
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
-	defer wg.Done()
+	defer func() {
+		wg.Done()
+		utils.CatchPanic("connection.go sendGroupInformation()")
+	}()
 	conn.SendInformation(bytes)
 }
 

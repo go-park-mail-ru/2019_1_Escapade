@@ -11,30 +11,6 @@ func (room *Room) send(info interface{}, predicate SendPredicate) {
 		room.Observers.Get)
 }
 
-// allExceptThat is predicat to sendToAllInRoom
-// it will send everybody except selected one and disconnected
-func (room *Room) allExceptThat(me *Connection) func(conn *Connection) bool {
-	return func(conn *Connection) bool {
-		return conn != me && conn.disconnected == false && conn.room == room
-	}
-}
-
-// all is predicat to sendToAllInRoom
-// it will send everybody except disconnected
-func (room *Room) all() func(conn *Connection) bool {
-	return func(conn *Connection) bool {
-		return conn.disconnected == false && conn.room == room
-	}
-}
-
-// onlyThat is predicat to sendToAllInRoom
-// it will send to that, even it is disconnected
-func (room *Room) onlyThat(me *Connection) func(conn *Connection) bool {
-	return func(conn *Connection) bool {
-		return conn == me
-	}
-}
-
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayers(predicate SendPredicate) {
 	get := &RoomGet{
@@ -74,14 +50,6 @@ func (room *Room) sendHistory(predicate SendPredicate) {
 	room.send(send, predicate)
 }
 
-/*
-// sendTAIRPeople send only name and status to all in room
-func (room *Room) sendTAIRStatus() {
-	get := &RoomGet{}
-	send := room.makeGetModel(get)
-	room.sendToAllInRoom(send)
-}
-*/
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
 	bytes, _ := json.Marshal(room)

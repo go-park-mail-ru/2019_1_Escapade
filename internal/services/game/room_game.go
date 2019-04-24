@@ -1,29 +1,8 @@
 package game
 
 import (
-	"escapade/internal/models"
-
 	"fmt"
 )
-
-// NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
-	fmt.Println("NewRoom rs = ", *rs)
-	room := &Room{
-		Name:      name,
-		Status:    StatusPeopleFinding,
-		Players:   newOnlinePlayers(rs.Players),
-		Observers: NewConnections(rs.Observers),
-
-		History: make([]*PlayerAction, 0),
-
-		Type:   "Room",
-		lobby:  lobby,
-		Field:  NewField(rs),
-		killed: 0,
-	}
-	return room
-}
 
 // flagFound is called, when somebody find cell flag
 func (room *Room) flagFound(found *Cell) {
@@ -35,61 +14,64 @@ func (room *Room) flagFound(found *Cell) {
 	}
 }
 
+// isAlive check if connection is player and he is not died
 func (room *Room) isAlive(conn *Connection) bool {
 	return conn.index >= 0 && !room.Players.Players[conn.index].Finished
 }
 
+// setFinished increment amount of killed
 func (room *Room) setFinished(conn *Connection) {
 	room.Players.Players[conn.index].Finished = true
 	room.killed++
 }
 
-// kill make user die, decrement size and check for finish battle
+// kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
 	if room.isAlive(conn) {
 		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
-			// остановить таймеры в run!!!
-			room.lobby.roomFinish(room)
+			room.finishGame()
 		}
 		room.addAction(conn, action)
-		room.sendHistory(room.all())
-		conn.debug("give up. Check history")
+		room.sendHistory(room.All)
 	}
 }
 
-// use it when somebody exit
+// GiveUp kill connection, that call it
 func (room *Room) GiveUp(conn *Connection) {
 	room.kill(conn, ActionGiveUp)
 }
 
-// Close clear all resources. Call it when no
-//  observers and players inside
-func (room *Room) Free() {
-	room.Players.Free()
-	room.Observers.Free()
-	for _, action := range room.History {
-		action.Free()
+// setFlag handle user wanna set flag
+func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
+	// if user try set flag after game launch
+	if room.Status != StatusFlagPlacing {
+		return false
 	}
-	room.History = nil
-	room.Players.Free()
-	room.Field.Clear()
+
+	if !room.Field.IsInside(cell) {
+		return false
+	}
+
+	if !room.isAlive(conn) {
+		return false
+	}
+
+	room.Players.Flags[conn.index].X = cell.X
+	room.Players.Flags[conn.index].Y = cell.Y
+	return true
 }
 
-func (room *Room) Close() bool {
-	//.... leave all....
-	room.lobby.CloseRoom(room)
-	room.Free()
-	return false
-}
-
+// setFlags set players flags to field
+// call it if game has already begun
 func (room *Room) setFlags() {
 	for _, cell := range room.Players.Flags {
 		room.Field.SetFlag(cell.X, cell.Y, cell.PlayerID)
 	}
 }
 
+// fillField set flags and mines
 func (room *Room) fillField() {
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 

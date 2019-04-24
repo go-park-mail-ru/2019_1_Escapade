@@ -279,8 +279,10 @@ func (conns *Connections) enoughPlace() bool {
 // if element not exists it will be create, otherwise it will change its value
 func (conns *Connections) Add(conn *Connection) bool {
 	if i := conns.Search(conn); i >= 0 {
+		fmt.Println("change conn")
 		conns.Get[i] = conn
 	} else if conns.enoughPlace() {
+		fmt.Println("create new")
 		conns.Get = append(conns.Get, conn)
 	} else {
 		return false
@@ -290,12 +292,11 @@ func (conns *Connections) Add(conn *Connection) bool {
 
 // Remove delete element and decrement size if element
 // exists in map
-func (conns *Connections) Remove(conn *Connection) {
-	size := len(conns.Get)
-	i := conns.Search(conn)
+func (conns *Connections) Remove(i int) {
 	if i < 0 {
 		return
 	}
+	size := len(conns.Get)
 	conns.Get[i], conns.Get[size-1] = conns.Get[size-1], conns.Get[i]
 	conns.Get[size-1] = nil
 	conns.Get = conns.Get[:size-1]

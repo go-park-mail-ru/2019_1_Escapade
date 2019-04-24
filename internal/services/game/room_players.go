@@ -8,7 +8,8 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 	oldConn := room.Players.Connections[i]
 
 	if !oldConn.disconnected {
-		oldConn.Kill("Another connection found")
+		oldConn.Kill("Another connection found", true)
+		//oldConn.SendInformation([]byte("Another connection found"))
 	}
 
 	// add connection as player
@@ -17,7 +18,7 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 	//room.Players.Connections[i] = newConn
 
 	room.addAction(newConn, ActionReconnect)
-	room.sendHistory(room.allExceptThat(newConn))
+	room.sendHistory(AllExceptThat(newConn))
 
 	return
 }
@@ -26,13 +27,14 @@ func (room *Room) RecoverPlayer(i int, newConn *Connection) {
 func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
 	if !oldConn.disconnected {
-		oldConn.Kill("Another connection found")
+		oldConn.Kill("Another connection found", true)
+		//oldConn.SendInformation([]byte("Another connection found"))
 	}
 
 	room.MakeObserver(newConn)
 
 	room.addAction(newConn, ActionReconnect)
-	room.sendHistory(room.allExceptThat(newConn))
+	room.sendHistory(AllExceptThat(newConn))
 
 	return
 }
@@ -48,7 +50,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 
 	room.addAction(conn, ActionConnectAsObserver)
 
-	room.sendObservers(room.allExceptThat(conn))
+	room.sendObservers(AllExceptThat(conn))
 
 	return true
 }
@@ -71,7 +73,7 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	room.MakePlayer(conn)
 
 	room.addAction(conn, ActionConnectAsPlayer)
-	room.sendPlayers(room.all())
+	room.sendPlayers(room.All)
 
 	if !room.Players.enoughPlace() {
 		room.startFlagPlacing()
@@ -120,12 +122,13 @@ func (room *Room) removeDuringGame(conn *Connection) {
 	i := room.Players.Search(conn)
 	if i >= 0 {
 		room.GiveUp(conn)
-		room.sendHistory(room.all())
-		room.sendPlayers(room.all())
+		room.sendHistory(room.All)
+		room.sendPlayers(room.All)
 	} else {
 
-		room.Observers.Remove(conn)
-		room.sendObservers(room.all())
+		i := room.Observers.Search(conn)
+		room.Observers.Remove(i)
+		room.sendObservers(room.All)
 	}
 	if room.Players.Empty() {
 		room.Close()

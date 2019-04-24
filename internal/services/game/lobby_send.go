@@ -9,12 +9,13 @@ func (lobby *Lobby) greet(conn *Connection) {
 	conn.SendInformation(bytes)
 }
 
-func (lobby *Lobby) sendToWaiters(info interface{}, predicate SendPredicate) {
+func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting.Get)
 }
 
-func (lobby *Lobby) sendToAllInLobby(info interface{}) {
-	SendToConnections(info, All(), lobby.Waiting.Get)
+// SendMessage sends message to Connection from lobby
+func (lobby *Lobby) SendMessage(conn *Connection, message string) {
+	conn.SendInformation([]byte("Lobby message: " + message))
 }
 
 // send to all in lobby
@@ -23,8 +24,8 @@ func (lobby *Lobby) sendTAILRooms() {
 		AllRooms:  true,
 		FreeRooms: true,
 	}
-	send := lobby.makeGetModel(get)
-	lobby.sendToAllInLobby(send)
+	model := lobby.makeGetModel(get)
+	lobby.send(model, All)
 }
 
 func (lobby *Lobby) sendTAILPeople() {
@@ -32,8 +33,8 @@ func (lobby *Lobby) sendTAILPeople() {
 		Waiting: true,
 		Playing: true,
 	}
-	send := lobby.makeGetModel(get)
-	lobby.sendToAllInLobby(send)
+	model := lobby.makeGetModel(get)
+	lobby.send(model, All)
 }
 
 func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
