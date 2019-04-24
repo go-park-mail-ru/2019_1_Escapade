@@ -93,9 +93,9 @@ func (room *Room) MakeObserver(conn *Connection) {
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
+	fmt.Println("before removing", len(room.Players.Connections))
 	room.Players.Remove(conn)
-	fmt.Println("removing", len(room.Players.Connections))
-	conn.debug("you went back to lobby")
+	fmt.Println("after removing", len(room.Players.Connections))
 	if room.Players.Empty() {
 		room.Close()
 		conn.debug("We closed room :С")
@@ -103,6 +103,7 @@ func (room *Room) removeBeforeLaunch(conn *Connection) {
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {
+	return
 	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
 		fmt.Println("found")
