@@ -4,11 +4,28 @@ import (
 	"escapade/internal/config"
 	"escapade/internal/database"
 	"fmt"
+	"log"
 	"time"
+
+	session "escapade/internal/services/auth/proto"
+
+	"google.golang.org/grpc"
 )
 
 // Init creates Handler
 func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
+	grcpConn, err := grpc.Dial(
+		"127.0.0.1:3333",
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("cant connect to grpc")
+	}
+	//defer grcpConn.Close()
+
+	sessManager := session.NewAuthCheckerClient(grcpConn)
+	lobby := game.NewLobby(c.Game.RoomsCapacity,
+		c.Game.LobbyJoin, c.Game.LobbyRequest)
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -20,10 +37,12 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		Storage:         c.Storage,
 		Cookie:          c.Cookie,
 		GameConfig:      c.Game,
-		AWS: 						 c.AWS,
+		AWS:             c.AWS,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
+		Lobby:           lobby,
+		sessionManager:  sessManager,
 	}
 	return
 }

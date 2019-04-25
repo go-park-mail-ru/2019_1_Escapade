@@ -8,7 +8,7 @@ import (
 
 // Register check sql-injections and are email and name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -29,10 +29,10 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 		return
 	}
 
-	if err = db.createSession(tx, userID, sessionID); err != nil {
-		fmt.Println("database/register - fail creating Session")
-		return
-	}
+	// if err = db.createSession(tx, userID, sessionID); err != nil {
+	// 	fmt.Println("database/register - fail creating Session")
+	// 	return
+	// }
 
 	if err = db.createRecords(tx, userID); err != nil {
 		fmt.Println("database/register - fail creating Session")

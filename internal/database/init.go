@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"escapade/internal/config"
-	"escapade/internal/cookie"
 	"escapade/internal/models"
 	"escapade/internal/utils"
 	"fmt"
@@ -19,10 +18,12 @@ import (
 // If success - return instance of DataBase
 // if failed - return error
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
-
+	//"postgres://docker:docker@tcp(db:5432)/docker"
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
-		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
+		os.Setenv(CDB.URL, "dbname=docker host=localhost port=5432 user=docker password=docker sslmode=disable")
+		os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
+		os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
 	}
 
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
@@ -30,7 +31,6 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	var database *sql.DB
 	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
 		fmt.Println("database/Init cant open:" + err.Error())
-		return
 	}
 
 	db = &DataBase{
@@ -179,9 +179,9 @@ func (db *DataBase) RandomUsers(limit int) {
 			Name:     utils.RandomString(n),
 			Email:    utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		sessionID := cookie.CreateID(n)
-		fmt.Println("sessionID:", sessionID)
-		id, _ := db.Register(user, sessionID)
+		// sessionID := cookie.CreateID(n)
+		// fmt.Println("sessionID:", sessionID)
+		id, _ := db.Register(user)
 		for j := 0; j < 4; j++ {
 			record := &models.Record{
 				Score:       ran.Intn(1000000),

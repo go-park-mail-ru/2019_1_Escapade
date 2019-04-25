@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"escapade/internal/cookie"
 	"escapade/internal/database"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"escapade/internal/services/game"
 	"escapade/internal/utils"
+	"fmt"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -14,6 +16,8 @@ import (
 	"time"
 
 	"escapade/internal/config"
+
+	session "escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
@@ -30,6 +34,7 @@ type Handler struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 	Test            bool
+	sessionManager  session.AuthCheckerClient
 }
 
 // catch CORS preflight
@@ -58,11 +63,11 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetMyProfile"
 	var (
-		err    error
-		userID int
+		err   error
+		login string
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if login, err = h.getNameFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -84,9 +89,8 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	const place = "CreateUser"
 	var (
-		user      models.UserPrivateInfo
-		err       error
-		sessionID string
+		user models.UserPrivateInfo
+		err  error
 	)
 
 	if user, err = getUserWithAllFields(r); err != nil {
@@ -96,15 +100,24 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
-	if _, err = h.DB.Register(&user, sessionID); err != nil {
+	//sessionID = cookie.CreateID(h.Cookie.LengthCookie)
+	if _, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
+	ctx := context.Background()
+	sessID, err := h.sessionManager.Create(ctx,
+		&session.Session{
+			Login: user.Name,
+		})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	cookie.CreateAndSet(rw, h.Cookie, sessionID)
+	cookie.CreateAndSet(rw, h.Cookie, sessID.ID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusCreated, place)
