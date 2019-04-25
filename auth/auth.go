@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"
@@ -20,8 +21,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	redisConn, err := redis.DialURL("redis://user:@localhost:6379/0")
+	if os.Getenv("REDIS_URL") == "" {
+		os.Setenv("REDIS_URL", "redis://user:@localhost:6379/0")
+	}
+	redisConn, err := redis.DialURL(os.Getenv("REDIS_URL"))
 	if err != nil {
 		log.Fatalf("cant connect to redis")
 	}

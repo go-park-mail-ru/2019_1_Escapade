@@ -22,8 +22,6 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
 		os.Setenv(CDB.URL, "dbname=docker host=localhost port=5432 user=docker password=docker sslmode=disable")
-		os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
-		os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
 	}
 
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
@@ -65,7 +63,7 @@ func (db *DataBase) CreateTables() error {
     DROP TABLE IF EXISTS Record cascade;
 
 	CREATE TABLE Player (
-        id SERIAL PRIMARY KEY,
+		id SERIAL PRIMARY KEY,
         name varchar(30) NOT NULL unique,
         password varchar(30) NOT NULL,
         email varchar(30) NOT NULL unique,
@@ -74,17 +72,7 @@ func (db *DataBase) CreateTables() error {
         lastSeen    TIMESTAMPTZ
     );
 
-CREATE Table Session (
-    id SERIAL PRIMARY KEY,
-    player_id int NOT NULL,
-    session_code varchar(30) NOT NULL
-);
 
-ALTER TABLE Session
-ADD CONSTRAINT session_player
-   FOREIGN KEY (player_id)
-   REFERENCES Player(id)
-   ON DELETE CASCADE;
 
 --GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
 

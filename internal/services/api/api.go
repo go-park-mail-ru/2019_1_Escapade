@@ -30,7 +30,7 @@ type Handler struct {
 	Cookie          config.CookieConfig
 	WebSocket       config.WebSocketSettings
 	GameConfig      config.GameConfig
-	AWS 						config.AwsPublicConfig
+	AWS             config.AwsPublicConfig
 	ReadBufferSize  int
 	WriteBufferSize int
 	Test            bool
@@ -63,11 +63,11 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
 	const place = "GetMyProfile"
 	var (
-		err   error
-		login string
+		err    error
+		userID int
 	)
 
-	if login, err = h.getNameFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -89,8 +89,9 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	const place = "CreateUser"
 	var (
-		user models.UserPrivateInfo
-		err  error
+		user   models.UserPrivateInfo
+		err    error
+		userID int
 	)
 
 	if user, err = getUserWithAllFields(r); err != nil {
@@ -101,7 +102,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	//sessionID = cookie.CreateID(h.Cookie.LengthCookie)
-	if _, err = h.DB.Register(&user); err != nil {
+	if userID, err = h.DB.Register(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
@@ -110,7 +111,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	sessID, err := h.sessionManager.Create(ctx,
 		&session.Session{
-			Login: user.Name,
+			UserID: int32(userID),
 		})
 	if err != nil {
 		fmt.Println(err)
@@ -179,10 +180,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
-		user      models.UserPrivateInfo
-		err       error
-		sessionID string
-		found     *models.UserPublicInfo
+		user  models.UserPrivateInfo
+		err   error
+		found *models.UserPublicInfo
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -192,14 +192,23 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
-	if found, err = h.DB.Login(&user, sessionID); err != nil {
+	if found, err = h.DB.Login(&user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
-	cookie.CreateAndSet(rw, h.Cookie, sessionID)
+
+	ctx := context.Background()
+	sessionID, err := h.sessionManager.Create(ctx,
+		&session.Session{
+			UserID: int32(user.ID),
+		})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	cookie.CreateAndSet(rw, h.Cookie, sessionID.ID)
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -230,10 +239,13 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.Logout(sessionID); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
+	ctx := context.Background()
+	_, err = h.sessionManager.Delete(ctx,
+		&session.SessionID{
+			ID: sessionID,
+		})
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 

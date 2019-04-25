@@ -122,8 +122,23 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+// func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+// 	sessionID, _ := cookie.GetSessionCookie(r, cc)
+// 	ctx := context.Background()
+// 	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
+// 		ID: sessionID,
+// 	})
+// 	if err != nil {
+// 		return
+// 	}
+// 	username = sess.Login
+
+// 	return
+// }
+
+func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
+
 	ctx := context.Background()
 	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
 		ID: sessionID,
@@ -131,17 +146,7 @@ func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (us
 	if err != nil {
 		return
 	}
-	username = sess.Login
-
-	return
-}
-
-func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
-	sessionID, _ := cookie.GetSessionCookie(r, cc)
-
-	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
-		return
-	}
+	userID = int(sess.UserID)
 
 	return
 }

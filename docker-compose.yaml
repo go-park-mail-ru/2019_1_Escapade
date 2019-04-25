@@ -1,43 +1,39 @@
 version: '3'
 services:
 
-  db:
-    # For more details on configuring the Postgres Docker image, see:
-    #   https://hub.docker.com/_/postgres/
+  pg:
+    
     image: postgres:11.2-alpine
-
-    # Expose the default Postgres port on localhost
-    container_name: postgres
-
     environment:
       POSTGRES_USER: 'docker'
       POSTGRES_PASSWORD: 'docker'
       POSTGRES_DB: 'docker'
+  
+  redis:
+    image: redis
 
   api:
-    image: bigyin13/api-main
-    container_name: api
+    # image: bigyin13/api-main
+    build: .
     depends_on:
-      - "db"
+      - "pg"
+      - "auth"
     ports:
       - 3001:3001
     environment:
-      - DATABASE_URL=postgres://docker:docker@db:5432/docker?sslmode=disable
-      - AWS_ACCESS_KEY_ID=ciyXwq2TpzVGXEcQAqSdew
-      - AWS_SECRET_ACCESS_KEY=NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx
-    command: /bin/sh -c "./wait-for-it.sh db:5432 && ../api"
-    #command: ./api
-    volumes:
-      - .:/escapade
-    
+      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+      - AUTH_URL=auth:3333
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
+  
+  auth:
+    build:
+      dockerfile: auth.Dockerfile
+      context: .
+    depends_on:
+      - "redis"
+    ports:
+      - 3333:3333
+    environment:
+      - REDIS_URL=redis://:@redis:6379
+    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
 
-
-  # start_dependencies:
-  #   image: dadarek/wait-for-dependencies
-  #   depends_on:
-  #     - postgres
-  #   command: postgres:5432
-
-    # # Copy files from dbinit into the image so that they will be run on boot
-    # volumes:
-    #   - ./initdb:/docker-entrypoint-initdb.d

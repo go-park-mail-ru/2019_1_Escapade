@@ -4,6 +4,7 @@ import (
 	"escapade/internal/router"
 	"escapade/internal/services/api"
 	"escapade/internal/utils"
+	"fmt"
 
 	"net/http"
 )
@@ -18,12 +19,13 @@ import (
 // @BasePath /api/v1
 func main() {
 	const (
-		place    = "main"
-		confPath = "../conf.json"
+		place      = "main"
+		confPath   = "./conf.json"
+		secretPath = "./secret.json"
 	)
 
-	API, conf, err := api.GetHandler(confPath) // init.go
-	API.DB.RandomUsers(10)                     // create 10 users for tests
+	API, conf, err := api.GetHandler(confPath, secretPath) // init.go
+	API.DB.RandomUsers(10)                                 // create 10 users for tests
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
@@ -31,6 +33,7 @@ func main() {
 	r := router.GetRouter(API, conf)
 	port := router.GetPort(conf)
 
+	fmt.Println("API RUN")
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")
 	}

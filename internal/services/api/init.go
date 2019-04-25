@@ -5,6 +5,7 @@ import (
 	"escapade/internal/database"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	session "escapade/internal/services/auth/proto"
@@ -14,8 +15,12 @@ import (
 
 // Init creates Handler
 func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
+
+	if os.Getenv("AUTH_URL") == "" {
+		os.Setenv("AUTH_URL", "localhost:3333")
+	}
 	grcpConn, err := grpc.Dial(
-		"127.0.0.1:3333",
+		os.Getenv("AUTH_URL"),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
@@ -24,8 +29,6 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 	//defer grcpConn.Close()
 
 	sessManager := session.NewAuthCheckerClient(grcpConn)
-	lobby := game.NewLobby(c.Game.RoomsCapacity,
-		c.Game.LobbyJoin, c.Game.LobbyRequest)
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -41,7 +44,6 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
-		Lobby:           lobby,
 		sessionManager:  sessManager,
 	}
 	return
