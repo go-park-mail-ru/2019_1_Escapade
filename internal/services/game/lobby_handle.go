@@ -69,19 +69,17 @@ func (lobby *Lobby) Leave(copy *Connection, message string) {
 		lobby.sendWaiting(AllExceptThat(conn))
 	}
 	if conn.both || conn.InRoom() {
-		fmt.Println("room delete ", conn.ID())
-		_, room := lobby.AllRooms.SearchPlayer(conn)
-		fmt.Println("room id ", room.Name)
+		room := conn.room
 		lobby.Playing.Remove(conn)
 		if !room.IsActive() {
-			fmt.Println("removeBeforeLaunch")
-			go room.removeBeforeLaunch(conn)
+			room.removeBeforeLaunch(conn)
 		} else {
-			go room.removeDuringGame(conn)
+			room.removeDuringGame(conn)
 		}
+		id := conn.ID()
 		go func() {
-			room.addAction(conn, ActionDisconnect)
-			room.sendHistory(conn.room.All)
+			room.addAction(id, ActionDisconnect)
+			room.sendHistory(room.All)
 		}()
 	}
 	return

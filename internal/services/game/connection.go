@@ -69,6 +69,7 @@ func (conn *Connection) Kill(message string, makeDirty bool) {
 	if makeDirty {
 		conn.dirty()
 	}
+	conn.disconnected = true
 	conn.cancel()
 }
 
@@ -80,7 +81,7 @@ func (conn *Connection) Free() {
 	// dont delete. conn = nil make pointer nil, but other pointers
 	// arent nil. If conn.disconnected = true it is mean that all
 	// resources are cleared, but pointer alive, so we only make pointer = nil
-	if conn.disconnected {
+	if conn.lobby == nil {
 		conn = nil
 		return
 	}
@@ -92,6 +93,8 @@ func (conn *Connection) Free() {
 	conn.lobby = nil
 	conn.room = nil
 	conn = nil
+
+	fmt.Println("conn free memory")
 }
 
 // NewConnection creates a new connection
@@ -153,7 +156,6 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 		select {
 		case <-parent.Done():
 			fmt.Println("ReadConn done catched")
-			conn.ws.Close()
 			return
 		default:
 			_, message, err := conn.ws.ReadMessage()
@@ -196,7 +198,6 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 		select {
 		case <-parent.Done():
 			fmt.Println("WriteConn done catched")
-			conn.ws.Close()
 			return
 		case message, ok := <-conn.send:
 			if !ok {
@@ -225,9 +226,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 // SendInformation send info
 func (conn *Connection) SendInformation(bytes []byte) {
 	if !conn.disconnected {
-		fmt.Println("can send!")
 		conn.send <- bytes
-		fmt.Println("he did!")
 	}
 }
 
@@ -235,7 +234,6 @@ func (conn *Connection) SendInformation(bytes []byte) {
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
-		fmt.Println("done wait!")
 		utils.CatchPanic("connection.go sendGroupInformation()")
 	}()
 	conn.SendInformation(bytes)

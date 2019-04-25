@@ -69,7 +69,7 @@ func (room *Room) SameAs(another *Room) bool {
 /* Examples of json
 
 room search
-{"send":{"RoomSettings":{"name":"","width":12,"height":12,"players":2,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
+{"send":{"RoomSettings":{"name":"","width":12,"height":12,"players":3,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
 
 send cell
 {"send":{"cell":{"x":2,"y":1,"value":0,"PlayerID":0}, "action":null},"get":null}

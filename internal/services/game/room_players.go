@@ -7,7 +7,7 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 
 	// add connection as player
 	room.MakePlayer(newConn)
-	room.addAction(newConn, ActionReconnect)
+	room.addAction(newConn.ID(), ActionReconnect)
 	room.sendHistory(AllExceptThat(newConn))
 
 	return
@@ -17,7 +17,7 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
 	room.MakeObserver(newConn)
-	room.addAction(newConn, ActionReconnect)
+	room.addAction(newConn.ID(), ActionReconnect)
 	room.sendHistory(AllExceptThat(newConn))
 
 	return
@@ -32,7 +32,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 	}
 	room.MakeObserver(conn)
 
-	room.addAction(conn, ActionConnectAsObserver)
+	room.addAction(conn.ID(), ActionConnectAsObserver)
 
 	room.sendObservers(AllExceptThat(conn))
 
@@ -56,7 +56,7 @@ func (room *Room) addPlayer(conn *Connection) bool {
 
 	room.MakePlayer(conn)
 
-	room.addAction(conn, ActionConnectAsPlayer)
+	room.addAction(conn.ID(), ActionConnectAsPlayer)
 	room.sendPlayers(room.All)
 
 	if !room.Players.enoughPlace() {
@@ -103,19 +103,18 @@ func (room *Room) removeBeforeLaunch(conn *Connection) {
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {
+	fmt.Println("removeDuringGame")
 	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
-		fmt.Println("found")
 		room.GiveUp(conn)
+		room.Players.Remove(conn)
 		room.sendHistory(room.All)
 		room.sendPlayers(room.All)
 	} else {
-		fmt.Println("not found")
 		room.Observers.Remove(conn)
 		room.sendObservers(room.All)
 	}
 	if room.Players.Empty() {
-		conn.debug("It is empty!")
 		room.Close()
 		conn.debug("We closed room :С")
 	}

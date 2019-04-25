@@ -233,6 +233,7 @@ func (room *Room) run() {
 			room.finishGame()
 			return
 		case clock := <-ticker.C:
+			fmt.Println("clock!", room.Name)
 			room.sendMessage(clock.String()+" passed", room.All)
 		}
 	}

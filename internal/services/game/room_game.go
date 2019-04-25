@@ -21,7 +21,6 @@ func (room *Room) isAlive(conn *Connection) bool {
 
 // setFinished increment amount of killed
 func (room *Room) setFinished(conn *Connection) {
-	fmt.Println("kill him", conn.index)
 	room.Players.Players[conn.index].Finished = true
 	room.killed++
 }
@@ -29,15 +28,13 @@ func (room *Room) setFinished(conn *Connection) {
 // kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
-	fmt.Println("room kill")
 	if room.isAlive(conn) {
-		fmt.Println("alive")
 		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
 			fmt.Println("want finish")
 			room.finishGame()
 		}
-		room.addAction(conn, action)
+		room.addAction(conn.ID(), action)
 		room.sendHistory(room.All)
 	}
 }

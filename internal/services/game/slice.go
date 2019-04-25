@@ -166,7 +166,6 @@ func (onlinePlayers *OnlinePlayers) Remove(conn *Connection) {
 		fmt.Println("cant found", i, size)
 		return
 	}
-	fmt.Println("i and size,", i, size)
 	onlinePlayers.Connections[i], onlinePlayers.Connections[size-1] = onlinePlayers.Connections[size-1], onlinePlayers.Connections[i]
 	onlinePlayers.Connections[size-1] = nil
 	onlinePlayers.Connections = onlinePlayers.Connections[:size-1]
@@ -291,13 +290,11 @@ func (conns *Connections) enoughPlace() bool {
 func (conns *Connections) Add(conn *Connection, kill bool) bool {
 	if i := conns.Search(conn); i >= 0 {
 		oldConn := conns.Get[i]
-		fmt.Println("Add old")
 		if kill && !oldConn.disconnected {
 			oldConn.Kill("Another connection found", true)
 		}
 		conns.Get[i] = conn
 	} else if conns.enoughPlace() {
-		fmt.Println("create new")
 		conns.Get = append(conns.Get, conn)
 	} else {
 		return false
