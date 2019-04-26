@@ -140,7 +140,7 @@ func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	ctx := context.Background()
-	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
+	sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
 		ID: sessionID,
 	})
 	if err != nil {

@@ -17,6 +17,7 @@ import (
 
 	"escapade/internal/config"
 
+	clients "escapade/internal/clients"
 	session "escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/websocket"
@@ -34,7 +35,7 @@ type Handler struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 	Test            bool
-	sessionManager  session.AuthCheckerClient
+	Clients         *clients.Clients
 }
 
 // catch CORS preflight
@@ -109,7 +110,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := context.Background()
-	sessID, err := h.sessionManager.Create(ctx,
+	sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),
 		})
@@ -200,7 +201,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	sessionID, err := h.sessionManager.Create(ctx,
+	sessionID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(user.ID),
 		})
@@ -240,7 +241,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	_, err = h.sessionManager.Delete(ctx,
+	_, err = h.Clients.Session.Delete(ctx,
 		&session.SessionID{
 			ID: sessionID,
 		})

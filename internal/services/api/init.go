@@ -4,31 +4,16 @@ import (
 	"escapade/internal/config"
 	"escapade/internal/database"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
-	session "escapade/internal/services/auth/proto"
+	clients "escapade/internal/clients"
 
 	"google.golang.org/grpc"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
+func Init(DB *database.DataBase, c *config.Configuration, cl *clients.Clients) (handler *Handler) {
 
-	if os.Getenv("AUTH_URL") == "" {
-		os.Setenv("AUTH_URL", "localhost:3333")
-	}
-	grcpConn, err := grpc.Dial(
-		os.Getenv("AUTH_URL"),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		log.Fatalf("cant connect to grpc")
-	}
-	//defer grcpConn.Close()
-
-	sessManager := session.NewAuthCheckerClient(grcpConn)
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -44,17 +29,18 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
-		sessionManager:  sessManager,
+		Clients:         cl,
 	}
 	return
 }
 
 // GetHandler return created handler with database and configuration
-func GetHandler(confPath, secretPath string) (handler *Handler,
+func GetHandler(confPath, secretPath string, authConn *grpc.ClientConn) (handler *Handler,
 	conf *config.Configuration, err error) {
 
 	var (
-		db *database.DataBase
+		db          *database.DataBase
+		servClients *clients.Clients
 	)
 
 	if conf, err = config.Init(confPath, secretPath); err != nil {
@@ -65,8 +51,9 @@ func GetHandler(confPath, secretPath string) (handler *Handler,
 	if db, err = database.Init(conf.DataBase); err != nil {
 		return
 	}
-
 	fmt.Println("database done")
-	handler = Init(db, conf)
+	servClients = clients.Init(authConn)
+	fmt.Println("clients done")
+	handler = Init(db, conf, servClients)
 	return
 }

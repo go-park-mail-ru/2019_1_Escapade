@@ -5,8 +5,12 @@ import (
 	"escapade/internal/services/api"
 	"escapade/internal/utils"
 	"fmt"
+	"log"
+	"os"
 
 	"net/http"
+
+	"google.golang.org/grpc"
 )
 
 // ./swag init
@@ -24,8 +28,20 @@ func main() {
 		secretPath = "./secret.json"
 	)
 
-	API, conf, err := api.GetHandler(confPath, secretPath) // init.go
-	API.DB.RandomUsers(10)                                 // create 10 users for tests
+	if os.Getenv("AUTHSERVICE_URL") == "" {
+		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
+	}
+	authConn, err := grpc.Dial(
+		os.Getenv("AUTHSERVICE_URL"),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("Cant connect to auth service!")
+	}
+	defer authConn.Close()
+
+	API, conf, err := api.GetHandler(confPath, secretPath, authConn) // init.go
+	API.DB.RandomUsers(10)                                           // create 10 users for tests
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return

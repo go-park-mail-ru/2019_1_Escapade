@@ -14,7 +14,9 @@ services:
 
   api:
     # image: bigyin13/api-main
-    build: .
+    build:
+      dockerfile: ./api/Dockerfile
+      context: .
     depends_on:
       - "pg"
       - "auth"
@@ -22,12 +24,12 @@ services:
       - 3001:3001
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTH_URL=auth:3333
+      - AUTHSERVICE_URL=auth:3333
     command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
   
   auth:
     build:
-      dockerfile: auth.Dockerfile
+      dockerfile: ./auth/Dockerfile
       context: .
     depends_on:
       - "redis"
