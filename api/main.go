@@ -4,12 +4,12 @@ import (
 	"escapade/internal/router"
 	"escapade/internal/services/api"
 	"escapade/internal/utils"
-	"fmt"
 	"log"
 	"os"
 
 	"net/http"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -28,6 +28,33 @@ func main() {
 		secretPath = "./secret.json"
 	)
 
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal("Zap logger error:", err)
+	}
+	defer logger.Sync()
+
+	authConn := serviceConnectionsInit()
+	defer authConn.Close()
+
+	API, conf, err := api.GetHandler(confPath, secretPath, authConn) // init.go
+	API.DB.RandomUsers(10)                                           // create 10 users for tests
+	if err != nil {
+		utils.PrintResult(err, 0, "main")
+		return
+	}
+	r := router.GetRouter(API, conf, logger)
+	port := router.GetPort(conf)
+
+	logger.Info("Starting server",
+		zap.String("port", port))
+
+	if err = http.ListenAndServe(port, r); err != nil {
+		utils.PrintResult(err, 0, "main")
+	}
+}
+
+func serviceConnectionsInit() (authConn *grpc.ClientConn) {
 	if os.Getenv("AUTHSERVICE_URL") == "" {
 		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
 	}
@@ -38,19 +65,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cant connect to auth service!")
 	}
-	defer authConn.Close()
 
-	API, conf, err := api.GetHandler(confPath, secretPath, authConn) // init.go
-	API.DB.RandomUsers(10)                                           // create 10 users for tests
-	if err != nil {
-		utils.PrintResult(err, 0, "main")
-		return
-	}
-	r := router.GetRouter(API, conf)
-	port := router.GetPort(conf)
+	//Other micro services conns wiil be here
 
-	fmt.Println("API RUN")
-	if err = http.ListenAndServe(port, r); err != nil {
-		utils.PrintResult(err, 0, "main")
-	}
+	return
 }

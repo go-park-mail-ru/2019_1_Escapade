@@ -21,6 +21,9 @@ require (
 	github.com/swaggo/http-swagger v0.0.0-20190219123516-d2bf002bf65b
 	github.com/swaggo/swag v1.4.1
 	github.com/yuin/gopher-lua v0.0.0-20190206043414-8bfc7677f583 // indirect
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.9.1
 	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
 	golang.org/x/tools v0.0.0-20190410135722-7e5bf9270d70 // indirect
 	google.golang.org/grpc v1.20.1
