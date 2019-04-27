@@ -87,9 +87,33 @@ func (db *DataBase) GetUserIdBySessionID(sessionID string) (id int, err error) {
 	return
 }
 
+<<<<<<< HEAD
 // GetNameBySessionID gets name of Player from
 // relation Session, cause we know that user has session
 func (db *DataBase) GetUserIdByName(name string) (id int, err error) {
+=======
+// GetUsersPageAmount returns amount of rows in table Player
+// deleted on amount of rows in one page
+func (db *DataBase) GetUsersPageAmount(per_page int) (amount int, err error) {
+	sqlStatement := `SELECT count(1) FROM Player`
+	row := db.Db.QueryRow(sqlStatement)
+	if err = row.Scan(&amount); err != nil {
+		fmt.Println("GetUsersAmount failed")
+		return
+	}
+	if amount > db.PageUsers {
+		amount = db.PageUsers
+	}
+	amount = int(math.Ceil(float64(amount) / float64(per_page)))
+	return
+}
+
+// GetFullGamesInformation returns games, played by player with some name
+func (db *DataBase) GetFullGamesInformation(name string,
+	page int) (games []models.GameInformation, err error) {
+
+	size := db.PageGames
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 	sqlStatement := `
 	SELECT id
 	FROM Player

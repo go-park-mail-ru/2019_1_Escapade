@@ -7,6 +7,7 @@ import (
 	"escapade/internal/cookie"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -196,6 +197,23 @@ func getGameInformation(r *http.Request) (info *models.GameInformation, err erro
 	if err = json.NewDecoder(r.Body).Decode(info); err != nil {
 		err = re.ErrorInvalidJSON()
 	}
+
+	return
+}
+
+func getRecord(r *http.Request) (record models.Record, err error) {
+
+	if r.Body == nil {
+		err = re.ErrorNoBody()
+
+		return
+	}
+	defer r.Body.Close()
+	err = json.NewDecoder(r.Body).Decode(&record)
+	if err != nil {
+		fmt.Println("getRecordErr ", err.Error())
+	}
+	fmt.Println("getRecord ", record.Score, record.Time, record.Difficult)
 
 	return
 }

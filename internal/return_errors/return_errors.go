@@ -4,8 +4,31 @@ import "errors"
 
 // ErrorInvalidName call it, if client give you
 // 	invalid username
+<<<<<<< HEAD
 func ErrorInvalidUserID() error {
 	return errors.New("No such id")
+=======
+func ErrorHandshake() error {
+	return errors.New("HandshakeError")
+}
+
+// ErrorInvalidName call it, if client give you
+// 	invalid username
+func ErrorNotWebsocket() error {
+	return errors.New("Not a websocket")
+}
+
+// ErrorInvalidName call it, if client give you
+// 	invalid username
+func ErrorInvalidUserID() error {
+	return errors.New("No such id")
+}
+
+// ErrorInvalidName call it, if client give you
+// 	invalid username
+func ErrorInvalidName() error {
+	return errors.New("Invalid username")
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 }
 
 // ErrorInvalidNameOrEmail call it, if client give you

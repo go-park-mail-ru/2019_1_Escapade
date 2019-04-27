@@ -713,3 +713,63 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
+
+// GameOnline launch multiplayer
+func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
+	const place = "SaveRecords"
+	var (
+		err    error
+		userID int
+		record models.Record
+	)
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+	if record, err = getRecord(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+	if err = h.DB.UpdateRecords(userID, &record); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		sendErrorJSON(rw, err, place)
+		printResult(err, http.StatusBadRequest, place)
+		return
+	}
+}
+
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+	const place = "GetProfile"
+
+	var (
+		err       error
+		difficult int
+		user      *models.UserPublicInfo
+	)
+
+	difficult = h.getDifficult(r)
+
+	if userID, err = h.getUserIDFromCookie(r); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		sendErrorJSON(rw, re.ErrorAuthorization(), place)
+		printResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		sendErrorJSON(rw, re.ErrorServer(), place)
+		printResult(err, http.StatusInternalServerError, place)
+		return
+	}
+
+	sendSuccessJSON(rw, user, place)
+
+	rw.WriteHeader(http.StatusOK)
+	printResult(err, http.StatusOK, place)
+	return
+}

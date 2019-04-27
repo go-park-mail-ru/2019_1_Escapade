@@ -1,7 +1,11 @@
 package database
 
 import (
+<<<<<<< HEAD
 
+=======
+	"fmt"
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 	//
 	"database/sql"
 	"escapade/internal/models"
@@ -38,6 +42,7 @@ func (db *DataBase) updateRecords(tx *sql.Tx, id int,
 				WHEN score>$1 THEN score 
 				ELSE $1 
 			END),
+<<<<<<< HEAD
 			 time = (select 
 				CASE 
 					WHEN time<$2::interval THEN time 
@@ -67,6 +72,20 @@ func (db *DataBase) updateRecords(tx *sql.Tx, id int,
 			record.OnlineTotal, record.SingleWin,
 			record.OnlineWin, id, record.Difficult)
 	}
+=======
+			singleTotal = singleTotal + $3,
+			onlineTotal = onlineTotal + $4,
+			singleWin = singleWin + $5,
+			onlineWin = onlineWin + $6
+	WHERE player_id = $7 and difficult = $8
+	RETURNING id
+`
+	record.Fix()
+	fmt.Println("record.Score = ", record.Score)
+	_, err = tx.Exec(sqlStatement, record.Score, record.Time,
+		record.SingleTotal, record.OnlineTotal, record.SingleWin,
+		record.OnlineWin, id, record.Difficult)
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 
 	return
 }

@@ -152,6 +152,7 @@ func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicI
 
 	err = tx.Commit()
 	return
+<<<<<<< HEAD
 }
 
 // DeleteAccount deletes account
@@ -179,5 +180,8 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 	fmt.Println("database/DeleteAccount +")
 
 	err = tx.Commit()
+=======
+
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 	return
 }

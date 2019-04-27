@@ -154,6 +154,7 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *mode
 		&player.Email, &player.BestScore, &player.BestTime, &player.Difficult)
 	return
 }
+<<<<<<< HEAD
 
 func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
 	sqlStatement := `
@@ -168,3 +169,5 @@ func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error
 
 	return err
 }
+=======
+>>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
