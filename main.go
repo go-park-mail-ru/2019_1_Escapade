@@ -65,7 +65,7 @@ func main() {
 
 func serviceConnectionsInit() (authConn *grpc.ClientConn) {
 	if os.Getenv("AUTHSERVICE_URL") == "" {
-		os.Setenv("AUTHSERVICE_URL", "https://escapade-auth.herokuapp.com/")
+		os.Setenv("AUTHSERVICE_URL", "https://escapade-auth.herokuapp.com")
 		//os.Setenv("AUTHSERVICE_URL", "localhost:3333")
 	}
 	authConn, err := grpc.Dial(
