@@ -3,7 +3,6 @@ package session
 import (
 	"context"
 	session "escapade/internal/services/auth/proto"
-
 	"escapade/internal/utils"
 	"fmt"
 	"log"

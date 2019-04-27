@@ -38,12 +38,6 @@ type Handler struct {
 	Clients         *clients.Clients
 }
 
-var API *Handler
-
-func getAPI() *Handler {
-	return API
-}
-
 // catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
@@ -248,19 +242,17 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie.CreateAndSet(rw, h.Cookie, "")
-
 	ctx := context.Background()
 	_, err = h.Clients.Session.Delete(ctx,
 		&session.SessionID{
 			ID: sessionID,
 		})
 	if err != nil {
-		fmt.Println("cockie delete cant:", err.Error())
+		fmt.Println(err)
 		return
 	}
-	fmt.Println("cockie delete success")
 
+	cookie.CreateAndSet(rw, h.Cookie, "")
 	rw.WriteHeader(http.StatusOK)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusOK, place)
@@ -689,13 +681,14 @@ func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) getProfile(rw http.ResponseWriter, r *http.Request, userID int) {
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	const place = "GetProfile"
 
 	var (
 		err       error
 		difficult int
 		user      *models.UserPublicInfo
+		fileKey   string
 	)
 
 	difficult = h.getDifficult(r)
@@ -706,42 +699,19 @@ func (h *Handler) getProfile(rw http.ResponseWriter, r *http.Request, userID int
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
+	if fileKey, err = h.DB.GetImage(userID); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	URL, err := h.getURLToAvatar(fileKey)
+	user.PhotoURL = URL
 
 	utils.SendSuccessJSON(rw, user, place)
 
 	rw.WriteHeader(http.StatusOK)
 	utils.PrintResult(err, http.StatusOK, place)
-	return
-}
-
-func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
-	const place = "GetProfile"
-
-	var (
-		err       error
-		difficult int
-		user      *models.UserPublicInfo
-	)
-
-	difficult = h.getDifficult(r)
-
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
-	}
-
-	if user, err = h.DB.GetUser(userID, difficult); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		sendErrorJSON(rw, re.ErrorServer(), place)
-		printResult(err, http.StatusInternalServerError, place)
-		return
-	}
-
-	sendSuccessJSON(rw, user, place)
-
-	rw.WriteHeader(http.StatusOK)
-	printResult(err, http.StatusOK, place)
 	return
 }

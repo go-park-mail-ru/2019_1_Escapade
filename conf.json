@@ -1,7 +1,7 @@
 {
 	"server": {
 		"host": "http://localhost",
-		"port": ":3018",
+		"port": ":3011",
 		"readBufferSize": 1024,
 		"writeBufferSize": 1024
 	},
