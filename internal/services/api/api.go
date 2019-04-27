@@ -38,6 +38,12 @@ type Handler struct {
 	Clients         *clients.Clients
 }
 
+var API *Handler
+
+func getAPI() *Handler{
+	return API
+}
+
 // catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
@@ -110,6 +116,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "myvalues", user)
 	sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),

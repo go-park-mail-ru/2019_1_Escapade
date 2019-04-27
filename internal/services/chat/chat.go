@@ -1,9 +1,8 @@
-package session
+package chat
 
 import (
 	"context"
 	session "escapade/internal/services/auth/proto"
-
 	"escapade/internal/utils"
 	"fmt"
 	"log"
@@ -11,17 +10,18 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-type SessionManager struct {
-	redisConn redis.Conn
+type ChatManager struct {
+	Id int
 }
 
-func NewSessionManager(conn redis.Conn) *SessionManager {
-	return &SessionManager{
-		redisConn: conn,
+func NewChatManager(id int) *ChatManager {
+	return &ChatManager{
+		Id: id,
 	}
 }
 
-func (sm *SessionManager) Create(ctx context.Context, sess *session.Session) (sid *session.SessionID, err error) {
+/*
+func (sm *ChatManager) Create(ctx context.Context) (sid *session.SessionID, err error) {
 	fmt.Println("Creating sess for: ", sess.UserID)
 	sid = &session.SessionID{ID: utils.RandomString(10)}
 	result, err := redis.String(sm.redisConn.Do("SET", sid.ID, sess.UserID, "EX", 86400))
@@ -55,3 +55,4 @@ func (sm *SessionManager) Check(ctx context.Context, cookie *session.SessionID) 
 	sess = &session.Session{UserID: int32(userID)}
 	return
 }
+*/

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"escapade/internal/config"
 	"escapade/internal/router"
 	"escapade/internal/services/api"
 	"escapade/internal/utils"
@@ -21,6 +22,7 @@ import (
 
 // @host https://escapade-backend.herokuapp.com
 // @BasePath /api/v1
+
 func main() {
 	const (
 		place      = "main"
@@ -37,14 +39,21 @@ func main() {
 	authConn := serviceConnectionsInit()
 	defer authConn.Close()
 
-	API, conf, err := api.GetHandler(confPath, secretPath, authConn) // init.go
-	API.DB.RandomUsers(10)                                           // create 10 users for tests
+	var (
+		conf *config.Configuration
+	)
+
+	api.API, conf, err = api.GetHandler(confPath, secretPath, authConn) // init.go
+	api.API.DB.RandomUsers(10)                                              // create 10 users for tests
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
 	}
-	r := router.GetRouter(API, conf, logger)
+	r := router.GetRouter(api.API, conf, logger)
 	port := router.GetPort(conf)
+
+	//server := grpc.NewServer()
+	//session.RegisterAuthCheckerServer(server, sessMan.NewSessionManager(redisConn))
 
 	logger.Info("Starting server",
 		zap.String("port", port))
