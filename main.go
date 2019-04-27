@@ -44,7 +44,7 @@ func main() {
 	)
 
 	api.API, conf, err = api.GetHandler(confPath, secretPath, authConn) // init.go
-	api.API.DB.RandomUsers(10)                                              // create 10 users for tests
+	api.API.DB.RandomUsers(10)                                          // create 10 users for tests
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
@@ -65,7 +65,8 @@ func main() {
 
 func serviceConnectionsInit() (authConn *grpc.ClientConn) {
 	if os.Getenv("AUTHSERVICE_URL") == "" {
-		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
+		os.Setenv("AUTHSERVICE_URL", "https://escapade-auth.herokuapp.com/")
+		//os.Setenv("AUTHSERVICE_URL", "localhost:3333")
 	}
 	authConn, err := grpc.Dial(
 		os.Getenv("AUTHSERVICE_URL"),

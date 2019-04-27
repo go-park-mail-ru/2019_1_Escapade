@@ -248,17 +248,19 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie.CreateAndSet(rw, h.Cookie, "")
+
 	ctx := context.Background()
 	_, err = h.Clients.Session.Delete(ctx,
 		&session.SessionID{
 			ID: sessionID,
 		})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("cockie delete cant:", err.Error())
 		return
 	}
+	fmt.Println("cockie delete success")
 
-	cookie.CreateAndSet(rw, h.Cookie, "")
 	rw.WriteHeader(http.StatusOK)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusOK, place)
