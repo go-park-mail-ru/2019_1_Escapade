@@ -7,6 +7,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func (db *DataBase) deleteSession(sessionCode string) error {
+	sqlStatement := `DELETE From Session where session_code=$1`
+	_, err := db.Db.Exec(sqlStatement, sessionCode)
+	return err
+}
+
 func (db *DataBase) deleteAllUserSessions(tx *sql.Tx, username string) (err error) {
 	var id int
 	if id, err = db.GetPlayerIDbyName(username); err != nil {

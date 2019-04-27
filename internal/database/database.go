@@ -18,6 +18,12 @@ type DataBase struct {
 	PageUsers int
 }
 
+// Logout delete session_id row  from session table
+func (db *DataBase) Logout(sessionCode string) (err error) {
+	err = db.deleteSession(sessionCode)
+	return
+}
+
 // PostImage set filename of avatar to relation Player
 func (db *DataBase) PostImage(filename string, userID int) (err error) {
 	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE id = $2;`

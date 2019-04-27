@@ -5,15 +5,10 @@ import (
 	"escapade/internal/database"
 	"fmt"
 	"time"
-
-	clients "escapade/internal/clients"
-
-	"google.golang.org/grpc"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, c *config.Configuration, cl *clients.Clients) (handler *Handler) {
-
+func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -25,22 +20,20 @@ func Init(DB *database.DataBase, c *config.Configuration, cl *clients.Clients) (
 		Storage:         c.Storage,
 		Cookie:          c.Cookie,
 		GameConfig:      c.Game,
-		AWS:             c.AWS,
+		AWS: 						 c.AWS,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
-		Clients:         cl,
 	}
 	return
 }
 
 // GetHandler return created handler with database and configuration
-func GetHandler(confPath, secretPath string, authConn *grpc.ClientConn) (handler *Handler,
+func GetHandler(confPath, secretPath string) (handler *Handler,
 	conf *config.Configuration, err error) {
 
 	var (
-		db          *database.DataBase
-		servClients *clients.Clients
+		db *database.DataBase
 	)
 
 	if conf, err = config.Init(confPath, secretPath); err != nil {
@@ -51,9 +44,8 @@ func GetHandler(confPath, secretPath string, authConn *grpc.ClientConn) (handler
 	if db, err = database.Init(conf.DataBase); err != nil {
 		return
 	}
+
 	fmt.Println("database done")
-	servClients = clients.Init(authConn)
-	fmt.Println("clients done")
-	handler = Init(db, conf, servClients)
+	handler = Init(db, conf)
 	return
 }

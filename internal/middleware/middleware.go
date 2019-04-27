@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"escapade/internal/config"
 	cookie "escapade/internal/cookie"
 	"escapade/internal/cors"
@@ -9,13 +8,10 @@ import (
 	"escapade/internal/utils"
 
 	"net/http"
-
-	"go.uber.org/zap"
 )
 
 // HandleDecorator middleware
 type HandleDecorator func(http.HandlerFunc) http.HandlerFunc
-type ApplyMiddleware func(handler http.HandlerFunc, decorators ...HandleDecorator) http.HandlerFunc
 
 // CORS Access-Control-Allow-Origin
 func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
@@ -67,28 +63,12 @@ func Recover(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-//Log
-func Logger(next http.HandlerFunc, logger *zap.Logger) http.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request) {
-
-		newLogger := logger.With(zap.String("method", r.Method), zap.String("url", r.URL.Path))
-		newLogger.Info("Request Started")
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, "logger", newLogger)
-		next(rw, r.WithContext(ctx))
-		newLogger.Info("Request Ended")
-	}
-}
-
 // ApplyMiddleware apply middleware
-func ApplyMiddlewareLogger(logger *zap.Logger) ApplyMiddleware {
-	return func(handler http.HandlerFunc,
-		decorators ...HandleDecorator) http.HandlerFunc {
-		handler = Recover(handler)
-		for _, m := range decorators {
-			handler = m(handler)
-		}
-		handler = Logger(handler, logger)
-		return handler
+func ApplyMiddleware(handler http.HandlerFunc,
+	decorators ...HandleDecorator) http.HandlerFunc {
+	handler = Recover(handler)
+	for _, m := range decorators {
+		handler = m(handler)
 	}
+	return handler
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"escapade/internal/config"
 	"escapade/internal/cookie"
@@ -9,8 +8,6 @@ import (
 	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
-
-	session "escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/mux"
 )
@@ -122,31 +119,22 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-// func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
-// 	sessionID, _ := cookie.GetSessionCookie(r, cc)
-// 	ctx := context.Background()
-// 	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
-// 		ID: sessionID,
-// 	})
-// 	if err != nil {
-// 		return
-// 	}
-// 	username = sess.Login
+func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
-// 	return
-// }
+	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
+		return
+	}
+
+	return
+}
 
 func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
-	ctx := context.Background()
-	sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
-		ID: sessionID,
-	})
-	if err != nil {
+	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
 		return
 	}
-	userID = int(sess.UserID)
 
 	return
 }

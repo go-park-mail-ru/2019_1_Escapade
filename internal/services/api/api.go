@@ -1,14 +1,12 @@
 package api
 
 import (
-	"context"
 	"escapade/internal/cookie"
 	"escapade/internal/database"
 	"escapade/internal/models"
 	re "escapade/internal/return_errors"
 	"escapade/internal/services/game"
 	"escapade/internal/utils"
-	"fmt"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -16,9 +14,6 @@ import (
 	"time"
 
 	"escapade/internal/config"
-
-	clients "escapade/internal/clients"
-	session "escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
@@ -31,11 +26,10 @@ type Handler struct {
 	Cookie          config.CookieConfig
 	WebSocket       config.WebSocketSettings
 	GameConfig      config.GameConfig
-	AWS             config.AwsPublicConfig
+	AWS 						config.AwsPublicConfig
 	ReadBufferSize  int
 	WriteBufferSize int
 	Test            bool
-	Clients         *clients.Clients
 }
 
 // catch CORS preflight
@@ -90,9 +84,9 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	const place = "CreateUser"
 	var (
-		user   models.UserPrivateInfo
-		err    error
-		userID int
+		user      models.UserPrivateInfo
+		err       error
+		sessionID string
 	)
 
 	if user, err = getUserWithAllFields(r); err != nil {
@@ -102,26 +96,15 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//sessionID = cookie.CreateID(h.Cookie.LengthCookie)
-	if userID, err = h.DB.Register(&user); err != nil {
+	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
+	if _, err = h.DB.Register(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	ctx := r.Context()
-	sessID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(userID),
-			Login:  user.Name,
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	cookie.CreateAndSet(rw, h.Cookie, sessID.ID)
+	cookie.CreateAndSet(rw, h.Cookie, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusCreated, place)
@@ -183,9 +166,10 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
-		user  models.UserPrivateInfo
-		err   error
-		found *models.UserPublicInfo
+		user      models.UserPrivateInfo
+		err       error
+		sessionID string
+		found     *models.UserPublicInfo
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -195,23 +179,14 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if found, err = h.DB.Login(&user); err != nil {
+	sessionID = cookie.CreateID(h.Cookie.LengthCookie)
+	if found, err = h.DB.Login(&user, sessionID); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
-
-	ctx := context.Background()
-	sessionID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(user.ID),
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	cookie.CreateAndSet(rw, h.Cookie, sessionID.ID)
+	cookie.CreateAndSet(rw, h.Cookie, sessionID)
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -242,13 +217,10 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	_, err = h.Clients.Session.Delete(ctx,
-		&session.SessionID{
-			ID: sessionID,
-		})
-	if err != nil {
-		fmt.Println(err)
+	if err = h.DB.Logout(sessionID); err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
@@ -688,7 +660,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		err       error
 		difficult int
 		user      *models.UserPublicInfo
-		fileKey   string
 	)
 
 	difficult = h.getDifficult(r)
@@ -699,15 +670,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if fileKey, err = h.DB.GetImage(userID); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	URL, err := h.getURLToAvatar(fileKey)
-	user.PhotoURL = URL
 
 	utils.SendSuccessJSON(rw, user, place)
 

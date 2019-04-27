@@ -8,7 +8,7 @@ import (
 
 // Register check sql-injections and are email and name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -29,10 +29,10 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 		return
 	}
 
-	// if err = db.createSession(tx, userID, sessionID); err != nil {
-	// 	fmt.Println("database/register - fail creating Session")
-	// 	return
-	// }
+	if err = db.createSession(tx, userID, sessionID); err != nil {
+		fmt.Println("database/register - fail creating Session")
+		return
+	}
 
 	if err = db.createRecords(tx, userID); err != nil {
 		fmt.Println("database/register - fail creating Session")
@@ -47,7 +47,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPublicInfo, err error) {
+func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found *models.UserPublicInfo, err error) {
 
 	var (
 		tx     *sql.Tx
@@ -64,11 +64,16 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPubli
 		return
 	}
 
+	if err = db.createSession(tx, userID, sessionID); err != nil {
+		fmt.Println("database/login - fail creating Session")
+		return
+	}
+
 	if err = db.updatePlayerLastSeen(tx, userID); err != nil {
 		fmt.Println("database/login - fail updatePlayerLastSeen")
 		return
 	}
-	user.ID = userID
+
 	fmt.Println("database/login +")
 
 	err = tx.Commit()
@@ -93,7 +98,7 @@ func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivat
 	}
 
 	confirmedUser.Update(user)
-	user.ID = userID
+
 	if err = db.updatePlayerPersonalInfo(tx, user); err != nil {
 		return
 	}

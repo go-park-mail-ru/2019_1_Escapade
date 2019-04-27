@@ -13,6 +13,7 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 	INSERT INTO Player(name, password, email, firstSeen, lastSeen) VALUES
     ($1, $2, $3, $4, $5);
 		`
+	fmt.Println("user.Name:", user.Name, user.Email)
 	t := time.Now()
 	_, err = db.Db.Exec(sqlInsert, user.Name,
 		user.Password, user.Email, t, t)
