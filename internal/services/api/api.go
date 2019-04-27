@@ -109,10 +109,12 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
-	ctx := context.Background()
+
+	ctx := r.Context()
 	sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),
+			Login:  user.Name,
 		})
 	if err != nil {
 		fmt.Println(err)

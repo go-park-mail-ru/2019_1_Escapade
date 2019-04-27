@@ -6,6 +6,7 @@ import (
 	"escapade/internal/utils"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/gomodule/redigo/redis"
 )
@@ -23,7 +24,7 @@ func NewSessionManager(conn redis.Conn) *SessionManager {
 func (sm *SessionManager) Create(ctx context.Context, sess *session.Session) (sid *session.SessionID, err error) {
 	fmt.Println("Creating sess for: ", sess.UserID)
 	sid = &session.SessionID{ID: utils.RandomString(10)}
-	result, err := redis.String(sm.redisConn.Do("SET", sid.ID, sess.UserID, "EX", 86400))
+	result, err := redis.String(sm.redisConn.Do("HMSET", sid.ID, "id", sess.UserID, "login", sess.Login, "EX", 86400))
 	if err != nil {
 		return &session.SessionID{ID: ""}, err
 	}
@@ -45,12 +46,18 @@ func (sm *SessionManager) Delete(ctx context.Context, cookie *session.SessionID)
 }
 
 func (sm *SessionManager) Check(ctx context.Context, cookie *session.SessionID) (sess *session.Session, err error) {
-	userID, err := redis.Int(sm.redisConn.Do("GET", cookie.ID))
+	userID, err := redis.String(sm.redisConn.Do("HGET", cookie.ID, "id"))
 	if err != nil {
-		log.Println("cant get data:", err)
+		log.Println("cant get userID:", err)
 		return &session.Session{UserID: -1}, err
 	}
-	log.Println("Got session for: ", userID)
-	sess = &session.Session{UserID: int32(userID)}
+	login, err := redis.String(sm.redisConn.Do("HGET", cookie.ID, "login"))
+	id, _ := strconv.Atoi(userID)
+	if err != nil {
+		log.Println("cant get login:", err)
+		return &session.Session{UserID: -1}, err
+	}
+	log.Println("Got session for: ", login, id)
+	sess = &session.Session{UserID: int32(id), Login: login}
 	return
 }

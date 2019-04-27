@@ -6,7 +6,10 @@ package session;
 
 message SessionID { string ID = 1; }
 
-message Session { int32 userID = 1; }
+message Session {
+  int32 userID = 1;
+  string login = 2;
+}
 
 message Nothing { bool dummy = 1; }
 
