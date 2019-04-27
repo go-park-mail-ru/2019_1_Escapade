@@ -168,22 +168,6 @@ func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {
 	return
 }
 
-func getRecord(r *http.Request) (record models.Record, err error) {
-
-	if r.Body == nil {
-		err = re.ErrorNoBody()
-
-		return
-	}
-	defer r.Body.Close()
-
-	if err = json.NewDecoder(r.Body).Decode(&record); err != nil {
-		err = re.ErrorInvalidJSON()
-	}
-
-	return
-}
-
 func getGameInformation(r *http.Request) (info *models.GameInformation, err error) {
 
 	if r.Body == nil {

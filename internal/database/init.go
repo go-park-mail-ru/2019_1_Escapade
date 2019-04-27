@@ -21,22 +21,9 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	//"postgres://docker:docker@tcp(db:5432)/docker"
 	// for local launch
 	if os.Getenv(CDB.URL) == "" {
-<<<<<<< HEAD
 		os.Setenv(CDB.URL, "dbname=docker host=localhost port=5432 user=docker password=docker sslmode=disable")
 	}
 
-=======
-		//db://postgres:postgres@db:5432/postgres?sslmode=disable
-		//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@localhost:5432/escabase")
-		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
-		//"user=docker password=docker dbname=docker sslmode=disable")
-	}
-
-	os.Setenv("AWS_ACCESS_KEY_ID", "ciyXwq2TpzVGXEcQAqSdew")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx")
-
-	//os.Setenv(CDB.URL, "postgresql://rolepade:escapade@127.0.0.1:5432/escabase")
->>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 
 	var database *sql.DB
@@ -165,11 +152,6 @@ ADD CONSTRAINT cell_gamer
 	`
 	_, err := db.Db.Exec(sqlStatement)
 
-<<<<<<< HEAD
-=======
-	db.insert(110)
-
->>>>>>> 508037185fc39abb3d6ee56a9fd2c48bac220f58
 	if err != nil {
 		fmt.Println("database/init - fail:" + err.Error())
 	}

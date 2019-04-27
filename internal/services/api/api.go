@@ -689,7 +689,7 @@ func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+func (h *Handler) getProfile(rw http.ResponseWriter, r *http.Request, userID int) {
 	const place = "GetProfile"
 
 	var (
@@ -714,34 +714,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	return
 }
 
-// GameOnline launch multiplayer
-func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
-	const place = "SaveRecords"
-	var (
-		err    error
-		userID int
-		record models.Record
-	)
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		sendErrorJSON(rw, re.ErrorAuthorization(), place)
-		printResult(err, http.StatusUnauthorized, place)
-		return
-	}
-	if record, err = getRecord(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-	if err = h.DB.UpdateRecords(userID, &record); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		sendErrorJSON(rw, err, place)
-		printResult(err, http.StatusBadRequest, place)
-		return
-	}
-}
-
 func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	const place = "GetProfile"
 
@@ -753,7 +725,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 
 	difficult = h.getDifficult(r)
 
-	if userID, err = h.getUserIDFromCookie(r); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		sendErrorJSON(rw, re.ErrorAuthorization(), place)
 		printResult(err, http.StatusUnauthorized, place)
