@@ -8,6 +8,9 @@ go:
 services: docker
 
 before-scipt:
+  - psql --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';" &&\
+    createdb -O rolepade escabase &&\
+    /etc/init.d/postgresql stop
   - go mod tidy
 
 env:
