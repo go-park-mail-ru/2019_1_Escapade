@@ -1,4 +1,4 @@
-module escapade
+module github.com/go-park-mail-ru/2019_1_Escapade
 
 go 1.11
 

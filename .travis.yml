@@ -7,6 +7,9 @@ go:
 
 services: docker
 
+before-scipt:
+  - go mod tidy
+
 env:
   - GO111MODULE=on USE_DOCKER_DB=on
 
