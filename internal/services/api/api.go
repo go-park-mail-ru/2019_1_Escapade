@@ -660,6 +660,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		err       error
 		difficult int
 		user      *models.UserPublicInfo
+		fileKey   string
 	)
 
 	difficult = h.getDifficult(r)
@@ -670,6 +671,15 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
+	if fileKey, err = h.DB.GetImage(userID); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	URL, err := h.getURLToAvatar(fileKey)
+	user.PhotoURL = URL
 
 	utils.SendSuccessJSON(rw, user, place)
 
