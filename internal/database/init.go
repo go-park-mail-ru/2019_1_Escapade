@@ -3,8 +3,8 @@ package database
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
 	"fmt"
@@ -22,9 +22,9 @@ import (
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
 	// for local launch
-	if os.Getenv(CDB.URL) == "" {
-		os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
-	}
+	//if os.Getenv(CDB.URL) == "" {
+	os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
+	//}
 
 	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
 
@@ -63,7 +63,7 @@ func (db *DataBase) CreateTables() error {
     DROP TABLE IF EXISTS Player cascade;
     DROP TABLE IF EXISTS Gamer cascade;
     DROP TABLE IF EXISTS Cell cascade;
-    DROP TABLE IF EXISTS Record cascade;
+		DROP TABLE IF EXISTS Record cascade;
 
 	CREATE TABLE Player (
         id SERIAL PRIMARY KEY,

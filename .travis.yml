@@ -13,8 +13,9 @@ env:
 install: true
 
 script:
-  - psql --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';"
-  - psql --echo-all --command "CREATE DATABASE escabase with owner rolepade;"
+  - /etc/init.d/postgresql start
+  - sudo su postgres --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';"
+  - sudo su postgres --echo-all --command "CREATE DATABASE escabase with owner rolepade;"
   - /etc/init.d/postgresql stop
   - go mod tidy
   - go build main.go
