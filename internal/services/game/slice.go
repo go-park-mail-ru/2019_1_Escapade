@@ -37,7 +37,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections {
 		if i > onlinePlayers.Capacity {
-			conn.room.Leave(conn)
+			conn.room.Leave(conn, ActionBackToLobby)
 			continue
 		}
 		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)

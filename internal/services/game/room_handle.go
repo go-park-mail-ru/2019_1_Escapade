@@ -64,23 +64,26 @@ func (room *Room) Close() bool {
 // LeaveAll make every room connection to leave
 func (room *Room) LeaveAll() {
 	for _, conn := range room.Players.Connections {
-		room.Leave(conn)
+		room.Leave(conn, ActionDisconnect)
 	}
 	for _, conn := range room.Observers.Get {
-		room.Leave(conn)
+		room.Leave(conn, ActionDisconnect)
 	}
 }
 
 // Leave handle user going back to lobby
-func (room *Room) Leave(conn *Connection) {
+func (room *Room) Leave(conn *Connection, action int) {
 
-	room.lobby.playerToWaiter(conn)
-	if !room.IsActive() {
+	if !room.IsActive() || action == ActionDisconnect {
 		room.removeBeforeLaunch(conn)
 	} else {
 		room.removeDuringGame(conn)
+		conn.debug("Welcome back to lobby!")
 	}
-	conn.debug("Welcome back to lobby!")
+	go func() {
+		room.addAction(conn.ID(), action)
+		room.sendHistory(room.All)
+	}()
 }
 
 // openCell open cell
@@ -137,7 +140,7 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 	}
 	if action == ActionBackToLobby {
 		conn.debug("we see you wanna back to lobby?")
-		room.Leave(conn) // exit to lobby
+		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
 		return true
 	}
 	return false

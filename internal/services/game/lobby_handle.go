@@ -70,20 +70,23 @@ func (lobby *Lobby) Leave(copy *Connection, message string) {
 		lobby.sendWaiting(AllExceptThat(conn))
 	}
 	if conn.both || conn.InRoom() {
-		room := conn.room
-		lobby.Playing.Remove(conn)
-		if !room.IsActive() {
-			room.removeBeforeLaunch(conn)
-		} else {
-			room.removeDuringGame(conn)
-		}
-		id := conn.ID()
-		go func() {
-			room.addAction(id, ActionDisconnect)
-			room.sendHistory(room.All)
-		}()
+		lobby.LeaveRoom(conn, conn.room, ActionDisconnect)
 	}
 	return
+}
+
+// LeaveRoom handle leave room
+func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
+
+	if action != ActionDisconnect {
+		lobby.playerToWaiter(conn)
+	} else {
+		lobby.Playing.Remove(conn)
+	}
+	room.Leave(conn, action) // exit to lobby
+	go func() {
+		lobby.sendAllRooms(AllExceptThat(conn))
+	}()
 }
 
 // pickUpRoom find room for player
@@ -138,9 +141,10 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	var done bool
 	if conn.InRoom() {
-		conn.debug("lobby cant execute request")
-		return
+		lobby.LeaveRoom(conn, conn.room, ActionBackToLobby)
+		conn.debug("change room")
 	}
+
 	if rs.Name == "create" {
 		conn.debug("try create")
 		room := lobby.createRoom(rs)
