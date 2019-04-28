@@ -1,0 +1,60 @@
+{
+	"server": {
+		"host": "http://localhost",
+		"port": ":3002",
+		"readBufferSize": 1024,
+		"writeBufferSize": 1024
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL",
+		"maxOpenConns": 20,
+		"PageGames": 2,
+		"PageUsers": 100
+	},
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"https://escapade-frontend.herokuapp.com"
+		],
+		"headers": [
+			"Content-type"
+		],
+		"credentials": "true",
+		"methods": [
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS"
+		]
+	},
+	"storage": {
+		"playersAvatarsStorage": "escapade",
+		"defaultAvatar": "1.png"
+	},
+	"aws": {
+		"region": "ru-msk",
+		"endpoint": "https://hb.bizmrg.com"
+	},
+	"cookie": {
+		"nameCookie": "sessionid",
+		"pathCookie": "/",
+		"lengthCookie": 16,
+		"lifetimeCookie": 720,
+		"httpOnly": true
+	},
+	"game": {
+		"roomsCapacity": 500,
+		"lobbyJoin": 1,
+		"lobbyRequest": 1
+	},
+	"websocket": {
+		"writeWait": 60,
+		"pongWait": 10,
+		"pingPeriod": 9,
+		"maxMessageSize": 512
+	}
+}

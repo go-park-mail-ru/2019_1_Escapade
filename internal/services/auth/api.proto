@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+// protoc —go_out=plugins=grpc:. *.proto
+
+package apiproto;
+
+message UserModel {
+  int32 ID = 1;
+  string Name = 2;
+  string PhotoURL = 3;
+}
+
+message UserID { int32 userID = 1; }
+
+// grpc-сервис проверки авторизации
+service ApiService {
+  rpc User(UserID) returns (UserModel) {}
+}

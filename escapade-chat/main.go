@@ -1,9 +1,9 @@
 package main
 
 import (
+	"escapade/internal/config"
 	"escapade/internal/router"
-	"escapade/internal/services/api"
-	"escapade/internal/services/game"
+	api "escapade/internal/services/game"
 	"escapade/internal/utils"
 	"log"
 	"os"
@@ -38,19 +38,21 @@ func main() {
 	authConn := serviceConnectionsInit()
 	defer authConn.Close()
 
-	API, conf, err := api.GetHandler(confPath, secretPath, authConn) // init.go
-	API.DB.RandomUsers(10)                                           // create 10 users for tests
+	var conf *config.Configuration
+	api.API, conf, err = api.GetHandler(confPath, secretPath, authConn) // init.go
+	// create 10 users for tests
 	if err != nil {
-		utils.PrintResult(err, 0, "main")
+		utils.PrintResult(err, 0, "main!")
 		return
 	}
-	r := router.GetRouter(API, conf, logger)
+	r := router.GetRouter(api.API, conf, logger)
 	port := router.GetPort(conf)
 
-	game.Launch(&conf.Game)
-	defer game.GetLobby().Stop()
 	logger.Info("Starting server",
 		zap.String("port", port))
+
+	api.Launch(&conf.Game)
+	defer api.GetLobby().Stop()
 
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")
@@ -59,7 +61,8 @@ func main() {
 
 func serviceConnectionsInit() (authConn *grpc.ClientConn) {
 	if os.Getenv("AUTHSERVICE_URL") == "" {
-		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
+		os.Setenv("AUTHSERVICE_URL", "https://escapade-auth.herokuapp.com")
+		//os.Setenv("AUTHSERVICE_URL", "localhost:3333")
 	}
 	authConn, err := grpc.Dial(
 		os.Getenv("AUTHSERVICE_URL"),
