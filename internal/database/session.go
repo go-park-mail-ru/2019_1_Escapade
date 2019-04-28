@@ -1,12 +1,10 @@
 package database
 
 import (
-	//
-	"database/sql"
-
 	_ "github.com/lib/pq"
 )
 
+/*
 func (db *DataBase) deleteSession(sessionCode string) error {
 	sqlStatement := `DELETE From Session where session_code=$1`
 	_, err := db.Db.Exec(sqlStatement, sessionCode)
@@ -27,9 +25,9 @@ func (db *DataBase) deleteAllUserSessions(tx *sql.Tx, username string) (err erro
 func (db *DataBase) GetSessionByName(userName string) (sessionID string, err error) {
 
 	sqlStatement := `
-	select s.session_code 
+	select s.session_code
 		from Session as s join Player as p
-		on s.player_id = p.id 
+		on s.player_id = p.id
 		where p.name like $1 or email like $1
 	`
 	row := db.Db.QueryRow(sqlStatement, userName)
@@ -37,3 +35,5 @@ func (db *DataBase) GetSessionByName(userName string) (sessionID string, err err
 	err = row.Scan(&sessionID)
 	return sessionID, err
 }
+
+*/

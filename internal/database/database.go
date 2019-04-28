@@ -19,10 +19,10 @@ type DataBase struct {
 }
 
 // Logout delete session_id row  from session table
-func (db *DataBase) Logout(sessionCode string) (err error) {
-	err = db.deleteSession(sessionCode)
-	return
-}
+// func (db *DataBase) Logout(sessionCode string) (err error) {
+// 	err = db.deleteSession(sessionCode)
+// 	return
+// }
 
 // PostImage set filename of avatar to relation Player
 func (db *DataBase) PostImage(filename string, userID int) (err error) {

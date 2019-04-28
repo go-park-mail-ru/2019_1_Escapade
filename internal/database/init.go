@@ -2,7 +2,6 @@ package database
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -180,9 +179,8 @@ func (db *DataBase) RandomUsers(limit int) {
 			Name:     utils.RandomString(n),
 			Email:    utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		sessionID := cookie.CreateID(n)
-		fmt.Println("sessionID:", sessionID)
-		id, _ := db.Register(user, sessionID)
+		id, _ := db.Register(user)
+
 		for j := 0; j < 4; j++ {
 			record := &models.Record{
 				Score:       ran.Intn(1000000),
