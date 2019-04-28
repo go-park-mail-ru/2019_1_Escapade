@@ -13,8 +13,8 @@ env:
 install: true
 
 script:
-  - sudo su postgres --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';"
-  - sudo su postgres --command "CREATE DATABASE escabase with owner rolepade;"
+  - sudo -u postgres psql postgres postgres --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';"
+  - createdb -O rolepade escabase
   - go mod tidy
   - go build main.go
   - go test -v -race ./...

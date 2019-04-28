@@ -25,7 +25,7 @@ EXPOSE 3000
 USER postgres
 
 RUN /etc/init.d/postgresql start &&\
-    psql --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';" &&\
+    sudo -u postgres psql postgres postgres --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';" &&\
     createdb -O rolepade escabase &&\
     /etc/init.d/postgresql stop
 
