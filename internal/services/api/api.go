@@ -468,13 +468,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	fileType := handle.Header.Get("Content-Type")
 	//Генерация уник.ключа для хранения картинки
-	fileKey, err := uuid.NewV4()
-
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorServer(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
-	}
+	fileKey := uuid.NewV4()
 
 	switch fileType {
 	case "image/jpeg":
