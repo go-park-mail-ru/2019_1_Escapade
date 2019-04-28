@@ -1,11 +1,12 @@
 package api
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+
 	"encoding/json"
-	"escapade/internal/config"
-	"escapade/internal/cookie"
-	"escapade/internal/models"
-	re "escapade/internal/return_errors"
 	"net/http"
 	"strconv"
 

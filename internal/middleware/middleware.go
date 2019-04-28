@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"escapade/internal/config"
-	cookie "escapade/internal/cookie"
-	"escapade/internal/cors"
-	re "escapade/internal/return_errors"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 
 	"net/http"
 )
@@ -45,7 +45,6 @@ func Auth(cc config.CookieConfig) HandleDecorator {
 				const place = "middleware/Auth"
 				utils.PrintResult(err, http.StatusUnauthorized, place)
 				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
-				rw.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
@@ -55,27 +54,19 @@ func Auth(cc config.CookieConfig) HandleDecorator {
 }
 
 //Recover catch panic
-func Recover() HandleDecorator {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(rw http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					const place = "middleware/Recover"
-					utils.PrintResult(re.ErrorPanic(), http.StatusInternalServerError, place)
-					utils.SendErrorJSON(rw, re.ErrorPanic(), place)
-					rw.WriteHeader(http.StatusInternalServerError)
-				}
-			}()
+func Recover(next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
 
-			next(rw, r)
-		}
+		defer utils.CatchPanic("middleware.go Recover()")
+
+		next(rw, r)
 	}
 }
 
 // ApplyMiddleware apply middleware
 func ApplyMiddleware(handler http.HandlerFunc,
 	decorators ...HandleDecorator) http.HandlerFunc {
-	handler = Recover()(handler)
+	handler = Recover(handler)
 	for _, m := range decorators {
 		handler = m(handler)
 	}

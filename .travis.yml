@@ -1,0 +1,17 @@
+sudo: false
+
+language: go
+
+go:
+  - 1.12.x
+
+services: docker
+
+env:
+  - GO111MODULE=on USE_DOCKER_DB=on
+
+install: true
+
+script:
+  - go build main.go
+  - go test -v -race ./...

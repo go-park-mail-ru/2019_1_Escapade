@@ -1,9 +1,10 @@
 package router
 
 import (
-	"escapade/internal/config"
-	mi "escapade/internal/middleware"
-	"escapade/internal/services/api"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
+
 	"fmt"
 	"os"
 
@@ -27,13 +28,13 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, false)))
 
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.GetMyProfile,
-		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("GET")
+		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("GET")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.CreateUser,
 		mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.DeleteUser,
-		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("DELETE")
+		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("DELETE")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.UpdateProfile,
-		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("PUT")
+		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("PUT")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -50,7 +51,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.PostImage,
-		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("POST")
+		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -62,7 +63,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, false))).Methods("GET")
 
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.SaveRecords,
-		mi.CORS(conf.Cors, false), mi.Auth(conf.Cookie))).Methods("POST")
+		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 

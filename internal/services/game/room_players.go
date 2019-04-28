@@ -1,38 +1,24 @@
 package game
 
+import "fmt"
+
 // RecoverPlayer call it in lobby.join if player disconnected
-func (room *Room) RecoverPlayer(old *Connection, new *Connection) (played bool) {
-
-	// if old in game, disconnect him
-	if !old.disconnected {
-		old.Kill([]byte("Another connection found"))
-	}
-
-	// copy information about player to new connection
-	new.Player = old.Player
+func (room *Room) RecoverPlayer(newConn *Connection) {
 
 	// add connection as player
-	room.MakePlayer(new)
-
-	room.addAction(new, ActionReconnect)
-	room.sendHistory(room.allExceptThat(new))
-	room.sendRoom(new)
+	room.MakePlayer(newConn)
+	room.addAction(newConn.ID(), ActionReconnect)
+	room.sendHistory(AllExceptThat(newConn))
 
 	return
 }
 
 // RecoverObserver recover connection as observer
-func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool) {
+func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
-	if !old.disconnected {
-		old.Kill([]byte("Another connection found"))
-	}
-
-	room.MakeObserver(new)
-
-	room.addAction(new, ActionReconnect)
-	room.sendHistory(room.allExceptThat(new))
-	room.sendRoom(new)
+	room.MakeObserver(newConn)
+	room.addAction(newConn.ID(), ActionReconnect)
+	room.sendHistory(AllExceptThat(newConn))
 
 	return
 }
@@ -41,16 +27,15 @@ func (room *Room) RecoverObserver(old *Connection, new *Connection) (played bool
 func (room *Room) addObserver(conn *Connection) bool {
 	// if we havent a place
 	if !room.Observers.enoughPlace() {
-		Answer(conn, []byte("Error. No place in room."))
+		conn.SendInformation([]byte("Room cant execute request "))
 		return false
 	}
 	room.MakeObserver(conn)
 
-	room.addAction(conn, ActionConnectAsObserver)
+	room.addAction(conn.ID(), ActionConnectAsObserver)
 
-	room.sendObservers(room.allExceptThat(conn))
+	room.sendObservers(AllExceptThat(conn))
 
-	room.AnswerOK(conn)
 	return true
 }
 
@@ -69,14 +54,10 @@ func (room *Room) addPlayer(conn *Connection) bool {
 		return false
 	}
 
-	cell := room.Field.RandomCell()
-	cell.PlayerID = conn.GetPlayerID()
-
 	room.MakePlayer(conn)
 
-	room.addAction(conn, ActionConnectAsPlayer)
-	Answer(conn, []byte("OK"))
-	room.sendPlayers(room.all())
+	room.addAction(conn.ID(), ActionConnectAsPlayer)
+	room.sendPlayers(room.All)
 
 	if !room.Players.enoughPlace() {
 		room.startFlagPlacing()
@@ -88,40 +69,55 @@ func (room *Room) addPlayer(conn *Connection) bool {
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
 func (room *Room) MakePlayer(conn *Connection) {
+	if room.Status != StatusPeopleFinding {
+		room.lobby.waiterToPlayer(conn, room)
+		conn.both = false
+	} else {
+		conn.both = true
+	}
+	room.Players.Add(conn, false)
 	conn.PushToRoom(room)
-	conn.Player.SetAsPlayer()
-	room.Players.Add(conn)
 }
 
 // MakeObserver mark connection as connected as Observer
 // add to observers slice and set flag inRoom true
 func (room *Room) MakeObserver(conn *Connection) {
+	if room.Status != StatusPeopleFinding {
+		room.lobby.waiterToPlayer(conn, room)
+		conn.both = false
+	} else {
+		conn.both = true
+	}
+	room.Observers.Add(conn, false)
 	conn.PushToRoom(room)
-	conn.Player.SetAsObserver()
-	room.Observers.Add(conn)
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
+	fmt.Println("before removing", len(room.Players.Connections))
 	room.Players.Remove(conn)
-	conn.debug("you went back to lobby")
-	if room.TryClose() {
+	fmt.Println("after removing", len(room.Players.Connections))
+	if room.Players.Empty() {
+		room.Close()
 		conn.debug("We closed room :С")
 	}
 }
 
 func (room *Room) removeDuringGame(conn *Connection) {
-	i := room.Players.Search(conn)
+	fmt.Println("removeDuringGame")
+	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
 		room.GiveUp(conn)
-		room.sendHistory(room.all())
-		room.sendPlayers(room.all())
-		room.TryClose()
-		return
+		room.Players.Remove(conn)
+		room.sendHistory(room.All)
+		room.sendPlayers(room.All)
+	} else {
+		room.Observers.Remove(conn)
+		room.sendObservers(room.All)
 	}
-
-	room.Observers.Remove(conn)
-	room.sendObservers(room.all())
-	room.TryClose()
+	if room.Players.Empty() {
+		room.Close()
+		conn.debug("We closed room :С")
+	}
 }
 
 // removeFinishedGame

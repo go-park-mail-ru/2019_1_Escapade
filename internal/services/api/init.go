@@ -1,17 +1,15 @@
 package api
 
 import (
-	"escapade/internal/config"
-	"escapade/internal/database"
-	"escapade/internal/services/game"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	
 	"fmt"
 	"time"
 )
 
 // Init creates Handler
 func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
-	lobby := game.NewLobby(c.Game.RoomsCapacity,
-		c.Game.LobbyJoin, c.Game.LobbyRequest)
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -22,24 +20,24 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		DB:              *DB,
 		Storage:         c.Storage,
 		Cookie:          c.Cookie,
+		GameConfig:      c.Game,
+		AWS: 						 c.AWS,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
-		Lobby:           lobby,
 	}
-	go handler.Lobby.Run()
 	return
 }
 
 // GetHandler return created handler with database and configuration
-func GetHandler(confPath string) (handler *Handler,
+func GetHandler(confPath, secretPath string) (handler *Handler,
 	conf *config.Configuration, err error) {
 
 	var (
 		db *database.DataBase
 	)
 
-	if conf, err = config.Init(confPath); err != nil {
+	if conf, err = config.Init(confPath, secretPath); err != nil {
 		return
 	}
 	fmt.Println("confPath done")

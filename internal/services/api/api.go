@@ -1,19 +1,19 @@
 package api
 
 import (
-	"escapade/internal/cookie"
-	"escapade/internal/database"
-	"escapade/internal/models"
-	re "escapade/internal/return_errors"
-	"escapade/internal/services/game"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
+
 	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"time"
-
-	"escapade/internal/config"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
@@ -25,9 +25,10 @@ type Handler struct {
 	Storage         config.FileStorageConfig
 	Cookie          config.CookieConfig
 	WebSocket       config.WebSocketSettings
+	GameConfig      config.GameConfig
+	AWS 						config.AwsPublicConfig
 	ReadBufferSize  int
 	WriteBufferSize int
-	Lobby           *game.Lobby
 	Test            bool
 }
 
@@ -122,9 +123,9 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "UpdateProfile"
 
 	var (
-		user models.UserPrivateInfo
-		err  error
-		name string
+		user   models.UserPrivateInfo
+		err    error
+		userID int
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -134,14 +135,14 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if name, err = h.getNameFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
-	if err = h.DB.UpdatePlayerPersonalInfo(name, &user); err != nil {
+	if err = h.DB.UpdatePlayerPersonalInfo(userID, &user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
@@ -467,7 +468,13 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	fileType := handle.Header.Get("Content-Type")
 	//Генерация уник.ключа для хранения картинки
-	fileKey := uuid.NewV4()
+	fileKey, err := uuid.NewV4()
+
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
+	}
 
 	switch fileType {
 	case "image/jpeg":
@@ -539,20 +546,13 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	const place = "GameOnline"
 	var (
-		err      error
-		userID   int
-		userName string
-		ws       *websocket.Conn
+		err    error
+		userID int
+		ws     *websocket.Conn
+		user   *models.UserPublicInfo
 	)
 
 	if !h.Test {
-		if userName, err = h.getNameFromCookie(r, h.Cookie); err != nil {
-			rw.WriteHeader(http.StatusUnauthorized)
-			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-			utils.PrintResult(err, http.StatusUnauthorized, place)
-			return
-		}
-
 		if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
 			rw.WriteHeader(http.StatusUnauthorized)
 			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
@@ -561,8 +561,14 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		rand.Seed(time.Now().UnixNano())
-		userName = utils.RandomString(16)
 		userID = rand.Intn(10000)
+	}
+
+	lobby := game.GetLobby()
+	if lobby == nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
 	}
 
 	var upgrader = websocket.Upgrader{
@@ -584,12 +590,15 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	player := game.NewPlayer(userName, userID)
-	conn := game.NewConnection(ws, player, h.Lobby)
-	// Join Player to lobby
-	h.Lobby.ChanJoin <- conn
-	go conn.WriteConn(h.WebSocket)
-	go conn.ReadConn(h.WebSocket)
+	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	conn := game.NewConnection(ws, user, lobby)
+	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }

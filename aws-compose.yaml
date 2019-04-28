@@ -1,0 +1,34 @@
+db:
+  image: postgres:11.2-alpine
+
+  cpu_shares: 100
+  mem_limit: 262144000
+  environment:
+    POSTGRES_USER: 'docker'
+    POSTGRES_PASSWORD: 'docker'
+    POSTGRES_DB: 'docker'
+
+api:
+  image: bigyin13/api-main
+  cpu_shares: 100
+  mem_limit: 262144000
+  links:
+    - db
+  ports:
+    - 80:3001
+  environment:
+    - DATABASE_URL=postgres://docker:docker@db:5432/docker?sslmode=disable
+    - AWS_ACCESS_KEY_ID=ciyXwq2TpzVGXEcQAqSdew
+    - AWS_SECRET_ACCESS_KEY=NzvtJoAid7GeUU2msVBzJXZGoA7rkjnQvnnEYZzujTx
+  command: /bin/sh -c "./wait-for-it.sh db:5432 && ../api"
+
+
+  # start_dependencies:
+  #   image: dadarek/wait-for-dependencies
+  #   depends_on:
+  #     - postgres
+  #   command: postgres:5432
+
+    # # Copy files from dbinit into the image so that they will be run on boot
+    # volumes:
+    #   - ./initdb:/docker-entrypoint-initdb.d

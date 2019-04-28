@@ -1,11 +1,12 @@
 package database
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+
 	"database/sql"
-	"escapade/internal/config"
-	"escapade/internal/cookie"
-	"escapade/internal/models"
-	"escapade/internal/utils"
 	"fmt"
 	ran "math/rand"
 	"os"

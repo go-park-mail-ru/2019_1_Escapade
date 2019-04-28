@@ -1,90 +1,78 @@
 package game
 
 import (
-	"escapade/internal/models"
-
 	"fmt"
 )
-
-// NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
-	fmt.Println("NewRoom rs = ", *rs)
-	room := &Room{
-		Name:      name,
-		Status:    StatusPeopleFinding,
-		Players:   NewConnections(rs.Players),
-		Observers: NewConnections(rs.Observers),
-
-		History: make([]*PlayerAction, 0),
-		flags:   make(map[*Connection]*Cell),
-
-		lobby:  lobby,
-		Field:  NewField(rs),
-		killed: 0,
-		//chanLeave: make(chan *Connection),
-		//chanRequest: make(chan *RoomRequest),
-	}
-	return room
-}
 
 // flagFound is called, when somebody find cell flag
 func (room *Room) flagFound(found *Cell) {
 	thatID := found.Value - CellIncrement
-	for _, conn := range room.Players.Get {
-		if thatID == conn.GetPlayerID() {
-			room.kill(conn, ActionFlagLost)
+	for i, player := range room.Players.Players {
+		if thatID == player.ID {
+			room.kill(room.Players.Connections[i], ActionFlagLost)
 		}
 	}
 }
 
-// kill make user die, decrement size and check for finish battle
+// isAlive check if connection is player and he is not died
+func (room *Room) isAlive(conn *Connection) bool {
+	return conn.index >= 0 && !room.Players.Players[conn.index].Finished
+}
+
+// setFinished increment amount of killed
+func (room *Room) setFinished(conn *Connection) {
+	room.Players.Players[conn.index].Finished = true
+	room.killed++
+}
+
+// kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
-	if !conn.Player.Finished {
-		conn.Player.Finished = true
-		room.killed++
+	if room.isAlive(conn) {
+		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
-			// остановить таймеры в run!!!
-			room.lobby.roomFinish(room)
+			fmt.Println("want finish")
+			room.finishGame()
 		}
-		room.addAction(conn, action)
-		room.sendHistory(room.all())
-		conn.debug("give up. Check history")
+		room.addAction(conn.ID(), action)
+		room.sendHistory(room.All)
 	}
 }
 
-// use it when somebody exit
+// GiveUp kill connection, that call it
 func (room *Room) GiveUp(conn *Connection) {
 	room.kill(conn, ActionGiveUp)
 }
 
-// Close clear all resources. Call it when no
-//  observers and players inside
-func (room *Room) Close() {
-	room.Players.Clear()
-	room.Observers.Clear()
-	room.History = nil
-	room.flags = nil
-	room.Field.Clear()
-}
-
-func (room *Room) TryClose() bool {
-	if room.Players.Empty() && room.Observers.Empty() {
-		room.Close()
-		room.lobby.CloseRoom(room)
-		return true
-	} else {
-
+// setFlag handle user wanna set flag
+func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
+	// if user try set flag after game launch
+	if room.Status != StatusFlagPlacing {
+		return false
 	}
-	return false
+
+	if !room.Field.IsInside(cell) {
+		return false
+	}
+
+	if !room.isAlive(conn) {
+		return false
+	}
+
+	room.Players.Flags[conn.index].X = cell.X
+	room.Players.Flags[conn.index].Y = cell.Y
+	return true
 }
 
+// setFlags set players flags to field
+// call it if game has already begun
 func (room *Room) setFlags() {
-	for conn, cell := range room.flags {
-		room.Field.SetFlag(cell.X, cell.Y, conn.GetPlayerID())
+	for _, cell := range room.Players.Flags {
+		room.Field.SetFlag(cell.X, cell.Y, cell.PlayerID)
 	}
 }
 
+// fillField set flags and mines
 func (room *Room) fillField() {
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 

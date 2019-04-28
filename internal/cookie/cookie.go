@@ -1,8 +1,8 @@
 package cookie
 
 import (
-	"escapade/internal/config"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"net/http"
 )
 
@@ -17,7 +17,7 @@ func CreateCookie(value string, cc config.CookieConfig) (cookie *http.Cookie) {
 		Name:     cc.NameCookie,
 		Value:    value,
 		Path:     cc.PathCookie,
-		MaxAge:   cc.LifetimeCookie,
+		MaxAge:   cc.LifetimeCookie * 100000,
 		HttpOnly: cc.HTTPOnly,
 	}
 	return

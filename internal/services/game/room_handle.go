@@ -1,68 +1,79 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"encoding/json"
 	"fmt"
 	"time"
 )
 
-// Game status
-const (
-	StatusPeopleFinding = iota
-	StatusAborted       // in case of error
-	StatusFlagPlacing
-	StatusRunning
-	StatusFinished
-	StatusClosed
-)
-
-// Room consist of players and observers, field and history
-type Room struct {
-	Name   string `json:"name"`
-	Status int    `json:"status"`
-
-	Players   *Connections `json:"players,omitempty"`
-	Observers *Connections `json:"observers,omitempty"`
-
-	History []*PlayerAction `json:"history,omitempty"`
-
-	flags map[*Connection]*Cell
-
-	lobby *Lobby
-	Field *Field `json:"field,omitempty"`
-
-	killed int //amount of killed users
-}
-
-// SameAs compare  one room with another
-func (room *Room) SameAs(another *Room) bool {
-	return room.Field.SameAs(another.Field)
-}
-
 // Enter handle user joining as player or observer
 func (room *Room) Enter(conn *Connection) bool {
+	var done bool
 
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {
 		conn.debug("You will be player!")
 		if room.addPlayer(conn) {
-			return true
+			done = true
 		}
 	} else if room.addObserver(conn) {
 		conn.debug("You will be observer!")
-		return true
+		done = true
 	}
-	conn.debug("No way!")
 
+	if done {
+		if room.Status != StatusPeopleFinding {
+			room.lobby.waiterToPlayer(conn, room)
+		}
+	} else {
+		conn.debug("No way!")
+	}
+
+	return done
+}
+
+// Free clear all resources. Call it when no
+//  observers and players inside
+func (room *Room) Free() {
+	if room == nil || room.History == nil {
+		return
+	}
+	room.History = nil
+	close(room.chanFinish)
+	room.Players.Free()
+	room.Observers.Free()
+	for _, action := range room.History {
+		action.Free()
+	}
+	room.Players.Free()
+	room.Field.Clear()
+	room = nil
+}
+
+// Close drives away players out of the room, free resources
+// and inform lobby, that rooms closes
+func (room *Room) Close() bool {
+	room.LeaveAll()
+	room.lobby.CloseRoom(room)
+	room.Free()
 	return false
+}
+
+// LeaveAll make every room connection to leave
+func (room *Room) LeaveAll() {
+	for _, conn := range room.Players.Connections {
+		room.Leave(conn)
+	}
+	for _, conn := range room.Observers.Get {
+		room.Leave(conn)
+	}
 }
 
 // Leave handle user going back to lobby
 func (room *Room) Leave(conn *Connection) {
 
-	// cant delete players, cause they always need
-	// if game began
-	conn.PushToLobby()
 	room.lobby.playerToWaiter(conn)
 	if !room.IsActive() {
 		room.removeBeforeLaunch(conn)
@@ -70,19 +81,6 @@ func (room *Room) Leave(conn *Connection) {
 		room.removeDuringGame(conn)
 	}
 	conn.debug("Welcome back to lobby!")
-}
-
-func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
-	// if user try set flag after game launch
-	if room.Status != StatusFlagPlacing {
-		return false
-	}
-
-	if !room.Field.IsInside(cell) {
-		return false
-	}
-	room.flags[conn] = cell
-	return true
 }
 
 // openCell open cell
@@ -98,18 +96,18 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	}
 
 	// if user died
-	if conn.Player.Finished == true {
+	if !room.isAlive(conn) {
 		return false
 	}
 
 	// set who try open cell(for history)
-	cell.PlayerID = conn.GetPlayerID()
+	cell.PlayerID = conn.ID()
 	room.Field.OpenCell(cell)
 
-	room.sendField(room.all())
+	room.sendField(room.All)
 
 	if room.Field.IsCleared() {
-		room.lobby.roomFinish(room)
+		room.finishGame()
 	}
 	return true
 }
@@ -154,7 +152,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 	} else if rr.IsSend() {
 		done := false
 		if rr.Send.Cell != nil {
-			if conn.IsPlayerAlive() {
+			if room.isAlive(conn) {
 				done = room.cellHandle(conn, rr.Send.Cell)
 			}
 		} else if rr.Send.Action != nil {
@@ -162,51 +160,82 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			//conn.debug("Room cant execute request")
-			Answer(conn, []byte("Room cant execute request "))
+			conn.SendInformation([]byte("Room cant execute request "))
 		}
 	}
 }
 
 func (room *Room) startFlagPlacing() {
 	room.Status = StatusFlagPlacing
-	room.lobby.roomStart(room)
+	for _, conn := range room.Players.Connections {
+		room.MakePlayer(conn)
+	}
+	for _, conn := range room.Observers.Get {
+		room.MakeObserver(conn)
+	}
+	room.Players.Init(room.Field)
+
+	go room.lobby.roomStart(room)
 	go room.run()
-	room.sendField(room.all())
-	room.sendMessage("Battle will be start soon! Set your flag!", room.all())
+
+	room.sendField(room.All)
+	room.sendMessage("Battle will be start soon! Set your flag!", room.All)
 }
 
 func (room *Room) startGame() {
 	room.Status = StatusRunning
 	room.fillField()
-	room.sendMessage("Battle began! Destroy your enemy!", room.all())
+	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
 func (room *Room) finishGame() {
-	room.Status = StatusFinished
-	go room.lobby.roomFinish(room)
-	for _, conn := range room.Players.Get {
-		conn.Player.Finished = true
+	if room.Status == StatusFinished {
+		return
 	}
-	room.sendMessage("Battle finished!", room.all())
+	fmt.Println(room.Name, "We finish room!", room.Status)
+	room.chanFinish <- nil
+	room.Status = StatusFinished
+	fmt.Println(room.Name, "We finish room?", room.Status)
+	go room.lobby.roomFinish(room)
+	for _, player := range room.Players.Players {
+		player.Finished = true
+	}
+	room.sendMessage("Battle finished!", room.All)
+}
+
+// initTimers launch game timers. Call it when flag placement starts
+func (room *Room) initTimers() (prepare, play *time.Timer) {
+	prepare = time.NewTimer(time.Second *
+		time.Duration(room.settings.TimeToPrepare))
+	play = time.NewTimer(time.Second *
+		time.Duration(room.settings.TimeToPlay))
+	return
 }
 
 func (room *Room) run() {
-	// перенести в настройки комнаты
-	timerPrepare := time.NewTimer(time.Second * 20)
-	timerPlaying := time.NewTimer(time.Second * 60)
-	// в конфиг
-	ticker := time.NewTicker(time.Second * 10)
+	defer utils.CatchPanic("room_handle.go run()")
+	ticker := time.NewTicker(time.Second * 2)
+
+	timerToPrepare, timerToPlay := room.initTimers()
+	defer func() {
+		ticker.Stop()
+		timerToPrepare.Stop()
+		timerToPlay.Stop()
+		fmt.Println("Room: Game is over!")
+	}()
 
 	for {
 		select {
-		case <-timerPrepare.C:
+		case <-room.chanFinish:
+			return
+		case <-timerToPrepare.C:
 			room.startGame()
-		case <-timerPlaying.C:
+		case <-timerToPlay.C:
 			room.finishGame()
 			return
 		case clock := <-ticker.C:
-			room.sendMessage(clock.String()+" passed", room.all())
+			fmt.Println("clock!", room.Name)
+			room.sendMessage(clock.String()+" passed", room.All)
 		}
 	}
 }

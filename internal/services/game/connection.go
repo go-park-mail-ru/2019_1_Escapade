@@ -1,11 +1,15 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"fmt"
 	"sync"
 	"time"
 
-	"escapade/internal/config"
+	"context"
 
 	"github.com/gorilla/websocket"
 )
@@ -20,13 +24,18 @@ const (
 
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
+	User *models.UserPublicInfo `json:"user,omitempty"`
+
 	ws           *websocket.Conn
-	Player       *Player `json:"player"`
 	lobby        *Lobby
 	room         *Room
 	disconnected bool
+	both         bool
 
-	send chan []byte
+	index int
+
+	cancel context.CancelFunc
+	send   chan []byte
 }
 
 // PushToRoom set field 'room' to real room
@@ -37,54 +46,104 @@ func (conn *Connection) PushToRoom(room *Room) {
 // PushToLobby set field 'room' to nil
 func (conn *Connection) PushToLobby() {
 	conn.room = nil
+	conn.both = false
 }
 
-// IsPlayerAlive call player's IsAlive
-func (conn *Connection) IsPlayerAlive() bool {
-	return conn.Player.IsAlive()
+// IsConnected check player isnt disconnected
+func (conn *Connection) IsConnected() bool {
+	return conn.disconnected == false
 }
 
-// Kill send last image signals about killing, close websocket
-// and close chanells
-func (conn *Connection) Kill(message []byte) {
+// dirty make connection dirty. it make connection ID
+// -1 and when connection try to leave lobby, lobby will not
+// delete this connections from list, cause it will not find
+// anybody with such id
+func (conn *Connection) dirty() {
+	conn.User.ID = -1
+}
+
+// Kill call context.CancFunc, that finish goroutines of
+// writer and reader and free connection memory
+func (conn *Connection) Kill(message string, makeDirty bool) {
+	conn.SendInformation([]byte(message))
+	if makeDirty {
+		conn.dirty()
+	}
 	conn.disconnected = true
-	conn.SendInformation(message)
+	conn.cancel()
+}
+
+// Free free memory, if flag disconnect true then connection and player will not become nil
+func (conn *Connection) Free() {
+	if conn == nil {
+		return
+	}
+	// dont delete. conn = nil make pointer nil, but other pointers
+	// arent nil. If conn.disconnected = true it is mean that all
+	// resources are cleared, but pointer alive, so we only make pointer = nil
+	if conn.lobby == nil {
+		conn = nil
+		return
+	}
 	conn.ws.Close()
-	fmt.Println("killed with message:" + string(message))
-	/*
-		need some time before close. Maybe set timer?
-	*/
 	close(conn.send)
+	// dont delete. conn = nil make pointer nil, but other pointers
+	// arent nil and we make 'conn.disconnected = true' for them
+	conn.disconnected = true
+	conn.lobby = nil
+	conn.room = nil
+	conn = nil
+
+	fmt.Println("conn free memory")
 }
 
 // NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, player *Player, lobby *Lobby) *Connection {
+func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
 	return &Connection{
-		ws,
-		player,
-		lobby,
-		nil,
-		false,
-		make(chan []byte),
+		ws:           ws,
+		index:        -1,
+		User:         user,
+		lobby:        lobby,
+		room:         nil,
+		disconnected: false,
+		send:         make(chan []byte),
 	}
 }
 
 // InRoom check is player in room
 func (conn *Connection) InRoom() bool {
-
 	return conn.room != nil
 }
 
-// GetPlayerID get player id
-func (conn *Connection) GetPlayerID() int {
-	return conn.Player.ID
+// Launch run the writer and reader goroutines and wait them to free memory
+func (conn *Connection) Launch(ws config.WebSocketSettings) {
+
+	if lobby == nil {
+		fmt.Println("lobby nil!")
+		return
+	}
+
+	all := &sync.WaitGroup{}
+	var connContext context.Context
+	connContext, conn.cancel = context.WithCancel(lobby.Context)
+
+	conn.lobby.ChanJoin <- conn
+	all.Add(1)
+	go conn.WriteConn(connContext, ws, all)
+	all.Add(1)
+	go conn.ReadConn(connContext, ws, all)
+
+	all.Wait()
+	fmt.Println("conn finished")
+	conn.lobby.Leave(conn, "finished")
+	conn.Free()
 }
 
 // ReadConn connection goroutine to read messages from websockets
-func (conn *Connection) ReadConn(wsc config.WebSocketSettings) {
+func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	defer func() {
-		conn.lobby.chanLeave <- conn
-		conn.ws.Close()
+		wg.Done()
+		utils.CatchPanic("connection.go ReadConn()")
 	}()
 	conn.ws.SetReadLimit(wsc.MaxMessageSize)
 	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
@@ -94,20 +153,26 @@ func (conn *Connection) ReadConn(wsc config.WebSocketSettings) {
 			return nil
 		})
 	for {
-		_, message, err := conn.ws.ReadMessage()
-		conn.debug("read from conn")
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				conn.debug("IsUnexpectedCloseError:" + err.Error())
-			} else {
-				conn.debug("expected error:" + err.Error())
+		select {
+		case <-parent.Done():
+			fmt.Println("ReadConn done catched")
+			return
+		default:
+			_, message, err := conn.ws.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+					fmt.Println("IsUnexpectedCloseError:" + err.Error())
+				} else {
+					fmt.Println("expected error:" + err.Error())
+				}
+				conn.Kill("Client websocket died", false)
+				return
 			}
-
-			break
-		}
-		conn.lobby.chanBroadcast <- &Request{
-			Connection: conn,
-			Message:    message,
+			conn.debug("read from conn")
+			conn.lobby.chanBroadcast <- &Request{
+				Connection: conn,
+				Message:    message,
+			}
 		}
 	}
 }
@@ -120,15 +185,20 @@ func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettin
 
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
-func (conn *Connection) WriteConn(wsc config.WebSocketSettings) {
-	ticker := time.NewTicker(wsc.PingPeriod)
+func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	defer func() {
-		ticker.Stop()
-		conn.ws.Close()
+		wg.Done()
+		utils.CatchPanic("connection.go WriteConn()")
 	}()
+
+	ticker := time.NewTicker(wsc.PingPeriod)
+	defer ticker.Stop()
+
 	for {
 		select {
-		// send here json!
+		case <-parent.Done():
+			fmt.Println("WriteConn done catched")
+			return
 		case message, ok := <-conn.send:
 			if !ok {
 				conn.write(websocket.CloseMessage, []byte{}, wsc)
@@ -141,13 +211,6 @@ func (conn *Connection) WriteConn(wsc config.WebSocketSettings) {
 				return
 			}
 			w.Write(message)
-
-			var newline = []byte{'\n'}
-			n := len(conn.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-conn.send)
-			}
 
 			if err := w.Close(); err != nil {
 				return
@@ -167,13 +230,25 @@ func (conn *Connection) SendInformation(bytes []byte) {
 	}
 }
 
+// sendGroupInformation send info with WaitGroup
 func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
-
-	defer wg.Done()
+	defer func() {
+		wg.Done()
+		utils.CatchPanic("connection.go sendGroupInformation()")
+	}()
 	conn.SendInformation(bytes)
 }
 
+// ID return players id
+func (conn *Connection) ID() int {
+	if conn.User == nil {
+		return -1
+	}
+	return conn.User.ID
+}
+
+// debug print devug information to console and websocket
 func (conn *Connection) debug(message string) {
-	fmt.Println("Connection #", conn.GetPlayerID(), "-", message)
+	fmt.Println("Connection #", conn.ID(), "-", message)
 	conn.SendInformation([]byte(message))
 }

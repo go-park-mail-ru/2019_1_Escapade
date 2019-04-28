@@ -1,7 +1,8 @@
 package game
 
 import (
-	"escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	
 	"fmt"
 	"math/rand"
 	"time"
@@ -123,6 +124,18 @@ func (field *Field) setMine(x, y int) {
 			}
 		}
 	}
+}
+
+// RandomFlags create random players flags
+func (field *Field) RandomFlags(players []Player) (cells []Cell) {
+	rand.Seed(time.Now().UnixNano())
+	cells = make([]Cell, len(players))
+	for i, player := range players {
+		x := rand.Intn(field.Width)
+		y := rand.Intn(field.Height)
+		cells[i] = *NewCell(x, y, player.ID+CellIncrement, player.ID)
+	}
+	return cells
 }
 
 // SetMines fill matrix with mines
