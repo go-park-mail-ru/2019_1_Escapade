@@ -2,20 +2,18 @@
 
 :heart_eyes: Top backend :heart_eyes:
 
-[![Build Status](https://travis-ci.org/go-park-mail-ru/2019_1_TheBang.svg?branch=master)](https://travis-ci.org/go-park-mail-ru/2019_1_TheBang)
-
 ## Микросервисы:
 - [API](https://escapade-backend.herokuapp.com)
 - [Авторизация](https://escapade-auth.herokuapp.com)
 - [Чат](https://escapade-chat.herokuapp.com)
-Мы в [Heroku](https://dashboard.heroku.com/teams/escapade/apps)
 
 ## Состав:
-- Надежный ментор - [Дмитрий Липко](https://github.com/frontend-park-mail-ru/2019_1_Escapade/commits?author=dlipko)
-- Неспящий бэкэндер - [Артём Доктор](https://github.com/go-park-mail-ru/2019_1_Escapade/commits?author=SmartPhoneJava)
+- Надежный ментор - [Дмитрий Липко](https://github.com/dlipko)
+- Неспящий бэкэндер - [Артём Доктор](https://github.com/SmartPhoneJava)
 - Креативный фронтендер - [Иван Спасенов](https://github.com/slevinsps)
 - Усердный фронтендер - [Сергей Апарин](https://github.com/Bigyin1)
-Мы в [heroku](https://dashboard.heroku.com/teams/escapade/apps)
+
+Мы в [Heroku](https://dashboard.heroku.com/teams/escapade/apps)
 
 
 ## Фронт
