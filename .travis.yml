@@ -7,17 +7,15 @@ go:
 
 services: docker
 
-before-script:
-  - psql --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';" &&\
-    createdb -O rolepade escabase &&\
-    /etc/init.d/postgresql stop
-  - go mod tidy
-
 env:
   - GO111MODULE=on USE_DOCKER_DB=on
 
 install: true
 
 script:
+  - psql --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';" &&\
+    createdb -O rolepade escabase &&\
+    /etc/init.d/postgresql stop
+  - go mod tidy
   - go build main.go
   - go test -v -race ./...
