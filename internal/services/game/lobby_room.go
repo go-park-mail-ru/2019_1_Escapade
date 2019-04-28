@@ -1,8 +1,9 @@
 package game
 
 import (
-	"escapade/internal/models"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	
 	"fmt"
 )
 

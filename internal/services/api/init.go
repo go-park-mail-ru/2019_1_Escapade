@@ -1,8 +1,9 @@
 package api
 
 import (
-	"escapade/internal/config"
-	"escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	
 	"fmt"
 	"time"
 )

@@ -1,5 +1,6 @@
 package test
 
+/*
 import (
 	"fmt"
 	"math/rand"
@@ -21,7 +22,7 @@ import (
 var addr = flag.String("addr", "localhost:3001", "http service address")
 
 const confPath = "test.json"
-
+*/
 /*
 func TestExample(t *testing.T) {
 
@@ -62,6 +63,7 @@ func TestExample(t *testing.T) {
 	}
 }
 */
+/*
 func TestCreateRoom(t *testing.T) {
 
 	n := 5
@@ -206,3 +208,4 @@ func getRooms(t *testing.T, ws *websocket.Conn) {
 		fmt.Println("getRooms done")
 	}
 }
+*/

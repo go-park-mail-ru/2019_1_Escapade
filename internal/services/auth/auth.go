@@ -1,9 +1,10 @@
 package session
 
 import (
+	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"context"
-	session "escapade/internal/services/auth/proto"
-	"escapade/internal/utils"
 	"fmt"
 	"log"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+// SessionManager session struct
 type SessionManager struct {
 	redisConn redis.Conn
 }

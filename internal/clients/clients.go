@@ -1,7 +1,7 @@
 package clients
 
 import (
-	session "escapade/internal/services/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 
 	"google.golang.org/grpc"
 )

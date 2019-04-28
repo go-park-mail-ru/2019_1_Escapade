@@ -1,10 +1,11 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"context"
 	"encoding/json"
-	"escapade/internal/models"
-	"escapade/internal/utils"
 	"fmt"
 )
 

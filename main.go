@@ -1,10 +1,10 @@
 package main
 
 import (
-	"escapade/internal/router"
-	"escapade/internal/services/api"
-	"escapade/internal/services/game"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
 	"os"
 	"os/signal"
 	"syscall"

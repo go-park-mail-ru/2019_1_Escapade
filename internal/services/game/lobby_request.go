@@ -1,7 +1,7 @@
 package game
 
 import (
-	"escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // LobbyRequest - client send it by websocket to

@@ -1,13 +1,13 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"fmt"
 	"sync"
 	"time"
-
-	"escapade/internal/config"
-	"escapade/internal/models"
-	"escapade/internal/utils"
 
 	"context"
 

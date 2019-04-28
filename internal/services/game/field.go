@@ -1,7 +1,8 @@
 package game
 
 import (
-	"escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	
 	"fmt"
 	"math/rand"
 	"time"

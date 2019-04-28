@@ -1,14 +1,12 @@
 package api
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+
 	"fmt"
 	"mime/multipart"
 	"time"
-
-	//"escapade/internal/cookie"
-	//"escapade/internal/models"
-	"escapade/internal/models"
-	re "escapade/internal/return_errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

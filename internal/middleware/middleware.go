@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"escapade/internal/config"
-	cookie "escapade/internal/cookie"
-	"escapade/internal/cors"
-	re "escapade/internal/return_errors"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 
 	"net/http"
 )

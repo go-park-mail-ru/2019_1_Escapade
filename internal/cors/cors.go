@@ -1,9 +1,9 @@
 package cors
 
 import (
-	"escapade/internal/config"
-	"fmt"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
+	"fmt"
 	"net/http"
 	"strings"
 )

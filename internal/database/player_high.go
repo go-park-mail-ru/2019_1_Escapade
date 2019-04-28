@@ -1,8 +1,10 @@
 package database
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+
 	"database/sql"
-	"escapade/internal/models"
 	"fmt"
 )
 
@@ -19,12 +21,8 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 	}
 	defer tx.Rollback()
 
-	// if err = db.confirmUnique(tx, user); err != nil {
-	// 	fmt.Println("database/register - fail uniqie")
-	// 	return
-	// }
-
 	if userID, err = db.createPlayer(tx, user); err != nil {
+		err = re.ErrorUserIsExist()
 		fmt.Println("database/register - fail creating User")
 		return
 	}

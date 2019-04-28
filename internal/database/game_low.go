@@ -1,9 +1,9 @@
 package database
 
 import (
-	//
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+
 	"database/sql"
-	"escapade/internal/models"
 	"fmt"
 	"time"
 

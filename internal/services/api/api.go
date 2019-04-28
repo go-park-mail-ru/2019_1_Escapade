@@ -1,19 +1,19 @@
 package api
 
 import (
-	"escapade/internal/cookie"
-	"escapade/internal/database"
-	"escapade/internal/models"
-	re "escapade/internal/return_errors"
-	"escapade/internal/services/game"
-	"escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
+
 	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"time"
-
-	"escapade/internal/config"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
@@ -468,7 +468,13 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	fileType := handle.Header.Get("Content-Type")
 	//Генерация уник.ключа для хранения картинки
-	fileKey := uuid.NewV4()
+	fileKey, err := uuid.NewV4()
+
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
+	}
 
 	switch fileType {
 	case "image/jpeg":
@@ -660,7 +666,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		err       error
 		difficult int
 		user      *models.UserPublicInfo
-		fileKey   string
 	)
 
 	difficult = h.getDifficult(r)
@@ -671,15 +676,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if fileKey, err = h.DB.GetImage(userID); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	URL, err := h.getURLToAvatar(fileKey)
-	user.PhotoURL = URL
 
 	utils.SendSuccessJSON(rw, user, place)
 

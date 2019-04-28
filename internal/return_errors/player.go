@@ -2,6 +2,12 @@ package rerrors
 
 import "errors"
 
+// ErrorUserIsExist call it, if client give you
+// 	name or email, that exists in database
+func ErrorUserIsExist() error {
+	return errors.New("Username with such name or email exists")
+}
+
 // ErrorEmailIstaken call it, if client give you
 // 	email, that exists in database
 func ErrorEmailIstaken() error {

@@ -1,8 +1,9 @@
 package utils
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+
 	"encoding/json"
-	"escapade/internal/models"
 	"fmt"
 	"net/http"
 )

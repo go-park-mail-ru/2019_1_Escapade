@@ -1,8 +1,9 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+
 	"context"
-	"escapade/internal/config"
 	"fmt"
 )
 

@@ -1,9 +1,8 @@
 package database
 
 import (
-	//
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"database/sql"
-	"escapade/internal/models"
 
 	//
 	_ "github.com/lib/pq"

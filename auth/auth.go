@@ -1,8 +1,8 @@
 package main
 
 import (
-	sessMan "escapade/internal/services/auth"
-	session "escapade/internal/services/auth/proto"
+	sessMan "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 	"fmt"
 	"log"
 	"net"
