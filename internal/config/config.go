@@ -119,6 +119,11 @@ func Init(publicConfigPath, privateConfigPath string) (conf *Configuration, err 
 	if err = json.Unmarshal(data, conf); err != nil {
 		return
 	}
+	
+	conf.AWS.AwsConfig = &aws.Config{
+		Region:   aws.String(conf.AWS.Region),
+		Endpoint: aws.String(conf.AWS.Endpoint),
+	}
 
 	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
 		fmt.Println("no secret json found:", err.Error())
