@@ -2,14 +2,10 @@ package database
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
 	"fmt"
-	ran "math/rand"
 	"os"
-	"time"
 
 	//
 	_ "github.com/lib/pq"
@@ -168,30 +164,4 @@ ADD CONSTRAINT cell_gamer
 		fmt.Println("database/init - fail:" + err.Error())
 	}
 	return err
-}
-
-func (db *DataBase) RandomUsers(limit int) {
-
-	n := 16
-	for i := 0; i < limit; i++ {
-		ran.Seed(time.Now().UnixNano())
-		user := &models.UserPrivateInfo{
-			Name:     utils.RandomString(n),
-			Email:    utils.RandomString(n),
-			Password: utils.RandomString(n)}
-		id, _ := db.Register(user)
-
-		for j := 0; j < 4; j++ {
-			record := &models.Record{
-				Score:       ran.Intn(1000000),
-				Time:        float64(ran.Intn(10000)),
-				Difficult:   j,
-				SingleTotal: ran.Intn(2),
-				OnlineTotal: ran.Intn(2),
-				SingleWin:   ran.Intn(2),
-				OnlineWin:   ran.Intn(2)}
-			db.UpdateRecords(id, record)
-		}
-
-	}
 }

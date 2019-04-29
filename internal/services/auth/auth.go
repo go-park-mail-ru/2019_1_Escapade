@@ -1,12 +1,13 @@
 package session
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/gomodule/redigo/redis"
@@ -15,51 +16,69 @@ import (
 // SessionManager session struct
 type SessionManager struct {
 	redisConn redis.Conn
+	config    config.SessionConfig
 }
 
-func NewSessionManager(conn redis.Conn) *SessionManager {
+func NewSessionManager(redis redis.Conn, c config.SessionConfig) *SessionManager {
 	return &SessionManager{
-		redisConn: conn,
+		redisConn: redis,
+		config:    c,
 	}
 }
 
 func (sm *SessionManager) Create(ctx context.Context, sess *session.Session) (sid *session.SessionID, err error) {
 	fmt.Println("Creating sess for: ", sess.UserID)
-	sid = &session.SessionID{ID: utils.RandomString(10)}
-	result, err := redis.String(sm.redisConn.Do("HMSET", sid.ID, "id", sess.UserID, "login", sess.Login, "EX", 86400))
+	sid = &session.SessionID{ID: utils.RandomString(sm.config.Length)}
+	// UserID - в конфиг, name - не хранить
+	result, err := redis.String(sm.redisConn.Do("HMSET", sid.ID,
+		"UserID", sess.UserID,
+		"Name", sess.Login,
+		"EX", sm.config.LifetimeSeconds))
+
 	if err != nil {
 		return &session.SessionID{ID: ""}, err
 	}
 	if result != "OK" {
-		return &session.SessionID{ID: ""}, fmt.Errorf("result not OK")
+		return &session.SessionID{ID: ""}, re.ErrorSessionQueryNotOK(result)
 	}
 	fmt.Println("OK")
 	return
 }
 
-func (sm *SessionManager) Delete(ctx context.Context, cookie *session.SessionID) (i *session.Nothing, err error) {
-	_, err = redis.Int(sm.redisConn.Do("DEL", cookie.ID))
+func (sm *SessionManager) Delete(ctx context.Context, sess *session.SessionID) (i *session.Nothing, err error) {
+	_, err = redis.Int(sm.redisConn.Do("DEL", sess.ID))
 	if err != nil {
-		log.Println("redis error:", err)
+		fmt.Println("redis error:", err)
 	}
-	fmt.Println("Deleted session: ", cookie.ID)
+	fmt.Println("Deleted session: ", sess.ID)
 	i = &session.Nothing{}
 	return
 }
 
 func (sm *SessionManager) Check(ctx context.Context, cookie *session.SessionID) (sess *session.Session, err error) {
-	userID, err := redis.String(sm.redisConn.Do("HGET", cookie.ID, "id"))
-	if err != nil {
-		log.Println("cant get userID:", err)
+	var (
+		userID, login string
+		id            int
+	)
+	if userID, err = redis.String(sm.redisConn.Do("HGET", cookie.ID, "UserID")); err != nil {
+		fmt.Println("cant get userID:", err)
 		return &session.Session{UserID: -1}, err
 	}
-	login, err := redis.String(sm.redisConn.Do("HGET", cookie.ID, "login"))
-	id, _ := strconv.Atoi(userID)
-	if err != nil {
-		log.Println("cant get login:", err)
+
+	if login, err = redis.String(sm.redisConn.Do("HGET", cookie.ID, "Name")); err != nil {
+		fmt.Println("cant get login:", err)
 		return &session.Session{UserID: -1}, err
 	}
-	log.Println("Got session for: ", login, id)
-	sess = &session.Session{UserID: int32(id), Login: login}
+
+	if id, err = strconv.Atoi(userID); err != nil {
+		fmt.Println("cant convert:", userID)
+		return &session.Session{UserID: -1}, err
+	}
+
+	fmt.Println("Got session for: ", login, id)
+	sess = &session.Session{
+		UserID: int32(id),
+		Login:  login,
+	}
 	return
 }

@@ -3,15 +3,13 @@
 
 package session
 
-import (
-	context "context"
-	fmt "fmt"
-	math "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
-	proto "github.com/golang/protobuf/proto"
+import (
+	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -23,10 +21,10 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SessionID struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -36,17 +34,16 @@ func (m *SessionID) Reset()         { *m = SessionID{} }
 func (m *SessionID) String() string { return proto.CompactTextString(m) }
 func (*SessionID) ProtoMessage()    {}
 func (*SessionID) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{0}
+	return fileDescriptor_session_f0d54a363c561023, []int{0}
 }
-
 func (m *SessionID) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SessionID.Unmarshal(m, b)
 }
 func (m *SessionID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SessionID.Marshal(b, m, deterministic)
 }
-func (m *SessionID) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SessionID.Merge(m, src)
+func (dst *SessionID) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SessionID.Merge(dst, src)
 }
 func (m *SessionID) XXX_Size() int {
 	return xxx_messageInfo_SessionID.Size(m)
@@ -76,17 +73,16 @@ func (m *Session) Reset()         { *m = Session{} }
 func (m *Session) String() string { return proto.CompactTextString(m) }
 func (*Session) ProtoMessage()    {}
 func (*Session) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{1}
+	return fileDescriptor_session_f0d54a363c561023, []int{1}
 }
-
 func (m *Session) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Session.Unmarshal(m, b)
 }
 func (m *Session) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Session.Marshal(b, m, deterministic)
 }
-func (m *Session) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Session.Merge(m, src)
+func (dst *Session) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Session.Merge(dst, src)
 }
 func (m *Session) XXX_Size() int {
 	return xxx_messageInfo_Session.Size(m)
@@ -122,17 +118,16 @@ func (m *Nothing) Reset()         { *m = Nothing{} }
 func (m *Nothing) String() string { return proto.CompactTextString(m) }
 func (*Nothing) ProtoMessage()    {}
 func (*Nothing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3a6be1b361fa6f14, []int{2}
+	return fileDescriptor_session_f0d54a363c561023, []int{2}
 }
-
 func (m *Nothing) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Nothing.Unmarshal(m, b)
 }
 func (m *Nothing) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Nothing.Marshal(b, m, deterministic)
 }
-func (m *Nothing) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Nothing.Merge(m, src)
+func (dst *Nothing) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Nothing.Merge(dst, src)
 }
 func (m *Nothing) XXX_Size() int {
 	return xxx_messageInfo_Nothing.Size(m)
@@ -154,25 +149,6 @@ func init() {
 	proto.RegisterType((*SessionID)(nil), "session.SessionID")
 	proto.RegisterType((*Session)(nil), "session.Session")
 	proto.RegisterType((*Nothing)(nil), "session.Nothing")
-}
-
-func init() { proto.RegisterFile("session.proto", fileDescriptor_3a6be1b361fa6f14) }
-
-var fileDescriptor_3a6be1b361fa6f14 = []byte{
-	// 201 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2d, 0x4e, 0x2d, 0x2e,
-	0xce, 0xcc, 0xcf, 0xd3, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x87, 0x72, 0x95, 0xa4, 0xb9,
-	0x38, 0x83, 0x21, 0x4c, 0x4f, 0x17, 0x21, 0x3e, 0x2e, 0x26, 0x4f, 0x17, 0x09, 0x46, 0x05, 0x46,
-	0x0d, 0xce, 0x20, 0x26, 0x4f, 0x17, 0x25, 0x73, 0x2e, 0x76, 0xa8, 0xa4, 0x90, 0x18, 0x17, 0x5b,
-	0x69, 0x71, 0x6a, 0x11, 0x54, 0x9a, 0x35, 0x08, 0xca, 0x13, 0x12, 0xe1, 0x62, 0xcd, 0xc9, 0x4f,
-	0xcf, 0xcc, 0x93, 0x60, 0x02, 0xeb, 0x82, 0x70, 0x94, 0xe4, 0xb9, 0xd8, 0xfd, 0xf2, 0x4b, 0x32,
-	0x32, 0xf3, 0xd2, 0x41, 0x0a, 0x52, 0x4a, 0x73, 0x73, 0x2b, 0xc1, 0xfa, 0x38, 0x82, 0x20, 0x1c,
-	0xa3, 0x45, 0x8c, 0x5c, 0xdc, 0x8e, 0xa5, 0x25, 0x19, 0xce, 0x19, 0xa9, 0xc9, 0xd9, 0xa9, 0x45,
-	0x42, 0x06, 0x5c, 0x6c, 0xce, 0x45, 0xa9, 0x89, 0x25, 0xa9, 0x42, 0x02, 0x7a, 0x30, 0x97, 0x42,
-	0xad, 0x96, 0x12, 0x42, 0x17, 0xf1, 0x74, 0x51, 0x62, 0x10, 0xd2, 0xe7, 0x62, 0x05, 0x6b, 0x16,
-	0xc2, 0x22, 0x2d, 0x85, 0x61, 0x88, 0x12, 0x03, 0xc8, 0x0a, 0x97, 0xd4, 0x9c, 0xd4, 0x92, 0x54,
-	0x02, 0x3a, 0xa0, 0x0e, 0x57, 0x62, 0x48, 0x62, 0x03, 0x87, 0x95, 0x31, 0x20, 0x00, 0x00, 0xff,
-	0xff, 0x16, 0xd3, 0x59, 0xd5, 0x3c, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -232,20 +208,6 @@ type AuthCheckerServer interface {
 	Create(context.Context, *Session) (*SessionID, error)
 	Check(context.Context, *SessionID) (*Session, error)
 	Delete(context.Context, *SessionID) (*Nothing, error)
-}
-
-// UnimplementedAuthCheckerServer can be embedded to have forward compatible implementations.
-type UnimplementedAuthCheckerServer struct {
-}
-
-func (*UnimplementedAuthCheckerServer) Create(ctx context.Context, req *Session) (*SessionID, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
-}
-func (*UnimplementedAuthCheckerServer) Check(ctx context.Context, req *SessionID) (*Session, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
-}
-func (*UnimplementedAuthCheckerServer) Delete(ctx context.Context, req *SessionID) (*Nothing, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 
 func RegisterAuthCheckerServer(s *grpc.Server, srv AuthCheckerServer) {
@@ -325,4 +287,23 @@ var _AuthChecker_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "session.proto",
+}
+
+func init() { proto.RegisterFile("session.proto", fileDescriptor_session_f0d54a363c561023) }
+
+var fileDescriptor_session_f0d54a363c561023 = []byte{
+	// 202 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x2d, 0x4e, 0x2d, 0x2e,
+	0xce, 0xcc, 0xcf, 0xd3, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x87, 0x72, 0x95, 0xa4, 0xb9,
+	0x38, 0x83, 0x21, 0x4c, 0x4f, 0x17, 0x21, 0x3e, 0x2e, 0x26, 0x4f, 0x17, 0x09, 0x46, 0x05, 0x46,
+	0x0d, 0xce, 0x20, 0xa6, 0x4c, 0x17, 0x25, 0x73, 0x2e, 0x76, 0xa8, 0xa4, 0x90, 0x18, 0x17, 0x5b,
+	0x69, 0x71, 0x6a, 0x11, 0x54, 0x9a, 0x35, 0x08, 0xca, 0x13, 0x12, 0xe1, 0x62, 0xcd, 0xc9, 0x4f,
+	0xcf, 0xcc, 0x93, 0x60, 0x02, 0xeb, 0x82, 0x70, 0x94, 0xe4, 0xb9, 0xd8, 0xfd, 0xf2, 0x4b, 0x32,
+	0x32, 0xf3, 0xd2, 0x41, 0x0a, 0x52, 0x4a, 0x73, 0x73, 0x2b, 0xc1, 0xfa, 0x38, 0x82, 0x20, 0x1c,
+	0xa3, 0x45, 0x8c, 0x5c, 0xdc, 0x8e, 0xa5, 0x25, 0x19, 0xce, 0x19, 0xa9, 0xc9, 0xd9, 0xa9, 0x45,
+	0x42, 0x06, 0x5c, 0x6c, 0xce, 0x45, 0xa9, 0x89, 0x25, 0xa9, 0x42, 0x02, 0x7a, 0x30, 0x97, 0x42,
+	0xad, 0x96, 0x12, 0x42, 0x17, 0xf1, 0x74, 0x51, 0x62, 0x10, 0xd2, 0xe7, 0x62, 0x05, 0x6b, 0x16,
+	0xc2, 0x22, 0x2d, 0x85, 0x61, 0x08, 0x50, 0x03, 0xd0, 0x0a, 0x97, 0xd4, 0x9c, 0x54, 0xa0, 0x15,
+	0xf8, 0x75, 0x40, 0x1d, 0xae, 0xc4, 0x90, 0xc4, 0x06, 0x0e, 0x2b, 0x63, 0x40, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x06, 0x25, 0x70, 0x62, 0x3c, 0x01, 0x00, 0x00,
 }

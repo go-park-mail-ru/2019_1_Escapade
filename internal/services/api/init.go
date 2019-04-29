@@ -3,7 +3,15 @@ package api
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
+	"context"
+	ran "math/rand"
 	
+	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
+
+
 	"fmt"
 	"time"
 )
@@ -19,9 +27,9 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 	handler = &Handler{
 		DB:              *DB,
 		Storage:         c.Storage,
-		Cookie:          c.Cookie,
+		Session:         c.Session,
 		GameConfig:      c.Game,
-		AWS: 						 c.AWS,
+		AWS:             c.AWS,
 		WebSocket:       ws,
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
@@ -49,4 +57,40 @@ func GetHandler(confPath, secretPath string) (handler *Handler,
 	fmt.Println("database done")
 	handler = Init(db, conf)
 	return
+}
+
+func (h *Handler) RandomUsers(limit int) {
+
+	n := 16
+	for i := 0; i < limit; i++ {
+		ran.Seed(time.Now().UnixNano())
+		user := &models.UserPrivateInfo{
+			Name:     utils.RandomString(n),
+			Email:    utils.RandomString(n),
+			Password: utils.RandomString(n)}
+		id, _ := h.DB.Register(user)
+		ctx := context.Background()
+		sessID, err := h.Clients.Session.Create(ctx, &session.Session{
+			UserID: int32(id),
+			Login:  user.Name,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("sessID:", sessID)
+
+		for j := 0; j < 4; j++ {
+			record := &models.Record{
+				Score:       ran.Intn(1000000),
+				Time:        float64(ran.Intn(10000)),
+				Difficult:   j,
+				SingleTotal: ran.Intn(2),
+				OnlineTotal: ran.Intn(2),
+				SingleWin:   ran.Intn(2),
+				OnlineWin:   ran.Intn(2)}
+			h.DB.UpdateRecords(id, record)
+		}
+
+	}
 }

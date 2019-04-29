@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"time"
-	"os"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 )
@@ -16,9 +16,9 @@ type Configuration struct {
 	Cors      CORSConfig        `json:"cors"`
 	DataBase  DatabaseConfig    `json:"dataBase"`
 	Storage   FileStorageConfig `json:"storage"`
-	AWS   AwsPublicConfig `json:"aws"`
+	AWS       AwsPublicConfig   `json:"aws"`
 	Game      GameConfig        `json:"game"`
-	Cookie    CookieConfig      `json:"cookie"`
+	Session   SessionConfig     `json:"session"`
 	WebSocket WebSocketConfig   `json:"websocket"`
 }
 
@@ -61,17 +61,17 @@ type FileStorageConfig struct {
 
 // AwsPublicConfig public aws information as region and endpoint
 type AwsPublicConfig struct {
-	AwsConfig	*aws.Config `json:"-"`
-	Region   	string `json:"region"`
-	Endpoint 	string `json:"endpoint"`
+	AwsConfig *aws.Config `json:"-"`
+	Region    string      `json:"region"`
+	Endpoint  string      `json:"endpoint"`
 }
 
 // AwsPrivateConfig private  aws information. Need another json.
 type AwsPrivateConfig struct {
-	AccessURL 	string `json:"accessUrl"`
-	AccessKey   string `json:"accessKey"`
-	SecretURL 	string `json:"secretUrl"`
-	SecretKey   string `json:"secretKey"`
+	AccessURL string `json:"accessUrl"`
+	AccessKey string `json:"accessKey"`
+	SecretURL string `json:"secretUrl"`
+	SecretKey string `json:"secretKey"`
 }
 
 // GameConfig set, how much rooms server can create and
@@ -82,14 +82,14 @@ type GameConfig struct {
 	LobbyRequest  int `json:"lobbyRequest"`
 }
 
-// CookieConfig set cookie name, path, length, expiration time
+// SessionConfig set cookie name, path, length, expiration time
 // and HTTPonly flag
-type CookieConfig struct {
-	NameCookie     string `json:"nameCookie"`
-	PathCookie     string `json:"pathCookie"`
-	LengthCookie   int    `json:"lengthCookie"`
-	LifetimeCookie int    `json:"lifetimeCookie"`
-	HTTPOnly       bool   `json:"httpOnly"`
+type SessionConfig struct {
+	Name            string `json:"name"`
+	Path            string `json:"path"`
+	Length          int    `json:"length"`
+	LifetimeSeconds int    `json:"lifetime"`
+	HTTPOnly        bool   `json:"httpOnly"`
 }
 
 // WebSocketConfig set timeouts
@@ -120,11 +120,6 @@ func Init(publicConfigPath, privateConfigPath string) (conf *Configuration, err 
 		return
 	}
 
-	conf.AWS.AwsConfig = &aws.Config{
-		Region:   aws.String(conf.AWS.Region),
-		Endpoint: aws.String(conf.AWS.Endpoint),
-	}
-
 	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
 		fmt.Println("no secret json found:", err.Error())
 		err = nil
@@ -136,7 +131,7 @@ func Init(publicConfigPath, privateConfigPath string) (conf *Configuration, err 
 		err = nil
 		return
 	}
-	
+
 	os.Setenv(apc.AccessURL, apc.AccessKey)
 	os.Setenv(apc.SecretURL, apc.SecretKey)
 	return

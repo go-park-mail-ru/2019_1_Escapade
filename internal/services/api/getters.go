@@ -137,7 +137,7 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 // 	return
 // }
 
-func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
+func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
 	ctx := context.Background()

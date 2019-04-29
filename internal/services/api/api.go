@@ -29,7 +29,7 @@ import (
 type Handler struct {
 	DB              database.DataBase
 	Storage         config.FileStorageConfig
-	Cookie          config.CookieConfig
+	Session         config.SessionConfig
 	WebSocket       config.WebSocketSettings
 	GameConfig      config.GameConfig
 	AWS             config.AwsPublicConfig
@@ -69,7 +69,7 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 		userID int
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -124,7 +124,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("sessID.ID:", sessID.ID)
 
-	cookie.CreateAndSet(rw, h.Cookie, sessID.ID)
+	cookie.CreateAndSet(rw, h.Session, sessID.ID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusCreated, place)
@@ -155,7 +155,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -214,7 +214,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	cookie.CreateAndSet(rw, h.Cookie, sessionID.ID)
+	cookie.CreateAndSet(rw, h.Session, sessionID.ID)
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -238,7 +238,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		sessionID string
 	)
 
-	if sessionID, err = cookie.GetSessionCookie(r, h.Cookie); err != nil {
+	if sessionID, err = cookie.GetSessionCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -255,7 +255,7 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie.CreateAndSet(rw, h.Cookie, "")
+	cookie.CreateAndSet(rw, h.Session, "")
 	rw.WriteHeader(http.StatusOK)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusOK, place)
@@ -292,7 +292,7 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie.CreateAndSet(rw, h.Cookie, "")
+	cookie.CreateAndSet(rw, h.Session, "")
 	rw.WriteHeader(http.StatusOK)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusOK, place)
@@ -435,7 +435,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	//
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -481,7 +481,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		url    models.Avatar
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -578,7 +578,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if !h.Test {
-		if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+		if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 			rw.WriteHeader(http.StatusUnauthorized)
 			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 			utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -636,7 +636,7 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 		userID int
 		record models.Record
 	)
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -664,7 +664,7 @@ func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
 		userID          int
 		gameInformation *models.GameInformation
 	)
-	if userID, err = h.getUserIDFromCookie(r, h.Cookie); err != nil {
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)

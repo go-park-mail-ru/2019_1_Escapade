@@ -38,11 +38,11 @@
 		"region": "ru-msk",
 		"endpoint": "https://hb.bizmrg.com"
 	},
-	"cookie": {
-		"nameCookie": "sessionid",
-		"pathCookie": "/",
-		"lengthCookie": 16,
-		"lifetimeCookie": 720,
+	"session": {
+		"name": "sessionid",
+		"path": "/",
+		"length": 16,
+		"lifetime": 604800,
 		"httpOnly": true
 	},
 	"game": {
