@@ -1,14 +1,17 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
-	"encoding/json"
-	"net/http"
-	"strconv"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/mux"
 )
@@ -120,22 +123,31 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
-	sessionID, _ := cookie.GetSessionCookie(r, cc)
+// func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
+// 	sessionID, _ := cookie.GetSessionCookie(r, cc)
+// 	ctx := context.Background()
+// 	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
+// 		ID: sessionID,
+// 	})
+// 	if err != nil {
+// 		return
+// 	}
+// 	username = sess.Login
 
-	if username, err = h.DB.GetNameBySessionID(sessionID); err != nil {
-		return
-	}
-
-	return
-}
+// 	return
+// }
 
 func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.CookieConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
 
-	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
+	ctx := context.Background()
+	sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
+		ID: sessionID,
+	})
+	if err != nil {
 		return
 	}
+	userID = int(sess.UserID)
 
 	return
 }

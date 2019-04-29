@@ -37,6 +37,9 @@ require (
 	github.com/swaggo/swag v1.5.0
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20190206043414-8bfc7677f583 // indirect
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 // indirect
 	golang.org/x/exp v0.0.0-20190426190305-956cc1757749 // indirect
 	golang.org/x/image v0.0.0-20190424155947-59b11bec70c7 // indirect

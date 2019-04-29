@@ -1,15 +1,21 @@
 package main
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"google.golang.org/grpc"
+
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // ./swag init
@@ -27,8 +33,18 @@ func main() {
 		secretPath = "secret.json"
 	)
 
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal("Zap logger error:", err)
+	}
+	defer logger.Sync()
+
+	authConn := serviceConnectionsInit()
+	defer authConn.Close()
+
 	API, conf, err := api.GetHandler(confPath, secretPath) // init.go
 
+	API.Clients = clients.Init(authConn)
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
@@ -52,4 +68,21 @@ func main() {
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")
 	}
+}
+
+func serviceConnectionsInit() (authConn *grpc.ClientConn) {
+	if os.Getenv("AUTHSERVICE_URL") == "" {
+		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
+	}
+	authConn, err := grpc.Dial(
+		os.Getenv("AUTHSERVICE_URL"),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("Cant connect to auth service!")
+	}
+
+	//Other micro services conns wiil be here
+
+	return
 }
