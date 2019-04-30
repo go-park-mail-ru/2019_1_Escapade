@@ -29,7 +29,7 @@ type Connection struct {
 	ws           *websocket.Conn
 	lobby        *Lobby
 	room         *Room
-	disconnected bool `json:"user,omitempty"`
+	disconnected bool `json:"disconnected,omitempty"`
 	both         bool
 
 	index int
