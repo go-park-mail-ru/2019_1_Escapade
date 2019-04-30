@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"math"
 
-	"fmt"
-
 	//
 	_ "github.com/lib/pq"
 )
@@ -31,7 +29,6 @@ func (db *DataBase) PostImage(filename string, userID int) (err error) {
 	_, err = db.Db.Exec(sqlStatement, filename, userID)
 
 	if err != nil {
-		fmt.Println("database/session/PostImage - fail:" + err.Error())
 		return
 	}
 	return
@@ -47,7 +44,6 @@ func (db *DataBase) GetImage(userID int) (filename string, err error) {
 	row := db.Db.QueryRow(sqlStatement, userID)
 
 	if err = row.Scan(&filename); err != nil {
-		fmt.Println("database/GetImage failed")
 		return
 	}
 	return
@@ -65,8 +61,6 @@ func (db *DataBase) GetNameBySessionID(sessionID string) (name string, err error
 
 	err = row.Scan(&name)
 	if err != nil {
-		fmt.Println("Sess error: ", err.Error())
-		fmt.Println("database/GetNameBySessionID failed")
 		return
 	}
 
@@ -85,8 +79,6 @@ func (db *DataBase) GetUserIdBySessionID(sessionID string) (id int, err error) {
 
 	err = row.Scan(&id)
 	if err != nil {
-		fmt.Println("Sess error: ", err.Error())
-		fmt.Println("database/GetIdBySessionID failed")
 		return
 	}
 
@@ -95,7 +87,7 @@ func (db *DataBase) GetUserIdBySessionID(sessionID string) (id int, err error) {
 
 // GetNameBySessionID gets name of Player from
 // relation Session, cause we know that user has session
-func (db *DataBase) GetUserIdByName(name string) (id int, err error) {
+func (db *DataBase) GetUserIDByName(name string) (id int, err error) {
 	sqlStatement := `
 	SELECT id
 	FROM Player
@@ -105,8 +97,6 @@ func (db *DataBase) GetUserIdByName(name string) (id int, err error) {
 
 	err = row.Scan(&id)
 	if err != nil {
-		fmt.Println("Sess error: ", err.Error())
-		fmt.Println("database/GetIdBySessionID failed")
 		return
 	}
 

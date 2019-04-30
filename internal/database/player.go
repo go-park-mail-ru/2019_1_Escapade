@@ -2,8 +2,6 @@ package database
 
 import (
 	//
-	"fmt"
-
 	_ "github.com/lib/pq"
 )
 
@@ -35,7 +33,6 @@ func (db *DataBase) GetPlayerNames() (names []string, err error) {
 			break
 		}
 
-		fmt.Println("add:", str)
 		names = append(names, str)
 	}
 

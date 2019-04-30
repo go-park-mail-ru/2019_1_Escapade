@@ -1,15 +1,21 @@
 package api
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	cook "github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+
+	//c "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
@@ -34,47 +40,23 @@ const PATH = "../../../conf.json"
 const RANDOM = "r"
 const DEFAULT = "d"
 
+var TestAPI *Handler
+
 var replacer = strings.NewReplacer("\n", "", "\t", "")
 
-func checkStrings(t *testing.T, caseNum int, got string, expected string) {
+func compareStrings(got, expected string) bool {
 	got = strings.TrimSpace(got)
 	expected = strings.TrimSpace(expected)
 	got = replacer.Replace(got)
 	expected = replacer.Replace(expected)
-	if got != expected {
-		t.Errorf("[%d] wrong Response: got \n%+v\nexpected\n%+v",
-			caseNum, got, expected)
-	}
-}
-
-func checkCookies(t *testing.T, caseNum int, got http.Cookie, expected http.Cookie) {
-
-	if got.Name != expected.Name {
-		t.Errorf("[%d] wrong cookie name: got \n%+v\nexpected\n%+v",
-			caseNum, got.Name, expected.Name)
-	}
-
-	if got.Value != expected.Value {
-		t.Errorf("[%d] wrong cookie value: got \n%+v\nexpected\n%+v",
-			caseNum, got.Value, expected.Value)
-	}
-
-	if got.Path != expected.Path {
-		t.Errorf("[%d] wrong cookie path: got \n%+v\nexpected\n%+v",
-			caseNum, got.Path, expected.Path)
-	}
-
-	if got.HttpOnly != expected.HttpOnly {
-		t.Errorf("[%d] wrong cookie HttpOnly flag: got \n%+v\nexpected\n%+v",
-			caseNum, got.HttpOnly, expected.HttpOnly)
-	}
+	return got == expected
 }
 
 func launchTests(t *testing.T, H *Handler, cases []TestCase,
-	url string, af apiFunc, c *http.Cookie, record bool) {
+	url string, af apiFunc, compare Comparator, c *http.Cookie, record bool) {
+
 	for caseNum, item := range cases {
 		w := af(H, url, strings.NewReader(item.Body), c)
-		fmt.Println("look at", item.Body)
 		if !record {
 			continue
 		}
@@ -93,7 +75,10 @@ func launchTests(t *testing.T, H *Handler, cases []TestCase,
 
 		defer resp.Body.Close()
 
-		checkStrings(t, caseNum, string(body), item.Response)
+		if !compare(string(body), item.Response) {
+			t.Errorf("[%d] wrong text: got %s, expected %s",
+				caseNum, string(body), item.Response)
+		}
 	}
 }
 
@@ -207,53 +192,81 @@ func getUserDeleteCases() []TestCase {
 	}
 }
 
-func TestCreateUser(t *testing.T) {
-	H, _, err := GetHandler(PATH, "")
-	if err != nil || H == nil {
-		t.Error("TestCreateUser catched error:", err.Error())
-		return
+// func TestCreateUserConvey(t *testing.T) {
+// 	c.Convey("Create user", t, func() {
+// 		url := "/user"
+// 		cases := getUserCreateCases()
+// 		c.Convey("Should create user", func() {
+// 			launchTests(t, cases, url, createUser, nil, true)
+// 			launchTests(t, cases, url, deleteUser, nil, false)
+// 			c.So(nil, c.ShouldBeNil)
+// 		})
+// 	})
+
+// }
+
+func TestAll(t *testing.T) {
+
+	const (
+		place      = "main"
+		confPath   = "../../../conf.json"
+		secretPath = "../../../secret.json"
+	)
+
+	var (
+		H *Handler
+	)
+
+	fmt.Println("launchTests")
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		t.Error("serviceConnectionsInit error:", err)
 	}
+	defer authConn.Close()
+
+	H, _, err = InitAPI(confPath, secretPath, authConn) // init.go
+	if err != nil {
+		t.Error("serviceConnectionsInit error:", err)
+	}
+	if H == nil {
+		fmt.Println("launchTests failes")
+	}
+
+	TCreateUser(t, H)
+	TDeleteUser(t, H)
+	TUpdateProfile(t, H)
+	TGetMyProfile(t, H)
+	TGetProfile(t, H)
+	TLogin(t, H)
+
+	// delete everything in database after tests
+}
+
+func TCreateUser(t *testing.T, H *Handler) {
+
 	url := "/user"
 
 	cases := getUserCreateCases()
 
-	launchTests(t, H, cases, url, createUser, nil, true)
+	launchTests(t, H, cases, url, createUser, compareStrings, nil, true)
 
-	launchTests(t, H, cases, url, deleteUser, nil, false)
+	launchTests(t, H, cases, url, deleteUser, compareStrings, nil, false)
 }
 
-func TestDeleteUser(t *testing.T) {
-	H, _, err := GetHandler(PATH, "")
-	if err != nil || H == nil {
-		t.Error("TestCreateUser catched error:", err.Error())
-		return
-	}
+func TDeleteUser(t *testing.T, H *Handler) {
 	url := "/user"
 
 	cases := getUserDeleteCases()
 
-	launchTests(t, H, cases, url, createUser, nil, false)
-	launchTests(t, H, cases, url, deleteUser, nil, true)
+	launchTests(t, H, cases, url, createUser, compareStrings, nil, false)
+	launchTests(t, H, cases, url, deleteUser, compareStrings, nil, true)
 }
-/*
-func TestUpdateProfile(t *testing.T) {
-	const place = "UpdateProfile"
-	firstName := utils.RandomString(16)
-	takenName := utils.RandomString(16)
-	takenEmail := utils.RandomString(16)
 
-	users := []TestCase{
-		TestCase{
-			Body:       createPrivateUser(firstName, RANDOM, RANDOM),
-			Response:   ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-		TestCase{
-			Body:       createPrivateUser(takenName, RANDOM, takenEmail),
-			Response:   ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-	}
+func TUpdateProfile(t *testing.T, H *Handler) {
+	const place = "UpdateProfile"
+	takenName := "takenName"
+	takenEmail := "takenEmail"
+
 	updates := []TestCase{
 		TestCase{
 			Response:   createResult(place, re.ErrorAuthorization()),
@@ -323,44 +336,37 @@ func TestUpdateProfile(t *testing.T) {
 	}
 
 	var (
-		cookiestr string
-		cookie    *http.Cookie
+		cookie *http.Cookie
 	)
 
-	H, _, err := GetHandler(PATH, "")
-
-	if err != nil || H == nil {
-		t.Error("TestUpdateUser catched error:", err.Error())
-		return
-	}
 	url := "/user"
 
-	launchTests(t, H, users, url, createUser, nil, false)
-
-	if cookiestr, err = H.DB.GetSessionByName(firstName); err != nil {
-		t.Error("TestUpdateUser cant get cookie:", err.Error())
-		return
+	user := models.UserPrivateInfo{
+		Name:     takenName,
+		Password: utils.RandomString(16),
+		Email:    takenEmail,
 	}
 
-	cookie = cook.CreateCookie(cookiestr, H.Cookie)
+	H.register(context.Background(), user)
 
-	launchTests(t, H, updates[:1], url, updateUser, nil, true)
-	launchTests(t, H, updates[1:], url, updateUser, cookie, true)
-	launchTests(t, H, users, url, deleteUser, nil, false)
+	user = *createRandomUser()
+	_, cookiestr, err := H.register(context.Background(), user)
+	if err != nil {
+		t.Error(" error:", err.Error())
+		return
+	}
+	cookie = cook.CreateCookie(cookiestr, H.Session)
+
+	launchTests(t, H, updates[:1], url, updateUser, compareStrings, nil, true)
+	launchTests(t, H, updates[1:], url, updateUser, compareStrings, cookie, true)
+
 }
-*/
-func TestGetMyProfile(t *testing.T) {
+
+func TGetMyProfile(t *testing.T, H *Handler) {
 	const place = "GetMyProfile"
 	name := utils.RandomString(16)
 	email := utils.RandomString(16)
 
-	users := []TestCase{
-		TestCase{
-			Body:       createPrivateUser(name, RANDOM, email),
-			Response:   ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-	}
 	gets := []TestCase{
 		TestCase{
 			Response:   createResult(place, re.ErrorAuthorization()),
@@ -374,41 +380,33 @@ func TestGetMyProfile(t *testing.T) {
 		},
 	}
 
-	H, _, err := GetHandler(PATH, "")
+	url := "/user"
 
-	if err != nil || H == nil {
+	user := models.UserPrivateInfo{
+		Name:  name,
+		Email: email,
+	}
+	_, cookiestr, err := H.register(context.Background(), user)
+	if err != nil {
 		t.Error("TestUpdateUser catched error:", err.Error())
 		return
 	}
-	url := "/user"
+	cookie := cook.CreateCookie(cookiestr, H.Session)
 
-	launchTests(t, H, users, url, createUser, nil, false)
+	launchTests(t, H, gets[:1], url, getMyProfile, models.ComparePublicUsers, nil, true)
+	launchTests(t, H, gets[1:], url, getMyProfile, models.ComparePublicUsers, cookie, true)
 
-	var cookiestr string
-	if cookiestr, err = H.DB.GetSessionByName(name); err != nil {
-		t.Error("TestUpdateUser cant get cookie:", err.Error())
+	if err = H.deleteAccount(context.Background(), &user, cookiestr); err != nil {
+		t.Error("TestUpdateUser catched error:", err.Error())
 		return
 	}
-
-	cookie := cook.CreateCookie(cookiestr, H.Cookie)
-
-	launchTests(t, H, gets[:1], url, getMyProfile, nil, true)
-	launchTests(t, H, gets[1:], url, getMyProfile, cookie, true)
-	launchTests(t, H, users, url, deleteUser, nil, false)
 }
 
-func TestGetProfile(t *testing.T) {
+func TGetProfile(t *testing.T, H *Handler) {
 	const place = "GetProfile"
 	name := utils.RandomString(16)
 	email := utils.RandomString(16)
 
-	users := []TestCase{
-		TestCase{
-			Body:       createPrivateUser(name, RANDOM, email),
-			Response:   ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-	}
 	gets := []TestCase{
 		TestCase{
 			Response:   createResult(place, re.ErrorInvalidUserID()),
@@ -425,125 +423,77 @@ func TestGetProfile(t *testing.T) {
 		},
 	}
 
-	H, _, err := GetHandler(PATH, "")
+	user := models.UserPrivateInfo{
+		Name:     name,
+		Password: utils.RandomString(16),
+		Email:    email,
+	}
 
-	if err != nil || H == nil {
-		t.Error("TestUpdateUser catched error:", err.Error())
+	id, _, err := H.register(context.Background(), user)
+	if err != nil {
+		t.Error(" error:", err.Error())
 		return
 	}
 
 	url := "/user"
-	launchTests(t, H, users, url, createUser, nil, false)
-
-	launchTests(t, H, gets[:1], url, getProfile, nil, true)
+	launchTests(t, H, gets[:1], url, getProfile, models.ComparePublicUsers, nil, true)
 	url = "/user?id=dfdf"
-	launchTests(t, H, gets[:1], url, getProfile, nil, true)
-	url = "/user?id=10"
-	launchTests(t, H, gets[1:2], url, getProfile, nil, true)
-	url = "/user?id=1"
-	launchTests(t, H, gets[2:], url, getProfile, nil, true)
-	url = "/user"
-	launchTests(t, H, users, url, deleteUser, nil, false)
+	launchTests(t, H, gets[:1], url, getProfile, models.ComparePublicUsers, nil, true)
+	url = "/user?id=100000"
+	launchTests(t, H, gets[1:2], url, getProfile, models.ComparePublicUsers, nil, true)
+	url = "/user?id=" + strconv.FormatInt(int64(id), 10)
+	launchTests(t, H, gets[2:], url, getProfile, models.ComparePublicUsers, nil, true)
 }
 
 // old tests
 
 // +
-func TestLogin(t *testing.T) {
+func TLogin(t *testing.T, H *Handler) {
+	const place = "Login"
+	name := utils.RandomString(16)
+	password := utils.RandomString(16)
+	email := utils.RandomString(16)
+
 	cases := []TestCase{
 		TestCase{
-			Response: `
-				{
-					"place":"Login",
-					"success":false,
-					"message":"Cant found parameters"
-				}
-				`,
-			Body: `{
-				"name": "username",
-				"password": "1454543",
-				"email": "test@mail.ru"
-			}`,
-			StatusCode: http.StatusBadRequest,
-		},
-		TestCase{
-			Response: createPublicUser("username", "test@mail.ru", "",
+			Response: createPublicUser(name, email, "",
 				DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
-			Body: `{
-				"name": "username",
-				"password": "1454543",
-				"email": "test@mail.ru"
-			}`,
+			Body:       createPrivateUser(name, password, email),
 			StatusCode: http.StatusOK,
 		},
 		TestCase{
-			Response: `{
-				"place":"Login",
-				"success":false,
-				"message":"User not found"}
-			`,
-			Body: `{
-				"name": "username",
-				"password": "145sdsw4543",
-				"email": "test121@mail.ru"
-			}`,
+			Response:   createResult(place, re.ErrorUserNotFound()),
+			Body:       createPrivateUser(RANDOM, RANDOM, RANDOM),
 			StatusCode: http.StatusBadRequest,
 		},
 		TestCase{
-			Response: `{
-				"place":"Login",
-				"success":false,
-				"message":"User not found"}
-			`,
-			Body: `{
-				"password": "",
-				"email": ""
-			}`,
+			Response:   createResult(place, re.ErrorUserNotFound()),
+			Body:       createPrivateUser("", "", ""),
 			StatusCode: http.StatusBadRequest,
 		},
 	}
 
-	urlSignUp := "/user"
+	user := models.UserPrivateInfo{
+		Name:     name,
+		Password: utils.RandomString(16),
+		Email:    email,
+	}
 
-	H, _, err := GetHandler(PATH, "")
-	if err != nil || H == nil {
-		t.Error("TestCreateUser catched error:", err.Error())
+	_, cookiestr, err := H.register(context.Background(), user)
+	if err != nil {
+		t.Error(" error:", err.Error())
 		return
 	}
-	preq := httptest.NewRequest("DELETE", urlSignUp, strings.NewReader(cases[0].Body))
-	H.DeleteUser(httptest.NewRecorder(), preq)
 
-	req := httptest.NewRequest("POST", urlSignUp, strings.NewReader(cases[0].Body))
-	w := httptest.NewRecorder()
-	H.CreateUser(w, req)
-	//body, _ := ioutil.ReadAll(w.Result().Body)
-	//t.Errorf(string(body))
+	cookie := cook.CreateCookie(cookiestr, H.Session)
 
 	url := "/session"
-	for caseNum, item := range cases {
-		req := httptest.NewRequest("POST", url, strings.NewReader(item.Body))
-		if caseNum == 0 {
-			req.Body = nil
-		}
-		w := httptest.NewRecorder()
-
-		H.Login(w, req)
-
-		if w.Code != item.StatusCode {
-			t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-				caseNum, w.Code, item.StatusCode)
-		}
-
-		resp := w.Result()
-		body, _ := ioutil.ReadAll(resp.Body)
-
-		defer resp.Body.Close()
-
-		checkStrings(t, caseNum, string(body), item.Response)
-	}
+	launchTests(t, H, cases, url, login, compareStrings, nil, true)
+	launchTests(t, H, cases, url, login, compareStrings, cookie, true)
 }
 
 // +
+/*
 func TestLogout(t *testing.T) {
 	cases := []TestCase{
 		TestCase{
@@ -610,7 +560,6 @@ func TestLogout(t *testing.T) {
 
 	url := "/session"
 
-	/* 1 test */
 	req1 := httptest.NewRequest("DELETE", url, strings.NewReader(cases[0].Body))
 	w1 := httptest.NewRecorder()
 	req1.AddCookie(cookie)
@@ -626,7 +575,6 @@ func TestLogout(t *testing.T) {
 	defer resp1.Body.Close()
 
 	checkStrings(t, 1, string(body1), cases[0].Response)
-	/* 2 test */
 	req2 := httptest.NewRequest("DELETE", url, strings.NewReader(cases[1].Body))
 	w2 := httptest.NewRecorder()
 	H.Logout(w2, req2)
@@ -643,7 +591,7 @@ func TestLogout(t *testing.T) {
 	checkStrings(t, 2, string(body2), cases[1].Response)
 
 }
-
+*/
 /*
 func TestGetPlayerGames(t *testing.T) {
 	cases := []TestCaseGames{
@@ -715,6 +663,7 @@ func TestGetPlayerGames(t *testing.T) {
 }
 */
 
+/*
 func TestGetUsersPageAmount(t *testing.T) {
 	cases := []TestCase{
 		TestCase{
@@ -747,7 +696,13 @@ func TestGetUsersPageAmount(t *testing.T) {
 		},
 	}
 
-	H, _, err := GetHandler(PATH, "")
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		log.Fatal("serviceConnectionsInit error:", err)
+	}
+	defer authConn.Close()
+
+	H, _, err := GetHandler(PATH, "", authConn)
 
 	if err != nil || H == nil {
 		t.Error("catched error:", err.Error())
@@ -762,7 +717,12 @@ func TestGetUsersPageAmount(t *testing.T) {
 }
 
 func TestGetUsers(t *testing.T) {
-	H, _, err := GetHandler(PATH, "")
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		log.Fatal("serviceConnectionsInit error:", err)
+	}
+	defer authConn.Close()
+	H, _, err := GetHandler(PATH, "", authConn)
 	if err != nil || H == nil {
 		t.Error("Catched error:", err.Error())
 		return
@@ -777,7 +737,13 @@ func TestGetUsers(t *testing.T) {
 }
 
 func TestPostImage(t *testing.T) {
-	H, _, err := GetHandler(PATH, "")
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		log.Fatal("serviceConnectionsInit error:", err)
+	}
+	defer authConn.Close()
+
+	H, _, err := GetHandler(PATH, "", authConn)
 	if err != nil || H == nil {
 		t.Error("Catched error:", err.Error())
 		return
@@ -792,7 +758,12 @@ func TestPostImage(t *testing.T) {
 }
 
 func TestGetImage(t *testing.T) {
-	H, _, err := GetHandler(PATH, "")
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		log.Fatal("serviceConnectionsInit error:", err)
+	}
+	defer authConn.Close()
+	H, _, err := GetHandler(PATH, "", authConn)
 	if err != nil || H == nil {
 		t.Error("Catched error:", err.Error())
 		return
@@ -802,30 +773,28 @@ func TestGetImage(t *testing.T) {
 	cases := getUserCreateCases()
 
 	const place = "UpdateProfile"
-	firstName := utils.RandomString(16)
 
-	users := []TestCase{
-		TestCase{
-			Body:       createPrivateUser(firstName, RANDOM, RANDOM),
-			Response:   ``,
-			StatusCode: http.StatusUnauthorized,
-		},
-	}
-
-	launchTests(t, H, users, url, createUser, nil, false)
-
-	var cookiestr string
-	if cookiestr, err = H.DB.GetSessionByName(firstName); err != nil {
-		t.Error("TestUpdateUser cant get cookie:", err.Error())
+	user := *createRandomUser()
+	_, cookiestr, err := H.register(context.Background(), user)
+	if err != nil {
+		t.Error(" error:", err.Error())
 		return
 	}
-
-	cookie := cook.CreateCookie(cookiestr, H.Cookie)
+	cookie := cook.CreateCookie(cookiestr, H.Session)
 
 	launchTests(t, H, cases, url, getImage, cookie, false)
 	launchTests(t, H, cases, url, getImage, nil, false)
-	launchTests(t, H, users, url, deleteUser, nil, false)
+
+	if err = H.deleteAccount(context.Background(), &user, cookiestr); err != nil {
+		t.Error(" error:", err.Error())
+		return
+	}
 }
+*/
+
+/////////// object comparators /////
+
+type Comparator func(a, b string) bool
 
 /////////// api handlers //////
 
@@ -918,6 +887,16 @@ func getUsers(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httpte
 		req.AddCookie(c)
 	}
 	H.GetUsers(w, req)
+	return w
+}
+
+func login(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("Post", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.Login(w, req)
 	return w
 }
 
@@ -1014,3 +993,13 @@ func createPublicUser(name, email, photo, bestScore, valid1, bestTime, valid2, d
 			createNotString("Valid", valid2)),
 		createNotString("difficult", difficult))
 }
+
+func createRandomUser() *models.UserPrivateInfo {
+	return &models.UserPrivateInfo{
+		Name:     utils.RandomString(16),
+		Email:    utils.RandomString(16),
+		Password: utils.RandomString(16),
+	}
+}
+
+//00:03 1069

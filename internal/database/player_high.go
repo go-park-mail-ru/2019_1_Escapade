@@ -5,7 +5,6 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"database/sql"
-	"fmt"
 )
 
 // Register check sql-injections and are email and name unique
@@ -23,21 +22,16 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 
 	if userID, err = db.createPlayer(tx, user); err != nil {
 		err = re.ErrorUserIsExist()
-		fmt.Println("database/register - fail creating User")
 		return
 	}
 
 	// if err = db.createSession(tx, userID, sessionID); err != nil {
-	// 	fmt.Println("database/register - fail creating Session")
 	// 	return
 	// }
 
 	if err = db.createRecords(tx, userID); err != nil {
-		fmt.Println("database/register - fail creating Session")
 		return
 	}
-
-	fmt.Println("database/register +")
 
 	err = tx.Commit()
 	return
@@ -58,22 +52,16 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPubli
 	defer tx.Rollback()
 
 	if userID, found, err = db.checkBunch(tx, user.Email, user.Password); err != nil {
-		fmt.Println("database/login - fail enter")
 		return
 	}
 
 	// if err = db.createSession(tx, userID, sessionID); err != nil {
-	// 	fmt.Println("database/login - fail creating Session")
 	// 	return
 	// }
 
 	if err = db.updatePlayerLastSeen(tx, userID); err != nil {
-		fmt.Println("database/login - fail updatePlayerLastSeen")
 		return
 	}
-
-	fmt.Println("database/login +")
-
 	err = tx.Commit()
 	return
 }
@@ -170,16 +158,12 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 	defer tx.Rollback()
 
 	if err = db.deletePlayer(tx, user); err != nil {
-		fmt.Println("database/DeleteAccount - fail deletting User")
 		return
 	}
 
 	// if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
-	// 	fmt.Println("database/DeleteAccount - fail deleting all user sessions")
 	// 	return
 	// }
-
-	// fmt.Println("database/DeleteAccount +")
 
 	err = tx.Commit()
 	return

@@ -4,7 +4,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"database/sql"
-	"fmt"
 )
 
 func (db *DataBase) SaveGame(userID int,
@@ -19,12 +18,10 @@ func (db *DataBase) SaveGame(userID int,
 	defer tx.Rollback()
 
 	if err = db.createGame(tx, userID, info.Game); err != nil {
-		fmt.Println("db/createGame err:", err.Error())
 		return
 	}
 
 	if err = db.createGamers(tx, userID, info.Gamers); err != nil {
-		fmt.Println("db/createGamers err:", err.Error())
 		return
 	}
 
@@ -44,7 +41,6 @@ func (db *DataBase) GetGames(userID int, page int) (
 	defer tx.Rollback()
 
 	if games, err = db.GetFullGamesInformation(tx, userID, page); err != nil {
-		fmt.Println("db/createGame err:", err.Error())
 		return
 	}
 

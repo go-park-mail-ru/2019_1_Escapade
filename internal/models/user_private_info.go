@@ -10,6 +10,7 @@ type UserPrivateInfo struct {
 
 // Update update all fields
 func (confirmed *UserPrivateInfo) Update(another *UserPrivateInfo) {
+	another.ID = confirmed.ID
 	updateParameter(&confirmed.Name, another.Name)
 	updateParameter(&confirmed.Email, another.Email)
 	updateParameter(&confirmed.Password, another.Password)

@@ -14,14 +14,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Connection status
-const (
-	connectionLobby     = iota // can ask for rooms list
-	connectionRoomEnter        // can ask for field and people
-	connectionPlayer           // can send cell and get update field
-	connectionObserver         // get update field
-)
-
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
 	User *models.UserPublicInfo `json:"user,omitempty"`
@@ -29,10 +21,10 @@ type Connection struct {
 	ws           *websocket.Conn
 	lobby        *Lobby
 	room         *Room
-	disconnected bool
+	disconnected bool `json:"disconnected,omitempty"`
 	both         bool
 
-	index int
+	index int `json:"index,omitempty"`
 
 	cancel context.CancelFunc
 	send   chan []byte

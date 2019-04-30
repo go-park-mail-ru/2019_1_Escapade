@@ -1,23 +1,17 @@
 package api
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"context"
-	ran "math/rand"
-	
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
-
 
 	"fmt"
+	"google.golang.org/grpc"
 	"time"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
+func Init(DB *database.DataBase, c *config.Configuration, authConn *grpc.ClientConn) (handler *Handler) {
 	ws := config.WebSocketSettings{
 		WriteWait:      time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:       time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -31,6 +25,7 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 		GameConfig:      c.Game,
 		AWS:             c.AWS,
 		WebSocket:       ws,
+		Clients:         clients.Init(authConn),
 		WriteBufferSize: c.Server.WriteBufferSize,
 		ReadBufferSize:  c.Server.ReadBufferSize,
 	}
@@ -38,59 +33,24 @@ func Init(DB *database.DataBase, c *config.Configuration) (handler *Handler) {
 }
 
 // GetHandler return created handler with database and configuration
-func GetHandler(confPath, secretPath string) (handler *Handler,
-	conf *config.Configuration, err error) {
+func InitAPI(confPath, secretPath string, authConn *grpc.ClientConn) (H *Handler, C *config.Configuration, err error) {
 
 	var (
 		db *database.DataBase
 	)
 
-	if conf, err = config.Init(confPath, secretPath); err != nil {
+	fmt.Println("InitAPI")
+	if C, err = config.Init(confPath, secretPath); err != nil {
+		fmt.Println("eeeer", err.Error())
 		return
 	}
-	fmt.Println("confPath done")
+	fmt.Println("ConfigurationAPI done")
 
-	if db, err = database.Init(conf.DataBase); err != nil {
+	if db, err = database.Init(C.DataBase); err != nil {
 		return
 	}
 
-	fmt.Println("database done")
-	handler = Init(db, conf)
+	fmt.Println("Database done")
+	H = Init(db, C, authConn)
 	return
-}
-
-func (h *Handler) RandomUsers(limit int) {
-
-	n := 16
-	for i := 0; i < limit; i++ {
-		ran.Seed(time.Now().UnixNano())
-		user := &models.UserPrivateInfo{
-			Name:     utils.RandomString(n),
-			Email:    utils.RandomString(n),
-			Password: utils.RandomString(n)}
-		id, _ := h.DB.Register(user)
-		ctx := context.Background()
-		sessID, err := h.Clients.Session.Create(ctx, &session.Session{
-			UserID: int32(id),
-			Login:  user.Name,
-		})
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("sessID:", sessID)
-
-		for j := 0; j < 4; j++ {
-			record := &models.Record{
-				Score:       ran.Intn(1000000),
-				Time:        float64(ran.Intn(10000)),
-				Difficult:   j,
-				SingleTotal: ran.Intn(2),
-				OnlineTotal: ran.Intn(2),
-				SingleWin:   ran.Intn(2),
-				OnlineWin:   ran.Intn(2)}
-			h.DB.UpdateRecords(id, record)
-		}
-
-	}
 }

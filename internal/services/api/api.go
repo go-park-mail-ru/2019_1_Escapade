@@ -91,9 +91,9 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	const place = "CreateUser"
 	var (
-		user   models.UserPrivateInfo
-		err    error
-		userID int
+		user      models.UserPrivateInfo
+		err       error
+		sessionID string
 	)
 
 	if user, err = getUserWithAllFields(r); err != nil {
@@ -103,28 +103,14 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//sessionID = cookie.CreateID(h.Cookie.LengthCookie)
-	if userID, err = h.DB.Register(&user); err != nil {
+	if _, sessionID, err = h.register(r.Context(), user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	ctx := r.Context()
-	sessID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(userID),
-			Login:  user.Name,
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("sessID.ID:", sessID.ID)
-
-	cookie.CreateAndSet(rw, h.Session, sessID.ID)
+	cookie.CreateAndSet(rw, h.Session, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusCreated, place)
@@ -205,7 +191,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := r.Context()
 	sessionID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(user.ID),
@@ -285,7 +271,8 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.DB.DeleteAccount(&user); err != nil {
+	fmt.Println("h.deleteAccount")
+	if err = h.deleteAccount(context.Background(), &user, ""); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
@@ -326,7 +313,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userID, err = h.DB.GetUserIdByName(username); err != nil {
+	if userID, err = h.DB.GetUserIDByName(username); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusBadRequest, place)

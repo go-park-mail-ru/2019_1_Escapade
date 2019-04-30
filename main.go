@@ -11,7 +11,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"google.golang.org/grpc"
 
 	"net/http"
 
@@ -39,21 +38,23 @@ func main() {
 	}
 	defer logger.Sync()
 
-	authConn := serviceConnectionsInit()
+	authConn, err := clients.ServiceConnectionsInit()
+	if err != nil {
+		log.Fatal("serviceConnectionsInit error:", err)
+	}
 	defer authConn.Close()
 
-	API, conf, err := api.GetHandler(confPath, secretPath) // init.go
+	API, Conf, err := api.InitAPI(confPath, secretPath, authConn) // init.go
 
-	API.Clients = clients.Init(authConn)
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
 	}
 	API.RandomUsers(10) // create 10 users for tests
-	r := router.GetRouter(API, conf)
-	port := router.GetPort(conf)
+	r := router.GetRouter(API, Conf)
+	port := router.GetPort(Conf)
 
-	game.Launch(&conf.Game)
+	game.Launch(&Conf.Game)
 	defer game.GetLobby().Stop()
 
 	c := make(chan os.Signal)
@@ -68,21 +69,4 @@ func main() {
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")
 	}
-}
-
-func serviceConnectionsInit() (authConn *grpc.ClientConn) {
-	if os.Getenv("AUTHSERVICE_URL") == "" {
-		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
-	}
-	authConn, err := grpc.Dial(
-		os.Getenv("AUTHSERVICE_URL"),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		log.Fatalf("Cant connect to auth service!")
-	}
-
-	//Other micro services conns wiil be here
-
-	return
 }

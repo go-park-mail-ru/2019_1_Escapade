@@ -4,7 +4,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"database/sql"
-	"fmt"
 	"time"
 
 	//
@@ -46,7 +45,6 @@ func (db *DataBase) GetFullGamesInformation(tx *sql.Tx, UserID int,
 	if erro != nil {
 		err = erro
 
-		fmt.Println("database/GetGames cant access to database:", erro.Error())
 		return
 	}
 	defer rows.Close()
@@ -71,15 +69,11 @@ func (db *DataBase) GetFullGamesInformation(tx *sql.Tx, UserID int,
 			&game.Gamers[0].LeftClick, &game.Gamers[0].RightClick,
 			&game.Gamers[0].Explosion, &game.Gamers[0].Won); err != nil {
 
-			fmt.Println("database/GetGames wrong row catched")
-
 			break
 		}
 
 		games = append(games, game)
 	}
-
-	fmt.Println("database/GetGames +")
 
 	return
 }

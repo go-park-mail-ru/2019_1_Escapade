@@ -2,14 +2,8 @@ package cookie
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"net/http"
 )
-
-// CreateID generate random string - session ID
-func CreateID(length int) string {
-	return utils.RandomString(length)
-}
 
 // CreateCookie create instance of cookie
 func CreateCookie(value string, cc config.SessionConfig) (cookie *http.Cookie) {
