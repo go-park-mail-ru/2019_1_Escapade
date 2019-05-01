@@ -1,9 +1,5 @@
 package game
 
-import (
-	"encoding/json"
-)
-
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
@@ -52,8 +48,7 @@ func (room *Room) sendHistory(predicate SendPredicate) {
 
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
-	bytes, _ := json.Marshal(room)
-	conn.SendInformation(bytes)
+	conn.SendInformation(room)
 }
 
 // copy returns full slices of selected fields

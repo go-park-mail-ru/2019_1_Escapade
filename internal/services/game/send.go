@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/json"
 	"sync"
 )
 
@@ -14,12 +13,11 @@ func SendToConnections(info interface{},
 	predicate SendPredicate, groups ...[]*Connection) {
 
 	waitJobs := &sync.WaitGroup{}
-	bytes, _ := json.Marshal(info)
 	for _, group := range groups {
 		for _, connection := range group {
 			if predicate(connection) {
 				waitJobs.Add(1)
-				go connection.sendGroupInformation(bytes, waitJobs)
+				go connection.sendGroupInformation(info, waitJobs)
 			}
 		}
 	}

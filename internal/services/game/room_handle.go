@@ -3,7 +3,6 @@ package game
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -105,9 +104,26 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 
 	// set who try open cell(for history)
 	cell.PlayerID = conn.ID()
-	room.Field.OpenCell(cell)
+	cells := room.Field.OpenCell(cell)
+	if len(cells) == 1 {
+		newCell := cells[0]
+		if newCell.Value == CellMine {
+			room.kill(conn, ActionExplode)
+			room.Players.Players[conn.Index].Points -= 100
+		} else if newCell.Value > CellIncrement {
+			room.flagFound(&newCell)
+			room.Players.Players[conn.Index].Points += 100000
+		}
+	} else {
+		for _, foundCell := range cells {
+			if foundCell.Value < CellMine {
+				room.Players.Players[conn.Index].Points += 1 + foundCell.Value
+			}
+		}
+	}
 
-	room.sendField(room.All)
+	go room.sendPlayers(room.All)
+	go room.sendField(room.All)
 
 	if room.Field.IsCleared() {
 		room.finishGame()
@@ -163,7 +179,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
 		if !done {
-			conn.SendInformation([]byte("Room cant execute request "))
+			conn.debug("Room cant execute request")
 		}
 	}
 }
@@ -217,7 +233,7 @@ func (room *Room) initTimers() (prepare, play *time.Timer) {
 
 func (room *Room) run() {
 	defer utils.CatchPanic("room_handle.go run()")
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(time.Second * 20)
 
 	timerToPrepare, timerToPlay := room.initTimers()
 	defer func() {
@@ -245,6 +261,5 @@ func (room *Room) run() {
 
 func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
 	send := room.copy(rr.Get)
-	bytes, _ := json.Marshal(send)
-	conn.SendInformation(bytes)
+	conn.SendInformation(send)
 }

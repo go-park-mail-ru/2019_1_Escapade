@@ -177,8 +177,7 @@ func (lobby *Lobby) analize(req *Request) {
 	if req.Connection.both || !req.Connection.InRoom() {
 		var send *LobbyRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
-			bytes, _ := json.Marshal(err)
-			req.Connection.SendInformation(bytes)
+			req.Connection.SendInformation(err)
 		} else {
 			lobby.handleRequest(req.Connection, send)
 		}
@@ -189,8 +188,7 @@ func (lobby *Lobby) analize(req *Request) {
 		}
 		var send *RoomRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
-			bytes, _ := json.Marshal(err)
-			req.Connection.SendInformation(bytes)
+			req.Connection.SendInformation(err)
 		} else {
 			req.Connection.room.handleRequest(req.Connection, send)
 		}
@@ -200,7 +198,5 @@ func (lobby *Lobby) analize(req *Request) {
 // requestGet handle get request to lobby
 func (lobby *Lobby) requestGet(conn *Connection, lr *LobbyRequest) {
 	sendLobby := lobby.makeGetModel(lr.Get)
-	bytes, _ := json.Marshal(sendLobby)
-	conn.debug("lobby execute get request")
-	conn.SendInformation(bytes)
+	conn.SendInformation(sendLobby)
 }

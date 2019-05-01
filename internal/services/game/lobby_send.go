@@ -1,12 +1,7 @@
 package game
 
-import (
-	"encoding/json"
-)
-
 func (lobby *Lobby) greet(conn *Connection) {
-	bytes, _ := json.Marshal(lobby)
-	conn.SendInformation(bytes)
+	conn.SendInformation(lobby)
 }
 
 func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
@@ -15,7 +10,7 @@ func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
 
 // SendMessage sends message to Connection from lobby
 func (lobby *Lobby) SendMessage(conn *Connection, message string) {
-	conn.SendInformation([]byte("Lobby message: " + message))
+	conn.SendInformation("Lobby message: " + message)
 }
 
 // send to all in lobby

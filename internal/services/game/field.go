@@ -2,7 +2,7 @@ package game
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	
+
 	"fmt"
 	"math/rand"
 	"time"
@@ -81,8 +81,9 @@ func (field *Field) IsCleared() bool {
 	return field.CellsLeft == 0
 }
 
-func (field *Field) setCellFlagTaken(x, y int) {
-	field.Matrix[x][y] = CellFlagTaken
+func (field *Field) setCellFlagTaken(cell *Cell, cells *[]Cell) {
+	field.Matrix[cell.X][cell.Y] = CellFlagTaken
+	*cells = append(*cells, *cell)
 }
 
 func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
@@ -101,8 +102,8 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
 		field.saveCell(cell, &cells)
-		if cell.Value == CellFlag {
-			field.setCellFlagTaken(cell.X, cell.Y)
+		if cell.Value >= CellIncrement {
+			field.setCellFlagTaken(cell, &cells)
 		}
 	}
 
@@ -128,14 +129,20 @@ func (field *Field) setMine(x, y int) {
 
 // RandomFlags create random players flags
 func (field *Field) RandomFlags(players []Player) (cells []Cell) {
-	rand.Seed(time.Now().UnixNano())
 	cells = make([]Cell, len(players))
 	for i, player := range players {
-		x := rand.Intn(field.Width)
-		y := rand.Intn(field.Height)
-		cells[i] = *NewCell(x, y, player.ID+CellIncrement, player.ID)
+		cells[i] = field.CreateRandomFlag(player.ID)
 	}
 	return cells
+}
+
+func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
+	rand.Seed(time.Now().UnixNano())
+	x := rand.Intn(field.Width)
+	y := rand.Intn(field.Height)
+	cell = *NewCell(x, y, playerID+CellIncrement, playerID)
+
+	return cell
 }
 
 // SetMines fill matrix with mines
@@ -194,7 +201,7 @@ func (field Field) RandomCell() *Cell {
 
 // IsInside check if coordinates are in field
 func (field Field) areCoordinatesRight(x, y int) bool {
-	return x > 0 && x < field.Width && y > 0 && y < field.Height
+	return x >= 0 && x < field.Width && y >= 0 && y < field.Height
 }
 
 // IsInside check is cell inside fueld

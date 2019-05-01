@@ -2,6 +2,9 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
 // flagFound is called, when somebody find cell flag
@@ -16,12 +19,12 @@ func (room *Room) flagFound(found *Cell) {
 
 // isAlive check if connection is player and he is not died
 func (room *Room) isAlive(conn *Connection) bool {
-	return conn.index >= 0 && !room.Players.Players[conn.index].Finished
+	return conn.Index >= 0 && !room.Players.Players[conn.Index].Finished
 }
 
 // setFinished increment amount of killed
 func (room *Room) setFinished(conn *Connection) {
-	room.Players.Players[conn.index].Finished = true
+	room.Players.Players[conn.Index].Finished = true
 	room.killed++
 }
 
@@ -44,23 +47,76 @@ func (room *Room) GiveUp(conn *Connection) {
 	room.kill(conn, ActionGiveUp)
 }
 
+// flagExists find players with such flag. This - flag owner
+func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Connection) {
+	var player int
+	for index, flag := range room.Players.Flags {
+		if (flag.X == cell.X) && (flag.Y == cell.Y) {
+			if this == nil || index != this.Index {
+				found = true
+				player = index
+			}
+			break
+		}
+	}
+	if !found {
+		return
+	}
+	for _, connection := range room.Players.Connections {
+		if connection.Index == player {
+			conn = *connection
+			break
+		}
+	}
+	return
+}
+
+func (room *Room) setFlagCoordinates(conn Connection, cell Cell) {
+	room.Players.Flags[conn.Index].X = cell.X
+	room.Players.Flags[conn.Index].Y = cell.Y
+}
+
+func (room *Room) setAndSendNewCell(conn Connection) {
+	found := true
+	// create until it become unique
+	var cell Cell
+	for found {
+		cell = room.Field.CreateRandomFlag(conn.ID())
+		found, _ = room.flagExists(cell, nil)
+	}
+	room.setFlagCoordinates(conn, cell)
+	response := models.RandomFlagSet(cell)
+	conn.SendInformation(response)
+}
+
 // setFlag handle user wanna set flag
 func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	// if user try set flag after game launch
 	if room.Status != StatusFlagPlacing {
+		response := models.FailFlagSet(cell, re.ErrorBattleAlreadyBegan())
+		conn.SendInformation(response)
 		return false
 	}
 
 	if !room.Field.IsInside(cell) {
+		response := models.FailFlagSet(cell, re.ErrorCellOutside())
+		conn.SendInformation(response)
 		return false
 	}
 
 	if !room.isAlive(conn) {
+		response := models.FailFlagSet(cell, re.ErrorPlayerFinished())
+		conn.SendInformation(response)
 		return false
 	}
 
-	room.Players.Flags[conn.index].X = cell.X
-	room.Players.Flags[conn.index].Y = cell.Y
+	if found, prevConn := room.flagExists(*cell, conn); found {
+		room.setAndSendNewCell(*conn)
+		room.setAndSendNewCell(prevConn)
+		return true
+	}
+
+	room.setFlagCoordinates(*conn, *cell)
 	return true
 }
 

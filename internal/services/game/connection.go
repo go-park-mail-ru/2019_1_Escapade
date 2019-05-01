@@ -1,6 +1,8 @@
 package game
 
 import (
+	"encoding/json"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -21,10 +23,10 @@ type Connection struct {
 	ws           *websocket.Conn
 	lobby        *Lobby
 	room         *Room
-	disconnected bool `json:"disconnected,omitempty"`
+	Disconnected bool `json:"disconnected,omitempty"`
 	both         bool
 
-	index int `json:"index,omitempty"`
+	Index int `json:"index,omitempty"`
 
 	cancel context.CancelFunc
 	send   chan []byte
@@ -43,7 +45,7 @@ func (conn *Connection) PushToLobby() {
 
 // IsConnected check player isnt disconnected
 func (conn *Connection) IsConnected() bool {
-	return conn.disconnected == false
+	return conn.Disconnected == false
 }
 
 // dirty make connection dirty. it make connection ID
@@ -57,11 +59,11 @@ func (conn *Connection) dirty() {
 // Kill call context.CancFunc, that finish goroutines of
 // writer and reader and free connection memory
 func (conn *Connection) Kill(message string, makeDirty bool) {
-	conn.SendInformation([]byte(message))
+	conn.SendInformation(message)
 	if makeDirty {
 		conn.dirty()
 	}
-	conn.disconnected = true
+	conn.Disconnected = true
 	conn.cancel()
 }
 
@@ -81,7 +83,7 @@ func (conn *Connection) Free() {
 	close(conn.send)
 	// dont delete. conn = nil make pointer nil, but other pointers
 	// arent nil and we make 'conn.disconnected = true' for them
-	conn.disconnected = true
+	conn.Disconnected = true
 	conn.lobby = nil
 	conn.room = nil
 	conn = nil
@@ -93,11 +95,11 @@ func (conn *Connection) Free() {
 func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
 	return &Connection{
 		ws:           ws,
-		index:        -1,
+		Index:        -1,
 		User:         user,
 		lobby:        lobby,
 		room:         nil,
-		disconnected: false,
+		Disconnected: false,
 		send:         make(chan []byte),
 	}
 }
@@ -216,19 +218,24 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 }
 
 // SendInformation send info
-func (conn *Connection) SendInformation(bytes []byte) {
-	if !conn.disconnected {
-		conn.send <- bytes
+func (conn *Connection) SendInformation(value interface{}) {
+	if !conn.Disconnected {
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			fmt.Println("cant send information")
+		} else {
+			conn.send <- bytes
+		}
 	}
 }
 
 // sendGroupInformation send info with WaitGroup
-func (conn *Connection) sendGroupInformation(bytes []byte, wg *sync.WaitGroup) {
+func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 		utils.CatchPanic("connection.go sendGroupInformation()")
 	}()
-	conn.SendInformation(bytes)
+	conn.SendInformation(value)
 }
 
 // ID return players id
@@ -242,5 +249,5 @@ func (conn *Connection) ID() int {
 // debug print devug information to console and websocket
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.ID(), "-", message)
-	conn.SendInformation([]byte(message))
+	conn.SendInformation(message)
 }

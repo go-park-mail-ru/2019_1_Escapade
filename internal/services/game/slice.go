@@ -41,7 +41,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			continue
 		}
 		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
-		conn.index = i
+		conn.Index = i
 	}
 	onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
@@ -141,11 +141,11 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	var i int
 	if i = onlinePlayers.SearchConnection(conn); i >= 0 {
 		oldConn := onlinePlayers.Connections[i]
-		if kill && !oldConn.disconnected {
+		if kill && !oldConn.Disconnected {
 			oldConn.Kill("Another connection found", true)
 		}
 		onlinePlayers.Connections[i] = conn
-		i = oldConn.index
+		i = oldConn.Index
 	} else if onlinePlayers.enoughPlace() {
 		i = len(onlinePlayers.Connections)
 		onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
@@ -153,7 +153,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 		return false
 	}
 	onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
-	onlinePlayers.Connections[i].index = i
+	onlinePlayers.Connections[i].Index = i
 	return false
 }
 
@@ -290,7 +290,7 @@ func (conns *Connections) enoughPlace() bool {
 func (conns *Connections) Add(conn *Connection, kill bool) bool {
 	if i := conns.Search(conn); i >= 0 {
 		oldConn := conns.Get[i]
-		if kill && !oldConn.disconnected {
+		if kill && !oldConn.Disconnected {
 			oldConn.Kill("Another connection found", true)
 		}
 		conns.Get[i] = conn

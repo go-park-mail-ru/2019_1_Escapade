@@ -27,7 +27,7 @@ func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 func (room *Room) addObserver(conn *Connection) bool {
 	// if we havent a place
 	if !room.Observers.enoughPlace() {
-		conn.SendInformation([]byte("Room cant execute request "))
+		conn.debug("Room cant execute request ")
 		return false
 	}
 	room.MakeObserver(conn)
