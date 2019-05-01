@@ -13,8 +13,4 @@ env:
 install: true
 
 script:
-  - sudo -u postgres psql postgres postgres --echo-all --command "CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';"
-  - createdb -O rolepade escabase
-  - go mod tidy
-  - go build main.go
-  - go run auth/auth.go & go test -v -race ./...
+  - docker-compose -f docker-compose-test.yaml up --build

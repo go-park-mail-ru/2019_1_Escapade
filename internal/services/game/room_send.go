@@ -113,7 +113,7 @@ func (room *Room) sendField(predicate SendPredicate) {
 func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "RoomAction",
-		Value: room.History,
+		Value: pa,
 	}
 	room.send(response, predicate)
 }

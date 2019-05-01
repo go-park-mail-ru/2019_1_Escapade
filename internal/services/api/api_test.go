@@ -239,6 +239,7 @@ func TestAll(t *testing.T) {
 	TGetProfile(t, H)
 	TLogin(t, H)
 	TLogout(t, H)
+	t.Error("serviceConnectionsInit error:")
 	// delete everything in database after tests
 }
 

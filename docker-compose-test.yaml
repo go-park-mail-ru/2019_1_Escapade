@@ -25,7 +25,7 @@ services:
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333"
   
   auth:
     build:
@@ -38,32 +38,4 @@ services:
     environment:
       - REDIS_URL=redis://:@redis:6379
     command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
-
-  chat:
-    build:
-      dockerfile: ./Dockerfile
-      context: ./escapade-chat
-    depends_on:
-      - "pg"
-    ports:
-      - 3002:3002
-    environment:
-      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTHSERVICE_URL=auth:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
-
-  nginx:
-
-   build: .
-   restart: always
-
-   ports:
-     - "80:80"
-   deploy:
-     mode: replicated
-     replicas: 3
-
-   depends_on:
-     - api
-     - chat
 
