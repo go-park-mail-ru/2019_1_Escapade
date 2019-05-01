@@ -12,5 +12,10 @@ env:
 
 install: true
 
-script:
+before_script:
   - docker-compose -f docker-compose-test.yaml up --build
+
+script:
+  - ./wait-for-it.sh pg:5432
+  - ./wait-for-it.sh auth:3333
+  - go test ./...
