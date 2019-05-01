@@ -86,9 +86,11 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 		lobby.Playing.Remove(conn)
 	}
 	room.Leave(conn, action) // exit to lobby
-	go func() {
-		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
-	}()
+	if len(lobby.Playing.Get) > 0 {
+		go func() {
+			lobby.sendRoomUpdate(*room, AllExceptThat(conn))
+		}()
+	}
 }
 
 // pickUpRoom find room for player

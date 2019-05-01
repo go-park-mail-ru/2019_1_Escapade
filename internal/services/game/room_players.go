@@ -36,6 +36,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 
 	room.addAction(conn.ID(), ActionConnectAsObserver)
 	room.sendObserverEnter(*conn, room.AllExceptThat(conn))
+	room.lobby.sendRoomUpdate(*room, All)
 	room.greet(conn)
 
 	return true
@@ -60,6 +61,7 @@ func (room *Room) addPlayer(conn *Connection) bool {
 
 	room.addAction(conn.ID(), ActionConnectAsPlayer)
 	room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
+	room.lobby.sendRoomUpdate(*room, All)
 	room.greet(conn)
 
 	if !room.Players.enoughPlace() {
