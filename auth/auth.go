@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"os"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	sessMan "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth"
 	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
-	"net"
-	"os"
 
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"
@@ -26,14 +27,15 @@ func main() {
 	)
 
 	if lis, err = net.Listen("tcp", ":3333"); err != nil {
-		fmt.Println(err)
+		fmt.Println("cant listen that adress:", err.Error())
+		return
 	}
 	if os.Getenv("REDIS_URL") == "" {
 		os.Setenv("REDIS_URL", "redis://user:@localhost:6379/0")
 	}
 
 	if redisConn, err = redis.DialURL(os.Getenv("REDIS_URL")); err != nil {
-		fmt.Println("cant connect to redis")
+		fmt.Println("cant connect to redis", err.Error())
 		return
 	}
 	defer redisConn.Close()
