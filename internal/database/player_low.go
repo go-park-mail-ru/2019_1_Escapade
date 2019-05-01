@@ -36,6 +36,8 @@ func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivat
 			RETURNING id
 		`
 
+	fmt.Println("Update to", user.Name,
+		user.Email, user.Password)
 	row := tx.QueryRow(sqlStatement, user.Name,
 		user.Email, user.Password, time.Now(), user.ID)
 	err = row.Scan(&user.ID)
@@ -75,6 +77,9 @@ func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int
 	user = &models.UserPublicInfo{}
 	err = row.Scan(&id, &user.Name, &user.Email, &user.BestScore,
 		&user.BestTime, &user.Difficult)
+	if err == nil {
+		fmt.Println("login:", id, user.Name, user.Email)
+	}
 	return
 }
 

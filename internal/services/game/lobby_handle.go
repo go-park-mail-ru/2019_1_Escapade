@@ -141,7 +141,6 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 // EnterRoom handle user join to room
 func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
-	var done bool
 	if conn.InRoom() {
 		lobby.LeaveRoom(conn, conn.room, ActionBackToLobby)
 		conn.debug("change room")
@@ -150,25 +149,19 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	if rs.Name == "create" {
 		conn.debug("try create")
 		room := lobby.createRoom(rs)
-		done = room != nil
-		if done {
+		if room != nil {
 			room.addPlayer(conn)
 		}
 	} else {
-		if _, room := lobby.AllRooms.SearchRoom(rs.Name); room != nil {
+		var room *Room
+		if _, room = lobby.AllRooms.SearchRoom(rs.Name); room != nil {
 			conn.debug("lobby found required room")
-			done = room.Enter(conn)
+			room.Enter(conn)
 		} else {
 			conn.debug("lobby search room for you")
-			done = lobby.pickUpRoom(conn, rs)
+			lobby.pickUpRoom(conn, rs)
 		}
-	}
-
-	if done {
-		conn.debug("lobby done")
-		lobby.send(lobby, All)
-	} else {
-		conn.debug("lobby cant execute request")
+		lobby.sendRoomUpdate(*room, All)
 	}
 }
 

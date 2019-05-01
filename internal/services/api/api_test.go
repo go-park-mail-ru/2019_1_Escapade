@@ -238,7 +238,7 @@ func TestAll(t *testing.T) {
 	TGetMyProfile(t, H)
 	TGetProfile(t, H)
 	TLogin(t, H)
-
+	TLogout(t, H)
 	// delete everything in database after tests
 }
 
@@ -445,9 +445,6 @@ func TGetProfile(t *testing.T, H *Handler) {
 	launchTests(t, H, gets[2:], url, getProfile, models.ComparePublicUsers, nil, true)
 }
 
-// old tests
-
-// +
 func TLogin(t *testing.T, H *Handler) {
 	const place = "Login"
 	name := utils.RandomString(16)
@@ -475,7 +472,7 @@ func TLogin(t *testing.T, H *Handler) {
 
 	user := models.UserPrivateInfo{
 		Name:     name,
-		Password: utils.RandomString(16),
+		Password: password,
 		Email:    email,
 	}
 
@@ -492,106 +489,38 @@ func TLogin(t *testing.T, H *Handler) {
 	launchTests(t, H, cases, url, login, compareStrings, cookie, true)
 }
 
+// old tests
+
 // +
-/*
-func TestLogout(t *testing.T) {
+func TLogout(t *testing.T, H *Handler) {
+	const place = "Logout"
+	name := utils.RandomString(16)
+	password := utils.RandomString(16)
+	email := utils.RandomString(16)
 	cases := []TestCase{
 		TestCase{
-			Response: `{
-				"place":"Logout",
-				"success":true,
-				"message":"no error"}
-			`,
-			Body: `{
-				"name": "username1",
-				"password": "1454543",
-				"email": "test1@mail.ru"
-			}`,
+			Response:   createResult(place, nil),
+			Body:       "",
 			StatusCode: http.StatusOK,
 		},
 		TestCase{
-			Response: `{
-				"place":"Logout",
-				"success":false,
-				"message":"Required authorization"}
-			`,
-			Body: `{
-				"name": "username",
-				"password": "145sdsw4543",
-				"email": "test121@mail.ru"
-			}`,
+			Response:   createResult(place, re.ErrorAuthorization()),
+			Body:       "",
 			StatusCode: http.StatusUnauthorized,
 		},
 	}
 
-	urlSignUp := "/user"
-
-	H, _, err := GetHandler(PATH, "")
-	if err != nil || H == nil {
-		t.Error("TestCreateUser catched error:", err.Error())
-		return
-	}
-	preq := httptest.NewRequest("DELETE", urlSignUp, strings.NewReader(cases[0].Body))
-	H.DeleteUser(httptest.NewRecorder(), preq)
-
-	req := httptest.NewRequest("POST", urlSignUp, strings.NewReader(cases[0].Body))
-	w := httptest.NewRecorder()
-	H.CreateUser(w, req)
-
-	urlLogin := "/session"
-	reqLogin := httptest.NewRequest("POST", urlLogin, strings.NewReader(cases[0].Body))
-	wLogin := httptest.NewRecorder()
-	str, err := H.DB.GetSessionByName("username1")
+	cookie, err := getCookie(H, name, password, email)
 	if err != nil {
-		return
-	}
-
-	reqLogin.AddCookie(cook.CreateCookie(str, H.Cookie))
-	H.Login(wLogin, reqLogin)
-
-	//body, _ := ioutil.ReadAll(wLogin.Result().Body)
-	//t.Errorf(string(body))
-
-	var cookie *http.Cookie
-	if cookie, err = reqLogin.Cookie(H.Cookie.NameCookie); err != nil {
-		t.Error("TestUpdateUser cant get cookie:", err.Error())
+		t.Error(" error:", err.Error())
 		return
 	}
 
 	url := "/session"
-
-	req1 := httptest.NewRequest("DELETE", url, strings.NewReader(cases[0].Body))
-	w1 := httptest.NewRecorder()
-	req1.AddCookie(cookie)
-	H.Logout(w1, req1)
-
-	if w1.Code != cases[0].StatusCode {
-		t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-			1, w1.Code, cases[0].StatusCode)
-	}
-
-	resp1 := w1.Result()
-	body1, _ := ioutil.ReadAll(resp1.Body)
-	defer resp1.Body.Close()
-
-	checkStrings(t, 1, string(body1), cases[0].Response)
-	req2 := httptest.NewRequest("DELETE", url, strings.NewReader(cases[1].Body))
-	w2 := httptest.NewRecorder()
-	H.Logout(w2, req2)
-
-	if w2.Code != cases[1].StatusCode {
-		t.Errorf("[%d] wrong StatusCode: got %d, expected %d",
-			2, w2.Code, cases[1].StatusCode)
-	}
-
-	resp2 := w2.Result()
-	body2, _ := ioutil.ReadAll(resp2.Body)
-	defer resp2.Body.Close()
-
-	checkStrings(t, 2, string(body2), cases[1].Response)
-
+	launchTests(t, H, cases[:1], url, logout, compareStrings, cookie, true)
+	launchTests(t, H, cases[1:], url, logout, compareStrings, nil, true)
 }
-*/
+
 /*
 func TestGetPlayerGames(t *testing.T) {
 	cases := []TestCaseGames{
@@ -891,12 +820,22 @@ func getUsers(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httpte
 }
 
 func login(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
-	req := httptest.NewRequest("Post", url, r)
+	req := httptest.NewRequest("POST", url, r)
 	w := httptest.NewRecorder()
 	if c != nil {
 		req.AddCookie(c)
 	}
 	H.Login(w, req)
+	return w
+}
+
+func logout(H *Handler, url string, r *strings.Reader, c *http.Cookie) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("DELETE", url, r)
+	w := httptest.NewRecorder()
+	if c != nil {
+		req.AddCookie(c)
+	}
+	H.Logout(w, req)
 	return w
 }
 
@@ -1000,6 +939,22 @@ func createRandomUser() *models.UserPrivateInfo {
 		Email:    utils.RandomString(16),
 		Password: utils.RandomString(16),
 	}
+}
+
+func getCookie(H *Handler, name, password, email string) (cookie *http.Cookie, err error) {
+	user := models.UserPrivateInfo{
+		Name:     name,
+		Password: password,
+		Email:    email,
+	}
+
+	var cookiestr string
+	if _, cookiestr, err = H.register(context.Background(), user); err != nil {
+		return
+	}
+
+	cookie = cook.CreateCookie(cookiestr, H.Session)
+	return
 }
 
 //00:03 1069

@@ -2,7 +2,6 @@ package models
 
 // Result is the query result with detailed explanation
 type Result struct {
-	Type    string `json:"type"`
 	Place   string `json:"place"`
 	Success bool   `json:"success"`
 	Message string `json:"message"`
