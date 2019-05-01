@@ -15,8 +15,6 @@ type Request struct {
 
 // Lobby there are all rooms and users placed
 type Lobby struct {
-	Type string `json:"type,omitempty"`
-
 	AllRooms  *Rooms `json:"allRooms,omitempty"`
 	FreeRooms *Rooms `json:"freeRooms,omitempty"`
 
@@ -91,7 +89,6 @@ func newLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 
 	connectionsCapacity := 500
 	lobby := &Lobby{
-		Type: "Lobby",
 
 		AllRooms:  NewRooms(roomsCapacity),
 		FreeRooms: NewRooms(roomsCapacity),

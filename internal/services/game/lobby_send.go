@@ -1,7 +1,13 @@
 package game
 
+import "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+
 func (lobby *Lobby) greet(conn *Connection) {
-	conn.SendInformation(lobby)
+	response := models.Response{
+		Type:  "Lobby",
+		Value: lobby,
+	}
+	conn.SendInformation(response)
 }
 
 func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
@@ -13,46 +19,58 @@ func (lobby *Lobby) SendMessage(conn *Connection, message string) {
 	conn.SendInformation("Lobby message: " + message)
 }
 
-// send to all in lobby
-func (lobby *Lobby) sendAllRooms(predicate SendPredicate) {
-	get := &LobbyGet{
-		AllRooms: true,
+func (lobby *Lobby) sendRoomCreate(room Room, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyRoomCreate",
+		Value: room,
 	}
-	model := lobby.makeGetModel(get)
-	lobby.send(model, predicate)
+	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendWaiting(predicate SendPredicate) {
-	get := &LobbyGet{
-		Waiting: true,
+func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyRoomUpdate",
+		Value: room,
 	}
-	model := lobby.makeGetModel(get)
-	lobby.send(model, predicate)
+	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendPlaying(predicate SendPredicate) {
-	get := &LobbyGet{
-		Waiting: true,
-		Playing: true,
+func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyRoomDelete",
+		Value: room,
 	}
-	model := lobby.makeGetModel(get)
-	lobby.send(model, predicate)
+	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) makeGetModel(get *LobbyGet) *Lobby {
-	sendLobby := &Lobby{}
-	sendLobby.Type = lobby.Type
-	if get.AllRooms {
-		sendLobby.AllRooms = lobby.AllRooms
+func (lobby *Lobby) sendWaiterEnter(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyWaiterEnter",
+		Value: conn,
 	}
-	if get.FreeRooms {
-		sendLobby.FreeRooms = lobby.FreeRooms
+	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendWaiterExit(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyWaiterExit",
+		Value: conn,
 	}
-	if get.Waiting {
-		sendLobby.Waiting = lobby.Waiting
+	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyPlayerEnter",
+		Value: conn,
 	}
-	if get.Playing {
-		sendLobby.Playing = lobby.Playing
+	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendPlayerExit(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "LobbyPlayerExit",
+		Value: conn,
 	}
-	return sendLobby
+	lobby.send(response, predicate)
 }

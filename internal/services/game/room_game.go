@@ -10,11 +10,14 @@ import (
 // flagFound is called, when somebody find cell flag
 func (room *Room) flagFound(found *Cell) {
 	thatID := found.Value - CellIncrement
-	for i, player := range room.Players.Players {
-		if thatID == player.ID {
-			room.kill(room.Players.Connections[i], ActionFlagLost)
+	fmt.Println("start search!")
+	for _, conn := range room.Players.Connections {
+		fmt.Println("compare:", thatID, conn.ID())
+		if thatID == conn.ID() {
+			room.kill(conn, ActionFlagLost)
 		}
 	}
+	fmt.Println("finish search!")
 }
 
 // isAlive check if connection is player and he is not died
@@ -31,7 +34,9 @@ func (room *Room) setFinished(conn *Connection) {
 // kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
+	fmt.Println("we want kill!")
 	if room.isAlive(conn) {
+		fmt.Println("and we do it")
 		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
 			fmt.Println("want finish")

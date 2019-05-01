@@ -18,7 +18,7 @@ func (lobby *Lobby) Run() {
 
 	var lobbyCancel context.CancelFunc
 	lobby.Context, lobbyCancel = context.WithCancel(context.Background())
-	fmt.Println("create context!")
+
 	for {
 		select {
 		case connection := <-lobby.ChanJoin:
@@ -49,11 +49,11 @@ func (lobby *Lobby) Join(newConn *Connection) {
 	lobby.addWaiter(newConn)
 
 	if lobby.recoverInRoom(newConn) {
-		lobby.send(lobby.Playing, AllExceptThat(newConn))
+		lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
 		return
 	}
 
-	lobby.sendWaiting(AllExceptThat(newConn))
+	lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 
 	newConn.debug("new waiter")
 }
@@ -64,10 +64,12 @@ func (lobby *Lobby) Leave(copy *Connection, message string) {
 	fmt.Println("disconnected -  #", copy.ID())
 	conn := copy
 
-	if conn.both || !conn.InRoom() {
-		fmt.Println("lobby delete ", conn.ID())
+	if conn.InRoom() {
+		lobby.Playing.Remove(conn)
+		lobby.sendPlayerExit(*conn, AllExceptThat(conn))
+	} else {
 		lobby.Waiting.Remove(conn)
-		lobby.sendWaiting(AllExceptThat(conn))
+		lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 	}
 	if conn.both || conn.InRoom() {
 		lobby.LeaveRoom(conn, conn.room, ActionDisconnect)
@@ -85,7 +87,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 	}
 	room.Leave(conn, action) // exit to lobby
 	go func() {
-		lobby.sendAllRooms(AllExceptThat(conn))
+		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}()
 }
 
@@ -197,6 +199,5 @@ func (lobby *Lobby) analize(req *Request) {
 
 // requestGet handle get request to lobby
 func (lobby *Lobby) requestGet(conn *Connection, lr *LobbyRequest) {
-	sendLobby := lobby.makeGetModel(lr.Get)
-	conn.SendInformation(sendLobby)
+	lobby.greet(conn)
 }

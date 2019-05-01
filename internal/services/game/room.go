@@ -18,8 +18,8 @@ const (
 
 // Room consist of players and observers, field and history
 type Room struct {
-	Type   string `json:"type,omitempty"`
 	Name   string `json:"name"`
+	ID     string `json:"id"`
 	Status int    `json:"status"`
 
 	Players   *OnlinePlayers `json:"players,omitempty"`
@@ -31,7 +31,7 @@ type Room struct {
 	Field *Field `json:"field,omitempty"`
 
 	Date       time.Time `json:"date,omitempty"`
-	chanFinish chan interface{}
+	chanFinish chan struct{}
 
 	// for save game room
 	settings *models.RoomSettings
@@ -40,11 +40,10 @@ type Room struct {
 }
 
 // NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
+func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) *Room {
 	fmt.Println("NewRoom rs = ", *rs)
 	room := &Room{
-		Type:      "Room",
-		Name:      name,
+		ID:        id,
 		Status:    StatusPeopleFinding,
 		Players:   newOnlinePlayers(rs.Players),
 		Observers: NewConnections(rs.Observers),
@@ -55,7 +54,7 @@ func NewRoom(rs *models.RoomSettings, name string, lobby *Lobby) *Room {
 		Field: NewField(rs),
 
 		Date:       time.Now(),
-		chanFinish: make(chan interface{}),
+		chanFinish: make(chan struct{}),
 		settings:   rs,
 		killed:     0,
 	}
@@ -70,7 +69,7 @@ func (room *Room) SameAs(another *Room) bool {
 /* Examples of json
 
 room search
-{"send":{"RoomSettings":{"name":"","width":12,"height":12,"players":3,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
+{"send":{"RoomSettings":{"id":"","width":12,"height":12,"players":3,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
 
 send cell
 {"send":{"cell":{"x":2,"y":1,"value":0,"PlayerID":0}, "action":null},"get":null}

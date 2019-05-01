@@ -12,16 +12,7 @@ func (room *Room) send(info interface{}, predicate SendPredicate) {
 }
 
 func (room *Room) sendMessage(text string, predicate SendPredicate) {
-	room.send("Room("+room.Name+"):"+text, predicate)
-}
-
-// sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
-	response := models.Response{
-		Type:  "RoomPlayerEnter",
-		Value: conn,
-	}
-	room.send(response, predicate)
+	room.send("Room("+room.ID+"):"+text, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -33,10 +24,28 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 	room.send(response, predicate)
 }
 
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPlayers(predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomGameOver",
+		Value: room.Players.Players,
+	}
+	room.send(response, predicate)
+}
+
 func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "RoomNewCells",
 		Value: cells,
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPlayerEnter",
+		Value: conn,
 	}
 	room.send(response, predicate)
 }
@@ -53,7 +62,7 @@ func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
 	response := models.Response{
-		Type:  "RoomPlayerEnter",
+		Type:  "RoomObserverEnter",
 		Value: conn,
 	}
 	room.send(response, predicate)
@@ -73,21 +82,12 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 	response := models.Response{
 		Type: "RoomStatus",
 		Value: struct {
-			Name   string `json:"name"`
+			ID     string `json:"id"`
 			Status int    `json:"status"`
 		}{
-			Name:   room.Name,
+			ID:     room.ID,
 			Status: room.Status,
 		},
-	}
-	room.send(response, predicate)
-}
-
-// sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPointPlayers(predicate SendPredicate) {
-	response := models.Response{
-		Type:  "RoomPointPlayers",
-		Value: room.Players.Players,
 	}
 	room.send(response, predicate)
 }

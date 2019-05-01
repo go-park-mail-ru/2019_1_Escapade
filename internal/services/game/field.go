@@ -81,9 +81,9 @@ func (field *Field) IsCleared() bool {
 	return field.CellsLeft == 0
 }
 
-func (field *Field) setCellFlagTaken(cell *Cell, cells *[]Cell) {
+func (field *Field) setCellFlagTaken(cell *Cell) {
 	field.Matrix[cell.X][cell.Y] = CellFlagTaken
-	*cells = append(*cells, *cell)
+	fmt.Println("flag found!", cell.Value)
 }
 
 func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
@@ -103,7 +103,7 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	} else {
 		field.saveCell(cell, &cells)
 		if cell.Value >= CellIncrement {
-			field.setCellFlagTaken(cell, &cells)
+			field.setCellFlagTaken(cell)
 		}
 	}
 

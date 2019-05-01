@@ -48,11 +48,11 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	// 	return false
 	// }
 
-	conn.debug("Room(" + room.Name + ") wanna connect you")
+	conn.debug("Room(" + room.ID + ") wanna connect you")
 
 	// if room hasnt got places
 	if !room.Players.enoughPlace() {
-		conn.debug("Room(" + room.Name + ") hasnt any place")
+		conn.debug("Room(" + room.ID + ") hasnt any place")
 		return false
 	}
 

@@ -30,6 +30,7 @@ func (room *Room) Free() {
 	if room == nil || room.History == nil {
 		return
 	}
+	fmt.Println("room free")
 	room.Status = StatusFinished
 	room.History = nil
 	close(room.chanFinish)
@@ -38,7 +39,6 @@ func (room *Room) Free() {
 	for _, action := range room.History {
 		action.Free()
 	}
-	room.Players.Free()
 	room.Field.Clear()
 	room = nil
 }
@@ -97,12 +97,14 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	// set who try open cell(for history)
 	cell.PlayerID = conn.ID()
 	cells := room.Field.OpenCell(cell)
+	fmt.Println("len cell", len(cells))
 	if len(cells) == 1 {
 		newCell := cells[0]
+		fmt.Println("newCell value", newCell.Value)
 		if newCell.Value == CellMine {
 			room.kill(conn, ActionExplode)
 			room.Players.Players[conn.Index].Points -= 100
-		} else if newCell.Value > CellIncrement {
+		} else if newCell.Value >= CellIncrement {
 			room.flagFound(&newCell)
 			room.Players.Players[conn.Index].Points += 100000
 		} else if newCell.Value == CellOpened {
@@ -207,16 +209,19 @@ func (room *Room) finishGame() {
 	if room.Status == StatusFinished {
 		return
 	}
-	fmt.Println(room.Name, "We finish room!", room.Status)
-	room.chanFinish <- nil
+	room.chanFinish <- struct{}{}
+	fmt.Println(room.ID, "We finish room!", room.Status)
+
 	room.Status = StatusFinished
-	fmt.Println(room.Name, "We finish room?", room.Status)
+	fmt.Println(room.ID, "We finish room?", room.Status)
+
+	room.sendStatus(room.All)
+	room.sendMessage("Battle finished!", room.All)
+	room.sendPlayers(room.All)
 	go room.lobby.roomFinish(room)
 	for _, player := range room.Players.Players {
 		player.Finished = true
 	}
-	room.sendStatus(room.All)
-	room.sendMessage("Battle finished!", room.All)
 }
 
 // initTimers launch game timers. Call it when flag placement starts
@@ -250,12 +255,12 @@ func (room *Room) run() {
 			room.finishGame()
 			return
 		case clock := <-ticker.C:
-			fmt.Println("clock!", room.Name)
+			fmt.Println("clock!", room.ID)
 			room.sendMessage(clock.String()+" passed", room.All)
 		}
 	}
 }
 
 func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
-	conn.SendInformation(room)
+	room.greet(conn)
 }

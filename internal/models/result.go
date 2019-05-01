@@ -10,7 +10,7 @@ type Result struct {
 
 type Response struct {
 	Type    string      `json:"type"`
-	Message string      `json:"message"`
+	Message string      `json:"message,omitempty"`
 	Value   interface{} `json:"value"`
 }
 
