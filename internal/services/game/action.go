@@ -43,7 +43,8 @@ func (pa *PlayerAction) Free() {
 	pa = nil
 }
 
-func (room *Room) addAction(id int, action int) {
-	pa := NewPlayerAction(id, action)
+func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
+	pa = NewPlayerAction(id, action)
 	room.History = append(room.History, pa)
+	return
 }

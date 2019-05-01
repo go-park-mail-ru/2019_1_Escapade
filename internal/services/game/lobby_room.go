@@ -3,7 +3,7 @@ package game
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	
+
 	"fmt"
 )
 
@@ -28,7 +28,6 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	// there is check inside, it will just return without errors
 	lobby.FreeRooms.Remove(room)
 	lobby.AllRooms.Remove(room)
-	lobby.sendAllRooms(All)
 }
 
 // createRoom create room, add to all and free rooms

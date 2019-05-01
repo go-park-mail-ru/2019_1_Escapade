@@ -21,15 +21,6 @@ func (room *Room) Enter(conn *Connection) bool {
 		conn.debug("You will be observer!")
 		done = true
 	}
-
-	if done {
-		if room.Status != StatusPeopleFinding {
-			room.lobby.waiterToPlayer(conn, room)
-		}
-	} else {
-		conn.debug("No way!")
-	}
-
 	return done
 }
 
@@ -81,8 +72,8 @@ func (room *Room) Leave(conn *Connection, action int) {
 		conn.debug("Welcome back to lobby!")
 	}
 	go func() {
-		room.addAction(conn.ID(), action)
-		room.sendHistory(room.All)
+		pa := *room.addAction(conn.ID(), action)
+		room.sendAction(pa, room.AllExceptThat(conn))
 	}()
 }
 
@@ -114,6 +105,8 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 		} else if newCell.Value > CellIncrement {
 			room.flagFound(&newCell)
 			room.Players.Players[conn.Index].Points += 100000
+		} else if newCell.Value == CellOpened {
+			return true
 		}
 	} else {
 		for _, foundCell := range cells {
@@ -123,8 +116,8 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 		}
 	}
 
-	go room.sendPlayers(room.All)
-	go room.sendField(room.All)
+	go room.sendPlayerPoints(room.Players.Players[conn.Index], room.All)
+	go room.sendNewCells(cells, room.All)
 
 	if room.Field.IsCleared() {
 		room.finishGame()
@@ -198,6 +191,7 @@ func (room *Room) startFlagPlacing() {
 	go room.lobby.roomStart(room)
 	go room.run()
 
+	room.sendStatus(room.All)
 	room.sendField(room.All)
 	room.sendMessage("Battle will be start soon! Set your flag!", room.All)
 }
@@ -205,6 +199,7 @@ func (room *Room) startFlagPlacing() {
 func (room *Room) startGame() {
 	room.Status = StatusRunning
 	room.fillField()
+	room.sendStatus(room.All)
 	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
@@ -220,6 +215,7 @@ func (room *Room) finishGame() {
 	for _, player := range room.Players.Players {
 		player.Finished = true
 	}
+	room.sendStatus(room.All)
 	room.sendMessage("Battle finished!", room.All)
 }
 
@@ -261,6 +257,5 @@ func (room *Room) run() {
 }
 
 func (room *Room) requestGet(conn *Connection, rr *RoomRequest) {
-	send := room.copy(rr.Get)
-	conn.SendInformation(send)
+	conn.SendInformation(room)
 }

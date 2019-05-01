@@ -37,8 +37,8 @@ func (room *Room) kill(conn *Connection, action int) {
 			fmt.Println("want finish")
 			room.finishGame()
 		}
-		room.addAction(conn.ID(), action)
-		room.sendHistory(room.All)
+		pa := *room.addAction(conn.ID(), action)
+		room.sendAction(pa, room.All)
 	}
 }
 

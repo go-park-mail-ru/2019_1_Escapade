@@ -1,5 +1,9 @@
 package game
 
+import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+)
+
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
@@ -7,92 +11,118 @@ func (room *Room) send(info interface{}, predicate SendPredicate) {
 		room.Observers.Get)
 }
 
-// sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPlayers(predicate SendPredicate) {
-	get := &RoomGet{
-		Players: true,
-	}
-	send := room.copy(get)
-	room.send(send, predicate)
-}
-
 func (room *Room) sendMessage(text string, predicate SendPredicate) {
 	room.send("Room("+room.Name+"):"+text, predicate)
 }
 
-func (room *Room) sendObservers(predicate SendPredicate) {
-	get := &RoomGet{
-		Observers: true,
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPlayerEnter",
+		Value: conn,
 	}
-	send := room.copy(get)
-	room.send(send, predicate)
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPlayerPoints",
+		Value: player,
+	}
+	room.send(response, predicate)
+}
+
+func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomNewCells",
+		Value: cells,
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPlayerExit",
+		Value: conn,
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPlayerEnter",
+		Value: conn,
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomObserverExit",
+		Value: conn,
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendStatus(predicate SendPredicate) {
+	response := models.Response{
+		Type: "RoomStatus",
+		Value: struct {
+			Name   string `json:"name"`
+			Status int    `json:"status"`
+		}{
+			Name:   room.Name,
+			Status: room.Status,
+		},
+	}
+	room.send(response, predicate)
+}
+
+// sendTAIRPeople send players, observers and history to all in room
+func (room *Room) sendPointPlayers(predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomPointPlayers",
+		Value: room.Players.Players,
+	}
+	room.send(response, predicate)
+}
+
+func (room *Room) sendObservers(predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomConnectionsObservers",
+		Value: room.Observers,
+	}
+	room.send(response, predicate)
 }
 
 // sendTAIRField send field to all in room
 func (room *Room) sendField(predicate SendPredicate) {
-	get := &RoomGet{
-		Field: true,
+	response := models.Response{
+		Type:  "RoomField",
+		Value: room.Field,
 	}
-	send := room.copy(get)
-	room.send(send, predicate)
+	room.send(response, predicate)
 }
 
 // sendTAIRHistory send actions history to all in room
-func (room *Room) sendHistory(predicate SendPredicate) {
-	get := &RoomGet{
-		History: true,
+func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
+	response := models.Response{
+		Type:  "RoomAction",
+		Value: room.History,
 	}
-	send := room.copy(get)
-	room.send(send, predicate)
+	room.send(response, predicate)
 }
 
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
-	conn.SendInformation(room)
+	response := models.Response{
+		Type:  "Room",
+		Value: room,
+	}
+	conn.SendInformation(response)
 }
-
-// copy returns full slices of selected fields
-func (room *Room) copy(get *RoomGet) *Room {
-	sendRoom := &Room{
-		Name:   room.Name,
-		Status: room.Status,
-		Date:   room.Date,
-		Type:   room.Type,
-	}
-
-	if get.Players {
-		sendRoom.Players = room.Players
-	}
-	if get.Observers {
-		sendRoom.Observers = room.Observers
-	}
-	if get.Field {
-		sendRoom.Field = room.Field
-	}
-	if get.History {
-		sendRoom.History = room.History
-	}
-	return sendRoom
-}
-
-// copyLast returns last element of slices of selected fields
-// func (room *Room) copyLast(get *RoomGet) *Room {
-// 	sendRoom := &Room{
-// 		Name:   room.Name,
-// 		Status: room.Status,
-// 	}
-
-// 	if get.Players {
-// 		sendRoom.Players = room.Players
-// 	}
-// 	if get.Observers {
-// 		sendRoom.Observers = room.Observers
-// 	}
-// 	if get.Field {
-// 		sendRoom.Field = room.Field
-// 	}
-// 	if get.History {
-// 		sendRoom.History = room.History
-// 	}
-// 	return sendRoom
-// }

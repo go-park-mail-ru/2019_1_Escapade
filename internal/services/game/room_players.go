@@ -7,8 +7,9 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 
 	// add connection as player
 	room.MakePlayer(newConn)
-	room.addAction(newConn.ID(), ActionReconnect)
-	room.sendHistory(AllExceptThat(newConn))
+	pa := *room.addAction(newConn.ID(), ActionReconnect)
+	room.sendAction(pa, room.AllExceptThat(newConn))
+	room.greet(newConn)
 
 	return
 }
@@ -17,8 +18,9 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 
 	room.MakeObserver(newConn)
-	room.addAction(newConn.ID(), ActionReconnect)
-	room.sendHistory(AllExceptThat(newConn))
+	pa := *room.addAction(newConn.ID(), ActionReconnect)
+	room.sendAction(pa, room.AllExceptThat(newConn))
+	room.greet(newConn)
 
 	return
 }
@@ -33,8 +35,8 @@ func (room *Room) addObserver(conn *Connection) bool {
 	room.MakeObserver(conn)
 
 	room.addAction(conn.ID(), ActionConnectAsObserver)
-
-	room.sendObservers(AllExceptThat(conn))
+	room.sendObserverEnter(*conn, room.AllExceptThat(conn))
+	room.greet(conn)
 
 	return true
 }
@@ -57,7 +59,8 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	room.MakePlayer(conn)
 
 	room.addAction(conn.ID(), ActionConnectAsPlayer)
-	room.sendPlayers(room.All)
+	room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
+	room.greet(conn)
 
 	if !room.Players.enoughPlace() {
 		room.startFlagPlacing()
@@ -89,12 +92,14 @@ func (room *Room) MakeObserver(conn *Connection) {
 		conn.both = true
 	}
 	room.Observers.Add(conn, false)
+	room.sendObservers(room.All)
 	conn.PushToRoom(room)
 }
 
 func (room *Room) removeBeforeLaunch(conn *Connection) {
 	fmt.Println("before removing", len(room.Players.Connections))
 	room.Players.Remove(conn)
+	room.sendPlayerExit(*conn, room.All)
 	fmt.Println("after removing", len(room.Players.Connections))
 	if room.Players.Empty() {
 		room.Close()
@@ -108,9 +113,9 @@ func (room *Room) removeDuringGame(conn *Connection) {
 	if i >= 0 {
 		room.GiveUp(conn)
 		room.Players.Remove(conn)
-		room.sendHistory(room.All)
-		room.sendPlayers(room.All)
+		room.sendPlayerExit(*conn, room.All)
 	} else {
+		room.sendObserverExit(*conn, room.All)
 		room.Observers.Remove(conn)
 		room.sendObservers(room.All)
 	}
