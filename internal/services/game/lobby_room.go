@@ -35,8 +35,8 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 // and run it
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
 
-	name := utils.RandomString(16) // вынести в кофиг
-	room := NewRoom(rs, name, lobby)
+	id := utils.RandomString(16) // вынести в кофиг
+	room := NewRoom(rs, id, lobby)
 	if !lobby.AllRooms.Add(room) {
 		fmt.Println("cant create room")
 		return nil

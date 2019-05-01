@@ -18,8 +18,8 @@ const (
 
 // Room consist of players and observers, field and history
 type Room struct {
-	Name   string `json:"name"`
 	ID     string `json:"id"`
+	Name   string `json:"name"`
 	Status int    `json:"status"`
 
 	Players   *OnlinePlayers `json:"players,omitempty"`
@@ -44,6 +44,7 @@ func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) *Room {
 	fmt.Println("NewRoom rs = ", *rs)
 	room := &Room{
 		ID:        id,
+		Name:      rs.Name,
 		Status:    StatusPeopleFinding,
 		Players:   newOnlinePlayers(rs.Players),
 		Observers: NewConnections(rs.Observers),
@@ -69,7 +70,7 @@ func (room *Room) SameAs(another *Room) bool {
 /* Examples of json
 
 room search
-{"send":{"RoomSettings":{"id":"","width":12,"height":12,"players":3,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
+{"send":{"RoomSettings":{"name":"my best room","id":"create","width":12,"height":12,"players":3,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
 
 send cell
 {"send":{"cell":{"x":2,"y":1,"value":0,"PlayerID":0}, "action":null},"get":null}

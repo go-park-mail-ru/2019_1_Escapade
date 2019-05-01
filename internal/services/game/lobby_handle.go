@@ -94,7 +94,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 }
 
 // pickUpRoom find room for player
-func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done bool) {
+func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (room *Room) {
 	// if there is no room
 	if lobby.FreeRooms.Empty() {
 		// if room capacity ended return nil
@@ -105,7 +105,7 @@ func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done 
 		} else {
 			conn.debug("cant create. Why?")
 		}
-		return room != nil
+		return room
 	}
 	conn.debug("We have some rooms!")
 
@@ -113,11 +113,10 @@ func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (done 
 	for _, room := range lobby.FreeRooms.Get {
 		//if room.SameAs()
 		if room.addPlayer(conn) {
-			done = true
-			break
+			return room
 		}
 	}
-	return done
+	return
 }
 
 // handleRequest handle any request sent to lobby
@@ -148,7 +147,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		conn.debug("change room")
 	}
 
-	if rs.Name == "create" {
+	if rs.ID == "create" {
 		conn.debug("try create")
 		room := lobby.createRoom(rs)
 		if room != nil {
@@ -156,14 +155,16 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		}
 	} else {
 		var room *Room
-		if _, room = lobby.AllRooms.SearchRoom(rs.Name); room != nil {
+		if _, room = lobby.AllRooms.SearchRoom(rs.ID); room != nil {
 			conn.debug("lobby found required room")
 			room.Enter(conn)
 		} else {
 			conn.debug("lobby search room for you")
-			lobby.pickUpRoom(conn, rs)
+			room = lobby.pickUpRoom(conn, rs)
 		}
-		lobby.sendRoomUpdate(*room, All)
+		if room != nil {
+			lobby.sendRoomUpdate(*room, All)
+		}
 	}
 }
 

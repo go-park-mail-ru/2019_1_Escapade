@@ -3,6 +3,7 @@ package models
 // RoomSettings a set of parameters, that set the size,  of room
 // and field, the duration of game etc
 type RoomSettings struct {
+	ID            string `json:"id"`
 	Name          string `json:"name"`
 	Width         int    `json:"width"`
 	Height        int    `json:"height"`
