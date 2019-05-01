@@ -23,10 +23,10 @@ type Connection struct {
 	ws           *websocket.Conn
 	lobby        *Lobby
 	room         *Room
-	Disconnected bool `json:"disconnected,omitempty"`
+	Disconnected bool `json:"disconnected"`
 	both         bool
 
-	Index int `json:"index,omitempty"`
+	Index int `json:"index"`
 
 	cancel context.CancelFunc
 	send   chan []byte

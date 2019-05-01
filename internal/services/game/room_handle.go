@@ -39,6 +39,7 @@ func (room *Room) Free() {
 	if room == nil || room.History == nil {
 		return
 	}
+	room.Status = StatusFinished
 	room.History = nil
 	close(room.chanFinish)
 	room.Players.Free()
