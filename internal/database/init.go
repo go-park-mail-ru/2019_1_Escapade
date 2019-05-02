@@ -69,11 +69,13 @@ func InitWithRebuild(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
 func (db *DataBase) dropTables(tx *sql.Tx) (err error) {
 	sqlStatement := `
-	DROP TABLE IF EXISTS Session cascade;
+    DROP TABLE IF EXISTS Session cascade;
+    DROP TABLE IF EXISTS Cell cascade;
+    DROP TABLE IF EXISTS Action cascade;
+    DROP TABLE IF EXISTS Field cascade;
     DROP TABLE IF EXISTS Game cascade;
     DROP TABLE IF EXISTS Player cascade;
     DROP TABLE IF EXISTS Gamer cascade;
-    DROP TABLE IF EXISTS Cell cascade;
     DROP TABLE IF EXISTS Record cascade;
     `
 	_, err = tx.Exec(sqlStatement)
@@ -101,7 +103,15 @@ func (db *DataBase) createTables(tx *sql.Tx) (err error) {
 		return
 	}
 
+	if err = db.createTableField(tx); err != nil {
+		return
+	}
+
 	if err = db.createTableCell(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableAction(tx); err != nil {
 		return
 	}
 	return
@@ -171,17 +181,76 @@ func (db *DataBase) createTableGame(tx *sql.Tx) (err error) {
 	sqlStatement := `
 	CREATE Table Game (
         id SERIAL PRIMARY KEY,
-        difficult int default 0,
-        width   int NOT NULL,
-        height   int NOT NULL,
+        roomID varchar(30),
+        name varchar(30),
         players   int NOT NULL,
-        mines   int NOT NULL,
+        status int NOT NULL,
+        timeToPrepare int,
+        timeToPlay int,
         date TIMESTAMPTZ not null
     );
     `
 	_, err = tx.Exec(sqlStatement)
 	return err
 }
+
+func (db *DataBase) createTableField(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Field (
+        id SERIAL PRIMARY KEY,
+        game_id int NOT NULL,
+        width   int NOT NULL,
+        height   int NOT NULL,
+        cellsLeft int NOT NULL,
+        difficult int default 0,
+        mines   int NOT NULL
+    );
+
+    ALTER TABLE Field
+        ADD CONSTRAINT field_game
+           FOREIGN KEY (game_id)
+           REFERENCES Game(id)
+           ON DELETE CASCADE;
+    
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
+
+func (db *DataBase) createTableAction(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Action (
+        id SERIAL PRIMARY KEY,
+        game_id int NOT NULL,
+        player_id   int NOT NULL,
+        action int  NOT NULL,
+        date TIMESTAMPTZ not null
+    );
+
+    ALTER TABLE Action
+        ADD CONSTRAINT action_game
+           FOREIGN KEY (game_id)
+           REFERENCES Game(id)
+           ON DELETE CASCADE;
+
+    ALTER TABLE Action
+        ADD CONSTRAINT action_player
+            FOREIGN KEY (player_id)
+            REFERENCES Player(id)
+            ON DELETE CASCADE;
+    
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
+
+/*
+difficult int default 0,
+        width   int NOT NULL,
+        height   int NOT NULL,
+        players   int NOT NULL,
+        mines   int NOT NULL,
+*/
 
 func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
 	sqlStatement := `
@@ -217,23 +286,24 @@ func (db *DataBase) createTableCell(tx *sql.Tx) (err error) {
 	sqlStatement := `
 	CREATE Table Cell (
         id SERIAL PRIMARY KEY,
-        game_id int NOT NULL,
-        gamer_id int NOT NULL,
+        field_id int NOT NULL,
+        player_id int NOT NULL,
         x   int NOT NULL,
         y   int NOT NULL,
-        value   int NOT NULL
+        value   int NOT NULL,
+        date TIMESTAMPTZ not null
     );
     
     ALTER TABLE Cell
-    ADD CONSTRAINT cell_game
-        FOREIGN KEY (game_id)
-        REFERENCES Game(id)
+    ADD CONSTRAINT cell_field
+        FOREIGN KEY (field_id)
+        REFERENCES Field(id)
         ON DELETE CASCADE;
     
     ALTER TABLE Cell
-    ADD CONSTRAINT cell_gamer
-        FOREIGN KEY (gamer_id)
-        REFERENCES Gamer(id)
+    ADD CONSTRAINT cell_player
+        FOREIGN KEY (player_id)
+        REFERENCES Player(id)
         ON DELETE CASCADE;
     `
 	_, err = tx.Exec(sqlStatement)

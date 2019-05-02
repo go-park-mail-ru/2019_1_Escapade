@@ -1,10 +1,11 @@
 package game
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-
 	"context"
 	"fmt"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 )
 
 // Request connect Connection and his message
@@ -32,6 +33,8 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
+	db *database.DataBase
+
 	semJoin    chan bool
 	semRequest chan bool
 }
@@ -42,11 +45,11 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig) {
+func Launch(gc *config.GameConfig, db *database.DataBase) {
 
 	if lobby == nil {
 		lobby = newLobby(gc.RoomsCapacity,
-			gc.LobbyJoin, gc.LobbyRequest)
+			gc.LobbyJoin, gc.LobbyRequest, db)
 
 		go lobby.Run()
 	}
@@ -81,11 +84,12 @@ func (lobby *Lobby) Free() {
 	close(lobby.ChanJoin)
 	close(lobby.chanLeave)
 	close(lobby.chanBroadcast)
+	lobby.db = nil
 	lobby = nil
 }
 
 // newLobby create new instance of Lobby
-func newLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
+func newLobby(roomsCapacity, maxJoin, maxRequest int, db *database.DataBase) *Lobby {
 
 	connectionsCapacity := 500
 	lobby := &Lobby{
@@ -100,6 +104,8 @@ func newLobby(roomsCapacity, maxJoin, maxRequest int) *Lobby {
 		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
+
+		db: db,
 
 		semJoin:    make(chan bool, maxJoin),
 		semRequest: make(chan bool, maxRequest),

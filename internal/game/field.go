@@ -89,6 +89,7 @@ func (field *Field) setCellFlagTaken(cell *Cell) {
 
 func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
+		cell.Time = time.Now()
 		field.History = append(field.History, *cell)
 	}
 	*cells = append(*cells, *cell)
@@ -103,9 +104,6 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
 		field.saveCell(cell, &cells)
-		if cell.Value >= CellIncrement {
-			field.setCellFlagTaken(cell)
-		}
 	}
 
 	return

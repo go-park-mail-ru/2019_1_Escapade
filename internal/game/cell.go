@@ -1,11 +1,14 @@
 package game
 
+import "time"
+
 // Cell send to user one cell
 type Cell struct {
-	X        int `json:"x"`
-	Y        int `json:"y"`
-	Value    int `json:"value"`
-	PlayerID int `json:"playerID"`
+	X        int       `json:"x"`
+	Y        int       `json:"y"`
+	Value    int       `json:"value"`
+	PlayerID int       `json:"playerID"`
+	Time     time.Time `json:"-"`
 }
 
 // NewCell create new instance of cell
@@ -15,6 +18,7 @@ func NewCell(x int, y int, v int, ID int) *Cell {
 		Y:        y,
 		Value:    v,
 		PlayerID: ID,
+		Time:     time.Now(),
 	}
 	return cell
 }

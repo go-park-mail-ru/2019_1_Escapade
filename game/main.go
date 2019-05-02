@@ -55,7 +55,7 @@ func main() {
 	r.HandleFunc("/ws", mi.ApplyMiddleware(handler.GameOnline,
 		mi.CORS(configuration.Cors, false)))
 
-	game.Launch(&configuration.Game)
+	game.Launch(&configuration.Game, &handler.DB)
 	defer game.GetLobby().Stop()
 
 	c := make(chan os.Signal)

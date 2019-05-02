@@ -7,9 +7,25 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
+func (room *Room) Winner() (idWin int) {
+	max := 0
+
+	for id, player := range room.Players.Players {
+		if player.Points > max {
+			max = player.Points
+			idWin = id
+		}
+	}
+	return
+}
+
 // flagFound is called, when somebody find cell flag
-func (room *Room) flagFound(found *Cell) {
+func (room *Room) flagFound(conn Connection, found *Cell) bool {
 	thatID := found.Value - CellIncrement
+	if thatID == conn.ID() {
+		return false
+	}
+	room.Players.Players[conn.Index].Points += 100000
 	fmt.Println("start search!")
 	for _, conn := range room.Players.Connections {
 		fmt.Println("compare:", thatID, conn.ID())
@@ -18,6 +34,7 @@ func (room *Room) flagFound(found *Cell) {
 		}
 	}
 	fmt.Println("finish search!")
+	return true
 }
 
 // isAlive check if connection is player and he is not died
@@ -34,14 +51,12 @@ func (room *Room) setFinished(conn *Connection) {
 // kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) {
 	// cause all in pointers
-	fmt.Println("we want kill!")
 	if room.isAlive(conn) {
-		fmt.Println("and we do it")
+		room.Field.setCellFlagTaken(&room.Players.Flags[conn.Index])
+
 		room.setFinished(conn)
-		fmt.Println("and we do it", room.killed, room.Players.Capacity)
 		if room.Players.Capacity <= room.killed+1 {
-			fmt.Println("want finish")
-			room.finishGame()
+			room.finishGame(true)
 		}
 		pa := *room.addAction(conn.ID(), action)
 		room.sendAction(pa, room.All)

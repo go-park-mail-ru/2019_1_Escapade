@@ -101,12 +101,13 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	if len(cells) == 1 {
 		newCell := cells[0]
 		fmt.Println("newCell value", newCell.Value)
-		if newCell.Value == CellMine {
+		if newCell.Value < CellMine {
+			room.Players.Players[conn.Index].Points += 1 + newCell.Value
+		} else if newCell.Value == CellMine {
 			room.kill(conn, ActionExplode)
 			room.Players.Players[conn.Index].Points -= 100
 		} else if newCell.Value >= CellIncrement {
-			room.flagFound(&newCell)
-			room.Players.Players[conn.Index].Points += 100000
+			room.flagFound(*conn, &newCell)
 		} else if newCell.Value == CellOpened {
 			return true
 		}
@@ -122,7 +123,7 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	go room.sendNewCells(cells, room.All)
 
 	if room.Field.IsCleared() {
-		room.finishGame()
+		room.finishGame(true)
 	}
 	return true
 }
@@ -205,11 +206,13 @@ func (room *Room) startGame() {
 	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
-func (room *Room) finishGame() {
+func (room *Room) finishGame(needStop bool) {
 	if room.Status == StatusFinished {
 		return
 	}
-	room.chanFinish <- struct{}{}
+	if needStop {
+		room.chanFinish <- struct{}{}
+	}
 	fmt.Println(room.ID, "We finish room!", room.Status)
 
 	room.Status = StatusFinished
@@ -218,6 +221,7 @@ func (room *Room) finishGame() {
 	room.sendStatus(room.All)
 	room.sendMessage("Battle finished!", room.All)
 	room.sendPlayers(room.All)
+	room.Save()
 	go room.lobby.roomFinish(room)
 	for _, player := range room.Players.Players {
 		player.Finished = true
@@ -252,7 +256,7 @@ func (room *Room) run() {
 		case <-timerToPrepare.C:
 			room.startGame()
 		case <-timerToPlay.C:
-			room.finishGame()
+			room.finishGame(false)
 			return
 		case clock := <-ticker.C:
 			fmt.Println("clock!", room.ID)

@@ -290,6 +290,7 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} models.Result "games not found"
 // @Failure 500 {object} models.Result "Databse error"
 // @Router /users/{name}/games/{page} [GET]
+/*
 func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetPlayerGames"
 
@@ -326,7 +327,7 @@ func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
-
+*/
 // GetUsersPageAmount get amount of users list page
 // @Summary amount of users list page
 // @Description Get amount of users list page
@@ -578,6 +579,7 @@ func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 }
 
 // GameOnline launch multiplayer
+/*
 func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
 	const place = "SaveOfflineGame"
 	var (
@@ -604,6 +606,7 @@ func (h *Handler) SaveGame(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+*/
 
 func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	const place = "GetProfile"

@@ -5,17 +5,53 @@ import "time"
 // Game show all info about game room.
 // There is no any personal info about gamer
 type Game struct {
-	Width     int       `json:"width"`
-	Height    int       `json:"height"`
-	Players   int       `json:"players"`
-	Mines     int       `json:"mines"`
-	Date      time.Time `json:"date"`
-	Exploded  bool      `json:"exploded"`
-	Difficult int       `json:"difficult"`
+	RoomID        string    `json:"roomID"`
+	Name          string    `json:"name"`
+	Status        int       `json:"status"`
+	Players       int       `json:"players"`
+	TimeToPrepare int       `json:"prepare"`
+	TimeToPlay    int       `json:"play"`
+	Date          time.Time `json:"date"`
+}
+
+// Gamer show all personal info(gamers results) about game
+type Gamer struct {
+	ID         int  `json:"-"`
+	Score      int  `json:"score"`
+	Time       int  `json:"time"`
+	LeftClick  int  `json:"leftClick"`
+	RightClick int  `json:"rightClick"`
+	Explosion  bool `json:"online"`
+	Won        bool `json:"won"`
+}
+
+type Action struct {
+	PlayerID int       `json:"playerID"`
+	ActionID int       `json:"actionID"`
+	Date     time.Time `json:"-"`
+}
+
+type Cell struct {
+	PlayerID int       `json:"playerID"`
+	X        int       `json:"x"`
+	Y        int       `json:"y"`
+	Value    int       `json:"value"`
+	Date     time.Time `json:"-"`
+}
+
+type Field struct {
+	Width     int `json:"width"`
+	Height    int `json:"height"`
+	CellsLeft int `json:"cellsLeft"`
+	Difficult int `json:"difficult"`
+	Mines     int `json:"mines"`
 }
 
 // GameInformation show everything about game and his gamer
 type GameInformation struct {
-	Game   *Game    `json:"game"`
-	Gamers []*Gamer `json:"gamer"`
+	Game    Game     `json:"game"`
+	Field   Field    `json:"field"`
+	Actions []Action `json:"actions"`
+	Cells   []Cell   `json:"cells"`
+	Gamers  []Gamer  `json:"gamer"`
 }

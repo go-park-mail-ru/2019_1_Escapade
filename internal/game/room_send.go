@@ -121,8 +121,14 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
 	response := models.Response{
-		Type:  "Room",
-		Value: room,
+		Type: "Room",
+		Value: struct {
+			Room *Room `json:"room"`
+			Flag Cell  `json:"flag"`
+		}{
+			Room: room,
+			Flag: room.Players.Flags[conn.Index],
+		},
 	}
 	conn.SendInformation(response)
 }

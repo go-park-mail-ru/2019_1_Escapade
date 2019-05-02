@@ -39,6 +39,55 @@ type Room struct {
 	killed int //amount of killed users
 }
 
+func (room *Room) debug() {
+	if room == nil {
+		fmt.Println("cant debug nil room")
+		return
+	}
+	fmt.Println("Room id    :", room.ID)
+	fmt.Println("Room name  :", room.Name)
+	fmt.Println("Room status:", room.Status)
+	fmt.Println("Room date  :", room.Date)
+	fmt.Println("Room killed:", room.killed)
+	if room.Players == nil {
+		fmt.Println("cant debug nil players")
+		return
+	}
+	for _, player := range room.Players.Players {
+		fmt.Println("Player", player.ID)
+		fmt.Println("Player points 	:", player.Points)
+		fmt.Println("Player Finished:", player.Finished)
+	}
+	if room.Field == nil {
+		fmt.Println("cant debug nil field")
+		return
+	}
+	fmt.Println("Field width		:", room.Field.Width)
+	fmt.Println("Field height 	:", room.Field.Height)
+	fmt.Println("Field cellsleft:", room.Field.CellsLeft)
+	fmt.Println("Field mines		:", room.Field.Mines)
+	if room.Field.History == nil {
+		fmt.Println("no field history")
+	} else {
+		for _, cell := range room.Field.History {
+			fmt.Printf("Cell(%d,%d) with value %d", cell.X, cell.Y, cell.Value)
+			fmt.Println("Cell Owner	:", cell.PlayerID)
+			fmt.Println("Cell Time  :", cell.Time)
+		}
+	}
+	if room.History == nil {
+		fmt.Println("no action history")
+	} else {
+		for i, action := range room.History {
+			fmt.Println("action", i)
+			fmt.Println("action value  :", action.Action)
+			fmt.Println("action Owner	:", action.Player)
+			fmt.Println("action Time  :", action.Time)
+		}
+	}
+
+}
+
 // NewRoom return new instance of room
 func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) *Room {
 	fmt.Println("NewRoom rs = ", *rs)
