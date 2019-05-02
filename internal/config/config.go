@@ -12,22 +12,22 @@ import (
 
 // Configuration contains all types of configurations
 type Configuration struct {
-	Server    ServerConfig      `json:"server"`
-	Cors      CORSConfig        `json:"cors"`
-	DataBase  DatabaseConfig    `json:"dataBase"`
-	Storage   FileStorageConfig `json:"storage"`
-	AWS       AwsPublicConfig   `json:"aws"`
-	Game      GameConfig        `json:"game"`
-	Session   SessionConfig     `json:"session"`
-	WebSocket WebSocketConfig   `json:"websocket"`
+	Server     ServerConfig      `json:"server"`
+	Cors       CORSConfig        `json:"cors"`
+	DataBase   DatabaseConfig    `json:"dataBase"`
+	Storage    FileStorageConfig `json:"storage"`
+	AWS        AwsPublicConfig   `json:"aws"`
+	Game       GameConfig        `json:"game"`
+	Session    SessionConfig     `json:"session"`
+	WebSocket  WebSocketConfig   `json:"websocket"`
+	AuthClient AuthClient        `json:"authClient"`
 }
 
 // ServerConfig set host, post and buffers sizes
 type ServerConfig struct {
-	Host            string `json:"host"`
-	Port            string `json:"port"`
-	ReadBufferSize  int    `json:"readBufferSize"`
-	WriteBufferSize int    `json:"writeBufferSize"`
+	Host      string `json:"host"`
+	PortURL   string `json:"portUrl"`
+	PortValue string `json:"portValue"`
 }
 
 // CORSConfig set allowable origins, headers and methods
@@ -43,11 +43,12 @@ type CORSConfig struct {
 //   connections, tables, sizes of page  of gamers
 //   and users
 type DatabaseConfig struct {
-	DriverName   string `json:"driverName"`
-	URL          string `json:"url"`
-	MaxOpenConns int    `json:"maxOpenConns"`
-	PageGames    int    `json:"pageGames"`
-	PageUsers    int    `json:"pageUsers"`
+	DriverName       string `json:"driverName"`
+	URL              string `json:"url"`
+	ConnectionString string `json:"connectionString"`
+	MaxOpenConns     int    `json:"maxOpenConns"`
+	PageGames        int    `json:"pageGames"`
+	PageUsers        int    `json:"pageUsers"`
 }
 
 // FileStorageConfig set, where avatars store and
@@ -82,6 +83,11 @@ type GameConfig struct {
 	LobbyRequest  int `json:"lobbyRequest"`
 }
 
+type AuthClient struct {
+	URL    string `json:"url"`
+	Adress string `json:"adress"`
+}
+
 // SessionConfig set cookie name, path, length, expiration time
 // and HTTPonly flag
 type SessionConfig struct {
@@ -94,46 +100,63 @@ type SessionConfig struct {
 
 // WebSocketConfig set timeouts
 type WebSocketConfig struct {
-	WriteWait      int   `json:"writeWait"`
-	PongWait       int   `json:"pongWait"`
-	PingPeriod     int   `json:"pingPeriod"`
-	MaxMessageSize int64 `json:"maxMessageSize"`
+	WriteWait       int   `json:"writeWait"`
+	PongWait        int   `json:"pongWait"`
+	PingPeriod      int   `json:"pingPeriod"`
+	MaxMessageSize  int64 `json:"maxMessageSize"`
+	ReadBufferSize  int   `json:"readBufferSize"`
+	WriteBufferSize int   `json:"writeBufferSize"`
 }
 
 // WebSocketSettings set timeouts
 type WebSocketSettings struct {
-	WriteWait      time.Duration `json:"writeWait"`
-	PongWait       time.Duration `json:"pongWait"`
-	PingPeriod     time.Duration `json:"pingPeriod"`
-	MaxMessageSize int64         `json:"maxMessageSize"`
+	WriteWait       time.Duration `json:"writeWait"`
+	PongWait        time.Duration `json:"pongWait"`
+	PingPeriod      time.Duration `json:"pingPeriod"`
+	MaxMessageSize  int64         `json:"maxMessageSize"`
+	ReadBufferSize  int           `json:"readBufferSize"`
+	WriteBufferSize int           `json:"writeBufferSize"`
+}
+
+func set(URL, value string) {
+	if URL != "" && os.Getenv(URL) == "" {
+		os.Setenv(URL, value)
+	}
+	fmt.Println("environment -", URL, " :", value)
+}
+
+// Init set environmental variables
+func InitEnvironment(c *Configuration) {
+
+	set(c.DataBase.URL, c.DataBase.ConnectionString)
+	set(c.Server.PortURL, c.Server.PortValue)
+	set(c.AuthClient.URL, c.AuthClient.Adress)
 }
 
 // Init load configuration file
-func Init(publicConfigPath, privateConfigPath string) (conf *Configuration, err error) {
+func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 	conf = &Configuration{}
 	var data []byte
-
 	if data, err = ioutil.ReadFile(publicConfigPath); err != nil {
 		return
 	}
 	if err = json.Unmarshal(data, conf); err != nil {
 		return
 	}
-	
-	conf.AWS.AwsConfig = &aws.Config{
-		Region:   aws.String(conf.AWS.Region),
-		Endpoint: aws.String(conf.AWS.Endpoint),
-	}
+	InitEnvironment(conf)
+	return
+}
+
+func InitPrivate(privateConfigPath string) (err error) {
+	var data []byte
 
 	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
 		fmt.Println("no secret json found:", err.Error())
-		err = nil
 		return
 	}
 	var apc = &AwsPrivateConfig{}
 	if err = json.Unmarshal(data, apc); err != nil {
 		fmt.Println("wrong secret json:", err.Error())
-		err = nil
 		return
 	}
 

@@ -10,7 +10,7 @@ import (
 
 	ran "math/rand"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 )
 
 func (h *Handler) register(ctx context.Context,

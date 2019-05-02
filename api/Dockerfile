@@ -14,5 +14,6 @@ ENV GOPATH /opt/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 RUN go mod download
+RUN go build -o bin/api api/main.go
 COPY . .
 CMD go test ./...

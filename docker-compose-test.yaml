@@ -12,7 +12,7 @@ services:
   redis:
     image: redis
 
-  api:
+   api:
     # image: bigyin13/api-main
     build:
       dockerfile: ./api/Dockerfile
@@ -25,7 +25,8 @@ services:
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333"
+      - PORT_API_URL=:3001
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
   
   auth:
     build:
@@ -37,5 +38,21 @@ services:
       - 3333:3333
     environment:
       - REDIS_URL=redis://:@redis:6379
+      - PORT_AUTH_URL=:3333
+    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+
+  game:
+    build:
+      dockerfile: ./game/Dockerfile
+      context: .
+    depends_on:
+       - "pg"
+      - "auth"
+    ports:
+      - 3002:3002
+    environment:
+      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+      - AUTHSERVICE_URL=auth:3333
+      - PORT_GAME_URL=:3002
     command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
 

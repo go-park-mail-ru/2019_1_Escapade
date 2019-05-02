@@ -5,9 +5,9 @@ import (
 	"net"
 	"os"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	sessMan "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"
@@ -18,6 +18,10 @@ func main() {
 	// curlog := lg.Construct(logPath, logFile)
 	// db := database.New(curlog)
 
+	const (
+		confPath = "auth/auth.json"
+	)
+
 	var (
 		lis       net.Listener
 		redisConn redis.Conn
@@ -26,28 +30,23 @@ func main() {
 		err       error
 	)
 
-	if lis, err = net.Listen("tcp", ":3333"); err != nil {
+	if conf, err = config.InitPublic(confPath); err != nil {
+		return
+	}
+
+	if lis, err = net.Listen("tcp", router.GetPort(conf)); err != nil {
 		fmt.Println("cant listen that adress:", err.Error())
 		return
 	}
-	if os.Getenv("REDIS_URL") == "" {
-		os.Setenv("REDIS_URL", "redis://user:@localhost:6379/0")
-	}
 
-	if redisConn, err = redis.DialURL(os.Getenv("REDIS_URL")); err != nil {
+	if redisConn, err = redis.DialURL(os.Getenv(conf.DataBase.URL)); err != nil {
 		fmt.Println("cant connect to redis", err.Error())
 		return
 	}
 	defer redisConn.Close()
-	const (
-		confPath = "conf.json"
-	)
-	if conf, err = config.Init(confPath, ""); err != nil {
-		return
-	}
 
 	server = grpc.NewServer()
-	session.RegisterAuthCheckerServer(server, sessMan.NewSessionManager(redisConn, conf.Session))
+	session.RegisterAuthCheckerServer(server, session.NewSessionManager(redisConn, conf.Session))
 
 	// curlog.Sugar.Infow("starting grpc server on "+conf.AC.Host+conf.AC.Port,
 	// 	"source", "main.go")

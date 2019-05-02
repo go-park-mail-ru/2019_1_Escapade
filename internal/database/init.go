@@ -16,13 +16,6 @@ import (
 // if failed - return error
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
-	// for local launch
-	//if os.Getenv(CDB.URL) == "" {
-	os.Setenv(CDB.URL, "dbname=escabase user=rolepade password=escapade sslmode=disable")
-	//}
-
-	fmt.Println("url:" + string(os.Getenv(CDB.URL)))
-
 	var database *sql.DB
 	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
 		fmt.Println("database/Init cant open:" + err.Error())
@@ -42,24 +35,80 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	}
 	fmt.Println("database/Init open")
 
-	// добавить в json проверку последнего апдейта
-	if err = db.CreateTables(); err != nil {
+	return
+}
+
+// InitWithRebuild connect to db with drop/create tables
+func InitWithRebuild(CDB config.DatabaseConfig) (db *DataBase, err error) {
+
+	if db, err = Init(CDB); err != nil {
 		return
 	}
+
+	var (
+		tx *sql.Tx
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if err = db.dropTables(tx); err != nil {
+		return
+	}
+
+	if err = db.createTables(tx); err != nil {
+		return
+	}
+
+	err = tx.Commit()
 
 	return
 }
 
-// CreateTables drop old tables and create new
-func (db *DataBase) CreateTables() error {
+func (db *DataBase) dropTables(tx *sql.Tx) (err error) {
 	sqlStatement := `
 	DROP TABLE IF EXISTS Session cascade;
     DROP TABLE IF EXISTS Game cascade;
     DROP TABLE IF EXISTS Player cascade;
     DROP TABLE IF EXISTS Gamer cascade;
     DROP TABLE IF EXISTS Cell cascade;
-		DROP TABLE IF EXISTS Record cascade;
+    DROP TABLE IF EXISTS Record cascade;
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
+func (db *DataBase) createTables(tx *sql.Tx) (err error) {
+	if err = db.createTablePlayer(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableSession(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableRecord(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableGame(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableGamer(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableCell(tx); err != nil {
+		return
+	}
+	return
+}
+
+func (db *DataBase) createTablePlayer(tx *sql.Tx) (err error) {
+	sqlStatement := `
 	CREATE TABLE Player (
         id SERIAL PRIMARY KEY,
         name varchar(30) NOT NULL,
@@ -71,99 +120,122 @@ func (db *DataBase) CreateTables() error {
         unique(name),
         unique(email)
     );
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
-CREATE Table Session (
-    id SERIAL PRIMARY KEY,
-    player_id int NOT NULL,
-    session_code varchar(30) NOT NULL
-);
+func (db *DataBase) createTableSession(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Session (
+        id SERIAL PRIMARY KEY,
+        player_id int NOT NULL,
+        session_code varchar(30) NOT NULL
+    );
+    
+    ALTER TABLE Session
+    ADD CONSTRAINT session_player
+       FOREIGN KEY (player_id)
+       REFERENCES Player(id)
+       ON DELETE CASCADE;
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
-ALTER TABLE Session
-ADD CONSTRAINT session_player
-   FOREIGN KEY (player_id)
-   REFERENCES Player(id)
-   ON DELETE CASCADE;
+func (db *DataBase) createTableRecord(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Record (
+        id SERIAL PRIMARY KEY,
+        player_id int NOT NULL,
+        score int default 0,
+        time interval default '24 hour'::interval,
+        difficult int default 0,
+        singleTotal int default 0 CHECK (SingleTotal > -1),
+        onlineTotal int default 0 CHECK (OnlineTotal > -1),
+        singleWin   int default 0 CHECK (SingleWin > -1),
+        onlineWin   int default 0 CHECK (OnlineWin > -1)
+    );
+    
+    ALTER TABLE Record
+    ADD CONSTRAINT record_player
+       FOREIGN KEY (player_id)
+       REFERENCES Player(id)
+       ON DELETE CASCADE;
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
---GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO escapade;
+func (db *DataBase) createTableGame(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Game (
+        id SERIAL PRIMARY KEY,
+        difficult int default 0,
+        width   int NOT NULL,
+        height   int NOT NULL,
+        players   int NOT NULL,
+        mines   int NOT NULL,
+        date TIMESTAMPTZ not null
+    );
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
-CREATE Table Record (
-    id SERIAL PRIMARY KEY,
-    player_id int NOT NULL,
-    score int default 0,
-    time interval default '24 hour'::interval,
-    difficult int default 0,
-    singleTotal int default 0 CHECK (SingleTotal > -1),
-    onlineTotal int default 0 CHECK (OnlineTotal > -1),
-    singleWin   int default 0 CHECK (SingleWin > -1),
-    onlineWin   int default 0 CHECK (OnlineWin > -1)
-);
+func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Gamer (
+        id SERIAL PRIMARY KEY,
+        player_id int NOT NULL,
+        game_id int NOT NULL,
+        score int default 0,
+        time interval default '24 hour'::interval,
+        left_click int default 0,
+        right_click int default 0,
+        explosion bool default false,
+        won bool default false
+    );
+    
+    ALTER TABLE Gamer
+    ADD CONSTRAINT gamer_player
+       FOREIGN KEY (player_id)
+       REFERENCES Player(id)
+       ON DELETE CASCADE;
+    
+    ALTER TABLE Gamer
+    ADD CONSTRAINT gamer_game
+        FOREIGN KEY (game_id)
+        REFERENCES Game(id)
+        ON DELETE CASCADE;
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
 
-ALTER TABLE Record
-ADD CONSTRAINT record_player
-   FOREIGN KEY (player_id)
-   REFERENCES Player(id)
-   ON DELETE CASCADE;
-
-CREATE Table Game (
-    id SERIAL PRIMARY KEY,
-    difficult int default 0,
-    width   int NOT NULL,
-    height   int NOT NULL,
-    players   int NOT NULL,
-    mines   int NOT NULL,
-    date TIMESTAMPTZ not null
-);
-
-CREATE Table Gamer (
-    id SERIAL PRIMARY KEY,
-    player_id int NOT NULL,
-    game_id int NOT NULL,
-    score int default 0,
-    time interval default '24 hour'::interval,
-    left_click int default 0,
-    right_click int default 0,
-    explosion bool default false,
-    won bool default false
-);
-
-ALTER TABLE Gamer
-ADD CONSTRAINT gamer_player
-   FOREIGN KEY (player_id)
-   REFERENCES Player(id)
-   ON DELETE CASCADE;
-
-ALTER TABLE Gamer
-ADD CONSTRAINT gamer_game
-    FOREIGN KEY (game_id)
-    REFERENCES Game(id)
-    ON DELETE CASCADE;
-
-CREATE Table Cell (
-    id SERIAL PRIMARY KEY,
-    game_id int NOT NULL,
-    gamer_id int NOT NULL,
-    x   int NOT NULL,
-    y   int NOT NULL,
-    value   int NOT NULL
-);
-
-ALTER TABLE Cell
-ADD CONSTRAINT cell_game
-    FOREIGN KEY (game_id)
-    REFERENCES Game(id)
-    ON DELETE CASCADE;
-
-ALTER TABLE Cell
-ADD CONSTRAINT cell_gamer
-    FOREIGN KEY (gamer_id)
-    REFERENCES Gamer(id)
-    ON DELETE CASCADE;
-
-	`
-	_, err := db.Db.Exec(sqlStatement)
-
-	if err != nil {
-		fmt.Println("database/init - fail:" + err.Error())
-	}
+func (db *DataBase) createTableCell(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table Cell (
+        id SERIAL PRIMARY KEY,
+        game_id int NOT NULL,
+        gamer_id int NOT NULL,
+        x   int NOT NULL,
+        y   int NOT NULL,
+        value   int NOT NULL
+    );
+    
+    ALTER TABLE Cell
+    ADD CONSTRAINT cell_game
+        FOREIGN KEY (game_id)
+        REFERENCES Game(id)
+        ON DELETE CASCADE;
+    
+    ALTER TABLE Cell
+    ADD CONSTRAINT cell_gamer
+        FOREIGN KEY (gamer_id)
+        REFERENCES Gamer(id)
+        ON DELETE CASCADE;
+    `
+	_, err = tx.Exec(sqlStatement)
 	return err
 }

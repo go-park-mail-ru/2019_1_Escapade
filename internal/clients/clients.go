@@ -1,7 +1,8 @@
 package clients
 
 import (
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
 	"os"
 
@@ -16,12 +17,10 @@ func Init(authConn *grpc.ClientConn) *Clients {
 	return &Clients{Session: session.NewAuthCheckerClient(authConn)}
 }
 
-func ServiceConnectionsInit() (authConn *grpc.ClientConn, err error) {
-	if os.Getenv("AUTHSERVICE_URL") == "" {
-		os.Setenv("AUTHSERVICE_URL", "localhost:3333")
-	}
+func ServiceConnectionsInit(conf config.AuthClient) (authConn *grpc.ClientConn, err error) {
+
 	authConn, err = grpc.Dial(
-		os.Getenv("AUTHSERVICE_URL"),
+		os.Getenv(conf.URL),
 		grpc.WithInsecure(),
 	)
 	if err != nil {

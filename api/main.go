@@ -1,15 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/api/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"net/http"
@@ -28,8 +26,13 @@ import (
 func main() {
 	const (
 		place      = "main"
-		confPath   = "conf.json"
+		confPath   = "api/api.json"
 		secretPath = "secret.json"
+	)
+
+	var (
+		configuration *config.Configuration
+		API           *api.Handler
 	)
 
 	logger, err := zap.NewProduction()
@@ -38,33 +41,27 @@ func main() {
 	}
 	defer logger.Sync()
 
-	authConn, err := clients.ServiceConnectionsInit()
+	if configuration, err = config.InitPublic(confPath); err != nil {
+		fmt.Println("eeeer", err.Error())
+		return
+	}
+	config.InitPrivate(secretPath)
+
+	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 	if err != nil {
 		log.Fatal("serviceConnectionsInit error:", err)
 	}
 	defer authConn.Close()
 
-	API, Conf, err := api.InitAPI(confPath, secretPath, authConn) // init.go
+	API, err = api.GetAPIHandler(configuration, authConn) // init.go
 
 	if err != nil {
 		utils.PrintResult(err, 0, "main")
 		return
 	}
 	API.RandomUsers(10) // create 10 users for tests
-	r := router.GetRouter(API, Conf)
-	port := router.GetPort(Conf)
-
-	game.Launch(&Conf.Game)
-	defer game.GetLobby().Stop()
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		game.GetLobby().Stop()
-		game.GetLobby().Free()
-		os.Exit(1)
-	}()
+	r := router.GetRouter(API, configuration)
+	port := router.GetPort(configuration)
 
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")

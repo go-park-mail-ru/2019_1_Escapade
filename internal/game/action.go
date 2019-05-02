@@ -18,6 +18,7 @@ const (
 	ActionFlagSet
 	ActionGiveUp
 	ActionBackToLobby
+	ActionTimeOver
 )
 
 // PlayerAction combine player and his action

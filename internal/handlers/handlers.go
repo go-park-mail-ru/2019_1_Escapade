@@ -4,39 +4,34 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"mime/multipart"
 	"net/http"
-	"time"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 
-	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
 
 // Handler is struct
 type Handler struct {
-	DB              database.DataBase
-	Storage         config.FileStorageConfig
-	Session         config.SessionConfig
-	WebSocket       config.WebSocketSettings
-	GameConfig      config.GameConfig
-	AWS             config.AwsPublicConfig
-	ReadBufferSize  int
-	WriteBufferSize int
-	Test            bool
-	Clients         *clients.Clients
+	DB        database.DataBase
+	Storage   config.FileStorageConfig
+	Session   config.SessionConfig
+	WebSocket config.WebSocketSettings
+	AWS       config.AwsPublicConfig
+	Clients   *clients.Clients
 }
 
 // catch CORS preflight
@@ -555,67 +550,6 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 }
 
 // GameOnline launch multiplayer
-func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
-	const place = "GameOnline"
-	var (
-		err    error
-		userID int
-		ws     *websocket.Conn
-		user   *models.UserPublicInfo
-	)
-
-	if !h.Test {
-		if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
-			rw.WriteHeader(http.StatusUnauthorized)
-			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-			utils.PrintResult(err, http.StatusUnauthorized, place)
-			return
-		}
-	} else {
-		rand.Seed(time.Now().UnixNano())
-		userID = rand.Intn(10000)
-	}
-
-	lobby := game.GetLobby()
-	if lobby == nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorServer(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
-	}
-
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  h.ReadBufferSize,
-		WriteBufferSize: h.WriteBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-
-	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		if _, ok := err.(websocket.HandshakeError); ok {
-			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
-		} else {
-			utils.SendErrorJSON(rw, re.ErrorNotWebsocket(), place)
-		}
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
-	}
-
-	if user, err = h.DB.GetUser(userID, 0); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	conn := game.NewConnection(ws, user, lobby)
-	conn.Launch(h.WebSocket)
-	utils.PrintResult(err, http.StatusOK, place)
-	return
-}
-
-// GameOnline launch multiplayer
 func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 	const place = "SaveRecords"
 	var (
@@ -702,6 +636,62 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	utils.SendSuccessJSON(rw, user, place)
 
 	rw.WriteHeader(http.StatusOK)
+	utils.PrintResult(err, http.StatusOK, place)
+	return
+}
+
+// GameOnline handle game online
+func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
+	const place = "GameOnline"
+	var (
+		err    error
+		userID int
+		ws     *websocket.Conn
+		user   *models.UserPublicInfo
+	)
+
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	lobby := game.GetLobby()
+	if lobby == nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		utils.SendErrorJSON(rw, re.ErrorServer(), place)
+		utils.PrintResult(err, http.StatusInternalServerError, place)
+	}
+
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  h.WebSocket.ReadBufferSize,
+		WriteBufferSize: h.WebSocket.WriteBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
+		} else {
+			utils.SendErrorJSON(rw, re.ErrorNotWebsocket(), place)
+		}
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	conn := game.NewConnection(ws, user, lobby)
+	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }

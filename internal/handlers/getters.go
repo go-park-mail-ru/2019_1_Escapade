@@ -11,7 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 
 	"github.com/gorilla/mux"
 )
@@ -122,20 +122,6 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	}
 	return
 }
-
-// func (h *Handler) getNameFromCookie(r *http.Request, cc config.CookieConfig) (username string, err error) {
-// 	sessionID, _ := cookie.GetSessionCookie(r, cc)
-// 	ctx := context.Background()
-// 	sess, err := h.sessionManager.Check(ctx, &session.SessionID{
-// 		ID: sessionID,
-// 	})
-// 	if err != nil {
-// 		return
-// 	}
-// 	username = sess.Login
-
-// 	return
-// }
 
 func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)

@@ -1,21 +1,24 @@
 {
 	"server": {
 		"host": "http://localhost",
-		"port": ":3001",
-		"readBufferSize": 1024,
-		"writeBufferSize": 1024
+		"portUrl": "PORT_GAME_URL",
+		"portValue": ":3002"
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"adress": ":3003"
 	},
 	"dataBase": {
 		"driverName": "postgres",
 		"url": "DATABASE_URL",
-		"maxOpenConns": 20,
-		"PageGames": 2,
-		"PageUsers": 100
+		"connectionString": "dbname=escabase user=rolepade password=escapade sslmode=disable",
+		"maxOpenConns": 20
 	},
 	"cors": {
 		"origins": [
 			"http://localhost:8080",
 			"http://localhost:3001",
+			"http://localhost:3002",
 			"https://escapade-frontend.herokuapp.com"
 		],
 		"headers": [
@@ -29,14 +32,6 @@
 			"DELETE",
 			"OPTIONS"
 		]
-	},
-	"storage": {
-		"playersAvatarsStorage": "escapade",
-		"defaultAvatar": "1.png"
-	},
-	"aws": {
-		"region": "ru-msk",
-		"endpoint": "https://hb.bizmrg.com"
 	},
 	"session": {
 		"name": "sessionid",
@@ -54,6 +49,8 @@
 		"writeWait": 60,
 		"pongWait": 10,
 		"pingPeriod": 9,
-		"maxMessageSize": 512
+		"maxMessageSize": 512,
+		"readBufferSize": 1024,
+		"writeBufferSize": 1024
 	}
 }
