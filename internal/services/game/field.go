@@ -117,9 +117,9 @@ func (field *Field) setMine(x, y int) {
 	height := field.Height
 	field.Matrix[x][y] = CellMine
 	for i := x - 1; i <= x+1; i++ {
-		if i > 0 && i < width {
+		if i >= 0 && i < width {
 			for j := y - 1; j <= y+1; j++ {
-				if j > 0 && j < height && field.Matrix[i][j] != CellMine {
+				if j >= 0 && j < height && field.Matrix[i][j] != CellMine {
 					field.Matrix[i][j]++
 				}
 			}
