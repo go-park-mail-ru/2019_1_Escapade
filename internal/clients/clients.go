@@ -1,10 +1,11 @@
 package clients
 
 import (
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
+
+	"os"
 
 	"google.golang.org/grpc"
-	"os"
 )
 
 type Clients struct {

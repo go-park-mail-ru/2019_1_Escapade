@@ -162,9 +162,6 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 			conn.debug("lobby search room for you")
 			room = lobby.pickUpRoom(conn, rs)
 		}
-		if room != nil {
-			lobby.sendRoomUpdate(*room, All)
-		}
 	}
 }
 

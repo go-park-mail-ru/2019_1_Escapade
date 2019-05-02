@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/api/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 

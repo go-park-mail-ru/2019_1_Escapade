@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
+	"github.com/go-park-mail-ru/2019_1_Escapade/api/api"
 
 	"fmt"
 	"os"

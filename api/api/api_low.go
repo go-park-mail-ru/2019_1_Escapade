@@ -8,8 +8,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 	ran "math/rand"
+
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
 )
 
 func (h *Handler) register(ctx context.Context,

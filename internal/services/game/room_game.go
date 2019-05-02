@@ -38,6 +38,7 @@ func (room *Room) kill(conn *Connection, action int) {
 	if room.isAlive(conn) {
 		fmt.Println("and we do it")
 		room.setFinished(conn)
+		fmt.Println("and we do it", room.killed, room.Players.Capacity)
 		if room.Players.Capacity <= room.killed+1 {
 			fmt.Println("want finish")
 			room.finishGame()

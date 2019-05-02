@@ -5,9 +5,9 @@ import (
 	"net"
 	"os"
 
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	sessMan "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth"
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"

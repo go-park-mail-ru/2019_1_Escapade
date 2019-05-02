@@ -18,8 +18,8 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
 
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"

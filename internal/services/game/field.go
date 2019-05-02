@@ -38,12 +38,13 @@ func (field *Field) SameAs(another *Field) bool {
 // SetFlag works only when mines not set
 func (field *Field) SetFlag(x int, y int, id int) {
 
-	field.Matrix[x][y] = CellFlag
+	//field.Matrix[x][y] = CellFlag
 
 	// To identifier which flag we see, lets set id
 	// add CellIncrement to id, because if id = 3 we can think that there are 3 mines around
 	// we cant use -id, becase in future there will be a lot of conditions with
 	// something < 9 (to find not mine places)
+	fmt.Println("setFlag", x, y, id, CellIncrement)
 	field.Matrix[x][y] = id + CellIncrement
 }
 
@@ -119,7 +120,7 @@ func (field *Field) setMine(x, y int) {
 	for i := x - 1; i <= x+1; i++ {
 		if i >= 0 && i < width {
 			for j := y - 1; j <= y+1; j++ {
-				if j >= 0 && j < height && field.Matrix[i][j] != CellMine {
+				if j >= 0 && j < height && field.Matrix[i][j] < CellMine {
 					field.Matrix[i][j]++
 				}
 			}

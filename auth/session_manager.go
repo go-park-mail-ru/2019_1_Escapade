@@ -3,7 +3,7 @@ package session
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	session "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/proto"
+	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"context"
