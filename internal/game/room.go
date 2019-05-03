@@ -38,7 +38,7 @@ type Room struct {
 
 	// for save game room
 	wGroup   *sync.WaitGroup
-	Settings *models.RoomSettings
+	Settings *models.RoomSettings `json:"settings"`
 
 	killed int //amount of killed users
 }
