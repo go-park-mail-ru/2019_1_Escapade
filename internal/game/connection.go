@@ -35,7 +35,6 @@ type Connection struct {
 // PushToRoom set field 'room' to real room
 func (conn *Connection) PushToRoom(room *Room) {
 	conn.room = room
-	conn.both = false
 }
 
 // PushToLobby set field 'room' to nil

@@ -158,7 +158,9 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		conn.debug("change room")
 	}
 
+	conn.debug("enter room" + rs.ID)
 	if rs.ID == "create" {
+		conn.debug("see you wanna create room?")
 		lobby.createAndAddToRoom(rs, conn)
 		return
 	}
