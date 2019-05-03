@@ -1,6 +1,8 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"database/sql"
@@ -251,12 +253,19 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 		return
 	}
 
+	var messages []*models.Message
+	messages, err = db.getMessages(tx, true, game.RoomID)
+	if err != nil {
+		fmt.Println("some eror with messages happened", err.Error())
+	}
+
 	return models.GameInformation{
-		Game:    game,
-		Gamers:  gamers,
-		Field:   field,
-		Actions: actions,
-		Cells:   cells,
+		Game:     game,
+		Gamers:   gamers,
+		Field:    field,
+		Actions:  actions,
+		Cells:    cells,
+		Messages: messages,
 	}, err
 
 }

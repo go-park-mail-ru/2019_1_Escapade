@@ -7,8 +7,9 @@ import (
 // LobbyRequest - client send it by websocket to
 // send/get information from Lobby
 type LobbyRequest struct {
-	Send *LobbySend `json:"send"`
-	Get  *LobbyGet  `json:"get"`
+	Send    *LobbySend      `json:"send"`
+	Message *models.Message `json:"message"`
+	Get     *LobbyGet       `json:"get"`
 }
 
 // NewLobbyRequest creates Lobby instance

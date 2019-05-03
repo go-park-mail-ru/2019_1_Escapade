@@ -1,10 +1,12 @@
 package database
 
+// delete sessions -> introduced Redis
+/*
 import (
 	_ "github.com/lib/pq"
 )
 
-/*
+
 func (db *DataBase) deleteSession(sessionCode string) error {
 	sqlStatement := `DELETE From Session where session_code=$1`
 	_, err := db.Db.Exec(sqlStatement, sessionCode)

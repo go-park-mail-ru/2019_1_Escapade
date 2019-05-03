@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // Request connect Connection and his message
@@ -33,6 +34,8 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
+	Messages []*models.Message `json:"messages"`
+
 	db            *database.DataBase
 	canCloseRooms bool
 
@@ -52,7 +55,7 @@ func Launch(gc *config.GameConfig, db *database.DataBase) {
 		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
 			gc.LobbyJoin, gc.LobbyRequest, db, gc.CanClose)
 
-		go lobby.Run()
+		go lobby.Run(nil)
 	}
 }
 
@@ -94,7 +97,10 @@ func NewLobby(connectionsCapacity, roomsCapacity,
 	maxJoin, maxRequest int, db *database.DataBase,
 	canCloseRooms bool) *Lobby {
 
-	//connectionsCapacity := 500
+	messages, err := db.LoadMessages(false, "")
+	if err != nil {
+		fmt.Println("cant load messages:", err.Error())
+	}
 	lobby := &Lobby{
 
 		AllRooms:  NewRooms(roomsCapacity),
@@ -107,6 +113,8 @@ func NewLobby(connectionsCapacity, roomsCapacity,
 		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
+
+		Messages: messages,
 
 		db:            db,
 		canCloseRooms: canCloseRooms,

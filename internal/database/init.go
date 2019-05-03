@@ -74,6 +74,7 @@ func (db *DataBase) dropTables(tx *sql.Tx) (err error) {
     DROP TABLE IF EXISTS Action cascade;
     DROP TABLE IF EXISTS Field cascade;
     DROP TABLE IF EXISTS Game cascade;
+    DROP TABLE IF EXISTS GameChat cascade;
     DROP TABLE IF EXISTS Player cascade;
     DROP TABLE IF EXISTS Gamer cascade;
     DROP TABLE IF EXISTS Record cascade;
@@ -96,6 +97,10 @@ func (db *DataBase) createTables(tx *sql.Tx) (err error) {
 	}
 
 	if err = db.createTableGame(tx); err != nil {
+		return
+	}
+
+	if err = db.createTableGameChat(tx); err != nil {
 		return
 	}
 
@@ -194,6 +199,27 @@ func (db *DataBase) createTableGame(tx *sql.Tx) (err error) {
 	return err
 }
 
+func (db *DataBase) createTableGameChat(tx *sql.Tx) (err error) {
+	sqlStatement := `
+	CREATE Table GameChat (
+        id SERIAL PRIMARY KEY,
+        in_room bool,
+        roomID varchar(20),
+        player_id int NOT NULL,
+        message varchar(8000),
+        time   TIMESTAMPTZ
+    );
+
+    ALTER TABLE GameChat
+    ADD CONSTRAINT chat_player
+       FOREIGN KEY (player_id)
+       REFERENCES Player(id)
+       ON DELETE CASCADE;
+    `
+	_, err = tx.Exec(sqlStatement)
+	return err
+}
+
 func (db *DataBase) createTableField(tx *sql.Tx) (err error) {
 	sqlStatement := `
 	CREATE Table Field (
@@ -283,11 +309,13 @@ func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
 }
 
 func (db *DataBase) createTableCell(tx *sql.Tx) (err error) {
+	// player_id maybe 0. It is mean that it is set by room
+	// thats why there is no constraint with player_id
 	sqlStatement := `
 	CREATE Table Cell (
         id SERIAL PRIMARY KEY,
         field_id int NOT NULL,
-        player_id int NOT NULL,
+        player_id int,
         x   int NOT NULL,
         y   int NOT NULL,
         value   int NOT NULL,
@@ -298,12 +326,6 @@ func (db *DataBase) createTableCell(tx *sql.Tx) (err error) {
     ADD CONSTRAINT cell_field
         FOREIGN KEY (field_id)
         REFERENCES Field(id)
-        ON DELETE CASCADE;
-    
-    ALTER TABLE Cell
-    ADD CONSTRAINT cell_player
-        FOREIGN KEY (player_id)
-        REFERENCES Player(id)
         ON DELETE CASCADE;
     `
 	_, err = tx.Exec(sqlStatement)

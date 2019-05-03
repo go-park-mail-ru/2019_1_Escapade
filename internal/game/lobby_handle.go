@@ -1,6 +1,8 @@
 package game
 
 import (
+	"sync"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -10,7 +12,7 @@ import (
 )
 
 // Run the room in goroutine
-func (lobby *Lobby) Run() {
+func (lobby *Lobby) Run(wg *sync.WaitGroup) {
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
 		lobby.Free()
@@ -18,6 +20,9 @@ func (lobby *Lobby) Run() {
 
 	var lobbyCancel context.CancelFunc
 	lobby.Context, lobbyCancel = context.WithCancel(context.Background())
+	if wg != nil {
+		wg.Done()
+	}
 	fmt.Println("Lobby run")
 	for {
 		select {
@@ -139,6 +144,9 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 			return
 		}
 		lobby.EnterRoom(conn, lr.Send.RoomSettings)
+	} else if lr.Message != nil {
+		Message(lobby, conn, lr.Message, &lobby.Messages,
+			lobby.send, All, false, "")
 	}
 }
 

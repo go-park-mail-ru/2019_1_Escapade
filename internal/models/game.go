@@ -52,9 +52,10 @@ type Field struct {
 
 // GameInformation show everything about game and his gamer
 type GameInformation struct {
-	Game    Game     `json:"game"`
-	Field   Field    `json:"field"`
-	Actions []Action `json:"actions"`
-	Cells   []Cell   `json:"cells"`
-	Gamers  []Gamer  `json:"gamer"`
+	Game     Game       `json:"game"`
+	Field    Field      `json:"field"`
+	Actions  []Action   `json:"actions"`
+	Cells    []Cell     `json:"cells"`
+	Gamers   []Gamer    `json:"gamer"`
+	Messages []*Message `json:"messages"`
 }

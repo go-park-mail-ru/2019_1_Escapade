@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gorilla/websocket"
 
@@ -26,12 +27,15 @@ func LaunchLobbyHistory(db *database.DataBase,
 	lobby := NewLobby(gameSettings.ConnectionCapacity, len(urls),
 		gameSettings.LobbyJoin, gameSettings.LobbyRequest, db,
 		gameSettings.CanClose)
-	go lobby.Run()
+	all := &sync.WaitGroup{}
+	all.Add(1)
+	go lobby.Run(all)
 	defer func() {
 		fmt.Println("stop lobby!")
 		lobby.Stop()
 	}()
 
+	all.Wait()
 	err = lobby.LoadRooms(urls)
 
 	if err != nil {

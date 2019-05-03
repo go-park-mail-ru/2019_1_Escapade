@@ -44,6 +44,12 @@ func (room *Room) All(conn *Connection) bool {
 	return conn.room == room && conn.IsConnected()
 }
 
+// InGame is SendPredicate to SendToConnections
+// it will send everybody in room, if game began
+func (room *Room) InGame(conn *Connection) bool {
+	return conn.room == room && conn.IsConnected() && !conn.both
+}
+
 // AllExceptThat is SendPredicate to SendToConnections
 // it will send everybody in room, except selected one
 func (room *Room) AllExceptThat(me *Connection) func(*Connection) bool {

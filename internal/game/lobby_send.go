@@ -14,11 +14,6 @@ func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting.Get)
 }
 
-// SendMessage sends message to Connection from lobby
-func (lobby *Lobby) SendMessage(conn *Connection, message string) {
-	conn.SendInformation("Lobby message: " + message)
-}
-
 func (lobby *Lobby) sendRoomCreate(room Room, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "LobbyRoomCreate",
@@ -38,7 +33,7 @@ func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
 func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "LobbyRoomDelete",
-		Value: room,
+		Value: room.ID,
 	}
 	lobby.send(response, predicate)
 }

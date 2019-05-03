@@ -8,6 +8,7 @@ import (
 	"database/sql"
 )
 
+// SaveGame save game to database
 func (db *DataBase) SaveGame(
 	info models.GameInformation) (err error) {
 	var (
@@ -45,6 +46,7 @@ func (db *DataBase) SaveGame(
 	return
 }
 
+// GetGames get list of games
 func (db *DataBase) GetGames(userID int) (
 	games []models.GameInformation, err error) {
 	var (
@@ -74,6 +76,7 @@ func (db *DataBase) GetGames(userID int) (
 	return
 }
 
+// GetGamesURL get games url
 func (db *DataBase) GetGamesURL(userID int) (
 	URLs []string, err error) {
 	var (
@@ -93,6 +96,7 @@ func (db *DataBase) GetGamesURL(userID int) (
 	return
 }
 
+// GetGame get game
 func (db *DataBase) GetGame(roomID string) (
 	game models.GameInformation, err error) {
 	var (
@@ -112,24 +116,3 @@ func (db *DataBase) GetGame(roomID string) (
 	err = tx.Commit()
 	return
 }
-
-/*
-func (db *DataBase) GetGames(userID int, page int) (
-	games []*models.GameInformation, err error) {
-	var (
-		tx *sql.Tx
-	)
-
-	if tx, err = db.Db.Begin(); err != nil {
-		return
-	}
-	defer tx.Rollback()
-
-	if games, err = db.GetFullGamesInformation(tx, userID, page); err != nil {
-		return
-	}
-
-	err = tx.Commit()
-	return
-}
-*/

@@ -282,53 +282,6 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetPlayerGames get games
-// @Summary get users game
-// @Description Get amount of users list page
-// @ID GetPlayerGames
-// @Success 200 {array} models.Game "Get successfully"
-// @Failure 400 {object} models.Result "invalid username or page"
-// @Failure 404 {object} models.Result "games not found"
-// @Failure 500 {object} models.Result "Databse error"
-// @Router /users/{name}/games/{page} [GET]
-/*
-func (h *Handler) GetPlayerGames(rw http.ResponseWriter, r *http.Request) {
-	const place = "GetPlayerGames"
-
-	var (
-		err      error
-		games    []*models.GameInformation
-		username string
-		page     int
-		userID   int
-	)
-
-	if page, username, err = h.getNameAndPage(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
-	}
-
-	if userID, err = h.DB.GetUserIDByName(username); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-	}
-
-	if games, err = h.DB.GetGames(userID, page); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorGamesNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
-
-	utils.SendSuccessJSON(rw, games, place)
-	rw.WriteHeader(http.StatusOK)
-	utils.PrintResult(err, http.StatusOK, place)
-	return
-}
-*/
 // GetUsersPageAmount get amount of users list page
 // @Summary amount of users list page
 // @Description Get amount of users list page

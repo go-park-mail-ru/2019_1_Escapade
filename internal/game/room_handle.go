@@ -158,6 +158,7 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
 		return true
 	}
+
 	return false
 }
 
@@ -180,6 +181,9 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 		if done {
 			room.finishGame(true)
 		}
+	} else if rr.Message != nil {
+		Message(lobby, conn, rr.Message, &room.Messages,
+			room.send, room.InGame, true, room.ID)
 	}
 }
 
@@ -241,7 +245,7 @@ func (room *Room) initTimers() (prepare, play *time.Timer) {
 
 func (room *Room) run() {
 	defer utils.CatchPanic("room_handle.go run()")
-	ticker := time.NewTicker(time.Second * 20)
+	ticker := time.NewTicker(time.Second * 4)
 
 	timerToPrepare, timerToPlay := room.initTimers()
 	defer func() {

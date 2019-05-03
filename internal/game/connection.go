@@ -35,6 +35,7 @@ type Connection struct {
 // PushToRoom set field 'room' to real room
 func (conn *Connection) PushToRoom(room *Room) {
 	conn.room = room
+	conn.both = false
 }
 
 // PushToLobby set field 'room' to nil
@@ -112,17 +113,13 @@ func (conn *Connection) InRoom() bool {
 // Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
-	if conn.lobby == nil {
-		fmt.Println("lobby nil!")
+	if conn.lobby == nil || conn.lobby.Context == nil {
+		fmt.Println("lobby nil or hasnt context!")
 		return
 	}
 
 	all := &sync.WaitGroup{}
 	var connContext context.Context
-	if conn.lobby == nil {
-		fmt.Println("Lobby nil or hasnt context")
-		return
-	}
 	connContext, conn.cancel = context.WithCancel(conn.lobby.Context)
 
 	conn.lobby.ChanJoin <- conn

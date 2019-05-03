@@ -180,5 +180,8 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 			Finished: true,
 		}
 	}
+
+	room.Messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+
 	return
 }

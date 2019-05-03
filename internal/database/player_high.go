@@ -1,6 +1,8 @@
 package database
 
 import (
+	"math"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
@@ -93,6 +95,7 @@ func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivat
 	return
 }
 
+// GetUsers get users
 func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 	sort string) (players []*models.UserPublicInfo, err error) {
 	var (
@@ -126,6 +129,7 @@ func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 	return
 }
 
+// GetUser get one user
 func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicInfo, err error) {
 
 	var (
@@ -166,5 +170,24 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 	// }
 
 	err = tx.Commit()
+	return
+}
+
+// GetUsersPageAmount returns amount of rows in table Player
+// deleted on amount of rows in one page
+func (db *DataBase) GetUsersPageAmount(perPage int) (amount int, err error) {
+	sqlStatement := `SELECT count(1) FROM Player`
+	row := db.Db.QueryRow(sqlStatement)
+	if err = row.Scan(&amount); err != nil {
+		return
+	}
+
+	if amount > db.PageUsers {
+		amount = db.PageUsers
+	}
+	if perPage == 0 {
+		perPage = 1
+	}
+	amount = int(math.Ceil(float64(amount) / float64(perPage)))
 	return
 }

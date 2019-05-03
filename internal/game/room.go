@@ -31,7 +31,8 @@ type Room struct {
 	lobby *Lobby
 	Field *Field `json:"field,omitempty"`
 
-	Date       time.Time `json:"date,omitempty"`
+	Date       time.Time         `json:"date,omitempty"`
+	Messages   []*models.Message `json:"messages"`
 	chanFinish chan struct{}
 
 	// for save game room
@@ -123,6 +124,10 @@ func (room *Room) SameAs(another *Room) bool {
 
 /* Examples of json
 
+message
+{"message":{"text":"hello"}}
+
+
 room search
 {"send":{"RoomSettings":{"name":"my best room","id":"create","width":12,"height":12,"players":2,"observers":10,"prepare":10, "play":100, "mines":5}},"get":null}
 
@@ -154,8 +159,9 @@ get lobby all info
 
 // RoomRequest is request from client to room
 type RoomRequest struct {
-	Send *RoomSend `json:"send"`
-	Get  *RoomGet  `json:"get"`
+	Send    *RoomSend       `json:"send"`
+	Message *models.Message `json:"message"`
+	Get     *RoomGet        `json:"get"`
 }
 
 // IsGet check if client want get information
