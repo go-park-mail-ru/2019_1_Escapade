@@ -10,7 +10,7 @@ import (
 )
 
 // Run the room in goroutine
-func (lobby *Lobby) Run(need_stop bool) {
+func (lobby *Lobby) Run() {
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
 		lobby.Free()
@@ -30,13 +30,13 @@ func (lobby *Lobby) Run(need_stop bool) {
 			// TODO delete chanleavem cause Leave call direcrly
 		case connection := <-lobby.chanLeave:
 			lobby.Leave(connection, "You disconnected!")
-			if need_stop {
-				if len(lobby.Playing.Get)+len(lobby.Waiting.Get) == 0 {
-					fmt.Println("Nobody there!")
-					lobbyCancel()
-					return
-				}
-			}
+			// if need_stop {
+			// 	if len(lobby.Playing.Get)+len(lobby.Waiting.Get) == 0 {
+			// 		fmt.Println("Nobody there!")
+			// 		lobbyCancel()
+			// 		return
+			// 	}
+			// }
 		case <-lobby.chanBreak:
 			fmt.Println("Stop saw!")
 			lobbyCancel()
@@ -92,8 +92,10 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 	} else {
 		lobby.Playing.Remove(conn)
 	}
+	fmt.Println("lobby.Playing.Get before", len(room.Players.Connections))
 	room.Leave(conn, action) // exit to lobby
-	if len(lobby.Playing.Get) > 0 {
+	fmt.Println("lobby.Playing.Get agter", len(room.Players.Connections))
+	if len(room.Players.Connections) > 0 {
 		go func() {
 			lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 		}()
@@ -104,23 +106,17 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 func (lobby *Lobby) pickUpRoom(conn *Connection, rs *models.RoomSettings) (room *Room) {
 	// if there is no room
 	if lobby.FreeRooms.Empty() {
-		// if room capacity ended return nil
-		room := lobby.createRoom(rs)
-		if room != nil {
-			conn.debug("We create your own room, cool!")
-			room.addPlayer(conn)
-		} else {
-			conn.debug("cant create. Why?")
-		}
-		return room
+
+		lobby.createAndAddToRoom(rs, conn)
+		return
 	}
 	conn.debug("We have some rooms!")
 
 	// lets find room for him
-	for _, room := range lobby.FreeRooms.Get {
+	for _, room = range lobby.FreeRooms.Get {
 		//if room.SameAs()
 		if room.addPlayer(conn) {
-			return room
+			return
 		}
 	}
 	return
@@ -155,21 +151,18 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	}
 
 	if rs.ID == "create" {
-		conn.debug("try create")
-		room := lobby.createRoom(rs)
-		if room != nil {
-			room.addPlayer(conn)
-		}
-	} else {
-		var room *Room
-		if _, room = lobby.AllRooms.SearchRoom(rs.ID); room != nil {
-			conn.debug("lobby found required room")
-			room.Enter(conn)
-		} else {
-			conn.debug("lobby search room for you")
-			room = lobby.pickUpRoom(conn, rs)
-		}
+		lobby.createAndAddToRoom(rs, conn)
+		return
 	}
+
+	if _, room := lobby.AllRooms.SearchRoom(rs.ID); room != nil {
+		conn.debug("lobby found required room")
+		room.Enter(conn)
+	} else {
+		conn.debug("lobby search room for you")
+		lobby.pickUpRoom(conn, rs)
+	}
+
 }
 
 // analize handle where the connection sends the request

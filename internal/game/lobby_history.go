@@ -26,7 +26,7 @@ func LaunchLobbyHistory(db *database.DataBase,
 	lobby := NewLobby(gameSettings.ConnectionCapacity, len(urls),
 		gameSettings.LobbyJoin, gameSettings.LobbyRequest, db,
 		gameSettings.CanClose)
-	go lobby.Run(false)
+	go lobby.Run()
 	defer func() {
 		fmt.Println("stop lobby!")
 		lobby.Stop()

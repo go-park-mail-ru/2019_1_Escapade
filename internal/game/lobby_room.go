@@ -32,20 +32,35 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	lobby.sendRoomDelete(*room, All)
 }
 
+// createAndAddToRoom create room and add player to it
+func (lobby *Lobby) createAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
+	if room, err = lobby.createRoom(rs); err == nil {
+		conn.debug("We create your own room, cool!")
+		room.addPlayer(conn)
+	} else {
+		conn.debug("cant create. Why?")
+		room.sendError(err, *conn)
+	}
+	return
+}
+
 // createRoom create room, add to all and free rooms
 // and run it
-func (lobby *Lobby) createRoom(rs *models.RoomSettings) *Room {
+func (lobby *Lobby) createRoom(rs *models.RoomSettings) (room *Room, err error) {
 
 	id := utils.RandomString(16) // вынести в кофиг
-	room := NewRoom(rs, id, lobby)
+	if room, err = NewRoom(rs, id, lobby); err != nil {
+		return
+	}
 	if !lobby.AllRooms.Add(room) {
+		err = re.ErrorLobbyCantCreateRoom()
 		fmt.Println("cant create room")
-		return nil
+		return
 	}
 
 	lobby.FreeRooms.Add(room)
 	lobby.sendRoomCreate(*room, All) // inform all about new room
-	return room
+	return
 }
 
 // LoadRooms load rooms from database

@@ -44,8 +44,8 @@ func (room *Room) All(conn *Connection) bool {
 	return conn.room == room && conn.IsConnected()
 }
 
-// All is SendPredicate to SendToConnections
-// it will send everybody in room, who is connected
+// AllExceptThat is SendPredicate to SendToConnections
+// it will send everybody in room, except selected one
 func (room *Room) AllExceptThat(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
 		return conn.room == room && conn != me && conn.IsConnected()

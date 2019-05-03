@@ -7,12 +7,14 @@ type Result struct {
 	Message string `json:"message"`
 }
 
+// Response is game struct, that frontend is waiting from backend
 type Response struct {
 	Type    string      `json:"type"`
 	Message string      `json:"message,omitempty"`
 	Value   interface{} `json:"value"`
 }
 
+// FailFlagSet is called when room cant set flag
 func FailFlagSet(value interface{}, err error) Response {
 	return Response{
 		Type:    "FailFlagSet",
@@ -21,6 +23,7 @@ func FailFlagSet(value interface{}, err error) Response {
 	}
 }
 
+// RandomFlagSet is called when any player set his flag at the same as any other
 func RandomFlagSet(value interface{}) Response {
 	return Response{
 		Type:    "ChangeFlagSet",

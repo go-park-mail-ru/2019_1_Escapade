@@ -14,6 +14,11 @@ type RoomSettings struct {
 	Mines         int    `json:"mines"`
 }
 
+// AreCorrect check are roomSettings parameters correct
+func (rs *RoomSettings) AreCorrect() bool {
+	return rs.Players > 1 && rs.Width*rs.Height-rs.Players-rs.Mines > 0
+}
+
 // NewSmallRoom create small room
 func NewSmallRoom() *RoomSettings {
 	rs := &RoomSettings{

@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+// Save save room information to database
 func (room *Room) Save() (err error) {
 	game := models.Game{
 		RoomID:        room.ID,
@@ -83,6 +84,7 @@ func (room *Room) Save() (err error) {
 	return
 }
 
+// Load load room information from database
 func (lobby *Lobby) Load(id string) (room *Room, err error) {
 
 	var info models.GameInformation
@@ -102,8 +104,9 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		TimeToPlay:    info.Game.TimeToPlay,
 	}
 
-	room = NewRoom(settings, id, lobby)
-	room.settings = settings
+	if room, err = NewRoom(settings, id, lobby); err != nil {
+		return
+	}
 
 	// main info
 	room.ID = info.Game.RoomID
@@ -111,17 +114,6 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	room.Status = info.Game.Status
 	room.killed = info.Game.Players
 	room.Date = info.Game.Date
-
-	// players
-	room.Players = newOnlinePlayers(info.Game.Players)
-	for i, gamer := range info.Gamers {
-		room.Players.Players[i] = Player{
-			ID:       gamer.ID,
-			Points:   gamer.Score,
-			Died:     gamer.Explosion,
-			Finished: true,
-		}
-	}
 
 	// actions
 	room.History = make([]*PlayerAction, 0)
@@ -155,26 +147,38 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		room.Field.History = append(room.Field.History, cell)
 	}
 
-	cells := make([]models.Cell, 0)
-	for _, cellHistory := range room.Field.History {
-		cell := models.Cell{
+	room.Field.History = make([]Cell, 0)
+	for _, cellHistory := range info.Cells {
+		cell := Cell{
 			PlayerID: cellHistory.PlayerID,
 			X:        cellHistory.X,
 			Y:        cellHistory.Y,
 			Value:    cellHistory.Value,
-			Date:     cellHistory.Time,
+			Time:     cellHistory.Date,
 		}
-		cells = append(cells, cell)
+		room.Field.History = append(room.Field.History, cell)
 	}
 
-	actions := make([]models.Action, 0)
-	for _, actionHistory := range room.History {
-		action := models.Action{
-			PlayerID: actionHistory.Player,
-			ActionID: actionHistory.Action,
-			Date:     actionHistory.Time,
+	// actions
+	room.History = make([]*PlayerAction, 0)
+	for _, actionHistory := range info.Actions {
+		action := &PlayerAction{
+			Player: actionHistory.PlayerID,
+			Action: actionHistory.ActionID,
+			Time:   actionHistory.Date,
 		}
-		actions = append(actions, action)
+		room.History = append(room.History, action)
+	}
+
+	// players
+	room.Players = newOnlinePlayers(info.Game.Players, *room.Field)
+	for i, gamer := range info.Gamers {
+		room.Players.Players[i] = Player{
+			ID:       gamer.ID,
+			Points:   gamer.Score,
+			Died:     gamer.Explosion,
+			Finished: true,
+		}
 	}
 	return
 }

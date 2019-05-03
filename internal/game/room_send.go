@@ -25,10 +25,18 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPlayers(predicate SendPredicate) {
+func (room *Room) sendGameOver(predicate SendPredicate) {
+	cells := make([]Cell, 0)
+	room.Field.openEverything(&cells)
 	response := models.Response{
-		Type:  "RoomGameOver",
-		Value: room.Players.Players,
+		Type: "RoomGameOver",
+		Value: struct {
+			Players []Player `json:"players"`
+			Cells   []Cell   `json:"cells"`
+		}{
+			Players: room.Players.Players,
+			Cells:   cells,
+		},
 	}
 	room.send(response, predicate)
 }
@@ -118,18 +126,29 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 	room.send(response, predicate)
 }
 
+// sendTAIRHistory send actions history to all in room
+func (room *Room) sendError(err error, conn Connection) {
+	response := models.Response{
+		Type:  "RoomError",
+		Value: err.Error(),
+	}
+	conn.SendInformation(response)
+}
+
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
 
 	var flag *Cell
 	if conn.Index >= 0 {
+		room.Players.Flags[conn.Index].PlayerID = conn.ID()
+		room.Players.Flags[conn.Index].Value = conn.ID() + CellIncrement
 		flag = &room.Players.Flags[conn.Index]
 	}
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
 			Room *Room `json:"room"`
-			Flag *Cell `json:"flag, omitempty"`
+			Flag *Cell `json:"flag,omitempty"`
 		}{
 			Room: room,
 			Flag: flag,

@@ -46,6 +46,7 @@ func (room *Room) Free() {
 // Close drives away players out of the room, free resources
 // and inform lobby, that rooms closes
 func (room *Room) Close() bool {
+	fmt.Println("Can close?", room.lobby.canCloseRooms)
 	if !room.lobby.canCloseRooms {
 		return false
 	}
@@ -78,20 +79,20 @@ func (room *Room) Leave(conn *Connection, action int) {
 }
 
 // openCell open cell
-func (room *Room) openCell(conn *Connection, cell *Cell) bool {
+func (room *Room) openCell(conn *Connection, cell *Cell) (roomFinished bool) {
 	// if user try set open cell before game launch
 	if room.Status != StatusRunning {
-		return false
+		return
 	}
 
 	// if wrong cell
 	if !room.Field.IsInside(cell) {
-		return false
+		return
 	}
 
 	// if user died
 	if !room.isAlive(conn) {
-		return false
+		return
 	}
 
 	// set who try open cell(for history)
@@ -104,12 +105,12 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 		if newCell.Value < CellMine {
 			room.Players.Players[conn.Index].Points += 1 + newCell.Value
 		} else if newCell.Value == CellMine {
-			room.kill(conn, ActionExplode)
+			roomFinished = room.kill(conn, ActionExplode)
 			room.Players.Players[conn.Index].Points -= 100
 		} else if newCell.Value >= CellIncrement {
 			room.flagFound(*conn, &newCell)
 		} else if newCell.Value == CellOpened {
-			return true
+			return
 		}
 	} else {
 		for _, foundCell := range cells {
@@ -122,16 +123,17 @@ func (room *Room) openCell(conn *Connection, cell *Cell) bool {
 	go room.sendPlayerPoints(room.Players.Players[conn.Index], room.All)
 	go room.sendNewCells(cells, room.All)
 
-	if room.Field.IsCleared() {
-		room.finishGame(true)
+	if !roomFinished && room.Field.IsCleared() {
+		roomFinished = true
+		//room.finishGame(true)
 	}
-	return true
+	return
 }
 
 func (room *Room) cellHandle(conn *Connection, cell *Cell) (done bool) {
 	fmt.Println("cellHandle")
 	if room.Status == StatusFlagPlacing {
-		done = room.setFlag(conn, cell)
+		room.setFlag(conn, cell)
 	} else if room.Status == StatusRunning {
 		done = room.openCell(conn, cell)
 	}
@@ -175,8 +177,8 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 
 			done = room.actionHandle(conn, *rr.Send.Action)
 		}
-		if !done {
-			conn.debug("Room cant execute request")
+		if done {
+			room.finishGame(true)
 		}
 	}
 }
@@ -220,7 +222,7 @@ func (room *Room) finishGame(needStop bool) {
 
 	room.sendStatus(room.All)
 	room.sendMessage("Battle finished!", room.All)
-	room.sendPlayers(room.All)
+	room.sendGameOver(room.All)
 	room.Save()
 	go room.lobby.roomFinish(room)
 	for _, player := range room.Players.Players {

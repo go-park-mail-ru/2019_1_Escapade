@@ -52,7 +52,7 @@ func Launch(gc *config.GameConfig, db *database.DataBase) {
 		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
 			gc.LobbyJoin, gc.LobbyRequest, db, gc.CanClose)
 
-		go lobby.Run(false)
+		go lobby.Run()
 	}
 }
 

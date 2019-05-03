@@ -82,7 +82,7 @@ type GameConfig struct {
 	ConnectionCapacity int  `json:"connectionCapacity"`
 	LobbyJoin          int  `json:"lobbyJoin"`
 	LobbyRequest       int  `json:"lobbyRequest"`
-	CanClose           bool `json:"canClose"`
+	CanClose           bool `json:"closeRoom"`
 }
 
 // AuthClient client of auth microservice

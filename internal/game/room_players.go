@@ -113,7 +113,9 @@ func (room *Room) removeFromGame(conn *Connection, disconnected bool) {
 		room.Observers.Remove(conn)
 		room.sendObservers(room.All)
 	}
+	fmt.Println("room.Players len", len(room.Players.Players))
 	if room.Players.Empty() {
+		fmt.Println("room.Players.Empty")
 		room.Close()
 	}
 }

@@ -7,6 +7,7 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
+// Winner determine who won the game
 func (room *Room) Winner() (idWin int) {
 	max := 0
 
@@ -30,11 +31,11 @@ func (room *Room) flagFound(conn Connection, found *Cell) bool {
 	for _, conn := range room.Players.Connections {
 		fmt.Println("compare:", thatID, conn.ID())
 		if thatID == conn.ID() {
-			room.kill(conn, ActionFlagLost)
+			return room.kill(conn, ActionFlagLost)
 		}
 	}
 	fmt.Println("finish search!")
-	return true
+	return false
 }
 
 // isAlive check if connection is player and he is not died
@@ -50,18 +51,19 @@ func (room *Room) setFinished(conn *Connection) {
 }
 
 // kill make user die and check for finish battle
-func (room *Room) kill(conn *Connection, action int) {
+func (room *Room) kill(conn *Connection, action int) bool {
 	// cause all in pointers
 	if room.isAlive(conn) {
 		room.Field.setCellFlagTaken(&room.Players.Flags[conn.Index])
 
 		room.setFinished(conn)
-		if room.Players.Capacity <= room.killed+1 {
-			room.finishGame(true)
-		}
+		// if room.Players.Capacity <= room.killed+1 {
+		// 	room.finishGame(true)
+		// }
 		pa := *room.addAction(conn.ID(), action)
 		room.sendAction(pa, room.All)
 	}
+	return room.Players.Capacity <= room.killed+1
 }
 
 // GiveUp kill connection, that call it

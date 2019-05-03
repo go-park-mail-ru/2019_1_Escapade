@@ -25,12 +25,14 @@ type Gamer struct {
 	Won        bool `json:"won"`
 }
 
+// Action is the database model of game.Action
 type Action struct {
 	PlayerID int       `json:"playerID"`
 	ActionID int       `json:"actionID"`
 	Date     time.Time `json:"-"`
 }
 
+// Cell is the database model of game.Cell
 type Cell struct {
 	PlayerID int       `json:"playerID"`
 	X        int       `json:"x"`
@@ -39,6 +41,7 @@ type Cell struct {
 	Date     time.Time `json:"-"`
 }
 
+// Field is the database model of game.Field
 type Field struct {
 	Width     int `json:"width"`
 	Height    int `json:"height"`

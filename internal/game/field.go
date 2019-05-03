@@ -48,6 +48,19 @@ func (field *Field) SetFlag(x int, y int, id int) {
 	field.Matrix[x][y] = id + CellIncrement
 }
 
+func (field *Field) openEverything(cells *[]Cell) {
+	for i := 0; i < field.Height; i++ {
+		for j := 0; j < field.Width; j++ {
+			v := field.Matrix[i][j]
+			if v != CellOpened {
+				cell := NewCell(i, j, v, 0)
+				field.saveCell(cell, cells)
+				field.setCellOpen(i, j)
+			}
+		}
+	}
+}
+
 func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.Matrix[x][y]
@@ -135,6 +148,7 @@ func (field *Field) RandomFlags(players []Player) (cells []Cell) {
 	return cells
 }
 
+// CreateRandomFlag create flag for player
 func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 	rand.Seed(time.Now().UnixNano())
 	x := rand.Intn(field.Width)

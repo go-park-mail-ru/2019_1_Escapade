@@ -17,3 +17,7 @@ func ErrorPlayerFinished() error {
 func ErrorLobbyCantCreateRoom() error {
 	return errors.New("Cant create room in lobby")
 }
+
+func ErrorInvalidRoomSettings() error {
+	return errors.New("Invalid roomSettings")
+}

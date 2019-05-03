@@ -1,10 +1,11 @@
 package game
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-
 	"fmt"
 	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
 // Game status
@@ -89,26 +90,30 @@ func (room *Room) debug() {
 }
 
 // NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) *Room {
+func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
 	fmt.Println("NewRoom rs = ", *rs)
+	if !rs.AreCorrect() {
+		return nil, re.ErrorInvalidRoomSettings()
+	}
+	field := NewField(rs)
 	room := &Room{
 		ID:        id,
 		Name:      rs.Name,
 		Status:    StatusPeopleFinding,
-		Players:   newOnlinePlayers(rs.Players),
+		Players:   newOnlinePlayers(rs.Players, *field),
 		Observers: NewConnections(rs.Observers),
 
 		History: make([]*PlayerAction, 0),
 
 		lobby: lobby,
-		Field: NewField(rs),
+		Field: field,
 
 		Date:       time.Now(),
 		chanFinish: make(chan struct{}),
 		settings:   rs,
 		killed:     0,
 	}
-	return room
+	return room, nil
 }
 
 // SameAs compare  one room with another

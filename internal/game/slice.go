@@ -23,13 +23,16 @@ type Rooms struct {
 }
 
 // NewConnections create instance of Connections
-func newOnlinePlayers(size int) *OnlinePlayers {
+func newOnlinePlayers(size int, field Field) *OnlinePlayers {
+	players := make([]Player, size)
+	flags := field.RandomFlags(players)
 	return &OnlinePlayers{
 		Capacity:    size,
-		Players:     make([]Player, size),
-		Flags:       make([]Cell, size),
+		Players:     players,
+		Flags:       flags,
 		Connections: make([]*Connection, 0, size),
 	}
+
 }
 
 // Init create players and flags
@@ -43,7 +46,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
 		conn.Index = i
 	}
-	onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
+	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
 	return
 }
@@ -86,14 +89,14 @@ func (onlinePlayers *OnlinePlayers) Free() {
 	onlinePlayers = nil
 }
 
-// Search find connection in slice and return its index if success
-// otherwise -1
+// SearchIndexPlayer search connection index in the slice of Players
 func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) {
 	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
 		return onlinePlayers.Players[i].ID == conn.ID()
 	})
 }
 
+// SearchConnection search connection index in the slice of connections
 func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (i int) {
 	return sliceIndex(len(onlinePlayers.Connections), func(i int) bool {
 		return onlinePlayers.Connections[i].ID() == conn.ID()
