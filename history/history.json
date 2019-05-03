@@ -1,8 +1,8 @@
 {
 	"server": {
 		"host": "http://localhost",
-		"portUrl": "PORT_GAME_URL",
-		"portValue": ":3002"
+		"portUrl": "PORT_HISTORY_URL",
+		"portValue": ":3004"
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
@@ -19,6 +19,7 @@
 			"http://localhost:8080",
 			"http://localhost:3001",
 			"http://localhost:3002",
+			"http://localhost:3004",
 			"https://escapade-frontend.herokuapp.com"
 		],
 		"headers": [
@@ -37,15 +38,15 @@
 		"name": "sessionid",
 		"path": "/",
 		"length": 16,
-		"lifetime": 1004800,
+		"lifetime": 604800,
 		"httpOnly": true
 	},
 	"game": {
 		"roomsCapacity": 500,
-		"connectionCapacity": 1000,
+		"connectionCapacity": 1,
 		"lobbyJoin": 1,
 		"lobbyRequest": 1,
-		"closeRoom": true
+		"closeRoom": false
 	},
 	"websocket": {
 		"writeWait": 60,

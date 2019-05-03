@@ -120,14 +120,19 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
+
+	var flag *Cell
+	if conn.Index >= 0 {
+		flag = &room.Players.Flags[conn.Index]
+	}
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
 			Room *Room `json:"room"`
-			Flag Cell  `json:"flag"`
+			Flag *Cell `json:"flag, omitempty"`
 		}{
 			Room: room,
-			Flag: room.Players.Flags[conn.Index],
+			Flag: flag,
 		},
 	}
 	conn.SendInformation(response)

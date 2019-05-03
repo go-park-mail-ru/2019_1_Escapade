@@ -112,14 +112,18 @@ func (conn *Connection) InRoom() bool {
 // Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
-	if lobby == nil {
+	if conn.lobby == nil {
 		fmt.Println("lobby nil!")
 		return
 	}
 
 	all := &sync.WaitGroup{}
 	var connContext context.Context
-	connContext, conn.cancel = context.WithCancel(lobby.Context)
+	if conn.lobby == nil {
+		fmt.Println("Lobby nil or hasnt context")
+		return
+	}
+	connContext, conn.cancel = context.WithCancel(conn.lobby.Context)
 
 	conn.lobby.ChanJoin <- conn
 	all.Add(1)

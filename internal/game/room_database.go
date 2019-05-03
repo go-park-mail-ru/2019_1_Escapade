@@ -23,7 +23,7 @@ func (room *Room) Save() (err error) {
 		gamer := models.Gamer{
 			ID:        player.ID,
 			Score:     player.Points,
-			Explosion: player.Finished,
+			Explosion: player.Died,
 			Won:       idWin == id,
 		}
 		gamers = append(gamers, gamer)
@@ -97,6 +97,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		Width:         info.Field.Width,
 		Height:        info.Field.Height,
 		Players:       info.Game.Players,
+		Observers:     1,
 		TimeToPrepare: info.Game.TimeToPrepare,
 		TimeToPlay:    info.Game.TimeToPlay,
 	}
@@ -117,7 +118,8 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		room.Players.Players[i] = Player{
 			ID:       gamer.ID,
 			Points:   gamer.Score,
-			Finished: gamer.Explosion,
+			Died:     gamer.Explosion,
+			Finished: true,
 		}
 	}
 

@@ -45,6 +45,54 @@ func (db *DataBase) SaveGame(
 	return
 }
 
+func (db *DataBase) GetGames(userID int) (
+	games []models.GameInformation, err error) {
+	var (
+		tx   *sql.Tx
+		URLs []string
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if URLs, err = db.getGamesURL(tx, userID); err != nil {
+		return
+	}
+
+	games = make([]models.GameInformation, 0)
+	for _, URL := range URLs {
+		info := models.GameInformation{}
+		if info, err = db.GetGame(URL); err != nil {
+			break
+		}
+		games = append(games, info)
+	}
+
+	err = tx.Commit()
+	return
+}
+
+func (db *DataBase) GetGamesURL(userID int) (
+	URLs []string, err error) {
+	var (
+		tx *sql.Tx
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if URLs, err = db.getGamesURL(tx, userID); err != nil {
+		return
+	}
+
+	err = tx.Commit()
+	return
+}
+
 func (db *DataBase) GetGame(roomID string) (
 	game models.GameInformation, err error) {
 	var (

@@ -45,6 +45,7 @@ func (room *Room) isAlive(conn *Connection) bool {
 // setFinished increment amount of killed
 func (room *Room) setFinished(conn *Connection) {
 	room.Players.Players[conn.Index].Finished = true
+	room.Players.Players[conn.Index].Died = true
 	room.killed++
 }
 

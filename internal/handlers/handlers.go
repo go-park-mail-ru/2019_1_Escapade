@@ -30,6 +30,7 @@ type Handler struct {
 	Storage   config.FileStorageConfig
 	Session   config.SessionConfig
 	WebSocket config.WebSocketSettings
+	Game      config.GameConfig
 	AWS       config.AwsPublicConfig
 	Clients   *clients.Clients
 }
@@ -550,7 +551,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GameOnline launch multiplayer
+// SaveRecords save only records
 func (h *Handler) SaveRecords(rw http.ResponseWriter, r *http.Request) {
 	const place = "SaveRecords"
 	var (
@@ -696,5 +697,52 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	conn := game.NewConnection(ws, user, lobby)
 	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
+	return
+}
+
+// GameHistory launch local lobby only for this connection
+func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
+	const place = "GameHistory"
+	var (
+		err    error
+		userID int
+		ws     *websocket.Conn
+		user   *models.UserPublicInfo
+	)
+
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+		rw.WriteHeader(http.StatusUnauthorized)
+		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		utils.PrintResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  h.WebSocket.ReadBufferSize,
+		WriteBufferSize: h.WebSocket.WriteBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
+		} else {
+			utils.SendErrorJSON(rw, re.ErrorNotWebsocket(), place)
+		}
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game)
 	return
 }

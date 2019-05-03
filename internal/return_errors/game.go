@@ -13,3 +13,7 @@ func ErrorCellOutside() error {
 func ErrorPlayerFinished() error {
 	return errors.New("Action refused. You died")
 }
+
+func ErrorLobbyCantCreateRoom() error {
+	return errors.New("Cant create room in lobby")
+}

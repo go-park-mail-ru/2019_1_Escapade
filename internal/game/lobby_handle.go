@@ -10,7 +10,7 @@ import (
 )
 
 // Run the room in goroutine
-func (lobby *Lobby) Run() {
+func (lobby *Lobby) Run(need_stop bool) {
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
 		lobby.Free()
@@ -18,7 +18,7 @@ func (lobby *Lobby) Run() {
 
 	var lobbyCancel context.CancelFunc
 	lobby.Context, lobbyCancel = context.WithCancel(context.Background())
-
+	fmt.Println("Lobby run")
 	for {
 		select {
 		case connection := <-lobby.ChanJoin:
@@ -29,7 +29,14 @@ func (lobby *Lobby) Run() {
 
 			// TODO delete chanleavem cause Leave call direcrly
 		case connection := <-lobby.chanLeave:
-			go lobby.Leave(connection, "You disconnected!")
+			lobby.Leave(connection, "You disconnected!")
+			if need_stop {
+				if len(lobby.Playing.Get)+len(lobby.Waiting.Get) == 0 {
+					fmt.Println("Nobody there!")
+					lobbyCancel()
+					return
+				}
+			}
 		case <-lobby.chanBreak:
 			fmt.Println("Stop saw!")
 			lobbyCancel()

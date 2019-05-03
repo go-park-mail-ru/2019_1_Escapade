@@ -98,6 +98,41 @@ func (db *DataBase) createCells(tx *sql.Tx, FieldID int, cells []models.Cell) (e
 	return
 }
 
+// getGamesURL get user games URL
+func (db *DataBase) getGamesURL(tx *sql.Tx, playerID int) (URLs []string, err error) {
+	getURLs := `
+	SELECT roomID
+				 FROM Game
+				 join Gamer
+				 on Game.id = Gamer.game_id 
+				 where player_id = $1
+	`
+
+	URLs = make([]string, 0)
+	rows, erro := tx.Query(getURLs, playerID)
+
+	if erro != nil {
+		err = erro
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var url string
+		if err = rows.Scan(&url); err != nil {
+
+			break
+		}
+		URLs = append(URLs, url)
+	}
+	if err != nil {
+		return
+	}
+	return
+}
+
+// GetGameInformation get all information about game:
+// game, gamers, field, history of cells and actions
 func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformation models.GameInformation, err error) {
 
 	getGame := `

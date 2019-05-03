@@ -32,6 +32,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 		conn.debug("Room cant execute request ")
 		return false
 	}
+	conn.debug("addObserver")
 	room.MakeObserver(conn)
 
 	room.addAction(conn.ID(), ActionConnectAsObserver)
@@ -98,22 +99,13 @@ func (room *Room) MakeObserver(conn *Connection) {
 	conn.PushToRoom(room)
 }
 
-func (room *Room) removeBeforeLaunch(conn *Connection) {
-	fmt.Println("before removing", len(room.Players.Connections))
-	room.Players.Remove(conn)
-	room.sendPlayerExit(*conn, room.All)
-	fmt.Println("after removing", len(room.Players.Connections))
-	if room.Players.Empty() {
-		room.Close()
-		conn.debug("We closed room :С")
-	}
-}
-
-func (room *Room) removeDuringGame(conn *Connection) {
+func (room *Room) removeFromGame(conn *Connection, disconnected bool) {
 	fmt.Println("removeDuringGame")
 	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
-		room.GiveUp(conn)
+		if !disconnected {
+			room.GiveUp(conn)
+		}
 		room.Players.Remove(conn)
 		room.sendPlayerExit(*conn, room.All)
 	} else {
@@ -123,20 +115,5 @@ func (room *Room) removeDuringGame(conn *Connection) {
 	}
 	if room.Players.Empty() {
 		room.Close()
-		conn.debug("We closed room :С")
 	}
 }
-
-// removeFinishedGame
-// func (room *Room) removeAfterLaunch(conn *Connection) {
-// 	i := room.Players.Search(conn)
-// 	if i >= 0 {
-// 		room.TryClose()
-// 		return
-// 	}
-
-// 	room.Observers.Remove(conn)
-// 	room.sendObservers(room.all())
-// 	room.TryClose()
-// 	return
-// }

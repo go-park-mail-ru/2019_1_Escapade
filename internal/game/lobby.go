@@ -33,7 +33,8 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
-	db *database.DataBase
+	db            *database.DataBase
+	canCloseRooms bool
 
 	semJoin    chan bool
 	semRequest chan bool
@@ -48,10 +49,10 @@ var (
 func Launch(gc *config.GameConfig, db *database.DataBase) {
 
 	if lobby == nil {
-		lobby = newLobby(gc.RoomsCapacity,
-			gc.LobbyJoin, gc.LobbyRequest, db)
+		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
+			gc.LobbyJoin, gc.LobbyRequest, db, gc.CanClose)
 
-		go lobby.Run()
+		go lobby.Run(false)
 	}
 }
 
@@ -88,10 +89,12 @@ func (lobby *Lobby) Free() {
 	lobby = nil
 }
 
-// newLobby create new instance of Lobby
-func newLobby(roomsCapacity, maxJoin, maxRequest int, db *database.DataBase) *Lobby {
+// NewLobby create new instance of Lobby
+func NewLobby(connectionsCapacity, roomsCapacity,
+	maxJoin, maxRequest int, db *database.DataBase,
+	canCloseRooms bool) *Lobby {
 
-	connectionsCapacity := 500
+	//connectionsCapacity := 500
 	lobby := &Lobby{
 
 		AllRooms:  NewRooms(roomsCapacity),
@@ -105,7 +108,8 @@ func newLobby(roomsCapacity, maxJoin, maxRequest int, db *database.DataBase) *Lo
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
 
-		db: db,
+		db:            db,
+		canCloseRooms: canCloseRooms,
 
 		semJoin:    make(chan bool, maxJoin),
 		semRequest: make(chan bool, maxRequest),

@@ -78,11 +78,14 @@ type AwsPrivateConfig struct {
 // GameConfig set, how much rooms server can create and
 // how mich connections can join and execute together
 type GameConfig struct {
-	RoomsCapacity int `json:"roomsCapacity"`
-	LobbyJoin     int `json:"lobbyJoin"`
-	LobbyRequest  int `json:"lobbyRequest"`
+	RoomsCapacity      int  `json:"roomsCapacity"`
+	ConnectionCapacity int  `json:"connectionCapacity"`
+	LobbyJoin          int  `json:"lobbyJoin"`
+	LobbyRequest       int  `json:"lobbyRequest"`
+	CanClose           bool `json:"canClose"`
 }
 
+// AuthClient client of auth microservice
 type AuthClient struct {
 	URL    string `json:"url"`
 	Adress string `json:"adress"`
@@ -125,7 +128,7 @@ func set(URL, value string) {
 	fmt.Println("environment -", URL, " :", value)
 }
 
-// Init set environmental variables
+// InitEnvironment set environmental variables
 func InitEnvironment(c *Configuration) {
 
 	set(c.DataBase.URL, c.DataBase.ConnectionString)
@@ -133,7 +136,7 @@ func InitEnvironment(c *Configuration) {
 	set(c.AuthClient.URL, c.AuthClient.Adress)
 }
 
-// Init load configuration file
+// InitPublic load configuration file
 func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 	conf = &Configuration{}
 	var data []byte
@@ -147,6 +150,7 @@ func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 	return
 }
 
+// InitPrivate load configuration file and set private environment
 func InitPrivate(privateConfigPath string) (err error) {
 	var data []byte
 

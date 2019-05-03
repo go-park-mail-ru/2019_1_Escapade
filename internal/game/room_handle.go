@@ -46,10 +46,14 @@ func (room *Room) Free() {
 // Close drives away players out of the room, free resources
 // and inform lobby, that rooms closes
 func (room *Room) Close() bool {
+	if !room.lobby.canCloseRooms {
+		return false
+	}
+	fmt.Println("We closed room :С")
 	room.LeaveAll()
 	room.lobby.CloseRoom(room)
 	room.Free()
-	return false
+	return true
 }
 
 // LeaveAll make every room connection to leave
@@ -65,12 +69,8 @@ func (room *Room) LeaveAll() {
 // Leave handle user going back to lobby
 func (room *Room) Leave(conn *Connection, action int) {
 
-	if !room.IsActive() || action == ActionDisconnect {
-		room.removeBeforeLaunch(conn)
-	} else {
-		room.removeDuringGame(conn)
-		conn.debug("Welcome back to lobby!")
-	}
+	room.removeFromGame(conn, action == ActionDisconnect)
+
 	go func() {
 		pa := *room.addAction(conn.ID(), action)
 		room.sendAction(pa, room.AllExceptThat(conn))

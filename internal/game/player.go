@@ -5,6 +5,7 @@ type Player struct {
 	ID       int
 	Points   int
 	Finished bool
+	Died     bool
 }
 
 // NewPlayer create new instance of Player

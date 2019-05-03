@@ -26,6 +26,7 @@ func Init(DB *database.DataBase, c *config.Configuration, authConn *grpc.ClientC
 		Storage:   c.Storage,
 		Session:   c.Session,
 		AWS:       c.AWS,
+		Game:      c.Game,
 		WebSocket: ws,
 		Clients:   clients.Init(authConn),
 	}
