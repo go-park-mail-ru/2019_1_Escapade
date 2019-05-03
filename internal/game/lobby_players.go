@@ -7,7 +7,9 @@ import (
 func (lobby *Lobby) addWaiter(newConn *Connection) {
 	fmt.Println("addWaiter called")
 	lobby.Waiting.Add(newConn, false)
-	lobby.greet(newConn)
+	if !newConn.both {
+		lobby.greet(newConn)
+	}
 }
 
 func (lobby *Lobby) addPlayer(newConn *Connection, room *Room) {
