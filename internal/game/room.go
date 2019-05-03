@@ -1,6 +1,7 @@
 package game
 
 import (
+	"sync"
 	"fmt"
 	"time"
 
@@ -36,6 +37,7 @@ type Room struct {
 	chanFinish chan struct{}
 
 	// for save game room
+	wGroup *sync.WaitGroup
 	settings *models.RoomSettings
 
 	killed int //amount of killed users
@@ -113,6 +115,7 @@ func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
 		chanFinish: make(chan struct{}),
 		settings:   rs,
 		killed:     0,
+		wGroup:     &sync.WaitGroup{},
 	}
 	return room, nil
 }
@@ -154,7 +157,6 @@ get lobby all info
 	Field     bool `json:"field"`
 	History   bool `json:"history"`
 {"send":null,"get":{"players":true,"observers":true,"field":true,"history":true}}
-
 */
 
 // RoomRequest is request from client to room

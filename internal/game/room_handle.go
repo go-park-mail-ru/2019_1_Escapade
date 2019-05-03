@@ -30,6 +30,8 @@ func (room *Room) Free() {
 	if room == nil || room.History == nil {
 		return
 	}
+	room.wGroup.Wait()
+	room.wGroup = nil
 	fmt.Println("room free")
 	room.Status = StatusFinished
 	room.History = nil
@@ -164,23 +166,27 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 
 // handleRequest
 func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
-
+	if (room == nil || room.Status == StatusFinished) {
+		return
+	}
+	room.wGroup.Add(1)
+	defer room.wGroup.Done()
 	conn.debug("room handle conn")
 	if rr.IsGet() {
 		room.requestGet(conn, rr)
 	} else if rr.IsSend() {
-		done := false
+		//done := false
 		if rr.Send.Cell != nil {
 			if room.isAlive(conn) {
-				done = room.cellHandle(conn, rr.Send.Cell)
+				room.cellHandle(conn, rr.Send.Cell)
 			}
 		} else if rr.Send.Action != nil {
 
-			done = room.actionHandle(conn, *rr.Send.Action)
+			room.actionHandle(conn, *rr.Send.Action)
 		}
-		if done {
-			room.finishGame(true)
-		}
+		//if done {
+			//room.finishGame(true)
+		//}
 	} else if rr.Message != nil {
 		Message(lobby, conn, rr.Message, &room.Messages,
 			room.send, room.InGame, true, room.ID)
