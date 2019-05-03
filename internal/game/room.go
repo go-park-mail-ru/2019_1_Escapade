@@ -1,8 +1,8 @@
 package game
 
 import (
-	"sync"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -37,8 +37,8 @@ type Room struct {
 	chanFinish chan struct{}
 
 	// for save game room
-	wGroup *sync.WaitGroup
-	settings *models.RoomSettings
+	wGroup   *sync.WaitGroup
+	Settings *models.RoomSettings
 
 	killed int //amount of killed users
 }
@@ -113,7 +113,7 @@ func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
 
 		Date:       time.Now(),
 		chanFinish: make(chan struct{}),
-		settings:   rs,
+		Settings:   rs,
 		killed:     0,
 		wGroup:     &sync.WaitGroup{},
 	}

@@ -13,8 +13,8 @@ func (room *Room) Save() (err error) {
 		Name:          room.Name,
 		Status:        room.Status,
 		Players:       len(room.Players.Players),
-		TimeToPrepare: room.settings.TimeToPrepare,
-		TimeToPlay:    room.settings.TimeToPlay,
+		TimeToPrepare: room.Settings.TimeToPrepare,
+		TimeToPlay:    room.Settings.TimeToPlay,
 		Date:          room.Date,
 	}
 

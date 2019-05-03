@@ -21,12 +21,12 @@ func (room *Room) Winner() (idWin int) {
 }
 
 // flagFound is called, when somebody find cell flag
-func (room *Room) flagFound(conn Connection, found *Cell) bool {
+func (room *Room) flagFound(founder Connection, found *Cell) bool {
 	thatID := found.Value - CellIncrement
-	if thatID == conn.ID() {
+	if thatID == founder.ID() {
 		return false
 	}
-	room.Players.Players[conn.Index].Points += 100000
+	room.Players.Players[founder.Index].Points += 100000
 	fmt.Println("start search!")
 	for _, conn := range room.Players.Connections {
 		fmt.Println("compare:", thatID, conn.ID())

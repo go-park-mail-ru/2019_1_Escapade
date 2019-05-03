@@ -158,6 +158,10 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	fmt.Println("EnterRoom")
 	if conn.InRoom() {
+		fmt.Println("EnterRoom ID compare", conn.room.ID, rs.ID, rs)
+		if conn.room.ID == rs.ID {
+			return
+		}
 		lobby.LeaveRoom(conn, conn.room, ActionBackToLobby)
 		conn.debug("change room")
 	}

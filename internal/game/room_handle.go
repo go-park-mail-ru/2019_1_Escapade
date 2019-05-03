@@ -107,6 +107,7 @@ func (room *Room) openCell(conn *Connection, cell *Cell) (roomFinished bool) {
 	cell.PlayerID = conn.ID()
 	cells := room.Field.OpenCell(cell)
 	fmt.Println("len cell", len(cells))
+	needSend := true
 	if len(cells) == 1 {
 		newCell := cells[0]
 		fmt.Println("newCell value", newCell.Value)
@@ -116,6 +117,7 @@ func (room *Room) openCell(conn *Connection, cell *Cell) (roomFinished bool) {
 			roomFinished = room.kill(conn, ActionExplode)
 			room.Players.Players[conn.Index].Points -= 100
 		} else if newCell.Value >= CellIncrement {
+			needSend = (newCell.Value - CellIncrement) != conn.ID()
 			room.flagFound(*conn, &newCell)
 		} else if newCell.Value == CellOpened {
 			return
@@ -128,12 +130,13 @@ func (room *Room) openCell(conn *Connection, cell *Cell) (roomFinished bool) {
 		}
 	}
 
-	go room.sendPlayerPoints(room.Players.Players[conn.Index], room.All)
-	go room.sendNewCells(cells, room.All)
-
+	if needSend {
+		go room.sendPlayerPoints(room.Players.Players[conn.Index], room.All)
+		go room.sendNewCells(cells, room.All)
+	}
 	if !roomFinished && room.Field.IsCleared() {
 		roomFinished = true
-		//room.finishGame(true)
+		room.finishGame(true)
 	}
 	return
 }
@@ -249,9 +252,9 @@ func (room *Room) finishGame(needStop bool) {
 // initTimers launch game timers. Call it when flag placement starts
 func (room *Room) initTimers() (prepare, play *time.Timer) {
 	prepare = time.NewTimer(time.Second *
-		time.Duration(room.settings.TimeToPrepare))
+		time.Duration(room.Settings.TimeToPrepare))
 	play = time.NewTimer(time.Second *
-		time.Duration(room.settings.TimeToPlay))
+		time.Duration(room.Settings.TimeToPlay))
 	return
 }
 

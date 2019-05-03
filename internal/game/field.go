@@ -116,7 +116,9 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		field.saveCell(cell, &cells)
+		if cell.Value != cell.PlayerID+CellIncrement {
+			field.saveCell(cell, &cells)
+		}
 	}
 
 	return
