@@ -53,11 +53,14 @@ func (room *Room) setFinished(conn *Connection) {
 // kill make user die and check for finish battle
 func (room *Room) kill(conn *Connection, action int) bool {
 	// cause all in pointers
+	if room.Status != StatusRunning {
+		return false
+	}
 	if room.isAlive(conn) {
 		room.Field.setCellFlagTaken(&room.Players.Flags[conn.Index])
 
 		room.setFinished(conn)
-		if room.Players.Capacity <= room.killed + 1 {
+		if room.Players.Capacity <= room.killed+1 {
 			room.finishGame(true)
 		}
 		pa := *room.addAction(conn.ID(), action)

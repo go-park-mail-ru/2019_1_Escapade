@@ -26,7 +26,8 @@ type Connection struct {
 	Disconnected bool `json:"disconnected"`
 	both         bool
 
-	Index int `json:"index"`
+	wGroup *sync.WaitGroup
+	Index  int `json:"index"`
 
 	cancel context.CancelFunc
 	send   chan []byte
@@ -59,6 +60,9 @@ func (conn *Connection) dirty() {
 // Kill call context.CancFunc, that finish goroutines of
 // writer and reader and free connection memory
 func (conn *Connection) Kill(message string, makeDirty bool) {
+	if conn.Disconnected {
+		return
+	}
 	conn.SendInformation(message)
 	if makeDirty {
 		conn.dirty()
@@ -79,11 +83,16 @@ func (conn *Connection) Free() {
 		conn = nil
 		return
 	}
+
+	conn.Disconnected = true
+	conn.wGroup.Wait()
+	conn.wGroup = nil
+
 	conn.ws.Close()
 	close(conn.send)
 	// dont delete. conn = nil make pointer nil, but other pointers
 	// arent nil and we make 'conn.disconnected = true' for them
-	conn.Disconnected = true
+
 	conn.lobby = nil
 	conn.room = nil
 	conn = nil
@@ -101,6 +110,7 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		room:         nil,
 		Disconnected: false,
 		send:         make(chan []byte),
+		wGroup:       &sync.WaitGroup{},
 	}
 }
 
@@ -159,7 +169,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				} else {
 					fmt.Println("expected error:" + err.Error())
 				}
-				conn.Kill("Client websocket died", false)
+				//conn.Kill("Client websocket died", false)
 				return
 			}
 			conn.debug("read from conn")
@@ -220,6 +230,8 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 // SendInformation send info
 func (conn *Connection) SendInformation(value interface{}) {
 	if !conn.Disconnected {
+		conn.wGroup.Add(1)
+		defer conn.wGroup.Done()
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			fmt.Println("cant send information")

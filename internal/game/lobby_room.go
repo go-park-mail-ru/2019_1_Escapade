@@ -29,6 +29,7 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	// there is check inside, it will just return without errors
 	lobby.FreeRooms.Remove(room)
 	lobby.AllRooms.Remove(room)
+	fmt.Println("sendRoomDelete")
 	lobby.sendRoomDelete(*room, All)
 }
 

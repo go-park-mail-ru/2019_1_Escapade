@@ -103,9 +103,11 @@ func (room *Room) removeFromGame(conn *Connection, disconnected bool) {
 	fmt.Println("removeDuringGame")
 	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
-		if !disconnected {
+		if room.Status == StatusRunning && !disconnected {
+			fmt.Println("give up", i)
 			room.GiveUp(conn)
 		}
+
 		room.Players.Remove(conn)
 		room.sendPlayerExit(*conn, room.All)
 	} else {
@@ -118,4 +120,5 @@ func (room *Room) removeFromGame(conn *Connection, disconnected bool) {
 		fmt.Println("room.Players.Empty")
 		room.Close()
 	}
+	fmt.Println("there")
 }

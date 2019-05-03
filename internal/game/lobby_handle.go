@@ -83,7 +83,9 @@ func (lobby *Lobby) Leave(copy *Connection, message string) {
 		lobby.Waiting.Remove(conn)
 		lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 	}
+	fmt.Println("here ", conn.both, conn.InRoom())
 	if conn.both || conn.InRoom() {
+		fmt.Println("both -  #", copy.ID())
 		lobby.LeaveRoom(conn, conn.room, ActionDisconnect)
 	}
 	return
@@ -92,6 +94,7 @@ func (lobby *Lobby) Leave(copy *Connection, message string) {
 // LeaveRoom handle leave room
 func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 
+	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
 		lobby.playerToWaiter(conn)
 	} else {
@@ -99,7 +102,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 	}
 	fmt.Println("lobby.Playing.Get before", len(room.Players.Connections))
 	room.Leave(conn, action) // exit to lobby
-	fmt.Println("lobby.Playing.Get agter", len(room.Players.Connections))
+	fmt.Println("lobby.Playing.Get after", len(room.Players.Connections))
 	if len(room.Players.Connections) > 0 {
 		go func() {
 			lobby.sendRoomUpdate(*room, AllExceptThat(conn))
@@ -153,6 +156,7 @@ func (lobby *Lobby) handleRequest(conn *Connection, lr *LobbyRequest) {
 // EnterRoom handle user join to room
 func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
+	fmt.Println("EnterRoom")
 	if conn.InRoom() {
 		lobby.LeaveRoom(conn, conn.room, ActionBackToLobby)
 		conn.debug("change room")

@@ -30,7 +30,9 @@ func (room *Room) Free() {
 	if room == nil || room.History == nil {
 		return
 	}
+	fmt.Println("Waaaait")
 	room.wGroup.Wait()
+	fmt.Println("Wait stop")
 	room.wGroup = nil
 	fmt.Println("room free")
 	room.Status = StatusFinished
@@ -55,7 +57,9 @@ func (room *Room) Close() bool {
 	fmt.Println("We closed room :С")
 	room.LeaveAll()
 	room.lobby.CloseRoom(room)
-	room.Free()
+	fmt.Println("Prepare to free!")
+	go room.Free()
+	fmt.Println("We did it")
 	return true
 }
 
@@ -72,12 +76,14 @@ func (room *Room) LeaveAll() {
 // Leave handle user going back to lobby
 func (room *Room) Leave(conn *Connection, action int) {
 
+	room.wGroup.Add(1)
+	defer room.wGroup.Done()
+	fmt.Println("Leave room")
 	room.removeFromGame(conn, action == ActionDisconnect)
 
-	go func() {
-		pa := *room.addAction(conn.ID(), action)
-		room.sendAction(pa, room.AllExceptThat(conn))
-	}()
+	pa := *room.addAction(conn.ID(), action)
+	room.sendAction(pa, room.AllExceptThat(conn))
+	fmt.Println("Left room")
 }
 
 // openCell open cell
@@ -166,7 +172,7 @@ func (room *Room) actionHandle(conn *Connection, action int) (done bool) {
 
 // handleRequest
 func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
-	if (room == nil || room.Status == StatusFinished) {
+	if room == nil || room.Status == StatusFinished {
 		return
 	}
 	room.wGroup.Add(1)
@@ -185,7 +191,7 @@ func (room *Room) handleRequest(conn *Connection, rr *RoomRequest) {
 			room.actionHandle(conn, *rr.Send.Action)
 		}
 		//if done {
-			//room.finishGame(true)
+		//room.finishGame(true)
 		//}
 	} else if rr.Message != nil {
 		Message(lobby, conn, rr.Message, &room.Messages,
