@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -17,30 +18,85 @@ type Request struct {
 
 // Lobby there are all rooms and users placed
 type Lobby struct {
-	AllRooms  *Rooms `json:"allRooms,omitempty"`
-	FreeRooms *Rooms `json:"freeRooms,omitempty"`
+	wGroup *sync.WaitGroup
 
-	Waiting *Connections `json:"waiting,omitempty"`
-	Playing *Connections `json:"playing,omitempty"`
+	doneM *sync.RWMutex
+	_done bool
 
-	Context context.Context `json:"-"`
+	allRoomsM *sync.Mutex
+	_AllRooms *Rooms `json:"allRooms"`
+
+	freeRoomsM *sync.RWMutex
+	_FreeRooms *Rooms `json:"freeRooms"`
+
+	waitingM *sync.Mutex
+	_Waiting *Connections `json:"waiting"`
+
+	playingM *sync.Mutex
+	_Playing *Connections `json:"playing"`
+
+	messagesM *sync.Mutex
+	_Messages []*models.Message `json:"messages"`
+
+	context context.Context
+	cancel  context.CancelFunc
 
 	// connection joined lobby
 	ChanJoin chan *Connection `json:"-"`
 	// connection left lobby
 	chanLeave chan *Connection
-	//chanRequest   chan *LobbyRequest
+
 	chanBroadcast chan *Request
 
 	chanBreak chan interface{}
 
-	Messages []*models.Message `json:"messages"`
-
 	db            *database.DataBase
 	canCloseRooms bool
+}
 
-	semJoin    chan bool
-	semRequest chan bool
+// NewLobby create new instance of Lobby
+func NewLobby(connectionsCapacity, roomsCapacity,
+	maxJoin, maxRequest int, db *database.DataBase,
+	canCloseRooms bool) *Lobby {
+
+	messages, err := db.LoadMessages(false, "")
+	if err != nil {
+		fmt.Println("cant load messages:", err.Error())
+	}
+	context, cancel := context.WithCancel(context.Background())
+	lobby := &Lobby{
+		wGroup: &sync.WaitGroup{},
+
+		doneM: &sync.RWMutex{},
+		_done: false,
+
+		allRoomsM: &sync.Mutex{},
+		_AllRooms: NewRooms(roomsCapacity),
+
+		freeRoomsM: &sync.RWMutex{},
+		_FreeRooms: NewRooms(roomsCapacity),
+
+		waitingM: &sync.Mutex{},
+		_Waiting: NewConnections(connectionsCapacity),
+
+		playingM: &sync.Mutex{},
+		_Playing: NewConnections(connectionsCapacity),
+
+		messagesM: &sync.Mutex{},
+		_Messages: messages,
+
+		context: context,
+		cancel:  cancel,
+
+		ChanJoin:      make(chan *Connection),
+		chanLeave:     make(chan *Connection),
+		chanBroadcast: make(chan *Request),
+		chanBreak:     make(chan interface{}),
+
+		db:            db,
+		canCloseRooms: canCloseRooms,
+	}
+	return lobby
 }
 
 // lobby singleton
@@ -75,52 +131,28 @@ func (lobby *Lobby) Stop() {
 // Free delete all rooms and conenctions. Inform all players
 // about closing
 func (lobby *Lobby) Free() {
-	if lobby == nil {
+
+	if lobby.done() {
 		return
 	}
-	fmt.Println("All resources clear!")
-	SendToConnections("server closed", All, lobby.Waiting.Get, lobby.Playing.Get)
+	lobby.setDone()
 
-	lobby.AllRooms.Free()
-	lobby.FreeRooms.Free()
-	lobby.Waiting.Free()
-	lobby.Playing.Free()
+	go lobby.sendLobbyMessage("server closed", All)
+
+	lobby.wGroup.Wait()
+
+	fmt.Println("All resources clear!")
+
+	go lobby.allRoomsFree()
+	go lobby.freeRoomsFree()
+	go lobby.waitingFree()
+	go lobby.playingFree()
+
+	lobby.cancel()
+
 	close(lobby.ChanJoin)
 	close(lobby.chanLeave)
 	close(lobby.chanBroadcast)
 	lobby.db = nil
 	lobby = nil
-}
-
-// NewLobby create new instance of Lobby
-func NewLobby(connectionsCapacity, roomsCapacity,
-	maxJoin, maxRequest int, db *database.DataBase,
-	canCloseRooms bool) *Lobby {
-
-	messages, err := db.LoadMessages(false, "")
-	if err != nil {
-		fmt.Println("cant load messages:", err.Error())
-	}
-	lobby := &Lobby{
-
-		AllRooms:  NewRooms(roomsCapacity),
-		FreeRooms: NewRooms(roomsCapacity),
-
-		Waiting: NewConnections(connectionsCapacity),
-		Playing: NewConnections(connectionsCapacity),
-
-		ChanJoin:      make(chan *Connection),
-		chanLeave:     make(chan *Connection),
-		chanBroadcast: make(chan *Request),
-		chanBreak:     make(chan interface{}),
-
-		Messages: messages,
-
-		db:            db,
-		canCloseRooms: canCloseRooms,
-
-		semJoin:    make(chan bool, maxJoin),
-		semRequest: make(chan bool, maxRequest),
-	}
-	return lobby
 }

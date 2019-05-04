@@ -21,3 +21,7 @@ func ErrorLobbyCantCreateRoom() error {
 func ErrorInvalidRoomSettings() error {
 	return errors.New("Invalid roomSettings")
 }
+
+func ErrorLobbyDone() error {
+	return errors.New("Lobby is turned off")
+}

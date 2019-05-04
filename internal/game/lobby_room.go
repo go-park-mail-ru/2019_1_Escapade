@@ -10,31 +10,65 @@ import (
 
 // ----- handle room status
 // roomStart - room remove from free
-func (lobby *Lobby) roomStart(room *Room) {
-	defer utils.CatchPanic("lobby_room.go roomStart()")
-	lobby.FreeRooms.Remove(room)
-	lobby.sendRoomUpdate(*room, All)
+func (lobby *Lobby) RoomStart(room *Room) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby_room.go RoomStart()")
+	}()
+
+	go lobby.freeRoomsRemove(room)
+	go lobby.sendRoomUpdate(*room, All)
 }
 
 // roomFinish - room remove from all
 func (lobby *Lobby) roomFinish(room *Room) {
-	defer utils.CatchPanic("lobby_room.go finishGame()")
-	lobby.AllRooms.Remove(room)
-	lobby.sendRoomUpdate(*room, All)
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby_room.go roomFinish()")
+	}()
+
+	go lobby.allRoomsRemove(room)
+	go lobby.sendRoomUpdate(*room, All)
 }
 
 // CloseRoom free room resources
 func (lobby *Lobby) CloseRoom(room *Room) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby_room.go roomFinish()")
+	}()
+
 	// if not in freeRooms nothing bad will happen
 	// there is check inside, it will just return without errors
-	lobby.FreeRooms.Remove(room)
-	lobby.AllRooms.Remove(room)
+	go lobby.freeRoomsRemove(room)
+	go lobby.allRoomsRemove(room)
 	fmt.Println("sendRoomDelete")
-	lobby.sendRoomDelete(*room, All)
+	go lobby.sendRoomDelete(*room, All)
 }
 
 // createAndAddToRoom create room and add player to it
-func (lobby *Lobby) createAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
+func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_room.go CreateAndAddToRoom()")
+		lobby.wGroup.Done()
+	}()
+
 	if room, err = lobby.createRoom(rs); err == nil {
 		conn.debug("We create your own room, cool!")
 		room.addPlayer(conn)
@@ -53,32 +87,49 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) (room *Room, err error) 
 	if room, err = NewRoom(rs, id, lobby); err != nil {
 		return
 	}
-	if !lobby.AllRooms.Add(room) {
-		err = re.ErrorLobbyCantCreateRoom()
-		fmt.Println("cant create room")
+	if err = lobby.addRoom(room); err != nil {
 		return
 	}
-
-	lobby.FreeRooms.Add(room)
-	lobby.sendRoomCreate(*room, All) // inform all about new room
 	return
 }
 
 // LoadRooms load rooms from database
 func (lobby *Lobby) LoadRooms(URLs []string) error {
 
+	if lobby.done() {
+		return re.ErrorLobbyDone()
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_room.go LoadRooms()")
+		lobby.wGroup.Done()
+	}()
+
 	for _, URL := range URLs {
 		room, err := lobby.Load(URL)
 		if err != nil {
 			return err
 		}
-
-		if !lobby.AllRooms.Add(room) {
-			fmt.Println("cant create room")
-			return re.ErrorLobbyCantCreateRoom()
+		if err = lobby.addRoom(room); err != nil {
+			return err
 		}
-		lobby.AllRooms.Add(room)
-		lobby.sendRoomCreate(*room, All)
 	}
 	return nil
+}
+
+func (lobby *Lobby) addRoom(room *Room) (err error) {
+	if !lobby.allRoomsAdd(room) {
+		err = re.ErrorLobbyCantCreateRoom()
+		fmt.Println("cant add to all")
+		return err
+	}
+
+	if !lobby.freeRoomsAdd(room) {
+		err = re.ErrorLobbyCantCreateRoom()
+		fmt.Println("cant add to free")
+		return err
+	}
+
+	go lobby.sendRoomCreate(*room, All) // inform all about new room
+	return
 }
