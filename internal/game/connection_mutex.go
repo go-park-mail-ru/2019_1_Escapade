@@ -20,7 +20,15 @@ func (conn *Connection) done() bool {
 }
 
 // getMatrixValue get a value from matrix
-func (conn *Connection) disconnected() bool {
+func (conn *Connection) Disconnected() bool {
+	if conn.done() {
+		return false
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
 	conn.disconnectedM.RLock()
 	v := conn._Disconnected
 	conn.disconnectedM.RUnlock()
@@ -37,7 +45,7 @@ func (conn *Connection) setDisconnected() {
 // getMatrixValue get a value from matrix
 func (conn *Connection) Room() *Room {
 	if conn.done() {
-		return nil
+		return conn._room
 	}
 	conn.wGroup.Add(1)
 	defer func() {
@@ -69,7 +77,7 @@ func (conn *Connection) RoomID() string {
 // getMatrixValue get a value from matrix
 func (conn *Connection) Both() bool {
 	if conn.done() {
-		return false
+		return conn._both
 	}
 	conn.wGroup.Add(1)
 	defer func() {
@@ -80,6 +88,36 @@ func (conn *Connection) Both() bool {
 	v := conn._both
 	conn.bothM.RUnlock()
 	return v
+}
+
+// getMatrixValue get a value from matrix
+func (conn *Connection) Index() int {
+	if conn.done() {
+		return conn._Index
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	conn.indexM.RLock()
+	v := conn._Index
+	conn.indexM.RUnlock()
+	return v
+}
+
+func (conn *Connection) SetIndex(value int) {
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	conn.indexM.Lock()
+	conn._Index = value
+	conn.indexM.Unlock()
 }
 
 // setMatrixValue set a value to matrix

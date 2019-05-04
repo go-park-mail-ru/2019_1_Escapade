@@ -23,36 +23,36 @@ func (lobby *Lobby) done() bool {
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsFree() {
 	lobby.allRoomsM.Lock()
+	defer lobby.allRoomsM.Unlock()
 	lobby._AllRooms.Free()
-	lobby.allRoomsM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) freeRoomsFree() {
 	lobby.freeRoomsM.Lock()
+	defer lobby.freeRoomsM.Unlock()
 	lobby._FreeRooms.Free()
-	lobby.freeRoomsM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) waitingFree() {
 	lobby.waitingM.Lock()
+	defer lobby.waitingM.Unlock()
 	lobby._Waiting.Free()
-	lobby.waitingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) playingFree() {
 	lobby.playingM.Lock()
+	defer lobby.playingM.Unlock()
 	lobby._Playing.Free()
-	lobby.playingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) waiting() []*Connection {
 	lobby.waitingM.RLock()
+	defer lobby.waitingM.RUnlock()
 	v := lobby._Waiting.Get
-	lobby.waitingM.RUnlock()
 
 	return v
 }
@@ -60,8 +60,8 @@ func (lobby *Lobby) waiting() []*Connection {
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) playing() []*Connection {
 	lobby.playingM.RLock()
+	defer lobby.playingM.RUnlock()
 	v := lobby._Playing.Get
-	lobby.playingM.RUnlock()
 
 	return v
 }
@@ -78,8 +78,8 @@ func (lobby *Lobby) playingRemove(conn *Connection) {
 	}()
 
 	lobby.playingM.Lock()
+	defer lobby.playingM.Unlock()
 	lobby._Playing.Remove(conn)
-	lobby.playingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
@@ -94,8 +94,8 @@ func (lobby *Lobby) playingAdd(conn *Connection) {
 	}()
 
 	lobby.playingM.Lock()
+	defer lobby.playingM.Unlock()
 	lobby._Playing.Add(conn, false)
-	lobby.playingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
@@ -110,8 +110,8 @@ func (lobby *Lobby) waitingRemove(conn *Connection) {
 	}()
 
 	lobby.waitingM.Lock()
+	defer lobby.waitingM.Unlock()
 	lobby._Waiting.Remove(conn)
-	lobby.waitingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
@@ -126,55 +126,55 @@ func (lobby *Lobby) waitingAdd(conn *Connection) {
 	}()
 
 	lobby.waitingM.Lock()
+	defer lobby.waitingM.Unlock()
 	lobby._Waiting.Add(conn, false)
-	lobby.waitingM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearch(roomID string) (int, *Room) {
 	lobby.allRoomsM.RLock()
+	defer lobby.allRoomsM.RUnlock()
 	index, room := lobby._AllRooms.SearchRoom(roomID)
-	lobby.allRoomsM.RUnlock()
 	return index, room
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) {
 	lobby.allRoomsM.RLock()
+	defer lobby.allRoomsM.RUnlock()
 	index, room := lobby._AllRooms.SearchPlayer(conn)
-	lobby.allRoomsM.RUnlock()
 	return index, room
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearchObserver(conn *Connection) *Connection {
 	lobby.allRoomsM.RLock()
+	defer lobby.allRoomsM.RUnlock()
 	old := lobby._AllRooms.SearchObserver(conn)
-	lobby.allRoomsM.RUnlock()
 	return old
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) freeRoomsEmpty() bool {
 	lobby.freeRoomsM.RLock()
+	defer lobby.freeRoomsM.RUnlock()
 	v := lobby._FreeRooms.Empty()
-	lobby.freeRoomsM.RUnlock()
 	return v
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) freeRooms() []*Room {
 	lobby.freeRoomsM.RLock()
+	defer lobby.freeRoomsM.RUnlock()
 	v := lobby._FreeRooms.Get
-	lobby.freeRoomsM.RUnlock()
 	return v
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) setToMessages(message *models.Message) {
 	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
 	lobby._Messages = append(lobby._Messages, message)
-	lobby.messagesM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
@@ -189,8 +189,8 @@ func (lobby *Lobby) freeRoomsRemove(room *Room) {
 	}()
 
 	lobby.freeRoomsM.Lock()
+	defer lobby.freeRoomsM.Unlock()
 	lobby._FreeRooms.Remove(room)
-	lobby.freeRoomsM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
@@ -205,22 +205,22 @@ func (lobby *Lobby) allRoomsRemove(room *Room) {
 	}()
 
 	lobby.allRoomsM.Lock()
+	defer lobby.allRoomsM.Unlock()
 	lobby._AllRooms.Remove(room)
-	lobby.allRoomsM.Unlock()
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) freeRoomsAdd(room *Room) bool {
 	lobby.freeRoomsM.Lock()
+	defer lobby.freeRoomsM.Unlock()
 	v := lobby._FreeRooms.Add(room)
-	lobby.freeRoomsM.Unlock()
 	return v
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsAdd(room *Room) bool {
 	lobby.allRoomsM.Lock()
+	defer lobby.allRoomsM.Unlock()
 	v := lobby._AllRooms.Add(room)
-	lobby.allRoomsM.Unlock()
 	return v
 }

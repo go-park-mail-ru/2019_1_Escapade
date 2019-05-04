@@ -116,7 +116,7 @@ func (conn *Connection) IsConnected() bool {
 	defer func() {
 		conn.wGroup.Done()
 	}()
-	return conn.disconnected() == false
+	return conn.Disconnected() == false
 }
 
 // dirty make connection dirty. it make connection ID
@@ -327,7 +327,7 @@ func (conn *Connection) SendInformation(value interface{}) {
 		conn.wGroup.Done()
 	}()
 
-	if !conn.disconnected() {
+	if !conn.Disconnected() {
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			fmt.Println("cant send information")

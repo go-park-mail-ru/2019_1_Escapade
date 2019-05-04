@@ -9,9 +9,18 @@ import (
 
 // Winner determine who won the game
 func (room *Room) Winner() (idWin int) {
+	if room.done() {
+		return 0
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
 	max := 0
 
-	for id, player := range room.Players.Players {
+	players := room.players()
+	for id, player := range players {
 		if player.Points > max {
 			max = player.Points
 			idWin = id
@@ -21,65 +30,78 @@ func (room *Room) Winner() (idWin int) {
 }
 
 // flagFound is called, when somebody find cell flag
-func (room *Room) flagFound(founder Connection, found *Cell) bool {
+func (room *Room) FlagFound(founder Connection, found *Cell) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
 	thatID := found.Value - CellIncrement
 	if thatID == founder.ID() {
-		return false
+		return
 	}
-	room.Players.Players[founder.Index].Points += 100000
-	fmt.Println("start search!")
-	for _, conn := range room.Players.Connections {
+	go room.IncreasePlayerPoints(founder.Index(), 1000)
+	connections := room.playersConnections()
+	for _, conn := range connections {
 		fmt.Println("compare:", thatID, conn.ID())
 		if thatID == conn.ID() {
-			return room.kill(conn, ActionFlagLost)
+			go room.Kill(conn, ActionFlagLost)
+			return
 		}
 	}
-	fmt.Println("finish search!")
-	return false
 }
 
 // isAlive check if connection is player and he is not died
 func (room *Room) isAlive(conn *Connection) bool {
-	return conn.Index >= 0 && !room.Players.Players[conn.Index].Finished
-}
-
-// setFinished increment amount of killed
-func (room *Room) setFinished(conn *Connection) {
-	room.Players.Players[conn.Index].Finished = true
-	room.Players.Players[conn.Index].Died = true
-	room.killed++
+	index := conn.Index()
+	return index >= 0 && !room.playerFinished(index)
 }
 
 // kill make user die and check for finish battle
-func (room *Room) kill(conn *Connection, action int) bool {
+func (room *Room) Kill(conn *Connection, action int) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
 	// cause all in pointers
 	if room.Status != StatusRunning {
-		return false
+		return
 	}
-	if room.isAlive(conn) {
-		room.Field.SetCellFlagTaken(&room.Players.Flags[conn.Index])
 
-		room.setFinished(conn)
-		if room.Players.Capacity <= room.killed+1 {
-			room.finishGame(true)
+	if room.isAlive(conn) {
+		go room.SetFinished(conn)
+
+		cell := room.playerFlag(conn.Index())
+		room.Field.SetCellFlagTaken(&cell)
+
+		if room.playersCapacity() <= room.killed()+1 {
+			go room.FinishGame(true)
 		}
 		pa := *room.addAction(conn.ID(), action)
-		room.sendAction(pa, room.All)
+		go room.sendAction(pa, room.All)
 	}
-	return room.Players.Capacity <= room.killed+1
+	return
 }
 
 // GiveUp kill connection, that call it
 func (room *Room) GiveUp(conn *Connection) {
-	room.kill(conn, ActionGiveUp)
+	room.Kill(conn, ActionGiveUp)
 }
 
 // flagExists find players with such flag. This - flag owner
 func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Connection) {
 	var player int
-	for index, flag := range room.Players.Flags {
+	flags := room.playersFlags()
+	for index, flag := range flags {
 		if (flag.X == cell.X) && (flag.Y == cell.Y) {
-			if this == nil || index != this.Index {
+			if this == nil || index != this.Index() {
 				found = true
 				player = index
 			}
@@ -89,8 +111,9 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Conn
 	if !found {
 		return
 	}
-	for _, connection := range room.Players.Connections {
-		if connection.Index == player {
+	connections := room.playersConnections()
+	for _, connection := range connections {
+		if connection.Index() == player {
 			conn = *connection
 			break
 		}
@@ -98,12 +121,15 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Conn
 	return
 }
 
-func (room *Room) setFlagCoordinates(conn Connection, cell Cell) {
-	room.Players.Flags[conn.Index].X = cell.X
-	room.Players.Flags[conn.Index].Y = cell.Y
-}
+func (room *Room) SetAndSendNewCell(conn Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
 
-func (room *Room) setAndSendNewCell(conn Connection) {
 	found := true
 	// create until it become unique
 	var cell Cell
@@ -111,13 +137,21 @@ func (room *Room) setAndSendNewCell(conn Connection) {
 		cell = room.Field.CreateRandomFlag(conn.ID())
 		found, _ = room.flagExists(cell, nil)
 	}
-	room.setFlagCoordinates(conn, cell)
+	go room.SetFlagCoordinates(conn, cell)
 	response := models.RandomFlagSet(cell)
 	conn.SendInformation(response)
 }
 
 // setFlag handle user wanna set flag
-func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
+func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
+	if room.done() {
+		return false
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
 	// if user try set flag after game launch
 	if room.Status != StatusFlagPlacing {
 		response := models.FailFlagSet(cell, re.ErrorBattleAlreadyBegan())
@@ -138,25 +172,34 @@ func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 	}
 
 	if found, prevConn := room.flagExists(*cell, conn); found {
-		room.setAndSendNewCell(*conn)
-		room.setAndSendNewCell(prevConn)
+		go room.SetAndSendNewCell(*conn)
+		go room.SetAndSendNewCell(prevConn)
 		return true
 	}
 
-	room.setFlagCoordinates(*conn, *cell)
+	go room.SetFlagCoordinates(*conn, *cell)
 	return true
 }
 
 // setFlags set players flags to field
 // call it if game has already begun
 func (room *Room) setFlags() {
-	for _, cell := range room.Players.Flags {
+	flags := room.playersFlags()
+	for _, cell := range flags {
 		room.Field.SetFlag(&cell)
 	}
 }
 
 // fillField set flags and mines
-func (room *Room) fillField() {
+func (room *Room) FillField() {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 
 	room.setFlags()

@@ -66,8 +66,8 @@ func (field *Field) Free() {
 	for i := 0; i < len(field.Matrix); i++ {
 		field.Matrix[i] = nil
 	}
-	field.Matrix = nil
-	field.History = nil
+	go field.matrixFree()
+	go field.historyFree()
 }
 
 // SameAs compare two fields

@@ -15,6 +15,20 @@ func (field *Field) incrementMatrixValue(x, y int) {
 }
 
 // setMatrixValue set a value to matrix
+func (field *Field) matrixFree() {
+	field.matrixM.Lock()
+	field.Matrix = nil
+	field.matrixM.Unlock()
+}
+
+// setMatrixValue set a value to matrix
+func (field *Field) historyFree() {
+	field.historyM.Lock()
+	field.History = nil
+	field.historyM.Unlock()
+}
+
+// setMatrixValue set a value to matrix
 func (field *Field) lessThenMine(x, y int) bool {
 	field.matrixM.RLock()
 	v := field.Matrix[x][y] < CellMine
@@ -33,8 +47,8 @@ func (field *Field) getMatrixValue(x, y int) int {
 // setMatrixValue set a value to matrix
 func (field *Field) setToHistory(cell Cell) {
 	field.historyM.Lock()
+	defer field.historyM.Unlock()
 	field.History = append(field.History, cell)
-	field.historyM.Unlock()
 }
 
 // setMatrixValue set a value to matrix

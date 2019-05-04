@@ -2,21 +2,41 @@ package game
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, room.Players.Connections,
-		room.Observers.Get)
+	players := room.playersConnections()
+	observers := room.observers()
+	SendToConnections(info, predicate, players, observers)
 }
 
 func (room *Room) sendMessage(text string, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendMessage()")
+	}()
+
 	room.send("Room("+room.ID+"):"+text, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendPlayerPoints()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomPlayerPoints",
 		Value: player,
@@ -26,6 +46,15 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendGameOver(predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendGameOver()")
+	}()
+
 	cells := make([]Cell, 0)
 	room.Field.OpenEverything(&cells)
 	response := models.Response{
@@ -34,7 +63,7 @@ func (room *Room) sendGameOver(predicate SendPredicate) {
 			Players []Player `json:"players"`
 			Cells   []Cell   `json:"cells"`
 		}{
-			Players: room.Players.Players,
+			Players: room.players(),
 			Cells:   cells,
 		},
 	}
@@ -42,6 +71,15 @@ func (room *Room) sendGameOver(predicate SendPredicate) {
 }
 
 func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go RoomNewCells()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomNewCells",
 		Value: cells,
@@ -51,6 +89,15 @@ func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go RoomPlayerEnter()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomPlayerEnter",
 		Value: conn,
@@ -60,6 +107,15 @@ func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go RoomPlayerExit()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomPlayerExit",
 		Value: conn,
@@ -78,6 +134,15 @@ func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go RoomObserverExit()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomObserverExit",
 		Value: conn,
@@ -87,6 +152,15 @@ func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendStatus(predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go RoomStatus()")
+	}()
+
 	response := models.Response{
 		Type: "RoomStatus",
 		Value: struct {
@@ -100,25 +174,17 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 	room.send(response, predicate)
 }
 
-func (room *Room) sendObservers(predicate SendPredicate) {
-	response := models.Response{
-		Type:  "RoomConnectionsObservers",
-		Value: room.Observers,
-	}
-	room.send(response, predicate)
-}
-
-// sendTAIRField send field to all in room
-func (room *Room) sendField(predicate SendPredicate) {
-	response := models.Response{
-		Type:  "RoomField",
-		Value: room.Field,
-	}
-	room.send(response, predicate)
-}
-
 // sendTAIRHistory send actions history to all in room
 func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendAction()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomAction",
 		Value: pa,
@@ -128,6 +194,15 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 
 // sendTAIRHistory send actions history to all in room
 func (room *Room) sendError(err error, conn Connection) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendError()")
+	}()
+
 	response := models.Response{
 		Type:  "RoomError",
 		Value: err.Error(),
@@ -135,14 +210,38 @@ func (room *Room) sendError(err error, conn Connection) {
 	conn.SendInformation(response)
 }
 
+// sendTAIRField send field to all in room
+func (room *Room) sendField(predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go sendField()")
+	}()
+
+	response := models.Response{
+		Type:  "RoomField",
+		Value: room.Field,
+	}
+	room.send(response, predicate)
+}
+
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("room_send.go greet()")
+	}()
 
 	var flag *Cell
-	if conn.Index >= 0 {
-		room.Players.Flags[conn.Index].PlayerID = conn.ID()
-		room.Players.Flags[conn.Index].Value = conn.ID() + CellIncrement
-		flag = &room.Players.Flags[conn.Index]
+	if conn.Index() >= 0 {
+		flag = room.setCell(conn)
 	}
 	response := models.Response{
 		Type: "Room",

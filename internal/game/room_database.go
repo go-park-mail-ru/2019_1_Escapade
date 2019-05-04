@@ -4,15 +4,25 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
 // Save save room information to database
 func (room *Room) Save() (err error) {
+	if room.done() {
+		return re.ErrorRoomDone()
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
+	players := room.players()
 	game := models.Game{
 		RoomID:        room.ID,
 		Name:          room.Name,
 		Status:        room.Status,
-		Players:       len(room.Players.Players),
+		Players:       len(players),
 		TimeToPrepare: room.Settings.TimeToPrepare,
 		TimeToPlay:    room.Settings.TimeToPlay,
 		Date:          room.Date,
@@ -20,7 +30,7 @@ func (room *Room) Save() (err error) {
 
 	idWin := room.Winner()
 	gamers := make([]models.Gamer, 0)
-	for id, player := range room.Players.Players {
+	for id, player := range players {
 		gamer := models.Gamer{
 			ID:        player.ID,
 			Score:     player.Points,
@@ -50,8 +60,9 @@ func (room *Room) Save() (err error) {
 		cells = append(cells, cell)
 	}
 
+	history := room.history()
 	actions := make([]models.Action, 0)
-	for _, actionHistory := range room.History {
+	for _, actionHistory := range history {
 		action := models.Action{
 			PlayerID: actionHistory.Player,
 			ActionID: actionHistory.Action,
@@ -86,6 +97,13 @@ func (room *Room) Save() (err error) {
 
 // Load load room information from database
 func (lobby *Lobby) Load(id string) (room *Room, err error) {
+	if lobby.done() {
+		return nil, re.ErrorLobbyDone()
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+	}()
 
 	var info models.GameInformation
 	if info, err = lobby.db.GetGame(id); err != nil {
@@ -112,18 +130,17 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	room.ID = info.Game.RoomID
 	room.Name = info.Game.Name
 	room.Status = info.Game.Status
-	room.killed = info.Game.Players
+	room.setKilled(info.Game.Players)
 	room.Date = info.Game.Date
 
 	// actions
-	room.History = make([]*PlayerAction, 0)
 	for _, actionDB := range info.Actions {
 		action := &PlayerAction{
 			Player: actionDB.PlayerID,
 			Action: actionDB.ActionID,
 			Time:   actionDB.Date,
 		}
-		room.History = append(room.History, action)
+		room.setToHistory(action)
 	}
 
 	// field
@@ -147,21 +164,10 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		room.Field.History = append(room.Field.History, cell)
 	}
 
-	// actions
-	room.History = make([]*PlayerAction, 0)
-	for _, actionHistory := range info.Actions {
-		action := &PlayerAction{
-			Player: actionHistory.PlayerID,
-			Action: actionHistory.ActionID,
-			Time:   actionHistory.Date,
-		}
-		room.History = append(room.History, action)
-	}
-
 	// players
-	room.Players = newOnlinePlayers(info.Game.Players, *room.Field)
+	room._Players = newOnlinePlayers(info.Game.Players, *room.Field)
 	for i, gamer := range info.Gamers {
-		room.Players.Players[i] = Player{
+		room._Players.Players[i] = Player{
 			ID:       gamer.ID,
 			Points:   gamer.Score,
 			Died:     gamer.Explosion,
@@ -169,7 +175,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		}
 	}
 
-	room.Messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+	room._Messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
 
 	return
 }

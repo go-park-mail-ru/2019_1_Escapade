@@ -29,3 +29,7 @@ func ErrorLobbyDone() error {
 func ErrorConnectionDone() error {
 	return errors.New("Connection died")
 }
+
+func ErrorRoomDone() error {
+	return errors.New("Room deleted")
+}

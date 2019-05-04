@@ -20,27 +20,80 @@ const (
 
 // Room consist of players and observers, field and history
 type Room struct {
+	wGroup *sync.WaitGroup
+
+	doneM *sync.RWMutex
+	_done bool
+
+	playersM *sync.RWMutex
+	_Players *OnlinePlayers `json:"players,omitempty"`
+
+	observersM *sync.RWMutex
+	_Observers *Connections `json:"observers,omitempty"`
+
+	historyM *sync.RWMutex
+	_History []*PlayerAction `json:"history,omitempty"`
+
+	messagesM *sync.Mutex
+	_Messages []*models.Message `json:"messages"`
+
+	killedM *sync.RWMutex
+	_killed int //amount of killed users
+
 	ID     string `json:"id"`
 	Name   string `json:"name"`
 	Status int    `json:"status"`
 
-	Players   *OnlinePlayers `json:"players,omitempty"`
-	Observers *Connections   `json:"observers,omitempty"`
-
-	History []*PlayerAction `json:"history,omitempty"`
-
 	lobby *Lobby
 	Field *Field `json:"field,omitempty"`
 
-	Date       time.Time         `json:"date,omitempty"`
-	Messages   []*models.Message `json:"messages"`
+	Date       time.Time `json:"date,omitempty"`
 	chanFinish chan struct{}
 
-	// for save game room
-	wGroup   *sync.WaitGroup
 	Settings *models.RoomSettings `json:"settings"`
+}
 
-	killed int //amount of killed users
+// NewRoom return new instance of room
+func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
+	fmt.Println("NewRoom rs = ", *rs)
+	if !rs.AreCorrect() {
+		return nil, re.ErrorInvalidRoomSettings()
+	}
+	field := NewField(rs)
+	room := &Room{
+		wGroup: &sync.WaitGroup{},
+
+		doneM: &sync.RWMutex{},
+		_done: false,
+
+		playersM: &sync.RWMutex{},
+		_Players: newOnlinePlayers(rs.Players, *field),
+
+		observersM: &sync.RWMutex{},
+		_Observers: NewConnections(rs.Observers),
+
+		historyM: &sync.RWMutex{},
+		_History: make([]*PlayerAction, 0),
+
+		messagesM: &sync.Mutex{},
+		_Messages: make([]*models.Message, 0),
+
+		killedM: &sync.RWMutex{},
+		_killed: 0,
+
+		ID:     id,
+		Name:   rs.Name,
+		Status: StatusPeopleFinding,
+
+		lobby: lobby,
+		Field: field,
+
+		Date:       time.Now(),
+		chanFinish: make(chan struct{}),
+
+		Settings: rs,
+	}
+	return room, nil
 }
 
 func (room *Room) debug() {
@@ -52,12 +105,13 @@ func (room *Room) debug() {
 	fmt.Println("Room name  :", room.Name)
 	fmt.Println("Room status:", room.Status)
 	fmt.Println("Room date  :", room.Date)
-	fmt.Println("Room killed:", room.killed)
-	if room.Players == nil {
+	fmt.Println("Room killed:", room.killed())
+	players := room.players()
+	if len(players) == 0 {
 		fmt.Println("cant debug nil players")
 		return
 	}
-	for _, player := range room.Players.Players {
+	for _, player := range players {
 		fmt.Println("Player", player.ID)
 		fmt.Println("Player points 	:", player.Points)
 		fmt.Println("Player Finished:", player.Finished)
@@ -79,10 +133,11 @@ func (room *Room) debug() {
 			fmt.Println("Cell Time  :", cell.Time)
 		}
 	}
-	if room.History == nil {
+	history := room.history()
+	if history == nil {
 		fmt.Println("no action history")
 	} else {
-		for i, action := range room.History {
+		for i, action := range history {
 			fmt.Println("action", i)
 			fmt.Println("action value  :", action.Action)
 			fmt.Println("action Owner	:", action.Player)
@@ -90,34 +145,6 @@ func (room *Room) debug() {
 		}
 	}
 
-}
-
-// NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
-	fmt.Println("NewRoom rs = ", *rs)
-	if !rs.AreCorrect() {
-		return nil, re.ErrorInvalidRoomSettings()
-	}
-	field := NewField(rs)
-	room := &Room{
-		ID:        id,
-		Name:      rs.Name,
-		Status:    StatusPeopleFinding,
-		Players:   newOnlinePlayers(rs.Players, *field),
-		Observers: NewConnections(rs.Observers),
-
-		History: make([]*PlayerAction, 0),
-
-		lobby: lobby,
-		Field: field,
-
-		Date:       time.Now(),
-		chanFinish: make(chan struct{}),
-		Settings:   rs,
-		killed:     0,
-		wGroup:     &sync.WaitGroup{},
-	}
-	return room, nil
 }
 
 // SameAs compare  one room with another

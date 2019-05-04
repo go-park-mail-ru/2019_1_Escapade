@@ -117,10 +117,8 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
 
-	fmt.Println("lobby.Playing.Get before", len(room.Players.Connections))
 	room.Leave(conn, action) // exit to lobby
-	fmt.Println("lobby.Playing.Get after", len(room.Players.Connections))
-	if len(room.Players.Connections) > 0 {
+	if len(room.playersConnections()) > 0 {
 		go lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
 }
@@ -220,7 +218,7 @@ func (lobby *Lobby) Analize(req *Request) {
 			if room == nil {
 				return
 			}
-			room.handleRequest(req.Connection, send)
+			room.HandleRequest(req.Connection, send)
 		}
 	}
 }

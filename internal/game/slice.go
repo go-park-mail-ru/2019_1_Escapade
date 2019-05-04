@@ -40,11 +40,15 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections {
 		if i > onlinePlayers.Capacity {
-			conn.room.Leave(conn, ActionBackToLobby)
+			room := conn.Room()
+			if room == nil {
+				continue
+			}
+			go room.Leave(conn, ActionBackToLobby)
 			continue
 		}
 		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
-		conn.Index = i
+		conn.SetIndex(i)
 	}
 	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
@@ -144,11 +148,11 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	var i int
 	if i = onlinePlayers.SearchConnection(conn); i >= 0 {
 		oldConn := onlinePlayers.Connections[i]
-		if kill && !oldConn.Disconnected {
+		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
 		onlinePlayers.Connections[i] = conn
-		i = oldConn.Index
+		i = oldConn.Index()
 	} else if onlinePlayers.enoughPlace() {
 		i = len(onlinePlayers.Connections)
 		onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
@@ -156,7 +160,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 		return false
 	}
 	onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
-	onlinePlayers.Connections[i].Index = i
+	onlinePlayers.Connections[i].SetIndex(i)
 	return false
 }
 
@@ -201,13 +205,12 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 // otherwise nil
 func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) {
 	for _, room := range rooms.Get {
-		i := room.Players.SearchIndexPlayer(new)
+		i := room.playersSearchIndexPlayer(new)
 		// cant found
 		if i < 0 {
 			continue
 		}
-		player := room.Players.Players[i]
-		if player.Finished {
+		if room.playerFinished(i) {
 			continue
 		}
 
@@ -220,12 +223,12 @@ func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) {
 // otherwise nil
 func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 	for _, room := range rooms.Get {
-		i := room.Observers.Search(new)
+		i := room.observersSearch(new)
 		if i < 0 {
 			continue
 		}
 
-		return room.Observers.Get[i]
+		return room.observers()[i]
 	}
 	return nil
 }
@@ -293,7 +296,7 @@ func (conns *Connections) enoughPlace() bool {
 func (conns *Connections) Add(conn *Connection, kill bool) bool {
 	if i := conns.Search(conn); i >= 0 {
 		oldConn := conns.Get[i]
-		if kill && !oldConn.Disconnected {
+		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
 		conns.Get[i] = conn
