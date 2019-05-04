@@ -25,3 +25,7 @@ func ErrorInvalidRoomSettings() error {
 func ErrorLobbyDone() error {
 	return errors.New("Lobby is turned off")
 }
+
+func ErrorConnectionDone() error {
+	return errors.New("Connection died")
+}

@@ -89,10 +89,10 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		go lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 	}
 
-	fmt.Println("here ", conn.both, conn.InRoom())
-	if conn.both || conn.InRoom() {
+	fmt.Println("here ", conn.Both(), conn.InRoom())
+	if conn.Both() || conn.InRoom() {
 		fmt.Println("both -  #", conn.ID())
-		go lobby.LeaveRoom(conn, conn.room, ActionDisconnect)
+		go lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
 	}
 	return
 }
@@ -139,11 +139,11 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	fmt.Println("EnterRoom")
 	if conn.InRoom() {
-		fmt.Println("EnterRoom ID compare", conn.room.ID, rs.ID, rs)
-		if conn.room.ID == rs.ID {
+		fmt.Println("EnterRoom ID compare", conn.RoomID(), rs.ID, rs)
+		if conn.RoomID() == rs.ID {
 			return
 		}
-		go lobby.LeaveRoom(conn, conn.room, ActionBackToLobby)
+		go lobby.LeaveRoom(conn, conn.Room(), ActionBackToLobby)
 		conn.debug("change room")
 	}
 
@@ -200,7 +200,7 @@ func (lobby *Lobby) Analize(req *Request) {
 		lobby.wGroup.Done()
 	}()
 
-	if req.Connection.both || !req.Connection.InRoom() {
+	if req.Connection.Both() || !req.Connection.InRoom() {
 		var send *LobbyRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			req.Connection.SendInformation(err)
@@ -208,15 +208,19 @@ func (lobby *Lobby) Analize(req *Request) {
 			go lobby.HandleRequest(req.Connection, send)
 		}
 	}
-	if req.Connection.both || req.Connection.InRoom() {
-		if req.Connection.room == nil {
+	if req.Connection.Both() || req.Connection.InRoom() {
+		if req.Connection.Room() == nil {
 			return
 		}
 		var send *RoomRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			req.Connection.SendInformation(err)
 		} else {
-			req.Connection.room.handleRequest(req.Connection, send)
+			room := req.Connection.Room()
+			if room == nil {
+				return
+			}
+			room.handleRequest(req.Connection, send)
 		}
 	}
 }

@@ -18,75 +18,159 @@ import (
 
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
+	wGroup *sync.WaitGroup
+
+	doneM *sync.RWMutex
+	_done bool
+
+	roomM *sync.RWMutex
+	_room *Room
+
+	disconnectedM *sync.RWMutex
+	_Disconnected bool `json:"disconnected"`
+
+	bothM *sync.RWMutex
+	_both bool
+
+	indexM *sync.RWMutex
+	_Index int `json:"index"`
+
 	User *models.UserPublicInfo `json:"user,omitempty"`
 
-	ws           *websocket.Conn
-	lobby        *Lobby
-	room         *Room
-	Disconnected bool `json:"disconnected"`
-	both         bool
+	ws    *websocket.Conn
+	lobby *Lobby
 
-	wGroup *sync.WaitGroup
-	Index  int `json:"index"`
+	context context.Context
+	cancel  context.CancelFunc
 
-	cancel context.CancelFunc
-	send   chan []byte
+	send chan []byte
+}
+
+// NewConnection creates a new connection
+func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
+	context, cancel := context.WithCancel(lobby.context)
+
+	return &Connection{
+		wGroup: &sync.WaitGroup{},
+
+		doneM: &sync.RWMutex{},
+		_done: false,
+
+		roomM: &sync.RWMutex{},
+		_room: nil,
+
+		disconnectedM: &sync.RWMutex{},
+		_Disconnected: false,
+
+		bothM: &sync.RWMutex{},
+		_both: false,
+
+		indexM: &sync.RWMutex{},
+		_Index: -1,
+
+		User: user,
+
+		ws:    ws,
+		lobby: lobby,
+
+		context: context,
+		cancel:  cancel,
+
+		send: make(chan []byte),
+	}
 }
 
 // PushToRoom set field 'room' to real room
 func (conn *Connection) PushToRoom(room *Room) {
-	conn.room = room
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	conn.setRoom(room)
 }
 
 // PushToLobby set field 'room' to nil
 func (conn *Connection) PushToLobby() {
-	conn.room = nil
-	conn.both = false
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	conn.setRoom(nil)
+	conn.setBoth(false)
 }
 
 // IsConnected check player isnt disconnected
 func (conn *Connection) IsConnected() bool {
-	return conn.Disconnected == false
+	if conn.done() {
+		return false
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+	return conn.disconnected() == false
 }
 
 // dirty make connection dirty. it make connection ID
 // -1 and when connection try to leave lobby, lobby will not
 // delete this connections from list, cause it will not find
 // anybody with such id
-func (conn *Connection) dirty() {
+func (conn *Connection) Dirty() {
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
 	conn.User.ID = -1
 }
 
 // Kill call context.CancFunc, that finish goroutines of
 // writer and reader and free connection memory
 func (conn *Connection) Kill(message string, makeDirty bool) {
-	if conn.Disconnected {
+	if conn.done() {
 		return
 	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
 	conn.SendInformation(message)
 	if makeDirty {
-		conn.dirty()
+		conn.Dirty()
 	}
-	conn.Disconnected = true
+	conn.setDisconnected()
 	conn.cancel()
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
 func (conn *Connection) Free() {
-	if conn == nil {
+
+	if conn.done() {
 		return
 	}
+	conn.setDone()
+
+	conn.wGroup.Wait()
+
 	// dont delete. conn = nil make pointer nil, but other pointers
 	// arent nil. If conn.disconnected = true it is mean that all
 	// resources are cleared, but pointer alive, so we only make pointer = nil
 	if conn.lobby == nil {
-		conn = nil
 		return
 	}
 
-	conn.Disconnected = true
-	conn.wGroup.Wait()
-	conn.wGroup = nil
+	conn.setDisconnected()
 
 	conn.ws.Close()
 	close(conn.send)
@@ -94,42 +178,34 @@ func (conn *Connection) Free() {
 	// arent nil and we make 'conn.disconnected = true' for them
 
 	conn.lobby = nil
-	conn.room = nil
-	conn = nil
+	conn.setRoom(nil)
 
 	fmt.Println("conn free memory")
 }
 
-// NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
-	return &Connection{
-		ws:           ws,
-		Index:        -1,
-		User:         user,
-		lobby:        lobby,
-		room:         nil,
-		Disconnected: false,
-		send:         make(chan []byte),
-		wGroup:       &sync.WaitGroup{},
-	}
-}
-
 // InRoom check is player in room
 func (conn *Connection) InRoom() bool {
-	return conn.room != nil
+	if conn.done() {
+		return false
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+	return conn.Room() != nil
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
-	if conn.lobby == nil || conn.lobby.Context == nil {
+	// dont place there conn.wGroup.Add(1)
+	if conn.lobby == nil || conn.lobby.context == nil {
 		fmt.Println("lobby nil or hasnt context!")
 		return
 	}
 
 	all := &sync.WaitGroup{}
 	var connContext context.Context
-	connContext, conn.cancel = context.WithCancel(conn.lobby.Context)
 
 	conn.lobby.ChanJoin <- conn
 	all.Add(1)
@@ -147,8 +223,16 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
-		utils.CatchPanic("connection.go ReadConn()")
 	}()
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+		utils.CatchPanic("connection.go WriteConn()")
+	}()
+
 	conn.ws.SetReadLimit(wsc.MaxMessageSize)
 	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
 	conn.ws.SetPongHandler(
@@ -190,8 +274,14 @@ func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettin
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
 func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
 	defer func() {
-		wg.Done()
+		conn.wGroup.Done()
 		utils.CatchPanic("connection.go WriteConn()")
 	}()
 
@@ -229,9 +319,15 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 
 // SendInformation send info
 func (conn *Connection) SendInformation(value interface{}) {
-	if !conn.Disconnected {
-		conn.wGroup.Add(1)
-		defer conn.wGroup.Done()
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	if !conn.disconnected() {
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			fmt.Println("cant send information")
@@ -252,6 +348,13 @@ func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGro
 
 // ID return players id
 func (conn *Connection) ID() int {
+	if conn.done() {
+		return -1
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
 	if conn.User == nil {
 		return -1
 	}

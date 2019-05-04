@@ -50,18 +50,18 @@ func (lobby *Lobby) playingFree() {
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) waiting() []*Connection {
-	lobby.waitingM.Lock()
+	lobby.waitingM.RLock()
 	v := lobby._Waiting.Get
-	lobby.waitingM.Unlock()
+	lobby.waitingM.RUnlock()
 
 	return v
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) playing() []*Connection {
-	lobby.playingM.Lock()
+	lobby.playingM.RLock()
 	v := lobby._Playing.Get
-	lobby.playingM.Unlock()
+	lobby.playingM.RUnlock()
 
 	return v
 }
@@ -132,25 +132,25 @@ func (lobby *Lobby) waitingAdd(conn *Connection) {
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearch(roomID string) (int, *Room) {
-	lobby.allRoomsM.Lock()
+	lobby.allRoomsM.RLock()
 	index, room := lobby._AllRooms.SearchRoom(roomID)
-	lobby.allRoomsM.Unlock()
+	lobby.allRoomsM.RUnlock()
 	return index, room
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) {
-	lobby.allRoomsM.Lock()
+	lobby.allRoomsM.RLock()
 	index, room := lobby._AllRooms.SearchPlayer(conn)
-	lobby.allRoomsM.Unlock()
+	lobby.allRoomsM.RUnlock()
 	return index, room
 }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearchObserver(conn *Connection) *Connection {
-	lobby.allRoomsM.Lock()
+	lobby.allRoomsM.RLock()
 	old := lobby._AllRooms.SearchObserver(conn)
-	lobby.allRoomsM.Unlock()
+	lobby.allRoomsM.RUnlock()
 	return old
 }
 

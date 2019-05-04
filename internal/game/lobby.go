@@ -23,16 +23,16 @@ type Lobby struct {
 	doneM *sync.RWMutex
 	_done bool
 
-	allRoomsM *sync.Mutex
+	allRoomsM *sync.RWMutex
 	_AllRooms *Rooms `json:"allRooms"`
 
 	freeRoomsM *sync.RWMutex
 	_FreeRooms *Rooms `json:"freeRooms"`
 
-	waitingM *sync.Mutex
+	waitingM *sync.RWMutex
 	_Waiting *Connections `json:"waiting"`
 
-	playingM *sync.Mutex
+	playingM *sync.RWMutex
 	_Playing *Connections `json:"playing"`
 
 	messagesM *sync.Mutex
@@ -70,16 +70,16 @@ func NewLobby(connectionsCapacity, roomsCapacity,
 		doneM: &sync.RWMutex{},
 		_done: false,
 
-		allRoomsM: &sync.Mutex{},
+		allRoomsM: &sync.RWMutex{},
 		_AllRooms: NewRooms(roomsCapacity),
 
 		freeRoomsM: &sync.RWMutex{},
 		_FreeRooms: NewRooms(roomsCapacity),
 
-		waitingM: &sync.Mutex{},
+		waitingM: &sync.RWMutex{},
 		_Waiting: NewConnections(connectionsCapacity),
 
-		playingM: &sync.Mutex{},
+		playingM: &sync.RWMutex{},
 		_Playing: NewConnections(connectionsCapacity),
 
 		messagesM: &sync.Mutex{},

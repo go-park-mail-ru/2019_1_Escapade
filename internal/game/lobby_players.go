@@ -9,7 +9,7 @@ import (
 func (lobby *Lobby) addWaiter(newConn *Connection) {
 	fmt.Println("addWaiter called")
 	go lobby.waitingAdd(newConn)
-	if !newConn.both {
+	if !newConn.Both() {
 		go lobby.greet(newConn)
 	}
 }
@@ -63,7 +63,11 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
 	// find such observer
 	old := lobby.allRoomsSearchObserver(newConn)
 	if old != nil {
-		old.room.RecoverObserver(old, newConn)
+		room = old.Room()
+		if room == nil {
+			return false
+		}
+		room.RecoverObserver(old, newConn)
 		return true
 	}
 	return false
