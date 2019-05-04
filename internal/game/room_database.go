@@ -147,18 +147,6 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		room.Field.History = append(room.Field.History, cell)
 	}
 
-	room.Field.History = make([]Cell, 0)
-	for _, cellHistory := range info.Cells {
-		cell := Cell{
-			PlayerID: cellHistory.PlayerID,
-			X:        cellHistory.X,
-			Y:        cellHistory.Y,
-			Value:    cellHistory.Value,
-			Time:     cellHistory.Date,
-		}
-		room.Field.History = append(room.Field.History, cell)
-	}
-
 	// actions
 	room.History = make([]*PlayerAction, 0)
 	for _, actionHistory := range info.Actions {

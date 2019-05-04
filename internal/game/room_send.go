@@ -27,7 +27,7 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendGameOver(predicate SendPredicate) {
 	cells := make([]Cell, 0)
-	room.Field.openEverything(&cells)
+	room.Field.OpenEverything(&cells)
 	response := models.Response{
 		Type: "RoomGameOver",
 		Value: struct {

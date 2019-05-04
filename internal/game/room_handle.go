@@ -43,8 +43,8 @@ func (room *Room) Free() {
 	for _, action := range room.History {
 		action.Free()
 	}
-	room.Field.Clear()
-	room = nil
+	go room.Field.Free()
+
 }
 
 // Close drives away players out of the room, free resources

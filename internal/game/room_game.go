@@ -57,7 +57,7 @@ func (room *Room) kill(conn *Connection, action int) bool {
 		return false
 	}
 	if room.isAlive(conn) {
-		room.Field.setCellFlagTaken(&room.Players.Flags[conn.Index])
+		room.Field.SetCellFlagTaken(&room.Players.Flags[conn.Index])
 
 		room.setFinished(conn)
 		if room.Players.Capacity <= room.killed+1 {
@@ -151,7 +151,7 @@ func (room *Room) setFlag(conn *Connection, cell *Cell) bool {
 // call it if game has already begun
 func (room *Room) setFlags() {
 	for _, cell := range room.Players.Flags {
-		room.Field.SetFlag(cell.X, cell.Y, cell.PlayerID)
+		room.Field.SetFlag(&cell)
 	}
 }
 
