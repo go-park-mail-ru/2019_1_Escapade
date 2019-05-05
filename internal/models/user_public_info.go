@@ -8,7 +8,7 @@ import (
 // UserPublicInfo information about person
 // available for unauthorized users
 type UserPublicInfo struct {
-	ID        int            `json:"-"`
+	ID        int            `json:"id"`
 	Name      string         `json:"name"`
 	Email     string         `json:"email"`
 	PhotoURL  string         `json:"photo,omitempty"`
