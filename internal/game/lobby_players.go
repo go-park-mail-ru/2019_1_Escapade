@@ -10,7 +10,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 	fmt.Println("addWaiter called")
 	go lobby.waitingAdd(newConn)
 	if !newConn.Both() {
-		go lobby.greet(newConn)
+		lobby.greet(newConn)
 	}
 }
 

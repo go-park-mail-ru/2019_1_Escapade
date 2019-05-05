@@ -343,7 +343,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.setfiles(users); err != nil {
+	if err = h.setfiles(users...); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -569,7 +569,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		err       error
 		difficult int
 		user      *models.UserPublicInfo
-		fileKey   string
 	)
 
 	difficult = h.getDifficult(r)
@@ -580,15 +579,12 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if fileKey, err = h.DB.GetImage(userID); err != nil {
+	if err = h.setfiles(user); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
+		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-
-	URL, err := h.getURLToAvatar(fileKey)
-	user.PhotoURL = URL
 
 	utils.SendSuccessJSON(rw, user, place)
 
@@ -647,6 +643,13 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = h.setfiles(user); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
 	conn := game.NewConnection(ws, user, lobby)
 	conn.Launch(h.WebSocket)
 	utils.PrintResult(err, http.StatusOK, place)
@@ -692,6 +695,13 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	if user, err = h.DB.GetUser(userID, 0); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+
+	if err = h.setfiles(user); err != nil {
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}

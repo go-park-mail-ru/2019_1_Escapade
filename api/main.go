@@ -38,6 +38,7 @@ func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Zap logger error:", err)
+		return
 	}
 	defer logger.Sync()
 

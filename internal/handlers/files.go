@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func (h *Handler) setfiles(users []*models.UserPublicInfo) (err error) {
+func (h *Handler) setfiles(users ...*models.UserPublicInfo) (err error) {
 
 	for _, user := range users {
 		if user.FileKey == "" {

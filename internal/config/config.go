@@ -146,6 +146,9 @@ func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 	if err = json.Unmarshal(data, conf); err != nil {
 		return
 	}
+	conf.AWS.AwsConfig = &aws.Config{
+		Region:   aws.String(conf.AWS.Region),
+		Endpoint: aws.String(conf.AWS.Endpoint)}
 	InitEnvironment(conf)
 	return
 }

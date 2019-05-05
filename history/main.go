@@ -20,8 +20,9 @@ func main() {
 	// db := database.New(curlog)
 
 	const (
-		place    = "main"
-		confPath = "history/history.json"
+		place      = "main"
+		confPath   = "history/history.json"
+		secretPath = "secret.json"
 	)
 
 	var (
@@ -34,6 +35,7 @@ func main() {
 		fmt.Println("eeeer", err.Error())
 		return
 	}
+	config.InitPrivate(secretPath)
 
 	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 	if err != nil {
