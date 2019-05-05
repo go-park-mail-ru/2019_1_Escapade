@@ -76,13 +76,13 @@ func (room *Room) Kill(conn *Connection, action int) {
 	}
 
 	if room.isAlive(conn) {
-		go room.SetFinished(conn)
+		room.SetFinished(conn)
 
 		cell := room.playerFlag(conn.Index())
 		room.Field.SetCellFlagTaken(&cell)
 
 		if room.playersCapacity() <= room.killed()+1 {
-			go room.FinishGame(true)
+			room.FinishGame(true)
 		}
 		pa := *room.addAction(conn.ID(), action)
 		go room.sendAction(pa, room.All)

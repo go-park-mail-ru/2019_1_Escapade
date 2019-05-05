@@ -246,10 +246,10 @@ func (room *Room) greet(conn *Connection) {
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
-			Room *Room `json:"room"`
-			Flag *Cell `json:"flag,omitempty"`
+			Room RoomJSON `json:"room"`
+			Flag *Cell    `json:"flag,omitempty"`
 		}{
-			Room: room,
+			Room: room.JSON(),
 			Flag: flag,
 		},
 	}

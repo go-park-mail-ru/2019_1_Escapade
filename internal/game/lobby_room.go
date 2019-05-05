@@ -52,8 +52,8 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 
 	// if not in freeRooms nothing bad will happen
 	// there is check inside, it will just return without errors
-	go lobby.freeRoomsRemove(room)
-	go lobby.allRoomsRemove(room)
+	lobby.freeRoomsRemove(room)
+	lobby.allRoomsRemove(room)
 	fmt.Println("sendRoomDelete")
 	go lobby.sendRoomDelete(*room, All)
 }

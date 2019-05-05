@@ -144,12 +144,10 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	// field
-	room.Field = &Field{
-		Width:     info.Field.Width,
-		Height:    info.Field.Height,
-		CellsLeft: info.Field.CellsLeft,
-		Mines:     info.Field.Mines,
-	}
+	room.Field.Width = info.Field.Width
+	room.Field.Height = info.Field.Height
+	room.Field.CellsLeft = info.Field.CellsLeft
+	room.Field.Mines = info.Field.Mines
 
 	// cells
 	room.Field.History = make([]Cell, 0)

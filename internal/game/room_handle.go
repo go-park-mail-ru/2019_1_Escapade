@@ -144,18 +144,16 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	cell.PlayerID = conn.ID()
 	cells := room.Field.OpenCell(cell)
 	fmt.Println("len cell", len(cells))
-	needSend := true
 	if len(cells) == 1 {
 		newCell := cells[0]
 		fmt.Println("newCell value", newCell.Value)
 		if newCell.Value < CellMine {
-			go room.IncreasePlayerPoints(index, 1+newCell.Value)
+			room.IncreasePlayerPoints(index, 1+newCell.Value)
 		} else if newCell.Value == CellMine {
 			go room.IncreasePlayerPoints(index, -100) // в конфиг
-			go room.Kill(conn, ActionExplode)
+			room.Kill(conn, ActionExplode)
 		} else if newCell.Value >= CellIncrement {
-			needSend = (newCell.Value - CellIncrement) != conn.ID()
-			go room.FlagFound(*conn, &newCell)
+			room.FlagFound(*conn, &newCell)
 		} else if newCell.Value == CellOpened {
 			return
 		}
@@ -168,7 +166,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 		}
 	}
 
-	if needSend {
+	if len(cells) > 0 {
 		go room.sendPlayerPoints(room.player(index), room.All)
 		go room.sendNewCells(cells, room.All)
 	}
@@ -189,9 +187,9 @@ func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 
 	fmt.Println("cellHandle")
 	if room.Status == StatusFlagPlacing {
-		go room.SetFlag(conn, cell)
+		room.SetFlag(conn, cell)
 	} else if room.Status == StatusRunning {
-		go room.OpenCell(conn, cell)
+		room.OpenCell(conn, cell)
 	}
 	return
 }
@@ -277,6 +275,8 @@ func (room *Room) StartFlagPlacing() {
 		room.wGroup.Done()
 	}()
 
+	fmt.Println("StartFlagPlacing")
+
 	room.Status = StatusFlagPlacing
 	players := room.playersConnections()
 	for _, conn := range players {
@@ -335,7 +335,7 @@ func (room *Room) FinishGame(needStop bool) {
 	go room.sendMessage("Battle finished!", room.All)
 	go room.sendGameOver(room.All)
 	go room.Save()
-	go room.lobby.roomFinish(room)
+	room.lobby.roomFinish(room)
 	players := room.players()
 	for _, player := range players {
 		player.Finished = true

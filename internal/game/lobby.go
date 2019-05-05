@@ -24,25 +24,25 @@ type Lobby struct {
 	_done bool
 
 	allRoomsM *sync.RWMutex
-	_AllRooms *Rooms `json:"allRooms"`
+	_AllRooms *Rooms
 
 	freeRoomsM *sync.RWMutex
-	_FreeRooms *Rooms `json:"freeRooms"`
+	_FreeRooms *Rooms
 
 	waitingM *sync.RWMutex
-	_Waiting *Connections `json:"waiting"`
+	_Waiting *Connections
 
 	playingM *sync.RWMutex
-	_Playing *Connections `json:"playing"`
+	_Playing *Connections
 
 	messagesM *sync.Mutex
-	_Messages []*models.Message `json:"messages"`
+	_Messages []*models.Message
 
 	context context.Context
 	cancel  context.CancelFunc
 
 	// connection joined lobby
-	ChanJoin chan *Connection `json:"-"`
+	ChanJoin chan *Connection
 	// connection left lobby
 	chanLeave chan *Connection
 

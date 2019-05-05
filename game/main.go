@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -58,14 +55,14 @@ func main() {
 	game.Launch(&configuration.Game, &handler.DB)
 	defer game.GetLobby().Stop()
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		game.GetLobby().Stop()
-		game.GetLobby().Free()
-		os.Exit(1)
-	}()
+	// c := make(chan os.Signal)
+	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	// go func() {
+	// 	<-c
+	// 	game.GetLobby().Stop()
+	// 	game.GetLobby().Free()
+	// 	os.Exit(1)
+	// }()
 
 	port := router.GetPort(configuration)
 	if err = http.ListenAndServe(port, r); err != nil {

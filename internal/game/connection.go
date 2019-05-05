@@ -16,36 +16,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Connection is a websocket of a player, that belongs to room
-type Connection struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
-
-	roomM *sync.RWMutex
-	_room *Room
-
-	disconnectedM *sync.RWMutex
-	_Disconnected bool `json:"disconnected"`
-
-	bothM *sync.RWMutex
-	_both bool
-
-	indexM *sync.RWMutex
-	_Index int `json:"index"`
-
-	User *models.UserPublicInfo `json:"user,omitempty"`
-
-	ws    *websocket.Conn
-	lobby *Lobby
-
-	context context.Context
-	cancel  context.CancelFunc
-
-	send chan []byte
-}
-
 // NewConnection creates a new connection
 func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
 	context, cancel := context.WithCancel(lobby.context)
@@ -76,7 +46,8 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		context: context,
 		cancel:  cancel,
 
-		send: make(chan []byte),
+		send:      make(chan []byte),
+		actionSem: make(chan struct{}, 1),
 	}
 }
 
@@ -174,6 +145,7 @@ func (conn *Connection) Free() {
 
 	conn.ws.Close()
 	close(conn.send)
+	close(conn.actionSem)
 	// dont delete. conn = nil make pointer nil, but other pointers
 	// arent nil and we make 'conn.disconnected = true' for them
 
@@ -205,13 +177,12 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 	}
 
 	all := &sync.WaitGroup{}
-	var connContext context.Context
 
 	conn.lobby.ChanJoin <- conn
 	all.Add(1)
-	go conn.WriteConn(connContext, ws, all)
+	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
-	go conn.ReadConn(connContext, ws, all)
+	go conn.ReadConn(conn.context, ws, all)
 
 	all.Wait()
 	fmt.Println("conn finished")
@@ -294,6 +265,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			fmt.Println("WriteConn done catched")
 			return
 		case message, ok := <-conn.send:
+			//fmt.Println("server wrote:", string(message))
 			if !ok {
 				conn.write(websocket.CloseMessage, []byte{}, wsc)
 				return
@@ -328,7 +300,13 @@ func (conn *Connection) SendInformation(value interface{}) {
 	}()
 
 	if !conn.Disconnected() {
-		bytes, err := json.Marshal(value)
+		var (
+			bytes []byte
+			err   error
+		)
+
+		bytes, err = json.Marshal(value)
+
 		if err != nil {
 			fmt.Println("cant send information")
 		} else {
@@ -349,7 +327,7 @@ func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGro
 // ID return players id
 func (conn *Connection) ID() int {
 	if conn.done() {
-		return -1
+		return conn.User.ID
 	}
 	conn.wGroup.Add(1)
 	defer func() {

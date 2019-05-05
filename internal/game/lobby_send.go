@@ -1,7 +1,11 @@
 package game
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+import (
+	"fmt"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+)
 
 // all senders functions should add 1 to waitGroup!
 // also all thay should be launched in goroutines and
@@ -27,8 +31,9 @@ func (lobby *Lobby) greet(conn *Connection) {
 
 	response := models.Response{
 		Type:  "Lobby",
-		Value: lobby,
+		Value: lobby.JSON(),
 	}
+	fmt.Println("greet")
 	conn.SendInformation(response)
 }
 
@@ -61,7 +66,7 @@ func (lobby *Lobby) sendRoomCreate(room Room, predicate SendPredicate) {
 
 	response := models.Response{
 		Type:  "LobbyRoomCreate",
-		Value: room,
+		Value: room.JSON(),
 	}
 	lobby.send(response, predicate)
 }
@@ -78,7 +83,7 @@ func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
 
 	response := models.Response{
 		Type:  "LobbyRoomUpdate",
-		Value: room,
+		Value: room.JSON(),
 	}
 	lobby.send(response, predicate)
 }

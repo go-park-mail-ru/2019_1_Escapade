@@ -16,7 +16,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 
 func (lobby *Lobby) addPlayer(newConn *Connection) {
 	fmt.Println("addPlayer called")
-	go lobby.playingAdd(newConn)
+	lobby.playingAdd(newConn)
 }
 
 func (lobby *Lobby) waiterToPlayer(newConn *Connection) {

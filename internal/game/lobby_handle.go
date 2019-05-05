@@ -111,7 +111,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
-		go lobby.PlayerToWaiter(conn)
+		lobby.PlayerToWaiter(conn)
 	} else {
 		//go lobby.playingRemove(conn)
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
@@ -135,20 +135,23 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		lobby.wGroup.Done()
 	}()
 
+	conn.actionSem <- struct{}{}
+	defer func() { <-conn.actionSem }()
+
 	fmt.Println("EnterRoom")
 	if conn.InRoom() {
 		fmt.Println("EnterRoom ID compare", conn.RoomID(), rs.ID, rs)
 		if conn.RoomID() == rs.ID {
 			return
 		}
-		go lobby.LeaveRoom(conn, conn.Room(), ActionBackToLobby)
+		lobby.LeaveRoom(conn, conn.Room(), ActionBackToLobby)
 		conn.debug("change room")
 	}
 
 	conn.debug("enter room" + rs.ID)
 	if rs.ID == "create" {
 		conn.debug("see you wanna create room?")
-		go lobby.CreateAndAddToRoom(rs, conn)
+		lobby.CreateAndAddToRoom(rs, conn)
 		return
 	}
 
@@ -157,7 +160,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		room.Enter(conn)
 	} else {
 		conn.debug("lobby search room for you")
-		go lobby.PickUpRoom(conn, rs)
+		lobby.PickUpRoom(conn, rs)
 	}
 
 }
@@ -183,7 +186,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 		}
 	}
 	// oh we cant find room, so lets create one
-	go lobby.CreateAndAddToRoom(rs, conn)
+	lobby.CreateAndAddToRoom(rs, conn)
 	return
 }
 

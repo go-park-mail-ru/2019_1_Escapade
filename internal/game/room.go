@@ -26,31 +26,31 @@ type Room struct {
 	_done bool
 
 	playersM *sync.RWMutex
-	_Players *OnlinePlayers `json:"players,omitempty"`
+	_Players *OnlinePlayers
 
 	observersM *sync.RWMutex
-	_Observers *Connections `json:"observers,omitempty"`
+	_Observers *Connections
 
 	historyM *sync.RWMutex
-	_History []*PlayerAction `json:"history,omitempty"`
+	_History []*PlayerAction
 
 	messagesM *sync.Mutex
-	_Messages []*models.Message `json:"messages"`
+	_Messages []*models.Message
 
 	killedM *sync.RWMutex
 	_killed int //amount of killed users
 
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Status int    `json:"status"`
+	ID     string
+	Name   string
+	Status int
 
 	lobby *Lobby
-	Field *Field `json:"field,omitempty"`
+	Field *Field
 
-	Date       time.Time `json:"date,omitempty"`
+	Date       time.Time
 	chanFinish chan struct{}
 
-	Settings *models.RoomSettings `json:"settings"`
+	Settings *models.RoomSettings
 }
 
 // NewRoom return new instance of room

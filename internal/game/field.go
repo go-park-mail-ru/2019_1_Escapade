@@ -110,6 +110,7 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.getMatrixValue(x, y)
+		fmt.Printf("openCellArea Cell(%d/%d)=%d", x, y, v)
 
 		if v < CellMine {
 			cell := NewCell(x, y, v, ID)
@@ -160,6 +161,7 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	defer field.wGroup.Done()
 
 	cell.Value = field.getMatrixValue(cell.X, cell.Y)
+	fmt.Printf("Cell(%d/%d)=%d", cell.X, cell.Y, cell.Value)
 
 	cells = make([]Cell, 0)
 	if cell.Value < CellMine {
