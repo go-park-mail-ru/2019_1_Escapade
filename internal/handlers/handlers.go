@@ -574,12 +574,14 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	difficult = h.getDifficult(r)
 
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 	if err = h.setfiles(user); err != nil {
+		fmt.Println("h.setfiles(user) err")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -644,6 +646,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.setfiles(user); err != nil {
+		fmt.Println("h.setfiles(user) err")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)

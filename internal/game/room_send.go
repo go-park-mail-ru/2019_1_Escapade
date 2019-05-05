@@ -45,7 +45,7 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendGameOver(predicate SendPredicate) {
+func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -62,9 +62,13 @@ func (room *Room) sendGameOver(predicate SendPredicate) {
 		Value: struct {
 			Players []Player `json:"players"`
 			Cells   []Cell   `json:"cells"`
+			Winner  int      `json:"winner"`
+			Timer   bool     `json:"timer"`
 		}{
 			Players: room.players(),
 			Cells:   cells,
+			Winner:  room.Winner(),
+			Timer:   timer,
 		},
 	}
 	room.send(response, predicate)
@@ -239,20 +243,25 @@ func (room *Room) greet(conn *Connection) {
 		utils.CatchPanic("room_send.go greet()")
 	}()
 
-	var flag *Cell
+	var flag Cell
 	if conn.Index() >= 0 {
-		flag = room.setCell(conn)
+		flag = *room.setCell(conn)
 	}
+
+	copy := *conn
+
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
-			Room RoomJSON               `json:"room"`
-			You  *models.UserPublicInfo `json:"you"`
-			Flag *Cell                  `json:"flag,omitempty"`
+			Room     RoomJSON              `json:"room"`
+			You      models.UserPublicInfo `json:"you"`
+			Observer bool                  `json:"observer"`
+			Flag     Cell                  `json:"flag,omitempty"`
 		}{
-			Room: room.JSON(),
-			You:  conn.User,
-			Flag: flag,
+			Room:     room.JSON(),
+			You:      *copy.User,
+			Observer: copy.Index() < 0,
+			Flag:     flag,
 		},
 	}
 	conn.SendInformation(response)

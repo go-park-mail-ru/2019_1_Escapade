@@ -17,9 +17,11 @@ func (h *Handler) setfiles(users ...*models.UserPublicInfo) (err error) {
 
 	for _, user := range users {
 		if user.FileKey == "" {
+			fmt.Println("user.FileKey == ''")
 			return re.ErrorAvatarNotFound()
 		}
 		if user.PhotoURL, err = h.getURLToAvatar(user.FileKey); err != nil {
+			fmt.Println("h.getURLToAvatar", err.Error())
 			return re.ErrorAvatarNotFound()
 		}
 	}

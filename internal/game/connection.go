@@ -310,6 +310,7 @@ func (conn *Connection) SendInformation(value interface{}) {
 		if err != nil {
 			fmt.Println("cant send information")
 		} else {
+			fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
 			conn.send <- bytes
 		}
 	}

@@ -171,7 +171,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 		go room.sendNewCells(cells, room.All)
 	}
 	if room.Field.IsCleared() {
-		go room.FinishGame(true)
+		go room.FinishGame(false)
 	}
 	return
 }
@@ -311,7 +311,7 @@ func (room *Room) StartGame() {
 	room.FillField()
 }
 
-func (room *Room) FinishGame(needStop bool) {
+func (room *Room) FinishGame(timer bool) {
 	if room.done() {
 		return
 	}
@@ -323,7 +323,7 @@ func (room *Room) FinishGame(needStop bool) {
 	if room.Status == StatusFinished {
 		return
 	}
-	if needStop {
+	if !timer {
 		room.chanFinish <- struct{}{}
 	}
 	fmt.Println(room.ID, "We finish room!", room.Status)
@@ -333,7 +333,7 @@ func (room *Room) FinishGame(needStop bool) {
 
 	go room.sendStatus(room.All)
 	go room.sendMessage("Battle finished!", room.All)
-	go room.sendGameOver(room.All)
+	go room.sendGameOver(timer, room.All)
 	go room.Save()
 	room.lobby.roomFinish(room)
 	players := room.players()

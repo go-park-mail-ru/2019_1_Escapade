@@ -119,7 +119,7 @@ func (room *Room) MakePlayer(conn *Connection) {
 		conn.setBoth(true)
 	}
 	room.playersAdd(conn, false)
-	go room.greet(conn)
+	room.greet(conn)
 	conn.PushToRoom(room)
 }
 
