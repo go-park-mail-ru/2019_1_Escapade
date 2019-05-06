@@ -42,7 +42,7 @@ type Lobby struct {
 	cancel  context.CancelFunc
 
 	// connection joined lobby
-	ChanJoin chan *Connection
+	chanJoin chan *Connection
 	// connection left lobby
 	chanLeave chan *Connection
 
@@ -88,7 +88,7 @@ func NewLobby(connectionsCapacity, roomsCapacity,
 		context: context,
 		cancel:  cancel,
 
-		ChanJoin:      make(chan *Connection),
+		chanJoin:      make(chan *Connection),
 		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
@@ -128,7 +128,7 @@ func (lobby *Lobby) Stop() {
 	}
 }
 
-// Free delete all rooms and conenctions. Inform all players
+// Free delete all rooms and connections. Inform all players
 // about closing
 func (lobby *Lobby) Free() {
 
@@ -150,7 +150,7 @@ func (lobby *Lobby) Free() {
 
 	lobby.cancel()
 
-	close(lobby.ChanJoin)
+	close(lobby.chanJoin)
 	close(lobby.chanLeave)
 	close(lobby.chanBroadcast)
 	lobby.db = nil

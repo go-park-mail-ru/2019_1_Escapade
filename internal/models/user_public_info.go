@@ -18,7 +18,7 @@ type UserPublicInfo struct {
 	Difficult int            `json:"difficult"`
 }
 
-// Compare comapre two users
+// Compare compare two users
 func (a UserPublicInfo) Compare(b UserPublicInfo) bool {
 	return a.ID == b.ID && a.Name == b.Name && a.Email == b.Email
 }

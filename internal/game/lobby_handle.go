@@ -10,6 +10,18 @@ import (
 	"fmt"
 )
 
+func (lobby *Lobby) JoinConn(conn *Connection) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go Join()")
+		lobby.wGroup.Done()
+	}()
+	lobby.chanJoin <- conn
+}
+
 // Run the room in goroutine
 func (lobby *Lobby) Run(wg *sync.WaitGroup) {
 	defer func() {
@@ -25,7 +37,7 @@ func (lobby *Lobby) Run(wg *sync.WaitGroup) {
 	fmt.Println("Lobby run")
 	for {
 		select {
-		case connection := <-lobby.ChanJoin:
+		case connection := <-lobby.chanJoin:
 			go lobby.Join(connection)
 
 		case message := <-lobby.chanBroadcast:

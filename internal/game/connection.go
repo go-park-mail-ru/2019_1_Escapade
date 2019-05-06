@@ -178,7 +178,7 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	all := &sync.WaitGroup{}
 
-	conn.lobby.ChanJoin <- conn
+	conn.lobby.JoinConn(conn)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
@@ -308,7 +308,7 @@ func (conn *Connection) SendInformation(value interface{}) {
 		bytes, err = json.Marshal(value)
 
 		if err != nil {
-			fmt.Println("cant send information")
+			fmt.Println("cant send information", err.Error())
 		} else {
 			fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
 			conn.send <- bytes

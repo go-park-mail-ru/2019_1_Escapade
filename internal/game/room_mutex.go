@@ -261,9 +261,6 @@ func (room *Room) setToMessages(message *models.Message) {
 
 func (room *Room) historyFree() {
 	room.historyM.Lock()
-	for _, action := range room._History {
-		action.Free()
-	}
 	room._History = nil
 	room.historyM.Unlock()
 }

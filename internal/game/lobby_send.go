@@ -32,11 +32,11 @@ func (lobby *Lobby) greet(conn *Connection) {
 	response := models.Response{
 		Type: "Lobby",
 		Value: struct {
-			Lobby LobbyJSON              `json:"lobby"`
-			You   *models.UserPublicInfo `json:"you"`
+			Lobby Lobby                 `json:"lobby"`
+			You   models.UserPublicInfo `json:"you"`
 		}{
-			Lobby: lobby.JSON(),
-			You:   conn.User,
+			Lobby: *lobby,
+			You:   *conn.User,
 		},
 	}
 	fmt.Println("greet")

@@ -253,12 +253,12 @@ func (room *Room) greet(conn *Connection) {
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
-			Room     RoomJSON              `json:"room"`
+			Room     *Room                 `json:"room"`
 			You      models.UserPublicInfo `json:"you"`
 			Observer bool                  `json:"observer"`
 			Flag     Cell                  `json:"flag,omitempty"`
 		}{
-			Room:     room.JSON(),
+			Room:     room,
 			You:      *copy.User,
 			Observer: copy.Index() < 0,
 			Flag:     flag,

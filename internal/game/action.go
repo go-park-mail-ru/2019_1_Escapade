@@ -40,14 +40,6 @@ func NewPlayerAction(player int, action int) *PlayerAction {
 	return pa
 }
 
-// Free free memory
-func (pa *PlayerAction) Free() {
-	if pa == nil {
-		return
-	}
-	pa = nil
-}
-
 func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
 	if room.done() {
 		return

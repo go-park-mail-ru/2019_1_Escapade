@@ -25,7 +25,7 @@ func (lobby *Lobby) JSON() LobbyJSON {
 	}
 }
 
-func (lobby *Lobby) MarshalJSON() ([]byte, error) {
+func (lobby Lobby) MarshalJSON() ([]byte, error) {
 	return json.Marshal(lobby.JSON())
 }
 

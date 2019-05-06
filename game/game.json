@@ -6,7 +6,7 @@
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
-		"adress": ":3003"
+		"address": ":3003"
 	},
 	"dataBase": {
 		"driverName": "postgres",
