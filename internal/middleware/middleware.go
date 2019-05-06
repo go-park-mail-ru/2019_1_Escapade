@@ -3,9 +3,9 @@ package middleware
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 
 	"net/http"
 )
@@ -38,7 +38,7 @@ func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 }
 
 // Auth Check cookie exists
-func Auth(cc config.CookieConfig) HandleDecorator {
+func Auth(cc config.SessionConfig) HandleDecorator {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
 			if _, err := cookie.GetSessionCookie(r, cc); err != nil {

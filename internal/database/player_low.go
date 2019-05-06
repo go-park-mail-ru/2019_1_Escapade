@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"database/sql"
 	"fmt"
@@ -12,20 +13,18 @@ import (
 func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id int, err error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, email, firstSeen, lastSeen) VALUES
-    ($1, $2, $3, $4, $5);
+		($1, $2, $3, $4, $5)
+		RETURNING id;
 		`
 	t := time.Now()
-	_, err = db.Db.Exec(sqlInsert, user.Name,
+	row := db.Db.QueryRow(sqlInsert, user.Name,
 		user.Password, user.Email, t, t)
 
-	if err != nil {
-		return
-	}
-
-	sqlGetID := `SELECT id FROM Player WHERE name = $1`
-	row := tx.QueryRow(sqlGetID, user.Name)
-
 	err = row.Scan(&id)
+	if err == nil {
+		fmt.Println("register:", user.Name,
+			user.Password, user.Email, id)
+	}
 	return
 }
 
@@ -37,8 +36,19 @@ func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivat
 			RETURNING id
 		`
 
-	_, err = tx.Exec(sqlStatement, user.Name,
+	fmt.Println("Update to", user.Name,
+		user.Email, user.Password)
+	row := tx.QueryRow(sqlStatement, user.Name,
 		user.Email, user.Password, time.Now(), user.ID)
+	err = row.Scan(&user.ID)
+	if err != nil {
+		fmt.Println("updatePlayerPersonalInfo: err", err.Error())
+		err = re.ErrorUserIsExist()
+	} else {
+		fmt.Println("updatePlayerPersonalInfo done", user.Name,
+			user.Email, user.Password, user.ID)
+	}
+
 	return
 }
 
@@ -67,6 +77,9 @@ func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int
 	user = &models.UserPublicInfo{}
 	err = row.Scan(&id, &user.Name, &user.Email, &user.BestScore,
 		&user.BestTime, &user.Difficult)
+	if err == nil {
+		fmt.Println("login:", id, user.Name, user.Email)
+	}
 	return
 }
 
@@ -76,6 +89,7 @@ func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPriv
 		"FROM Player where id = $1"
 
 	row := tx.QueryRow(sqlStatement, userID)
+	fmt.Println("userID:", userID)
 
 	user = &models.UserPrivateInfo{}
 	user.ID = userID
@@ -109,8 +123,6 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 
 	if erro != nil {
 		err = erro
-
-		fmt.Println("database/GetUsers cant access to database:", erro.Error())
 		return
 	}
 	defer rows.Close()
@@ -119,18 +131,11 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 		player := &models.UserPublicInfo{}
 		if err = rows.Scan(&player.ID, &player.FileKey, &player.Name, &player.Email, &player.BestScore,
 			&player.BestTime, &player.Difficult); err != nil {
-
-			fmt.Println("database/GetUsers wrong row catched")
-
 			break
 		}
 
-		fmt.Println("wrote: ", player.BestScore, player.BestTime)
-
 		players = append(players, player)
 	}
-
-	fmt.Println("database/GetUsers +")
 
 	return
 }
@@ -159,13 +164,15 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *mode
 func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2 and email=$3
+	RETURNING ID
 		`
-	fmt.Println("+++++")
-
-	fmt.Println("user.Name, user.Password, user.Email", user.Name, user.Password, user.Email)
-
-	_, err := tx.Exec(sqlStatement, user.Name,
+	row := tx.QueryRow(sqlStatement, user.Name,
 		user.Password, user.Email)
+
+	fmt.Println("deletePlayer:", user.Name,
+		user.Password, user.Email)
+
+	err := row.Scan(&user.ID)
 
 	return err
 }

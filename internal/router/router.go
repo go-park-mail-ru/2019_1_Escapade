@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 
 	"fmt"
 	"os"
@@ -24,17 +24,17 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 
 	v1.HandleFunc("/", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, false))).Methods("GET")
-	r.HandleFunc("/ws", mi.ApplyMiddleware(API.GameOnline,
-		mi.CORS(conf.Cors, false)))
+	//r.HandleFunc("/ws", mi.ApplyMiddleware(API.GameOnline,
+	//	mi.CORS(conf.Cors, false)))
 
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.GetMyProfile,
-		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("GET")
+		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("GET")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.CreateUser,
 		mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.DeleteUser,
-		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("DELETE")
+		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("DELETE")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.UpdateProfile,
-		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("PUT")
+		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("PUT")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -51,7 +51,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.PostImage,
-		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("POST")
+		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/avatar", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -63,7 +63,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.CORS(conf.Cors, false))).Methods("GET")
 
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.SaveRecords,
-		mi.Auth(conf.Cookie), mi.CORS(conf.Cors, false))).Methods("POST")
+		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("POST")
 	v1.HandleFunc("/game", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
@@ -76,16 +76,13 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 
 // GetPort return port
 func GetPort(conf *config.Configuration) (port string) {
-	if os.Getenv("PORT") == "" {
-		os.Setenv("PORT", conf.Server.Port)
-	}
 
-	fmt.Println("launched, look at us on " + conf.Server.Host + os.Getenv("PORT")) //+ os.Getenv("PORT"))
-
-	if os.Getenv("PORT")[0] != ':' {
-		port = ":" + os.Getenv("PORT")
+	env := os.Getenv(conf.Server.PortURL)
+	if os.Getenv(conf.Server.PortURL)[0] != ':' {
+		port = ":" + env
 	} else {
-		port = os.Getenv("PORT")
+		port = env
 	}
+	fmt.Println("launched, look at us on " + conf.Server.Host + port)
 	return
 }

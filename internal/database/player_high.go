@@ -1,16 +1,17 @@
 package database
 
 import (
+	"math"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"database/sql"
-	"fmt"
 )
 
 // Register check sql-injections and are email and name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -23,21 +24,16 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 
 	if userID, err = db.createPlayer(tx, user); err != nil {
 		err = re.ErrorUserIsExist()
-		fmt.Println("database/register - fail creating User")
 		return
 	}
 
-	if err = db.createSession(tx, userID, sessionID); err != nil {
-		fmt.Println("database/register - fail creating Session")
-		return
-	}
+	// if err = db.createSession(tx, userID, sessionID); err != nil {
+	// 	return
+	// }
 
 	if err = db.createRecords(tx, userID); err != nil {
-		fmt.Println("database/register - fail creating Session")
 		return
 	}
-
-	fmt.Println("database/register +")
 
 	err = tx.Commit()
 	return
@@ -45,7 +41,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found *models.UserPublicInfo, err error) {
+func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPublicInfo, err error) {
 
 	var (
 		tx     *sql.Tx
@@ -58,22 +54,16 @@ func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found
 	defer tx.Rollback()
 
 	if userID, found, err = db.checkBunch(tx, user.Email, user.Password); err != nil {
-		fmt.Println("database/login - fail enter")
 		return
 	}
 
-	if err = db.createSession(tx, userID, sessionID); err != nil {
-		fmt.Println("database/login - fail creating Session")
-		return
-	}
+	// if err = db.createSession(tx, userID, sessionID); err != nil {
+	// 	return
+	// }
 
 	if err = db.updatePlayerLastSeen(tx, userID); err != nil {
-		fmt.Println("database/login - fail updatePlayerLastSeen")
 		return
 	}
-
-	fmt.Println("database/login +")
-
 	err = tx.Commit()
 	return
 }
@@ -105,6 +95,7 @@ func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivat
 	return
 }
 
+// GetUsers get users
 func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 	sort string) (players []*models.UserPublicInfo, err error) {
 	var (
@@ -138,6 +129,7 @@ func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 	return
 }
 
+// GetUser get one user
 func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicInfo, err error) {
 
 	var (
@@ -170,17 +162,32 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 	defer tx.Rollback()
 
 	if err = db.deletePlayer(tx, user); err != nil {
-		fmt.Println("database/DeleteAccount - fail deletting User")
 		return
 	}
 
-	if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
-		fmt.Println("database/DeleteAccount - fail deleting all user sessions")
-		return
-	}
-
-	fmt.Println("database/DeleteAccount +")
+	// if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
+	// 	return
+	// }
 
 	err = tx.Commit()
+	return
+}
+
+// GetUsersPageAmount returns amount of rows in table Player
+// deleted on amount of rows in one page
+func (db *DataBase) GetUsersPageAmount(perPage int) (amount int, err error) {
+	sqlStatement := `SELECT count(1) FROM Player`
+	row := db.Db.QueryRow(sqlStatement)
+	if err = row.Scan(&amount); err != nil {
+		return
+	}
+
+	if amount > db.PageUsers {
+		amount = db.PageUsers
+	}
+	if perPage == 0 {
+		perPage = 1
+	}
+	amount = int(math.Ceil(float64(amount) / float64(perPage)))
 	return
 }

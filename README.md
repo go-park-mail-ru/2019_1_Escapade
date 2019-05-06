@@ -1,4 +1,4 @@
-# Escapade [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/cors) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/cors/master/LICENSE) [![build](https://img.shields.io/travis/rs/cors.svg?style=flat)](https://travis-ci.org/rs/cors) [![Coverage](http://gocover.io/_badge/github.com/rs/cors)](http://gocover.io/github.com/rs/cors)
+# Escapade [![Go Report Card](https://goreportcard.com/badge/github.com/go-park-mail-ru/2019_1_Escapade)](https://goreportcard.com/report/github.com/go-park-mail-ru/2019_1_Escapade) [![Build Status](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade.svg?branch=develop)](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade) [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/go-park-mail-ru/2019_1_Escapade)
 
 :heart_eyes: Top backend :heart_eyes:
 
@@ -17,7 +17,7 @@
 
 
 ## Фронт
-- [Играть](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
-- [Разрабатывать](https://escapade-frontend.herokuapp.com)
+- [Играть](https://escapade-frontend.herokuapp.com)
+- [Разрабатывать](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
 - [Рисовать](https://www.figma.com/file/WcFryEu51iySsuBd8F0CLi0S/explose)
 

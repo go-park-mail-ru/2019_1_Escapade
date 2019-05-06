@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 
 language: go
 
@@ -12,6 +12,10 @@ env:
 
 install: true
 
+before_script:
+  - docker-compose -f docker-compose-test.yaml up --build
+
 script:
-  - go build main.go
-  - go test -v -race ./...
+  - ./wait-for-it.sh pg:5432
+  - ./wait-for-it.sh auth:3333
+  - go test ./...

@@ -3,6 +3,7 @@ package models
 // RoomSettings a set of parameters, that set the size,  of room
 // and field, the duration of game etc
 type RoomSettings struct {
+	ID            string `json:"id"`
 	Name          string `json:"name"`
 	Width         int    `json:"width"`
 	Height        int    `json:"height"`
@@ -11,6 +12,11 @@ type RoomSettings struct {
 	TimeToPrepare int    `json:"prepare"`
 	TimeToPlay    int    `json:"play"`
 	Mines         int    `json:"mines"`
+}
+
+// AreCorrect check are roomSettings parameters correct
+func (rs *RoomSettings) AreCorrect() bool {
+	return rs.Players > 1 && rs.Width*rs.Height-rs.Players-rs.Mines > 0
 }
 
 // NewSmallRoom create small room
