@@ -46,42 +46,42 @@ services:
       context: .
     depends_on:
        - "pg"
-      - "auth"
+       - "auth"
     ports:
       - 3002:3002
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/game"
 
-  history:
-    build:
-      dockerfile: ./history/Dockerfile
-      context: .
-    depends_on:
-      - "pg"
-      - "auth"
-    ports:
-      - 3004:3004
-    environment:
-      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTHSERVICE_URL=auth:3333
-      - PORT_HISTORY_URL=:3004
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+  # history:
+  #   build:
+  #     dockerfile: ./history/Dockerfile
+  #     context: .
+  #   depends_on:
+  #     - "pg"
+  #     - "auth"
+  #   ports:
+  #     - 3004:3004
+  #   environment:
+  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+  #     - AUTHSERVICE_URL=auth:3333
+  #     - PORT_HISTORY_URL=:3004
+  #   command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
 
-  chat:
-    build:
-      dockerfile: ./Dockerfile
-      context: ./escapade-chat
-    depends_on:
-      - "pg"
-    ports:
-      - 3005:3005
-    environment:
-      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTHSERVICE_URL=auth:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
+  # chat:
+  #   build:
+  #     dockerfile: ./Dockerfile
+  #     context: ./escapade-chat
+  #   depends_on:
+  #     - "pg"
+  #   ports:
+  #     - 3005:3005
+  #   environment:
+  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+  #     - AUTHSERVICE_URL=auth:3333
+  #   command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
 
   nginx:
 
@@ -96,5 +96,4 @@ services:
 
    depends_on:
      - api
-     - chat
 
