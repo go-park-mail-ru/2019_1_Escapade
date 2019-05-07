@@ -34,7 +34,7 @@ func main() {
 		configuration *config.Configuration
 		API           *api.Handler
 	)
-
+	
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Zap logger error:", err)

@@ -97,3 +97,37 @@ services:
    depends_on:
      - api
 
+  prometheus:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./prometheus
+    # image: prom/prometheus:latest
+    container_name: prometheus
+    # volumes:
+    #   - './prometheus/:/etc/prometheus/'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    
+  
+  nodeexporter:
+    image: prom/node-exporter:latest
+    container_name: nodeexporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)'
+    restart: unless-stopped
+    deploy:
+      mode: global
+    ports:
+      - "9000:9000"
+    
+
+
