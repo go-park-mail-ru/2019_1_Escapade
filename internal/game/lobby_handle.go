@@ -150,8 +150,9 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	conn.actionSem <- struct{}{}
 	defer func() { <-conn.actionSem }()
 
-	fmt.Println("EnterRoom")
+	fmt.Println("EnterRoom", rs)
 	if conn.InRoom() {
+		fmt.Println("in room", rs)
 		fmt.Println("EnterRoom ID compare", conn.RoomID(), rs.ID, rs)
 		if conn.RoomID() == rs.ID {
 			return
@@ -160,8 +161,10 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		conn.debug("change room")
 	}
 
+	fmt.Println("not in room", rs.ID, rs.ID == "create", conn.ID())
 	conn.debug("enter room" + rs.ID)
 	if rs.ID == "create" {
+		fmt.Println("you wanna crete room", rs)
 		conn.debug("see you wanna create room?")
 		lobby.CreateAndAddToRoom(rs, conn)
 		return

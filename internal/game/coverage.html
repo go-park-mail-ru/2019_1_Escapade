@@ -58,7 +58,7 @@
 				
 				<option value="file1">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/cell.go (100.0%)</option>
 				
-				<option value="file2">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/connection.go (81.7%)</option>
+				<option value="file2">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/connection.go (76.2%)</option>
 				
 				<option value="file3">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/connection_json.go (55.6%)</option>
 				
@@ -68,23 +68,23 @@
 				
 				<option value="file6">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/field_mutex.go (81.1%)</option>
 				
-				<option value="file7">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby.go (19.4%)</option>
+				<option value="file7">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby.go (32.3%)</option>
 				
-				<option value="file8">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_handle.go (46.3%)</option>
+				<option value="file8">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_handle.go (42.3%)</option>
 				
 				<option value="file9">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_history.go (0.0%)</option>
 				
 				<option value="file10">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_json.go (18.2%)</option>
 				
-				<option value="file11">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_mutex.go (28.6%)</option>
+				<option value="file11">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_mutex.go (21.4%)</option>
 				
-				<option value="file12">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_players.go (23.7%)</option>
+				<option value="file12">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_players.go (12.8%)</option>
 				
 				<option value="file13">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_request.go (66.7%)</option>
 				
 				<option value="file14">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_room.go (0.0%)</option>
 				
-				<option value="file15">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_send.go (30.7%)</option>
+				<option value="file15">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/lobby_send.go (18.7%)</option>
 				
 				<option value="file16">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/message.go (0.0%)</option>
 				
@@ -106,9 +106,9 @@
 				
 				<option value="file25">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/room_send.go (0.0%)</option>
 				
-				<option value="file26">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/send.go (64.3%)</option>
+				<option value="file26">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/send.go (35.7%)</option>
 				
-				<option value="file27">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/slice.go (20.6%)</option>
+				<option value="file27">github.com/go-park-mail-ru/2019_1_Escapade/internal/game/slice.go (12.7%)</option>
 				
 				</select>
 			</div>
@@ -335,12 +335,12 @@ func (conn *Connection) Kill(message string, makeDirty bool) <span class="cov8" 
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
-func (conn *Connection) Free() <span class="cov8" title="1">{
+func (conn *Connection) Free() <span class="cov0" title="0">{
 
         if conn.done() </span><span class="cov0" title="0">{
                 return
         }</span>
-        <span class="cov8" title="1">conn.setDone()
+        <span class="cov0" title="0">conn.setDone()
 
         conn.wGroup.Wait()
 
@@ -450,7 +450,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 }
 
 // write writes a message with the given message type and payload.
-func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettings) error <span class="cov0" title="0">{
+func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettings) error <span class="cov8" title="1">{
         conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
         return conn.ws.WriteMessage(mt, payload)
 }</span>
@@ -494,15 +494,15 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 
                         conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
                         w, err := conn.ws.NextWriter(websocket.TextMessage)
-                        if err != nil </span><span class="cov8" title="1">{
+                        if err != nil </span><span class="cov0" title="0">{
                                 return
                         }</span>
                         <span class="cov8" title="1">w.Write(message)
 
-                        if err := w.Close(); err != nil </span><span class="cov8" title="1">{
+                        if err := w.Close(); err != nil </span><span class="cov0" title="0">{
                                 return
                         }</span>
-                case &lt;-ticker.C:<span class="cov0" title="0">
+                case &lt;-ticker.C:<span class="cov8" title="1">
                         if err := conn.write(websocket.PingMessage, []byte{}, wsc); err != nil </span><span class="cov0" title="0">{
                                 return
                         }</span>
@@ -512,7 +512,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 
 // SendInformation send info
 func (conn *Connection) SendInformation(value interface{}) <span class="cov8" title="1">{
-        if conn.done() </span><span class="cov8" title="1">{
+        if conn.done() </span><span class="cov0" title="0">{
                 return
         }</span>
         <span class="cov8" title="1">conn.wGroup.Add(1)
@@ -539,17 +539,17 @@ func (conn *Connection) SendInformation(value interface{}) <span class="cov8" ti
 }
 
 // sendGroupInformation send info with WaitGroup
-func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGroup) <span class="cov8" title="1">{
-        defer func() </span><span class="cov8" title="1">{
+func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGroup) <span class="cov0" title="0">{
+        defer func() </span><span class="cov0" title="0">{
                 wg.Done()
                 utils.CatchPanic("connection.go sendGroupInformation()")
         }</span>()
-        <span class="cov8" title="1">conn.SendInformation(value)</span>
+        <span class="cov0" title="0">conn.SendInformation(value)</span>
 }
 
 // ID return players id
 func (conn *Connection) ID() int <span class="cov8" title="1">{
-        if conn.done() </span><span class="cov8" title="1">{
+        if conn.done() </span><span class="cov0" title="0">{
                 return conn.User.ID
         }</span>
         <span class="cov8" title="1">conn.wGroup.Add(1)
@@ -1292,9 +1292,9 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase) <span class="cov0" title="0">{
+func Launch(gc *config.GameConfig, db *database.DataBase) <span class="cov8" title="1">{
 
-        if lobby == nil </span><span class="cov0" title="0">{
+        if lobby == nil </span><span class="cov8" title="1">{
                 lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
                         db, gc.CanClose)
 
@@ -1303,7 +1303,7 @@ func Launch(gc *config.GameConfig, db *database.DataBase) <span class="cov0" tit
 }
 
 // GetLobby create lobby if it is nil and get it
-func GetLobby() *Lobby <span class="cov0" title="0">{
+func GetLobby() *Lobby <span class="cov8" title="1">{
         return lobby
 }</span>
 
@@ -1362,7 +1362,7 @@ func (lobby *Lobby) JoinConn(conn *Connection) <span class="cov8" title="1">{
                 return
         }</span>
         <span class="cov8" title="1">lobby.wGroup.Add(1)
-        defer func() </span><span class="cov8" title="1">{
+        defer func() </span><span class="cov0" title="0">{
                 utils.CatchPanic("lobby_handle.go Join()")
                 lobby.wGroup.Done()
         }</span>()
@@ -1391,7 +1391,7 @@ func (lobby *Lobby) Run(wg *sync.WaitGroup) <span class="cov8" title="1">{
                         go lobby.Analize(message)</span>
 
                         // TODO delete chanleavem cause Leave call direcrly
-                case connection := &lt;-lobby.chanLeave:<span class="cov0" title="0">
+                case connection := &lt;-lobby.chanLeave:<span class="cov8" title="1">
                         lobby.Leave(connection, "You disconnected!")</span>
                         // if need_stop {
                         //         if len(lobby.Playing.Get)+len(lobby.Waiting.Get) == 0 {
@@ -1413,7 +1413,7 @@ func (lobby *Lobby) Join(newConn *Connection) <span class="cov8" title="1">{
                 return
         }</span>
         <span class="cov8" title="1">lobby.wGroup.Add(1)
-        defer func() </span><span class="cov8" title="1">{
+        defer func() </span><span class="cov0" title="0">{
                 utils.CatchPanic("lobby_handle.go Join()")
                 lobby.wGroup.Done()
         }</span>()
@@ -1425,7 +1425,7 @@ func (lobby *Lobby) Join(newConn *Connection) <span class="cov8" title="1">{
                 return
         }</span>
 
-        <span class="cov8" title="1">go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
+        <span class="cov0" title="0">go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 
         newConn.debug("new waiter")</span>
 }
@@ -1497,8 +1497,9 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) <span c
         <span class="cov8" title="1">conn.actionSem &lt;- struct{}{}
         defer func() </span><span class="cov0" title="0">{ &lt;-conn.actionSem }</span>()
 
-        <span class="cov8" title="1">fmt.Println("EnterRoom")
+        <span class="cov8" title="1">fmt.Println("EnterRoom", rs)
         if conn.InRoom() </span><span class="cov0" title="0">{
+                fmt.Println("in room", rs)
                 fmt.Println("EnterRoom ID compare", conn.RoomID(), rs.ID, rs)
                 if conn.RoomID() == rs.ID </span><span class="cov0" title="0">{
                         return
@@ -1507,8 +1508,10 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) <span c
                 conn.debug("change room")</span>
         }
 
-        <span class="cov8" title="1">conn.debug("enter room" + rs.ID)
+        <span class="cov8" title="1">fmt.Println("not in room", rs.ID, rs.ID == "create", conn.ID())
+        conn.debug("enter room" + rs.ID)
         if rs.ID == "create" </span><span class="cov0" title="0">{
+                fmt.Println("you wanna crete room", rs)
                 conn.debug("see you wanna create room?")
                 lobby.CreateAndAddToRoom(rs, conn)
                 return
@@ -1849,7 +1852,7 @@ func (lobby *Lobby) allRoomsSearch(roomID string) (int, *Room) <span class="cov0
 }</span>
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) <span class="cov8" title="1">{
+func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) <span class="cov0" title="0">{
         lobby.allRoomsM.RLock()
         defer lobby.allRoomsM.RUnlock()
         index, room := lobby._AllRooms.SearchPlayer(conn)
@@ -1857,7 +1860,7 @@ func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) <span cl
 }</span>
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) allRoomsSearchObserver(conn *Connection) *Connection <span class="cov8" title="1">{
+func (lobby *Lobby) allRoomsSearchObserver(conn *Connection) *Connection <span class="cov0" title="0">{
         lobby.allRoomsM.RLock()
         defer lobby.allRoomsM.RUnlock()
         old := lobby._AllRooms.SearchObserver(conn)
@@ -1942,9 +1945,11 @@ import (
         "fmt"
 
         "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+        "github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 )
 
 func (lobby *Lobby) addWaiter(newConn *Connection) <span class="cov8" title="1">{
+        metrics.WaitingPlayers.Add(1)
         fmt.Println("addWaiter called")
         go lobby.waitingAdd(newConn)
         if !newConn.Both() </span><span class="cov8" title="1">{
@@ -1988,7 +1993,7 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) <span class="cov0" title="0
         conn.PushToLobby()</span>
 }
 
-func (lobby *Lobby) recoverInRoom(newConn *Connection) bool <span class="cov8" title="1">{
+func (lobby *Lobby) recoverInRoom(newConn *Connection) bool <span class="cov0" title="0">{
         // find such player
         i, room := lobby.allRoomsSearchPlayer(newConn)
 
@@ -1999,7 +2004,7 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection) bool <span class="cov8" t
         }</span>
 
         // find such observer
-        <span class="cov8" title="1">old := lobby.allRoomsSearchObserver(newConn)
+        <span class="cov0" title="0">old := lobby.allRoomsSearchObserver(newConn)
         if old != nil </span><span class="cov0" title="0">{
                 room = old.Room()
                 if room == nil </span><span class="cov0" title="0">{
@@ -2008,7 +2013,7 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection) bool <span class="cov8" t
                 <span class="cov0" title="0">room.RecoverObserver(old, newConn)
                 return true</span>
         }
-        <span class="cov8" title="1">return false</span>
+        <span class="cov0" title="0">return false</span>
 }
 </pre>
 		
@@ -2061,6 +2066,7 @@ type LobbyGet struct {
 		<pre class="file" id="file14" style="display: none">package game
 
 import (
+        "github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
         "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
         re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
         "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -2080,7 +2086,8 @@ func (lobby *Lobby) RoomStart(room *Room) <span class="cov0" title="0">{
                 utils.CatchPanic("lobby_room.go RoomStart()")
         }</span>()
 
-        <span class="cov0" title="0">go lobby.freeRoomsRemove(room)
+        <span class="cov0" title="0">metrics.FreeRooms.Add(-1)
+        go lobby.freeRoomsRemove(room)
         go lobby.sendRoomUpdate(*room, All)</span>
 }
 
@@ -2095,7 +2102,8 @@ func (lobby *Lobby) roomFinish(room *Room) <span class="cov0" title="0">{
                 utils.CatchPanic("lobby_room.go roomFinish()")
         }</span>()
 
-        <span class="cov0" title="0">go lobby.allRoomsRemove(room)
+        <span class="cov0" title="0">metrics.Rooms.Add(-1)
+        go lobby.allRoomsRemove(room)
         go lobby.sendRoomUpdate(*room, All)</span>
 }
 
@@ -2178,6 +2186,9 @@ func (lobby *Lobby) LoadRooms(URLs []string) error <span class="cov0" title="0">
 }
 
 func (lobby *Lobby) addRoom(room *Room) (err error) <span class="cov0" title="0">{
+        metrics.Rooms.Add(1)
+        metrics.FreeRooms.Add(1)
+
         if !lobby.allRoomsAdd(room) </span><span class="cov0" title="0">{
                 err = re.ErrorLobbyCantCreateRoom()
                 fmt.Println("cant add to all")
@@ -2221,7 +2232,7 @@ func (lobby *Lobby) greet(conn *Connection) <span class="cov8" title="1">{
                 return
         }</span>
         <span class="cov8" title="1">lobby.wGroup.Add(1)
-        defer func() </span><span class="cov8" title="1">{
+        defer func() </span><span class="cov0" title="0">{
                 lobby.wGroup.Done()
                 utils.CatchPanic("lobby greet")
         }</span>()
@@ -2308,17 +2319,17 @@ func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) <span cla
         lobby.send(response, predicate)</span>
 }
 
-func (lobby *Lobby) sendWaiterEnter(conn Connection, predicate SendPredicate) <span class="cov8" title="1">{
+func (lobby *Lobby) sendWaiterEnter(conn Connection, predicate SendPredicate) <span class="cov0" title="0">{
         if lobby.done() </span><span class="cov0" title="0">{
                 return
         }</span>
-        <span class="cov8" title="1">lobby.wGroup.Add(1)
-        defer func() </span><span class="cov8" title="1">{
+        <span class="cov0" title="0">lobby.wGroup.Add(1)
+        defer func() </span><span class="cov0" title="0">{
                 lobby.wGroup.Done()
                 utils.CatchPanic("lobby sendWaiterEnter")
         }</span>()
 
-        <span class="cov8" title="1">response := models.Response{
+        <span class="cov0" title="0">response := models.Response{
                 Type:  "LobbyWaiterEnter",
                 Value: conn,
         }
@@ -3080,6 +3091,7 @@ func (room *Room) addAction(id int, action int) (pa *PlayerAction) <span class="
 		<pre class="file" id="file21" style="display: none">package game
 
 import (
+        "github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
         "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
         "fmt"
@@ -3186,7 +3198,8 @@ func (room *Room) Leave(conn *Connection, action int) <span class="cov0" title="
                 room.wGroup.Done()
         }</span>()
 
-        <span class="cov0" title="0">go room.RemoveFromGame(conn, action == ActionDisconnect)
+        <span class="cov0" title="0">metrics.Players.WithLabelValues(room.ID, conn.User.Name).Desc()
+        go room.RemoveFromGame(conn, action == ActionDisconnect)
 
         pa := *room.addAction(conn.ID(), action)
         room.sendAction(pa, room.AllExceptThat(conn))
@@ -3892,7 +3905,11 @@ func (room *Room) observersSearch(conn *Connection) int <span class="cov0" title
 		
 		<pre class="file" id="file24" style="display: none">package game
 
-import "fmt"
+import (
+        "fmt"
+
+        "github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+)
 
 // RecoverPlayer call it in lobby.join if player disconnected
 func (room *Room) RecoverPlayer(newConn *Connection) <span class="cov0" title="0">{
@@ -3941,8 +3958,10 @@ func (room *Room) addObserver(conn *Connection) bool <span class="cov0" title="0
                 room.wGroup.Done()
         }</span>()
 
+        <span class="cov0" title="0">metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
+
         // if we havent a place
-        <span class="cov0" title="0">if !room.observersEnoughPlace() </span><span class="cov0" title="0">{
+        if !room.observersEnoughPlace() </span><span class="cov0" title="0">{
                 conn.debug("Room cant execute request ")
                 return false
         }</span>
@@ -3966,12 +3985,14 @@ func (room *Room) addPlayer(conn *Connection) bool <span class="cov0" title="0">
                 room.wGroup.Done()
         }</span>()
 
+        <span class="cov0" title="0">metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
+
         // if room have already started
         // if room.Status != StatusPeopleFinding {
         //         return false
         // }
 
-        <span class="cov0" title="0">conn.debug("Room(" + room.ID + ") wanna connect you")
+        conn.debug("Room(" + room.ID + ") wanna connect you")
 
         // if room hasnt got places
         if !room.playersEnoughPlace() </span><span class="cov0" title="0">{
@@ -4359,8 +4380,8 @@ func SendToConnections(info interface{},
 
         waitJobs := &amp;sync.WaitGroup{}
         for _, group := range groups </span><span class="cov8" title="1">{
-                for _, connection := range group </span><span class="cov8" title="1">{
-                        if predicate(connection) </span><span class="cov8" title="1">{
+                for _, connection := range group </span><span class="cov0" title="0">{
+                        if predicate(connection) </span><span class="cov0" title="0">{
                                 waitJobs.Add(1)
                                 go connection.sendGroupInformation(info, waitJobs)
                         }</span>
@@ -4372,7 +4393,7 @@ func SendToConnections(info interface{},
 // AllExceptThat is SendPredicate to SendToConnections
 // it will send everybody except selected one and disconnected
 func AllExceptThat(me *Connection) func(*Connection) bool <span class="cov8" title="1">{
-        return func(conn *Connection) bool </span><span class="cov8" title="1">{
+        return func(conn *Connection) bool </span><span class="cov0" title="0">{
                 return !conn.done() &amp;&amp; !me.done() &amp;&amp; conn != me &amp;&amp; conn.IsConnected()
         }</span>
 }
@@ -4475,8 +4496,8 @@ func NewRooms(capacity int) *Rooms <span class="cov8" title="1">{
 
 // search element in slice
 func sliceIndex(limit int, predicate func(i int) bool) int <span class="cov8" title="1">{
-        for i := 0; i &lt; limit; i++ </span><span class="cov8" title="1">{
-                if predicate(i) </span><span class="cov8" title="1">{
+        for i := 0; i &lt; limit; i++ </span><span class="cov0" title="0">{
+                if predicate(i) </span><span class="cov0" title="0">{
                         return i
                 }</span>
         }
@@ -4609,7 +4630,7 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) <span class="cov0"
 
 // SearchPlayer find connection in rooms players and return it if success
 // otherwise nil
-func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) <span class="cov8" title="1">{
+func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) <span class="cov0" title="0">{
         for _, room := range rooms.Get </span><span class="cov0" title="0">{
                 i := room.playersSearchIndexPlayer(new)
                 // cant found
@@ -4622,12 +4643,12 @@ func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) <span class="cov8
 
                 <span class="cov0" title="0">return i, room</span>
         }
-        <span class="cov8" title="1">return -1, nil</span>
+        <span class="cov0" title="0">return -1, nil</span>
 }
 
 // SearchObserver find connection in rooms obserers and return it if success
 // otherwise nil
-func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) <span class="cov8" title="1">{
+func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) <span class="cov0" title="0">{
         for _, room := range rooms.Get </span><span class="cov0" title="0">{
                 i := room.observersSearch(new)
                 if i &lt; 0 </span><span class="cov0" title="0">{
@@ -4636,7 +4657,7 @@ func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) <span clas
 
                 <span class="cov0" title="0">return room.observers()[i]</span>
         }
-        <span class="cov8" title="1">return nil</span>
+        <span class="cov0" title="0">return nil</span>
 }
 
 // Add try add element if its possible. Return bool result
@@ -4689,7 +4710,7 @@ func (conns *Connections) Empty() bool <span class="cov0" title="0">{
 // Search find connection in slice and return its index if success
 // otherwise -1
 func (conns *Connections) Search(conn *Connection) (i int) <span class="cov8" title="1">{
-        return sliceIndex(len(conns.Get), func(i int) bool </span><span class="cov8" title="1">{ return conns.Get[i].ID() == conn.ID() }</span>)
+        return sliceIndex(len(conns.Get), func(i int) bool </span><span class="cov0" title="0">{ return conns.Get[i].ID() == conn.ID() }</span>)
 }
 
 // enoughPlace check that you can add more elements
@@ -4718,10 +4739,10 @@ func (conns *Connections) Add(conn *Connection, kill bool) bool <span class="cov
 // exists in map
 func (conns *Connections) Remove(conn *Connection) <span class="cov8" title="1">{
         i := conns.Search(conn)
-        if i &lt; 0 </span><span class="cov0" title="0">{
+        if i &lt; 0 </span><span class="cov8" title="1">{
                 return
         }</span>
-        <span class="cov8" title="1">size := len(conns.Get)
+        <span class="cov0" title="0">size := len(conns.Get)
         conns.Get[i], conns.Get[size-1] = conns.Get[size-1], conns.Get[i]
         conns.Get[size-1] = nil
         conns.Get = conns.Get[:size-1]</span>
