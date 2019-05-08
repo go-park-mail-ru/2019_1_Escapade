@@ -1,21 +1,34 @@
 package game
 
 import (
-    "testing"
-    . "github.com/smartystreets/goconvey/convey"
+	"math/rand"
+	"testing"
+	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestSpec(t *testing.T) {
+func TestNewPlayerAction(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
-	Convey("Given some integer with a starting value", t, func() {
-		x := 1
+	Convey("Given some playerID, actionID and time 'before' creating PlayerAction", t, func() {
+		before := time.Now()
+		rand.Seed(before.UnixNano())
+		playerID := rand.Intn(10000000)
+		actionID := rand.Intn(15)
 
-		Convey("When the integer is incremented", func() {
-			x++
+		Convey("When the playerAction is created and time 'after' set", func() {
+			playerAction := NewPlayerAction(playerID, actionID)
+			after := time.Now()
 
-			Convey("The value should be greater by one", func() {
-				So(x, ShouldEqual, 2)
+			Convey("The field 'Player' should be the same as playerID", func() {
+				So(playerAction.Player, ShouldEqual, playerID)
+			})
+			Convey("The field 'Action' should be the same as actionID", func() {
+				So(playerAction.Action, ShouldEqual, actionID)
+			})
+			Convey("The field 'Time' should be between 'before' and 'after'", func() {
+				So(playerAction.Time, ShouldHappenBetween, before, after)
 			})
 		})
 	})

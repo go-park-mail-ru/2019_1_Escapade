@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 )
 
 func (lobby *Lobby) addWaiter(newConn *Connection) {
+	metrics.WaitingPlayers.Add(1)
 	fmt.Println("addWaiter called")
 	go lobby.waitingAdd(newConn)
 	if !newConn.Both() {

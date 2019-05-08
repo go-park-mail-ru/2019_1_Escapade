@@ -39,17 +39,3 @@ func NewPlayerAction(player int, action int) *PlayerAction {
 	}
 	return pa
 }
-
-func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	pa = NewPlayerAction(id, action)
-	room.setToHistory(pa)
-	return
-}

@@ -25,8 +25,7 @@ func LaunchLobbyHistory(db *database.DataBase,
 	}
 
 	lobby := NewLobby(gameSettings.ConnectionCapacity, len(urls),
-		gameSettings.LobbyJoin, gameSettings.LobbyRequest, db,
-		gameSettings.CanClose)
+		db, gameSettings.CanClose)
 	all := &sync.WaitGroup{}
 	all.Add(1)
 	go lobby.Run(all)

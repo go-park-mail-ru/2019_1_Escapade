@@ -1,6 +1,10 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+)
 
 // RecoverPlayer call it in lobby.join if player disconnected
 func (room *Room) RecoverPlayer(newConn *Connection) {
@@ -49,6 +53,8 @@ func (room *Room) addObserver(conn *Connection) bool {
 		room.wGroup.Done()
 	}()
 
+	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
+
 	// if we havent a place
 	if !room.observersEnoughPlace() {
 		conn.debug("Room cant execute request ")
@@ -73,6 +79,8 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	defer func() {
 		room.wGroup.Done()
 	}()
+
+	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 
 	// if room have already started
 	// if room.Status != StatusPeopleFinding {

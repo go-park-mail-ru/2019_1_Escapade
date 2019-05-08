@@ -2,11 +2,14 @@ package metrics
 
 import "github.com/prometheus/client_golang/prometheus"
 
-var Hits *prometheus.CounterVec
+var (
+	Hits      *prometheus.CounterVec
+	Rooms     prometheus.Counter
+	FreeRooms prometheus.Counter
 
-var Rooms prometheus.Counter
-
-var Players *prometheus.CounterVec
+	WaitingPlayers prometheus.Counter
+	Players        *prometheus.CounterVec
+)
 
 func InitHitsMetric(service string) {
 	Hits = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -21,6 +24,11 @@ func InitRoomMetric(service string) {
 		Namespace: service,
 		Help:      "Number of active Rooms",
 	})
+	FreeRooms = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "FreeRooms",
+		Namespace: service,
+		Help:      "Number of free Rooms",
+	})
 }
 
 func InitPlayersMetric(service string) {
@@ -28,5 +36,11 @@ func InitPlayersMetric(service string) {
 		Name:      "Players",
 		Namespace: service,
 		Help:      "Active Players by Rooms",
-	}, []string{"room", "playes"})
+	}, []string{"room", "player id"})
+
+	WaitingPlayers = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "WaitingPlayers",
+		Namespace: service,
+		Help:      "Number of waiting users",
+	})
 }

@@ -55,13 +55,19 @@ type Lobby struct {
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(connectionsCapacity, roomsCapacity,
-	maxJoin, maxRequest int, db *database.DataBase,
-	canCloseRooms bool) *Lobby {
+func NewLobby(connectionsCapacity, roomsCapacity int,
+	db *database.DataBase, canCloseRooms bool) *Lobby {
 
-	messages, err := db.LoadMessages(false, "")
-	if err != nil {
-		fmt.Println("cant load messages:", err.Error())
+	var (
+		messages []*models.Message
+		err      error
+	)
+	if db != nil {
+		if messages, err = db.LoadMessages(false, ""); err != nil {
+			fmt.Println("cant load messages:", err.Error())
+		}
+	} else {
+		messages = make([]*models.Message, 0)
 	}
 	context, cancel := context.WithCancel(context.Background())
 	lobby := &Lobby{
@@ -109,7 +115,7 @@ func Launch(gc *config.GameConfig, db *database.DataBase) {
 
 	if lobby == nil {
 		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
-			gc.LobbyJoin, gc.LobbyRequest, db, gc.CanClose)
+			db, gc.CanClose)
 
 		go lobby.Run(nil)
 	}
