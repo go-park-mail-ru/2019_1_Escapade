@@ -187,13 +187,12 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 	all := &sync.WaitGroup{}
 
 	fmt.Println("JoinConn!")
-
+	conn.lobby.JoinConn(conn)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
 	go conn.ReadConn(conn.context, ws, all)
 
-	conn.lobby.JoinConn(conn)
 	fmt.Println("Wait!")
 	all.Wait()
 	fmt.Println("conn finished")
@@ -270,17 +269,13 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 	ticker := time.NewTicker(wsc.PingPeriod)
 	defer ticker.Stop()
 
-	writeSem := make(chan struct{}, 1)
-	defer close(writeSem)
-
 	for {
 		select {
 		case <-parent.Done():
 			fmt.Println("WriteConn done catched")
 			return
 		case message, ok := <-conn.send:
-			writeSem <- struct{}{}
-			defer func() { <-writeSem }()
+
 			fmt.Println("saw!")
 			//fmt.Println("server wrote:", string(message))
 			if !ok {

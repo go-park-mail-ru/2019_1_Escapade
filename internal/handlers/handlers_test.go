@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	cook "github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -209,22 +210,28 @@ func TestAll(t *testing.T) {
 
 	const (
 		place      = "main"
-		confPath   = "../../../conf.json"
-		secretPath = "../../../secret.json"
+		confPath   = "../../conf.json"
+		secretPath = "../../secret.json"
 	)
 
 	var (
-		H *Handler
+		H             *Handler
+		configuration *config.Configuration
+		err           error
 	)
+	if configuration, err = config.InitPublic(confPath); err != nil {
+		t.Error("eeeer", err.Error())
+		return
+	}
 
 	fmt.Println("launchTests")
-	authConn, err := clients.ServiceConnectionsInit()
+	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 	if err != nil {
 		t.Error("serviceConnectionsInit error:", err)
 	}
 	defer authConn.Close()
 
-	H, _, err = InitAPI(confPath, secretPath, authConn) // init.go
+	H, err = GetAPIHandler(configuration, authConn) // init.go
 	if err != nil {
 		t.Error("serviceConnectionsInit error:", err)
 	}

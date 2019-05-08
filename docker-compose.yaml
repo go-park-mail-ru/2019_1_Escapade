@@ -83,20 +83,6 @@ services:
   #     - AUTHSERVICE_URL=auth:3333
   #   command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
 
-  nginx:
-
-   build: .
-   restart: always
-
-   ports:
-     - "80:80"
-   deploy:
-     mode: replicated
-     replicas: 3
-
-   depends_on:
-     - api
-
   prometheus:
     build:
       dockerfile: ./Dockerfile
@@ -111,6 +97,28 @@ services:
     ports:
       - "9090:9090"
     
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+     - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+     - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+     - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+
+  nginx:
+
+   build: .
+   restart: always
+
+   ports:
+     - "80:80"
+
+   depends_on:
+     - api
+     - game
   
   # nodeexporter:
   #   image: prom/node-exporter:latest
