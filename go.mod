@@ -1,6 +1,6 @@
 module github.com/go-park-mail-ru/2019_1_Escapade
 
-go 1.11
+go 1.12
 
 // +heroku goVersion go1.12
 
