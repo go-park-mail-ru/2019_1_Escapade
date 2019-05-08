@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"log"
 
+	"net/http"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"net/http"
-
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +35,11 @@ func main() {
 		configuration *config.Configuration
 		API           *api.Handler
 	)
-	
+
+	metrics.InitHitsMetric("api")
+
+	prometheus.MustRegister(metrics.Hits)
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Zap logger error:", err)

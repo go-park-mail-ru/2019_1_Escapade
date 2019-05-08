@@ -1,14 +1,28 @@
 package middleware
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"net/http"
 )
+
+type respWriterStatusCode struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *respWriterStatusCode) WriteHeader(status int) {
+	rw.status = status
+	rw.ResponseWriter.WriteHeader(status)
+}
 
 // HandleDecorator middleware
 type HandleDecorator func(http.HandlerFunc) http.HandlerFunc
@@ -44,6 +58,7 @@ func Auth(cc config.SessionConfig) HandleDecorator {
 			if _, err := cookie.GetSessionCookie(r, cc); err != nil {
 				const place = "middleware/Auth"
 				utils.PrintResult(err, http.StatusUnauthorized, place)
+				rw.WriteHeader(http.StatusUnauthorized)
 				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
 				return
 			}
@@ -63,6 +78,15 @@ func Recover(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func Metrics(next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		goodRW := &respWriterStatusCode{rw, 200}
+		next(goodRW, r)
+		fmt.Println(goodRW.status)
+		metrics.Hits.WithLabelValues(strconv.Itoa(goodRW.status), r.URL.Path, r.Method).Inc()
+	}
+}
+
 // ApplyMiddleware apply middleware
 func ApplyMiddleware(handler http.HandlerFunc,
 	decorators ...HandleDecorator) http.HandlerFunc {
@@ -70,5 +94,6 @@ func ApplyMiddleware(handler http.HandlerFunc,
 	for _, m := range decorators {
 		handler = m(handler)
 	}
+	handler = Metrics(handler)
 	return handler
 }

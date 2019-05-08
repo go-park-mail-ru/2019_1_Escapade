@@ -4,6 +4,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"fmt"
 	"os"
@@ -71,6 +72,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	// v1.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	// v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
+	r.Handle("/metrics", promhttp.Handler())
 	return r
 }
 
