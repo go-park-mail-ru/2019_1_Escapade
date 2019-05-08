@@ -4,9 +4,9 @@ import "github.com/prometheus/client_golang/prometheus"
 
 var Hits *prometheus.CounterVec
 
-
-func GetHitsMetric(service string){
+func InitHitsMetric(service string) {
 	Hits = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "Hits"
-	}, []strings{"statsus", "path", "method"})
+		Name: "Hits",
+		Help: service,
+	}, []string{"statsus", "path", "method"})
 }
