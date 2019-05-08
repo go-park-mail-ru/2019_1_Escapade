@@ -36,7 +36,7 @@ func InitPlayersMetric(service string) {
 		Name:      "Players",
 		Namespace: service,
 		Help:      "Active Players by Rooms",
-	}, []string{"room", "player id"})
+	}, []string{"room", "player"})
 
 	WaitingPlayers = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "WaitingPlayers",

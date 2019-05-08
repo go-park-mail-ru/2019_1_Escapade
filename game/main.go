@@ -10,7 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+
+	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/gorilla/mux"
@@ -44,7 +45,7 @@ func main() {
 	metrics.InitRoomMetric("game")
 	metrics.InitPlayersMetric("game")
 
-	prometheus.MustRegister(metrics.Rooms, metrics.Players)
+	prometheus.MustRegister(metrics.Rooms, metrics.Players, metrics.FreeRooms, metrics.WaitingPlayers)
 
 	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 	if err != nil {
@@ -59,8 +60,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", mi.ApplyMiddleware(handler.GameOnline,
-		mi.CORS(configuration.Cors, false)))
+	r.HandleFunc("/ws", handler.GameOnline)
 
 	r.Handle("/metrics", promhttp.Handler())
 
