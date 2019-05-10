@@ -17,8 +17,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// go test -coverprofile test/cover.out
-// go tool cover -html=test/cover.out -o test/coverage.html
+// go test -coverprofile cover.out
+// go tool cover -html=cover.out -o test/coverage.html
 
 var n = 10
 var connections = make([]*Connection, n)
@@ -198,6 +198,71 @@ func TestLobby(t *testing.T) {
 		l.sendWaiterEnter(*connections[7], All)
 		l.sendPlayerEnter(*connections[7], All)
 		l.sendPlayerExit(*connections[7], All)
+		l.sendWaiterExit(*connections[7], All)
+
+		//l.CreateAndAddToRoom(settings, connections[7])
+		//l.RoomStart(room)
+		//room.FinishGame(false)
+
+	})
+}
+
+func CatchPanic(place string) {
+	// panic doesnt recover
+
+	if r := recover(); r != nil {
+		fmt.Println("Panic recovered in", place)
+		fmt.Println("More", r)
+	}
+}
+
+func TestRoom(t *testing.T) {
+
+	metrics.InitRoomMetric("game")
+	metrics.InitPlayersMetric("game")
+	defer CatchPanic("TestRoom")
+	// Only pass t into top-level Convey calls
+	Convey("Given slice of connections", t, func() {
+
+		s := httptest.NewServer(http.HandlerFunc(testGame(7)))
+		defer s.Close()
+
+		u := "ws" + strings.TrimPrefix(s.URL, "http")
+
+		ws, _, err := websocket.DefaultDialer.Dial(u, nil)
+		if err != nil {
+			Convey("When websocket dials, the error should be nil", func() {
+				So(err, ShouldBeNil)
+			})
+
+			return
+		}
+		defer ws.Close()
+
+		roomID := utils.RandomString(16)
+		settings := models.NewSmallRoom()
+		room, err := NewRoom(settings, roomID, GetLobby())
+		if err != nil {
+			panic(111111)
+		}
+
+		time.Sleep(3 * time.Second)
+		room.playersCapacity()
+		room.player(0)
+		room.players()
+		room.sendPlayerEnter(*connections[7], All)
+		room.playerFlag(0)
+		room.sendField(All)
+		room.sendObserverEnter(*connections[7], All)
+		room.sendObserverExit(*connections[7], All)
+		room.sendPlayerExit(*connections[7], All)
+		room.playerFinished(0)
+		room.sendStatus(All)
+
+		room.RecoverPlayer(connections[7])
+		room.RecoverObserver(connections[6], connections[7])
+		room.RemoveFromGame(connections[7], true)
+		room.SetFinished(connections[7])
 
 		//l.CreateAndAddToRoom(settings, connections[7])
 		//l.RoomStart(room)
