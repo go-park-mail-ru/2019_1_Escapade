@@ -4,11 +4,11 @@ import "github.com/prometheus/client_golang/prometheus"
 
 var (
 	Hits      *prometheus.CounterVec
-	Rooms     prometheus.Counter
-	FreeRooms prometheus.Counter
+	Rooms     prometheus.Gauge
+	FreeRooms prometheus.Gauge
 
-	WaitingPlayers prometheus.Counter
-	Players        *prometheus.CounterVec
+	WaitingPlayers prometheus.Gauge
+	Players        *prometheus.GaugeVec
 )
 
 func InitHitsMetric(service string) {
@@ -19,12 +19,12 @@ func InitHitsMetric(service string) {
 }
 
 func InitRoomMetric(service string) {
-	Rooms = prometheus.NewCounter(prometheus.CounterOpts{
+	Rooms = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "Rooms",
 		Namespace: service,
 		Help:      "Number of active Rooms",
 	})
-	FreeRooms = prometheus.NewCounter(prometheus.CounterOpts{
+	FreeRooms = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "FreeRooms",
 		Namespace: service,
 		Help:      "Number of free Rooms",
@@ -32,13 +32,13 @@ func InitRoomMetric(service string) {
 }
 
 func InitPlayersMetric(service string) {
-	Players = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Players = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name:      "Players",
 		Namespace: service,
 		Help:      "Active Players by Rooms",
 	}, []string{"room", "player"})
 
-	WaitingPlayers = prometheus.NewCounter(prometheus.CounterOpts{
+	WaitingPlayers = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "WaitingPlayers",
 		Namespace: service,
 		Help:      "Number of waiting users",

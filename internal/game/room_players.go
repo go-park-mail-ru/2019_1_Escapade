@@ -182,6 +182,8 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) {
 	fmt.Println("removeDuringGame after len", len(room._Players.Connections))
 	fmt.Println("removeDuringGame system says", room.playersEmpty())
 	if room.playersEmpty() {
+		metrics.Rooms.Dec()
+
 		fmt.Println("room.Players.Empty")
 		room.Close()
 	}

@@ -108,7 +108,7 @@ func (room *Room) Leave(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
-	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Desc()
+	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
 	go room.RemoveFromGame(conn, action == ActionDisconnect)
 
 	pa := *room.addAction(conn.ID(), action)

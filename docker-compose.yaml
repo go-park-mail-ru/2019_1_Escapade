@@ -108,17 +108,17 @@ services:
     ports:
       - 3000:3000
 
-  nginx:
+  # nginx:
 
-   build: .
-   restart: always
+  #  build: .
+  #  restart: always
 
-   ports:
-     - "80:80"
+  #  ports:
+  #    - "80:80"
 
-   depends_on:
-     - api
-     - game
+  #  depends_on:
+  #    - api
+  #    - game
   
   # nodeexporter:
   #   image: prom/node-exporter:latest
