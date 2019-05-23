@@ -70,19 +70,6 @@ services:
   #     - PORT_HISTORY_URL=:3004
   #   command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
 
-  # chat:
-  #   build:
-  #     dockerfile: ./Dockerfile
-  #     context: ./escapade-chat
-  #   depends_on:
-  #     - "pg"
-  #   ports:
-  #     - 3005:3005
-  #   environment:
-  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-  #     - AUTHSERVICE_URL=auth:3333
-  #   command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
-
   prometheus:
     build:
       dockerfile: ./Dockerfile

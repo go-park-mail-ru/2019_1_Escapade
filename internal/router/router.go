@@ -21,7 +21,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 
 	v.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	var v1 = r
+	var v1 = v
 
 	v1.HandleFunc("/", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, false))).Methods("GET")
