@@ -38,6 +38,9 @@ type Lobby struct {
 	messagesM *sync.Mutex
 	_Messages []*models.Message
 
+	anonymousM *sync.Mutex
+	_Anonymous int
+
 	context context.Context
 	cancel  context.CancelFunc
 
@@ -91,6 +94,9 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 
 		messagesM: &sync.Mutex{},
 		_Messages: messages,
+
+		anonymousM: &sync.Mutex{},
+		_Anonymous: -1,
 
 		context: context,
 		cancel:  cancel,

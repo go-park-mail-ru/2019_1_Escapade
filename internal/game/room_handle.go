@@ -340,21 +340,29 @@ func (room *Room) FinishGame(timer bool) {
 	room.Status = StatusFinished
 	fmt.Println(room.ID, "We finish room?", room.Status)
 
-	go room.sendStatus(room.All)
-	go room.sendMessage("Battle finished!", room.All)
-	go room.sendGameOver(timer, room.All)
-	room.Save()
-	room.lobby.roomFinish(room)
+	room.sendStatus(room.All)
+	room.sendMessage("Battle finished!", room.All)
+	room.sendGameOver(timer, room.All)
 	players := room.players()
 	for _, player := range players {
 		player.Finished = true
 	}
 
 	playersConns := room.playersConnections()
-	for _, conn := range playersConns {
-		room.playersRemove(conn)
-		room.addObserver(conn)
+	for i, conn := range playersConns {
+		fmt.Println("found", i)
+		if conn == nil {
+			fmt.Println("fine nil")
+			//continue
+		} else {
+			fmt.Println("id", conn.ID())
+		}
+		//room.playersRemove(conn)
+		room.observersAdd(conn, false)
 	}
+	room.zeroPlayers()
+	room.lobby.roomFinish(room)
+	room.Save()
 }
 
 // initTimers launch game timers. Call it when flag placement starts

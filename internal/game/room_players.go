@@ -63,7 +63,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 		return false
 	}
 	conn.debug("addObserver")
-	go room.MakeObserver(conn)
+	room.MakeObserver(conn)
 
 	go room.addAction(conn.ID(), ActionConnectAsObserver)
 	go room.sendObserverEnter(*conn, room.AllExceptThat(conn))

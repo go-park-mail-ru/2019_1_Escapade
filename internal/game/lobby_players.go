@@ -18,6 +18,15 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 	}
 }
 
+func (lobby *Lobby) Anonymous() int {
+	var id int
+	lobby.anonymousM.Lock()
+	id = lobby._Anonymous
+	lobby._Anonymous--
+	lobby.anonymousM.Unlock()
+	return id
+}
+
 func (lobby *Lobby) addPlayer(newConn *Connection) {
 	fmt.Println("addPlayer called")
 	lobby.playingAdd(newConn)
