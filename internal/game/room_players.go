@@ -17,10 +17,11 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 	}()
 
 	// add connection as player
-	go room.MakePlayer(newConn)
+	room.MakePlayer(newConn)
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
-	go room.sendAction(pa, room.AllExceptThat(newConn))
-	go room.greet(newConn)
+	room.addPlayer(newConn)
+	room.sendAction(pa, room.AllExceptThat(newConn))
+	room.greet(newConn)
 
 	return
 }
@@ -157,7 +158,7 @@ func (room *Room) MakeObserver(conn *Connection) {
 	conn.PushToRoom(room)
 }
 
-func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) {
+func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool) {
 	if room.done() {
 		return
 	}
@@ -166,7 +167,6 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("removeDuringGame")
 	//fmt.Println("removeDuringGame before len", len(room._Players.Connections))
 
 	i := room.playersSearchIndexPlayer(conn)
@@ -176,13 +176,20 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) {
 			room.GiveUp(conn)
 		}
 
-		room.playersRemove(conn)
-		go room.sendPlayerExit(*conn, room.All)
+		done = room.playersRemove(conn, disconnected)
+		if done {
+			room.sendPlayerExit(*conn, room.All)
+		}
 	} else {
-		go room.sendObserverExit(*conn, room.All)
-		room.observersRemove(conn)
+		done = room.observersRemove(conn, disconnected)
+		if done {
+			go room.sendObserverExit(*conn, room.All)
+		}
 	}
-
+	if !done {
+		return done
+	}
+	fmt.Println("removeDuringGame")
 	//fmt.Println("removeDuringGame after len", len(room._Players.Connections))
 	fmt.Println("removeDuringGame system says", room.playersEmpty())
 	if room.playersEmpty() {
@@ -194,4 +201,5 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) {
 		room.Close()
 	}
 	fmt.Println("there")
+	return done
 }

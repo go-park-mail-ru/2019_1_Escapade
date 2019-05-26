@@ -79,7 +79,7 @@ func (lobby *Lobby) playingRemove(conn *Connection) {
 
 	lobby.playingM.Lock()
 	defer lobby.playingM.Unlock()
-	lobby._Playing.Remove(conn)
+	lobby._Playing.Remove(conn, false)
 }
 
 // getMatrixValue get a value from matrix
@@ -99,19 +99,11 @@ func (lobby *Lobby) playingAdd(conn *Connection) {
 }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) waitingRemove(conn *Connection) {
-	if lobby.done() {
-		return
-	}
-	lobby.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("lobby_mutex.go waitingRemove()")
-		lobby.wGroup.Done()
-	}()
+func (lobby *Lobby) waitingRemove(conn *Connection) bool {
 
 	lobby.waitingM.Lock()
 	defer lobby.waitingM.Unlock()
-	lobby._Waiting.Remove(conn)
+	return lobby._Waiting.Remove(conn, true)
 }
 
 // getMatrixValue get a value from matrix
@@ -139,10 +131,10 @@ func (lobby *Lobby) allRoomsSearch(roomID string) (int, *Room) {
 }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection) (int, *Room) {
+func (lobby *Lobby) allRoomsSearchPlayer(conn *Connection, disconnect bool) (int, *Room) {
 	lobby.allRoomsM.RLock()
 	defer lobby.allRoomsM.RUnlock()
-	index, room := lobby._AllRooms.SearchPlayer(conn)
+	index, room := lobby._AllRooms.SearchPlayer(conn, disconnect)
 	return index, room
 }
 

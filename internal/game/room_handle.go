@@ -2,6 +2,7 @@ package game
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"fmt"
@@ -99,7 +100,7 @@ func (room *Room) LeaveAll() {
 }
 
 // Leave handle user going back to lobby
-func (room *Room) Leave(conn *Connection, action int) {
+func (room *Room) Leave(conn *Connection, action int) (done bool) {
 	if room.done() {
 		return
 	}
@@ -115,7 +116,7 @@ func (room *Room) Leave(conn *Connection, action int) {
 	room.sendAction(pa, room.AllExceptThat(conn))
 	fmt.Println("Left room")
 
-	room.RemoveFromGame(conn, action == ActionDisconnect)
+	return room.RemoveFromGame(conn, action == ActionDisconnect)
 }
 
 // openCell open cell
@@ -218,7 +219,7 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 	defer func() {
 		room.wGroup.Done()
 	}()
-
+	fmt.Println("action", action)
 	if room.IsActive() {
 		if action == ActionGiveUp {
 			conn.debug("we see you wanna give up?")
@@ -233,7 +234,8 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 	}
 	if action == ActionBackToLobby {
 		conn.debug("we see you wanna back to lobby?")
-		go room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
+		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
+		conn.debug("we did it")
 		return true
 	}
 
@@ -250,7 +252,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		room.wGroup.Done()
 	}()
 
-	if room == nil || room.Status == StatusFinished {
+	if room == nil {
 		return
 	}
 
@@ -264,12 +266,19 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 				go room.CellHandle(conn, rr.Send.Cell)
 			}
 		} else if rr.Send.Action != nil {
-			go room.ActionHandle(conn, *rr.Send.Action)
+			fmt.Println("action")
+			room.ActionHandle(conn, *rr.Send.Action)
 		}
 		//if done {
 		//room.finishGame(true)
 		//}
 	} else if rr.Message != nil {
+		i := room.observersSearch(conn)
+		if i > 0 {
+			rr.Message.Status = models.StatusObserver
+		} else {
+			rr.Message.Status = models.StatusPlayer
+		}
 		Message(lobby, conn, rr.Message, room.setToMessages,
 			room.send, room.InGame, true, room.ID)
 	}
@@ -393,6 +402,8 @@ func (room *Room) run() {
 		timerToPlay.Stop()
 		fmt.Println("Room: Game is over!")
 	}()
+
+	room.Date = time.Now()
 
 	for {
 		select {
