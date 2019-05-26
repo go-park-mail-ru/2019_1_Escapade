@@ -160,7 +160,7 @@ func (conn *Connection) Free() {
 	conn.lobby = nil
 	conn.setRoom(nil)
 
-	fmt.Println("conn free memory")
+	//fmt.Println("conn free memory")
 }
 
 // InRoom check is player in room
@@ -186,16 +186,16 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	all := &sync.WaitGroup{}
 
-	fmt.Println("JoinConn!")
+	//fmt.Println("JoinConn!")
 	conn.lobby.JoinConn(conn)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
 	go conn.ReadConn(conn.context, ws, all)
 
-	fmt.Println("Wait!")
+	//fmt.Println("Wait!")
 	all.Wait()
-	fmt.Println("conn finished")
+	//fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
 	conn.Free()
 }
@@ -237,7 +237,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				//conn.Kill("Client websocket died", false)
 				return
 			}
-			conn.debug("read from conn")
+			fmt.Println("#", conn.ID(), "read from conn:", string(message))
 			conn.lobby.chanBroadcast <- &Request{
 				Connection: conn,
 				Message:    message,
@@ -276,14 +276,33 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			return
 		case message, ok := <-conn.send:
 
-			fmt.Println("saw!")
+			//fmt.Println("saw!")
 			//fmt.Println("server wrote:", string(message))
 			if !ok {
-				fmt.Println("errrrrr!")
+				//fmt.Println("errrrrr!")
 				conn.write(websocket.CloseMessage, []byte{}, wsc)
 				return
 			}
-			fmt.Println("send something")
+
+			str := string(message)
+			var start, end, counter int
+			for i, s := range str {
+				if s == '"' {
+					counter++
+					if counter == 3 {
+						start = i + 1
+					} else if counter == 4 {
+						end = i
+					} else if counter > 4 {
+						break
+					}
+				}
+			}
+			if start != end {
+				print := str[start:end]
+				print = str
+				fmt.Println("#", conn.ID(), " get that:", print)
+			}
 
 			conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
 			w, err := conn.ws.NextWriter(websocket.TextMessage)
@@ -324,9 +343,9 @@ func (conn *Connection) SendInformation(value interface{}) {
 		if err != nil {
 			fmt.Println("cant send information", err.Error())
 		} else {
-			fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
+			//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
 			conn.send <- bytes
-			fmt.Println("move!")
+			//fmt.Println("move!")
 		}
 	}
 }
@@ -358,5 +377,5 @@ func (conn *Connection) ID() int {
 // debug print devug information to console and websocket
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.ID(), "-", message)
-	conn.SendInformation(message)
+	//conn.SendInformation(message)
 }

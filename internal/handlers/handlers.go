@@ -99,6 +99,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("register new account", user.Name)
 	if _, sessionID, err = h.register(r.Context(), user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
@@ -606,9 +607,10 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
+		userID = -1
+		//rw.WriteHeader(http.StatusUnauthorized)
+		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		//utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
 
@@ -638,6 +640,9 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if userID == -1 {
+	// 	user = models.UserPublicInfo{}
+	// }
 	if user, err = h.DB.GetUser(userID, 0); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
@@ -685,6 +690,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
+		fmt.Println("err689", err.Error())
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
@@ -696,6 +702,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		fmt.Println("err700", err.Error())
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -703,12 +710,14 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.setfiles(user); err != nil {
+		fmt.Println("err707", err.Error())
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
+	fmt.Println("success!!")
 	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game)
 	return
 }

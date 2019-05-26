@@ -28,6 +28,7 @@ func (h *Handler) register(ctx context.Context,
 		return
 	}
 
+	fmt.Println("send to save", userID, user.Name)
 	sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),

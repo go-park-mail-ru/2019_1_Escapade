@@ -52,11 +52,12 @@ type Lobby struct {
 
 	db            *database.DataBase
 	canCloseRooms bool
+	metrics       bool
 }
 
 // NewLobby create new instance of Lobby
 func NewLobby(connectionsCapacity, roomsCapacity int,
-	db *database.DataBase, canCloseRooms bool) *Lobby {
+	db *database.DataBase, canCloseRooms bool, metrics bool) *Lobby {
 
 	var (
 		messages []*models.Message
@@ -101,6 +102,7 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 
 		db:            db,
 		canCloseRooms: canCloseRooms,
+		metrics:       metrics,
 	}
 	return lobby
 }
@@ -111,19 +113,23 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase) {
+func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool) {
 
 	if lobby == nil {
 		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
-			db, gc.CanClose)
+			db, gc.CanClose, metrics)
 
-		go lobby.Run(nil)
+		go lobby.Run()
 	}
 }
 
 // GetLobby create lobby if it is nil and get it
 func GetLobby() *Lobby {
 	return lobby
+}
+
+func (lobby *Lobby) Metrics() bool {
+	return lobby.metrics
 }
 
 // Stop lobby goroutine

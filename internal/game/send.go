@@ -28,7 +28,7 @@ func SendToConnections(info interface{},
 // it will send everybody except selected one and disconnected
 func AllExceptThat(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
-		return !conn.done() && !me.done() && conn != me && conn.IsConnected()
+		return !conn.done() && !me.done() && conn.ID() != me.ID() && conn.IsConnected()
 	}
 }
 
