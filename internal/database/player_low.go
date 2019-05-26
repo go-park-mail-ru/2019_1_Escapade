@@ -24,6 +24,8 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 	if err == nil {
 		fmt.Println("register:", user.Name,
 			user.Password, user.Email, id)
+	} else {
+		fmt.Println("create err", err.Error())
 	}
 	return
 }

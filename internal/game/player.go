@@ -1,15 +1,5 @@
 package game
 
-// int ANONYMOUS = -1
-
-// func getAnonymous() int{
-
-// }
-
-// func getAnonymous() int{
-
-// }
-
 // Player has name, ID, points and flag Finish
 type Player struct {
 	ID       int

@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
@@ -13,6 +15,9 @@ func (conn *Connection) setDone() {
 
 // getMatrixValue get a value from matrix
 func (conn *Connection) done() bool {
+	if conn == nil {
+		fmt.Println("conn nil")
+	}
 	conn.doneM.RLock()
 	v := conn._done
 	conn.doneM.RUnlock()

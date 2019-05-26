@@ -93,6 +93,14 @@ func (room *Room) playersConnections() (v []*Connection) {
 }
 
 // getMatrixValue get a value from matrix
+func (room *Room) zeroPlayers() {
+	room.playersM.Lock()
+	defer room.playersM.Unlock()
+
+	room._Players.Connections = *NewConnections(room._Players.Capacity)
+}
+
+// getMatrixValue get a value from matrix
 func (room *Room) playersFlags() (v []Cell) {
 	room.playersM.RLock()
 	defer room.playersM.RUnlock()

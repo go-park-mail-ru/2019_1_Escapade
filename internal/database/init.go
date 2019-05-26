@@ -291,12 +291,13 @@ func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
         explosion bool default false,
         won bool default false
     );
-    
+    /*
     ALTER TABLE Gamer
     ADD CONSTRAINT gamer_player
        FOREIGN KEY (player_id)
        REFERENCES Player(id)
        ON DELETE CASCADE;
+    */
     
     ALTER TABLE Gamer
     ADD CONSTRAINT gamer_game

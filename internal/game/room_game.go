@@ -62,6 +62,9 @@ func (room *Room) isAlive(conn *Connection) bool {
 
 // kill make user die and check for finish battle
 func (room *Room) Kill(conn *Connection, action int) {
+	if conn == nil {
+		panic(2)
+	}
 	if room.done() {
 		return
 	}

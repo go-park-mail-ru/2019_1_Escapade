@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 // OnlinePlayers online players
 type OnlinePlayers struct {
 	Capacity    int         `json:"capacity"`
@@ -137,12 +139,16 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
+	if conn == nil {
+		panic(1)
+	}
 	i := onlinePlayers.Connections.Add(conn, kill)
 	if i < 0 {
 		return false
 	}
-	onlinePlayers.Players[i].ID = onlinePlayers.Connections.Get[i].ID()
-	onlinePlayers.Connections.Get[i].SetIndex(i)
+	onlinePlayers.Players[i].ID = conn.ID()
+	conn.SetIndex(i)
+	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
 	/*
 		if i = onlinePlayers.SearchConnection(conn); i >= 0 {
@@ -324,6 +330,7 @@ func (conns *Connections) Remove(conn *Connection) {
 	}
 	size := len(conns.Get)
 	conns.Get[i], conns.Get[size-1] = conns.Get[size-1], conns.Get[i]
+	fmt.Println("delete it", conns.Get[size-1].ID())
 	conns.Get[size-1] = nil
 	conns.Get = conns.Get[:size-1]
 	//sendError(conn, "Remove", "You disconnected ")

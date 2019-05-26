@@ -606,14 +606,6 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		user   *models.UserPublicInfo
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
-		userID = -1
-		//rw.WriteHeader(http.StatusUnauthorized)
-		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		//utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
-	}
-
 	lobby := game.GetLobby()
 	if lobby == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -640,25 +632,34 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+		userID = lobby.Anonymous()
+		//rw.WriteHeader(http.StatusUnauthorized)
+		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		//utils.PrintResult(err, http.StatusUnauthorized, place)
+		return
+	}
+
 	if userID < 0 {
 		user = &models.UserPublicInfo{
 			Name: "Anonymos",
 			ID:   userID,
 		}
-	}
-	if user, err = h.DB.GetUser(userID, 0); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
+	} else {
+		if user, err = h.DB.GetUser(userID, 0); err != nil {
+			rw.WriteHeader(http.StatusNotFound)
+			utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+			utils.PrintResult(err, http.StatusNotFound, place)
+			return
+		}
 
-	if err = h.setfiles(user); err != nil {
-		fmt.Println("h.setfiles(user) err")
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+		if err = h.setfiles(user); err != nil {
+			fmt.Println("h.setfiles(user) err")
+			rw.WriteHeader(http.StatusNotFound)
+			utils.SendErrorJSON(rw, err, place)
+			utils.PrintResult(err, http.StatusNotFound, place)
+			return
+		}
 	}
 
 	conn := game.NewConnection(ws, user, lobby)
