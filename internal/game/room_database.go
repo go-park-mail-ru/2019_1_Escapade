@@ -85,12 +85,12 @@ func (room *Room) Save() (err error) {
 		fmt.Println("err. Cant save.", err.Error())
 	}
 
-	var room1 *Room
-	if room1, err = lobby.Load(room.ID); err != nil {
+	//var room1 *Room
+	if _, err = lobby.Load(room.ID); err != nil {
 		fmt.Println("err. Cant load.", err.Error())
-	} else {
-		room1.debug()
-	}
+	} //else {
+	//room1.debug()
+	//}
 
 	return
 }

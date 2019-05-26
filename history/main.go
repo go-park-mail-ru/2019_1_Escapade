@@ -8,10 +8,12 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -50,8 +52,12 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", mi.ApplyMiddleware(handler.GameHistory,
-		mi.CORS(configuration.Cors, false)))
+	r.HandleFunc("/ws", handler.GameHistory)
+	r.Handle("/metrics", promhttp.Handler())
+
+	metrics.InitHitsMetric("api")
+
+	prometheus.MustRegister(metrics.Hits)
 
 	port := router.GetPort(configuration)
 	if err = http.ListenAndServe(port, r); err != nil {

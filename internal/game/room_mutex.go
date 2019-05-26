@@ -85,10 +85,10 @@ func (room *Room) playersConnections() (v []*Connection) {
 	room.playersM.RLock()
 	defer room.playersM.RUnlock()
 
-	if room._Players == nil || room._Players.Connections == nil {
+	if room._Players == nil {
 		return
 	}
-	v = room._Players.Connections
+	v = room._Players.Connections.Get
 	return
 }
 
@@ -109,7 +109,7 @@ func (room *Room) playersCapacity() int {
 	room.playersM.RLock()
 	defer room.playersM.RUnlock()
 
-	if room._Players == nil || room._Players.Connections == nil {
+	if room._Players == nil {
 		return 0
 	}
 	v := room._Players.Capacity

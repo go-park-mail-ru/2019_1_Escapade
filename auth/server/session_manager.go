@@ -29,9 +29,10 @@ func (sm *SessionManager) Create(ctx context.Context, sess *Session) (sid *Sessi
 	fmt.Println("Creating sess for: ", sess.UserID)
 	sid = &SessionID{ID: utils.RandomString(sm.config.Length)}
 	// UserID - в конфиг, name - не хранить
+	fmt.Println("Save", sess.UserID, sess.UserID)
 	result, err := redis.String(sm.redisConn.Do("HMSET", sid.ID,
 		"UserID", sess.UserID,
-		"Name", sess.Login,
+		//"Name", sess.UserID,
 		"EX", sm.config.LifetimeSeconds))
 
 	if err != nil {
@@ -61,15 +62,16 @@ func (sm *SessionManager) Check(ctx context.Context, cookie *SessionID) (sess *S
 		userID, login string
 		id            int
 	)
+	fmt.Println("cookieID", cookie.ID)
 	if userID, err = redis.String(sm.redisConn.Do("HGET", cookie.ID, "UserID")); err != nil {
 		fmt.Println("cant get userID:", err)
 		return &Session{UserID: -1}, err
 	}
 
-	if login, err = redis.String(sm.redisConn.Do("HGET", cookie.ID, "Name")); err != nil {
-		fmt.Println("cant get login:", err)
-		return &Session{UserID: -1}, err
-	}
+	// if login, err = redis.String(sm.redisConn.Do("HGET", cookie.ID, "Name")); err != nil {
+	// 	fmt.Println("cant get login:", err)
+	// 	return &Session{UserID: -1}, err
+	// }
 
 	if id, err = strconv.Atoi(userID); err != nil {
 		fmt.Println("cant convert:", userID)

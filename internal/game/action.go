@@ -21,6 +21,7 @@ const (
 	ActionGiveUp
 	ActionBackToLobby
 	ActionTimeOver
+	ActionRestart
 )
 
 // PlayerAction combine player and his action

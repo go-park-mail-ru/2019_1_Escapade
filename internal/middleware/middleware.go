@@ -21,6 +21,7 @@ type respWriterStatusCode struct {
 
 func (rw *respWriterStatusCode) WriteHeader(status int) {
 	rw.status = status
+	fmt.Println("status", status)
 	rw.ResponseWriter.WriteHeader(status)
 }
 
@@ -31,8 +32,8 @@ type HandleDecorator func(http.HandlerFunc) http.HandlerFunc
 func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
-
 			origin := cors.GetOrigin(r)
+			fmt.Println("caaaatch", origin)
 			if !cors.IsAllowed(origin, cc.Origins) {
 				place := "middleware/CORS"
 				utils.PrintResult(re.ErrorCORS(origin), http.StatusForbidden, place)
@@ -91,6 +92,7 @@ func Metrics(next http.HandlerFunc) http.HandlerFunc {
 func ApplyMiddleware(handler http.HandlerFunc,
 	decorators ...HandleDecorator) http.HandlerFunc {
 	handler = Recover(handler)
+	fmt.Println("caaaatchssss")
 	for _, m := range decorators {
 		handler = m(handler)
 	}

@@ -108,12 +108,14 @@ func (room *Room) Leave(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
-	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
-	go room.RemoveFromGame(conn, action == ActionDisconnect)
-
+	if room.lobby.Metrics() {
+		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
+	}
 	pa := *room.addAction(conn.ID(), action)
 	room.sendAction(pa, room.AllExceptThat(conn))
 	fmt.Println("Left room")
+
+	room.RemoveFromGame(conn, action == ActionDisconnect)
 }
 
 // openCell open cell
@@ -223,6 +225,11 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 			go room.GiveUp(conn)
 			return true
 		}
+	} else {
+		if action == ActionRestart {
+			room.addPlayer(conn)
+			return true
+		}
 	}
 	if action == ActionBackToLobby {
 		conn.debug("we see you wanna back to lobby?")
@@ -277,7 +284,7 @@ func (room *Room) StartFlagPlacing() {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("StartFlagPlacing")
+	//fmt.Println("StartFlagPlacing")
 
 	room.Status = StatusFlagPlacing
 	players := room.playersConnections()
@@ -336,11 +343,17 @@ func (room *Room) FinishGame(timer bool) {
 	go room.sendStatus(room.All)
 	go room.sendMessage("Battle finished!", room.All)
 	go room.sendGameOver(timer, room.All)
-	go room.Save()
+	room.Save()
 	room.lobby.roomFinish(room)
 	players := room.players()
 	for _, player := range players {
 		player.Finished = true
+	}
+
+	playersConns := room.playersConnections()
+	for _, conn := range playersConns {
+		room.playersRemove(conn)
+		room.addObserver(conn)
 	}
 }
 
@@ -383,7 +396,7 @@ func (room *Room) run() {
 			go room.FinishGame(false)
 			return
 		case clock := <-ticker.C:
-			fmt.Println("clock!", room.ID)
+			//fmt.Println("clock!", room.ID)
 			go room.sendMessage(clock.String()+" passed", room.All)
 		}
 	}

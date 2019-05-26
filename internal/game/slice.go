@@ -1,13 +1,11 @@
 package game
 
-import "fmt"
-
 // OnlinePlayers online players
 type OnlinePlayers struct {
-	Capacity    int           `json:"capacity"`
-	Players     []Player      `json:"players"`
-	Flags       []Cell        `json:"flags"`
-	Connections []*Connection `json:"connections"`
+	Capacity    int         `json:"capacity"`
+	Players     []Player    `json:"players"`
+	Flags       []Cell      `json:"flags"`
+	Connections Connections `json:"connections"`
 }
 
 // Connections - slice of connections with capacity
@@ -30,7 +28,7 @@ func newOnlinePlayers(size int, field Field) *OnlinePlayers {
 		Capacity:    size,
 		Players:     players,
 		Flags:       flags,
-		Connections: make([]*Connection, 0, size),
+		Connections: *NewConnections(size),
 	}
 
 }
@@ -38,7 +36,7 @@ func newOnlinePlayers(size int, field Field) *OnlinePlayers {
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
-	for i, conn := range onlinePlayers.Connections {
+	for i, conn := range onlinePlayers.Connections.Get {
 		if i > onlinePlayers.Capacity {
 			room := conn.Room()
 			if room == nil {
@@ -83,13 +81,9 @@ func (onlinePlayers *OnlinePlayers) Free() {
 	if onlinePlayers == nil {
 		return
 	}
-	for i := 0; i < len(onlinePlayers.Connections); i++ {
-		onlinePlayers.Connections[i] = nil
-	}
-
+	onlinePlayers.Connections.Free()
 	onlinePlayers.Players = nil
 	onlinePlayers.Flags = nil
-	onlinePlayers.Connections = nil
 	onlinePlayers = nil
 }
 
@@ -102,9 +96,7 @@ func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) 
 
 // SearchConnection search connection index in the slice of connections
 func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (i int) {
-	return sliceIndex(len(onlinePlayers.Connections), func(i int) bool {
-		return onlinePlayers.Connections[i].ID() == conn.ID()
-	})
+	return onlinePlayers.Connections.Search(conn)
 }
 
 // Free free memory
@@ -139,49 +131,56 @@ func (rooms *Rooms) Empty() bool {
 
 // Empty check no connections connected
 func (onlinePlayers *OnlinePlayers) Empty() bool {
-	return len(onlinePlayers.Connections) == 0
+	return onlinePlayers.Connections.Empty()
 }
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
-	var i int
-	if i = onlinePlayers.SearchConnection(conn); i >= 0 {
-		oldConn := onlinePlayers.Connections[i]
-		if kill && !oldConn.Disconnected() {
-			oldConn.Kill("Another connection found", true)
+	return onlinePlayers.Connections.Add(conn, kill)
+	/*
+		if i = onlinePlayers.SearchConnection(conn); i >= 0 {
+			//oldConn := onlinePlayers.Connections[i]
+			oldConn := conn
+			if kill && !oldConn.Disconnected() {
+				oldConn.Kill("Another connection found", true)
+			}
+			onlinePlayers.Connections[i] = conn
+			i = oldConn.Index()
+		} else if onlinePlayers.enoughPlace() {
+			i = len(onlinePlayers.Connections)
+			onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
+		} else {
+			return false
 		}
-		onlinePlayers.Connections[i] = conn
-		i = oldConn.Index()
-	} else if onlinePlayers.enoughPlace() {
-		i = len(onlinePlayers.Connections)
-		onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
-	} else {
+		onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
+		onlinePlayers.Connections[i].SetIndex(i)
+
 		return false
-	}
-	onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
-	onlinePlayers.Connections[i].SetIndex(i)
-	return false
+	*/
 }
 
 // Remove delete element and decrement size if element
 // exists in map
 func (onlinePlayers *OnlinePlayers) Remove(conn *Connection) {
-	size := len(onlinePlayers.Connections)
-	i := onlinePlayers.SearchConnection(conn)
-	if i < 0 {
-		fmt.Println("cant found", i, size)
-		return
-	}
-	onlinePlayers.Connections[i], onlinePlayers.Connections[size-1] = onlinePlayers.Connections[size-1], onlinePlayers.Connections[i]
-	onlinePlayers.Connections[size-1] = nil
-	onlinePlayers.Connections = onlinePlayers.Connections[:size-1]
-	//sendError(conn, "Remove", "You disconnected ")
+	onlinePlayers.Connections.Remove(conn)
+	/*
+		size := len(onlinePlayers.Connections)
+		i := onlinePlayers.SearchConnection(conn)
+		if i < 0 {
+			fmt.Println("cant found", i, size)
+			return
+		}
+		onlinePlayers.Connections[i], onlinePlayers.Connections[size-1] = onlinePlayers.Connections[size-1], onlinePlayers.Connections[i]
+		onlinePlayers.Connections[size-1] = nil
+		onlinePlayers.Connections = onlinePlayers.Connections[:size-1]
+		//sendError(conn, "Remove", "You disconnected ")
+	*/
 }
 
 // enoughPlace check that you can add more elements
 func (onlinePlayers *OnlinePlayers) enoughPlace() bool {
-	return len(onlinePlayers.Connections) < onlinePlayers.Capacity
+	return onlinePlayers.Connections.enoughPlace()
 }
 
 // enoughPlace check that you can add more elements

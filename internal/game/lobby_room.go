@@ -119,8 +119,10 @@ func (lobby *Lobby) LoadRooms(URLs []string) error {
 }
 
 func (lobby *Lobby) addRoom(room *Room) (err error) {
-	metrics.Rooms.Add(1)
-	metrics.FreeRooms.Add(1)
+	if lobby.metrics {
+		metrics.Rooms.Add(1)
+		metrics.FreeRooms.Add(1)
+	}
 
 	if !lobby.allRoomsAdd(room) {
 		err = re.ErrorLobbyCantCreateRoom()
@@ -134,6 +136,6 @@ func (lobby *Lobby) addRoom(room *Room) (err error) {
 		return err
 	}
 
-	go lobby.sendRoomCreate(*room, All) // inform all about new room
+	lobby.sendRoomCreate(*room, All) // inform all about new room
 	return
 }
