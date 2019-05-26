@@ -37,7 +37,7 @@ func (lobby *Lobby) roomFinish(room *Room) {
 	}()
 
 	go lobby.allRoomsRemove(room)
-	go lobby.sendRoomUpdate(*room, All)
+	go lobby.sendRoomDelete(*room, All)
 }
 
 // CloseRoom free room resources

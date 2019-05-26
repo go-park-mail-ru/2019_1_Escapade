@@ -171,7 +171,7 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool
 
 	i := room.playersSearchIndexPlayer(conn)
 	if i >= 0 {
-		if room.Status == StatusRunning && !disconnected {
+		if (room.Status == StatusFlagPlacing || room.Status == StatusRunning) && !disconnected {
 			fmt.Println("give up", i)
 			room.GiveUp(conn)
 		}

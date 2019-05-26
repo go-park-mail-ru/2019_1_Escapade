@@ -331,6 +331,7 @@ func (room *Room) StartGame() {
 
 func (room *Room) FinishGame(timer bool) {
 	if room.done() {
+		fmt.Println("room.done()!")
 		return
 	}
 	room.wGroup.Add(1)
@@ -339,6 +340,7 @@ func (room *Room) FinishGame(timer bool) {
 	}()
 
 	if room.Status == StatusFinished {
+		fmt.Println("room.Status == StatusFinished!")
 		return
 	}
 	if !timer {
@@ -412,7 +414,8 @@ func (room *Room) run() {
 		case <-timerToPrepare.C:
 			go room.StartGame()
 		case <-timerToPlay.C:
-			go room.FinishGame(false)
+			fmt.Println("finish!")
+			room.FinishGame(true)
 			return
 		case clock := <-ticker.C:
 			//fmt.Println("clock!", room.ID)
