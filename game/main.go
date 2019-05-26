@@ -60,7 +60,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/game/ws", handler.GameOnline)
+	r.HandleFunc("/ws", handler.GameOnline)
 
 	r.Handle("/metrics", promhttp.Handler())
 
