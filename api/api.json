@@ -22,7 +22,7 @@
 			"http://localhost:3001",
 			"http://localhost:3002",
 			"https://escapade-frontend.herokuapp.com",
-			"http://ser.ru.com"
+			"https://ser.ru.com"
 		],
 		"headers": [
 			"Content-type"
