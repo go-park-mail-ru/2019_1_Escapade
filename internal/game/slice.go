@@ -307,8 +307,8 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 		conns.Get[i] = conn
 		i = oldConn.Index()
 	} else if conns.enoughPlace() {
-		conns.Get = append(conns.Get, conn)
 		i = len(conns.Get)
+		conns.Get = append(conns.Get, conn)
 	} else {
 		return -1
 	}
