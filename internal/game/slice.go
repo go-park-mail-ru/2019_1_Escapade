@@ -137,7 +137,13 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
-	return onlinePlayers.Connections.Add(conn, kill)
+	i := onlinePlayers.Connections.Add(conn, kill)
+	if i < 0 {
+		return false
+	}
+	onlinePlayers.Players[i].ID = onlinePlayers.Connections.Get[i].ID()
+	onlinePlayers.Connections.Get[i].SetIndex(i)
+	return true
 	/*
 		if i = onlinePlayers.SearchConnection(conn); i >= 0 {
 			//oldConn := onlinePlayers.Connections[i]
@@ -292,19 +298,21 @@ func (conns *Connections) enoughPlace() bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection, kill bool) bool {
-	if i := conns.Search(conn); i >= 0 {
+func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
+	if i = conns.Search(conn); i >= 0 {
 		oldConn := conns.Get[i]
 		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
 		conns.Get[i] = conn
+		i = oldConn.Index()
 	} else if conns.enoughPlace() {
 		conns.Get = append(conns.Get, conn)
+		i = len(conns.Get)
 	} else {
-		return false
+		return -1
 	}
-	return true
+	return i
 }
 
 // Remove delete element and decrement size if element
