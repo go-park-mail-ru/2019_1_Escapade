@@ -265,7 +265,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 
 	conn.debug("room handle conn")
 	if rr.IsGet() {
-		go room.greet(conn)
+		//go room.greet(conn)
 	} else if rr.IsSend() {
 		//done := false
 		if rr.Send.Cell != nil {

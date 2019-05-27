@@ -235,7 +235,7 @@ func (room *Room) sendField(predicate SendPredicate) {
 }
 
 // sendTAIRAll send everything to one connection
-func (room *Room) greet(conn *Connection) {
+func (room *Room) greet(conn *Connection, isPlayer bool) {
 	if lobby.done() {
 		return
 	}
@@ -262,12 +262,14 @@ func (room *Room) greet(conn *Connection) {
 			Observer bool                  `json:"observer"`
 			Flag     Cell                  `json:"flag,omitempty"`
 			Time     int                   `json:"time"`
+			IsPlayer bool                  `json:"isPlayer"`
 		}{
 			Room:     room,
 			You:      *copy.User,
 			Observer: copy.Index() < 0,
 			Flag:     flag,
 			Time:     leftTime,
+			IsPlayer: isPlayer,
 		},
 	}
 	conn.SendInformation(response)

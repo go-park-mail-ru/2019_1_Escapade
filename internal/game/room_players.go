@@ -21,7 +21,7 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
 	room.addPlayer(newConn)
 	room.sendAction(pa, room.AllExceptThat(newConn))
-	room.greet(newConn)
+	//room.greet(newConn, true)
 
 	return
 }
@@ -39,7 +39,7 @@ func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 	go room.MakeObserver(newConn)
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
 	go room.sendAction(pa, room.AllExceptThat(newConn))
-	go room.greet(newConn)
+	//go room.greet(newConn, false)
 
 	return
 }
@@ -132,7 +132,7 @@ func (room *Room) MakePlayer(conn *Connection) {
 		conn.setBoth(true)
 	}
 	room.playersAdd(conn, false)
-	room.greet(conn)
+	room.greet(conn, true)
 	conn.PushToRoom(room)
 }
 
@@ -154,7 +154,7 @@ func (room *Room) MakeObserver(conn *Connection) {
 		conn.setBoth(true)
 	}
 	room.observersAdd(conn, false)
-	go room.greet(conn)
+	go room.greet(conn, false)
 	conn.PushToRoom(room)
 }
 
