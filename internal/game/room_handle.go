@@ -281,7 +281,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		//}
 	} else if rr.Message != nil {
 		i := room.observersSearch(conn)
-		if i > 0 {
+		if i >= 0 {
 			rr.Message.Status = models.StatusObserver
 		} else {
 			rr.Message.Status = models.StatusPlayer
