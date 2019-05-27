@@ -64,7 +64,6 @@ func (h *Handler) RandomUsers(limit int) {
 		ran.Seed(time.Now().UnixNano())
 		user := models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
-			Email:    utils.RandomString(n),
 			Password: utils.RandomString(n)}
 		userID, sessID, err := h.register(context.Background(), user)
 		if err != nil {

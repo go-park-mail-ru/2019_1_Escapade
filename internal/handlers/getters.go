@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -125,6 +126,7 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 
 func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
+	fmt.Println("sessionID", sessionID)
 
 	ctx := context.Background()
 	sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
@@ -133,6 +135,7 @@ func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) 
 	if err != nil {
 		return
 	}
+	fmt.Println("your id is", sess.UserID)
 	userID = int(sess.UserID)
 
 	return
@@ -194,11 +197,6 @@ func getUserWithAllFields(r *http.Request) (user models.UserPrivateInfo, err err
 	}
 	if user.Name == "" {
 		err = re.ErrorInvalidName()
-		return
-	}
-
-	if user.Email == "" {
-		err = re.ErrorInvalidEmail()
 		return
 	}
 

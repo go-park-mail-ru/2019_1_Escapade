@@ -128,12 +128,10 @@ func (db *DataBase) createTablePlayer(tx *sql.Tx) (err error) {
         id SERIAL PRIMARY KEY,
         name varchar(30) NOT NULL,
         password varchar(30) NOT NULL,
-        email varchar(30) NOT NULL,
 		photo_title varchar(50) default '1.png',
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ,
-        unique(name),
-        unique(email)
+        unique(name)
     );
     `
 	_, err = tx.Exec(sqlStatement)

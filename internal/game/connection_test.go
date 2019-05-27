@@ -449,7 +449,6 @@ func createRandomUser(id int) *models.UserPublicInfo {
 	return &models.UserPublicInfo{
 		ID:        id,
 		Name:      utils.RandomString(16),
-		Email:     utils.RandomString(16),
 		PhotoURL:  utils.RandomString(16),
 		FileKey:   utils.RandomString(16),
 		Difficult: dif,
