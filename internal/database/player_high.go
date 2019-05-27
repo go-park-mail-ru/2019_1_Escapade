@@ -12,7 +12,7 @@ import (
 
 // Register check sql-injections and is name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -29,9 +29,9 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 		return
 	}
 
-	// if err = db.createSession(tx, userID, sessionID); err != nil {
-	// 	return
-	// }
+	if err = db.createSession(tx, userID, sessionID); err != nil {
+		return
+	}
 
 	if err = db.createRecords(tx, userID); err != nil {
 		return
@@ -43,7 +43,7 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPublicInfo, err error) {
+func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found *models.UserPublicInfo, err error) {
 
 	var (
 		tx     *sql.Tx
@@ -59,9 +59,9 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPubli
 		return
 	}
 
-	// if err = db.createSession(tx, userID, sessionID); err != nil {
-	// 	return
-	// }
+	if err = db.createSession(tx, userID, sessionID); err != nil {
+		return
+	}
 
 	if err = db.updatePlayerLastSeen(tx, userID); err != nil {
 		return
@@ -167,9 +167,9 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 		return
 	}
 
-	// if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
-	// 	return
-	// }
+	if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
+		return
+	}
 
 	err = tx.Commit()
 	return

@@ -6,7 +6,6 @@ import (
 
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -53,13 +52,14 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
-
-	API, err = api.GetAPIHandler(configuration, authConn) // init.go
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
+	API, err = api.GetAPIHandler(configuration /*, authConn*/) // init.go
 
 	if err != nil {
 		utils.PrintResult(err, 0, "main")

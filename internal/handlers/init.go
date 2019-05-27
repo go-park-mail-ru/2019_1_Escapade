@@ -1,18 +1,15 @@
 package api
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 
 	"fmt"
 	"time"
-
-	"google.golang.org/grpc"
 )
 
 // Init creates Handler
-func Init(DB *database.DataBase, c *config.Configuration, authConn *grpc.ClientConn) (handler *Handler) {
+func Init(DB *database.DataBase, c *config.Configuration /*, authConn *grpc.ClientConn*/) (handler *Handler) {
 	ws := config.WebSocketSettings{
 		WriteWait:       time.Duration(c.WebSocket.WriteWait) * time.Second,
 		PongWait:        time.Duration(c.WebSocket.PongWait) * time.Second,
@@ -28,13 +25,13 @@ func Init(DB *database.DataBase, c *config.Configuration, authConn *grpc.ClientC
 		AWS:       c.AWS,
 		Game:      c.Game,
 		WebSocket: ws,
-		Clients:   clients.Init(authConn),
+		//Clients:   clients.Init(authConn),
 	}
 	return
 }
 
 // GetAPIHandler init handler and configuration for api service
-func GetAPIHandler(C *config.Configuration, authConn *grpc.ClientConn) (H *Handler, err error) {
+func GetAPIHandler(C *config.Configuration /*, authConn *grpc.ClientConn*/) (H *Handler, err error) {
 
 	var (
 		db *database.DataBase
@@ -44,12 +41,12 @@ func GetAPIHandler(C *config.Configuration, authConn *grpc.ClientConn) (H *Handl
 		return
 	}
 
-	H = Init(db, C, authConn)
+	H = Init(db, C /*authConn*/)
 	return
 }
 
 // GetGameHandler init handler and configuration for game service
-func GetGameHandler(conf *config.Configuration, authConn *grpc.ClientConn) (H *Handler, err error) {
+func GetGameHandler(conf *config.Configuration /*, authConn *grpc.ClientConn*/) (H *Handler, err error) {
 
 	var (
 		db *database.DataBase
@@ -60,6 +57,6 @@ func GetGameHandler(conf *config.Configuration, authConn *grpc.ClientConn) (H *H
 	}
 
 	fmt.Println("Database done")
-	H = Init(db, conf, authConn)
+	H = Init(db, conf /*, authConn*/)
 	return
 }
