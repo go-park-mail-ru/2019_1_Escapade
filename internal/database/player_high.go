@@ -10,7 +10,7 @@ import (
 	"database/sql"
 )
 
-// Register check sql-injections and are email and name unique
+// Register check sql-injections and is name unique
 // Then add cookie to database and returns session_id
 func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
 
@@ -55,7 +55,7 @@ func (db *DataBase) Login(user *models.UserPrivateInfo) (found *models.UserPubli
 	}
 	defer tx.Rollback()
 
-	if userID, found, err = db.checkBunch(tx, user.Email, user.Password); err != nil {
+	if userID, found, err = db.checkBunch(tx, user.Name, user.Password); err != nil {
 		return
 	}
 

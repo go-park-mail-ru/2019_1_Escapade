@@ -8,12 +8,6 @@ func ErrorInvalidUserID() error {
 	return errors.New("No such id")
 }
 
-// ErrorInvalidNameOrEmail call it, if client give you
-// 	invalid username or email
-func ErrorInvalidNameOrEmail() error {
-	return errors.New("Invalid username or email")
-}
-
 // ErrorInvalidPage call it, if client give you
 // 	invalid page
 func ErrorInvalidPage() error {

@@ -71,6 +71,7 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
+	fmt.Println("Get my profiel", userID)
 
 	h.getUser(rw, r, userID)
 
@@ -163,7 +164,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 // @Description login
 // @ID Login
 // @Success 200 {object} models.UserPublicInfo "Get successfully"
-// @Failure 400 {object} models.Result "invalid name/email or password"
+// @Failure 400 {object} models.Result "invalid name or password"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [POST]
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
@@ -189,14 +190,17 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+
 	sessionID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(user.ID),
+			Login:  user.Name,
 		})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("cookie set ", sessionID.ID)
 	cookie.CreateAndSet(rw, h.Session, sessionID.ID)
 
 	utils.SendSuccessJSON(rw, found, place)
@@ -500,6 +504,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
+	fmt.Println("getProfile", userID)
 
 	h.getUser(rw, r, userID)
 	return
@@ -574,6 +579,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 
 	difficult = h.getDifficult(r)
 
+	fmt.Println("userID:", userID)
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
 
 		rw.WriteHeader(http.StatusNotFound)

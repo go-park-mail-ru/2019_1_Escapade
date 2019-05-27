@@ -3,15 +3,9 @@ package rerrors
 import "errors"
 
 // ErrorUserIsExist call it, if client give you
-// 	name or email, that exists in database
+// 	name, that exists in database
 func ErrorUserIsExist() error {
-	return errors.New("Username with such name or email exists")
-}
-
-// ErrorEmailIstaken call it, if client give you
-// 	email, that exists in database
-func ErrorEmailIstaken() error {
-	return errors.New("Email is taken")
+	return errors.New("Username with such name exists")
 }
 
 // ErrorNameIstaken call it, if client give you
@@ -24,12 +18,6 @@ func ErrorNameIstaken() error {
 // 	invalid password
 func ErrorInvalidPassword() error {
 	return errors.New("Invalid password")
-}
-
-// ErrorInvalidEmail call it, if client give you
-// 	invalid email
-func ErrorInvalidEmail() error {
-	return errors.New("Invalid email")
 }
 
 // ErrorInvalidName call it, if client give you
