@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Game status
@@ -59,41 +60,116 @@ func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
 	if !rs.AreCorrect() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
-	field := NewField(rs)
-	room := &Room{
-		wGroup: &sync.WaitGroup{},
+	var room = &Room{}
 
-		doneM: &sync.RWMutex{},
-		_done: false,
+	room.Init(rs, id, lobby)
+	//:= &Room{
+	// 	wGroup: &sync.WaitGroup{},
 
-		playersM: &sync.RWMutex{},
-		_Players: newOnlinePlayers(rs.Players, *field),
+	// 	doneM: &sync.RWMutex{},
+	// 	_done: false,
 
-		observersM: &sync.RWMutex{},
-		_Observers: NewConnections(rs.Observers),
+	// 	playersM: &sync.RWMutex{},
+	// 	_Players: newOnlinePlayers(rs.Players, *field),
 
-		historyM: &sync.RWMutex{},
-		_History: make([]*PlayerAction, 0),
+	// 	observersM: &sync.RWMutex{},
+	// 	_Observers: NewConnections(rs.Observers),
 
-		messagesM: &sync.Mutex{},
-		_Messages: make([]*models.Message, 0),
+	// 	historyM: &sync.RWMutex{},
+	// 	_History: make([]*PlayerAction, 0),
 
-		killedM: &sync.RWMutex{},
-		_killed: 0,
+	// 	messagesM: &sync.Mutex{},
+	// 	_Messages: make([]*models.Message, 0),
 
-		ID:     id,
-		Name:   rs.Name,
-		Status: StatusPeopleFinding,
+	// 	killedM: &sync.RWMutex{},
+	// 	_killed: 0,
 
-		lobby: lobby,
-		Field: field,
+	// 	ID:     id,
+	// 	Name:   rs.Name,
+	// 	Status: StatusPeopleFinding,
 
-		Date:       time.Now(),
-		chanFinish: make(chan struct{}),
+	// 	lobby: lobby,
+	// 	Field: field,
 
-		Settings: rs,
-	}
+	// 	Date:       time.Now(),
+	// 	chanFinish: make(chan struct{}),
+
+	// 	Settings: rs,
+	// }
 	return room, nil
+}
+
+// NewRoom return new instance of room
+func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
+
+	room.wGroup = &sync.WaitGroup{}
+
+	field := NewField(rs)
+	room._done = false
+	room.doneM = &sync.RWMutex{}
+
+	room.playersM = &sync.RWMutex{}
+	room._Players = newOnlinePlayers(rs.Players, *field)
+
+	room.observersM = &sync.RWMutex{}
+	room._Observers = NewConnections(rs.Observers)
+
+	room.historyM = &sync.RWMutex{}
+	room._History = make([]*PlayerAction, 0)
+
+	room.messagesM = &sync.Mutex{}
+	room._Messages = make([]*models.Message, 0)
+
+	room.killedM = &sync.RWMutex{}
+	room._killed = 0
+
+	room.ID = id
+	room.Name = rs.Name
+	room.Status = StatusPeopleFinding
+
+	room.lobby = lobby
+	room.Field = field
+
+	room.Date = time.Now()
+	room.chanFinish = make(chan struct{})
+
+	room.Settings = rs
+
+	return
+}
+
+func (room *Room) Restart() {
+
+	field := NewField(room.Settings)
+	room.playersM.Lock()
+	room._Players = newOnlinePlayers(room.Settings.Players, *field)
+	room.playersM.Unlock()
+
+	room.observersM.Lock()
+	room._Observers = NewConnections(room.Settings.Observers)
+	room.observersM.Unlock()
+
+	room.historyM.Lock()
+	room._History = make([]*PlayerAction, 0)
+	room.historyM.Unlock()
+
+	room.messagesM.Lock()
+	room._Messages = make([]*models.Message, 0)
+	room.messagesM.Unlock()
+
+	room.killedM.Lock()
+	room._killed = 0
+	room.killedM.Unlock()
+
+	room.ID = utils.RandomString(16)
+	room.Status = StatusPeopleFinding
+
+	room.Field = field
+
+	room.Date = time.Now()
+	room.chanFinish = make(chan struct{})
+
+	return
 }
 
 func (room *Room) debug() {

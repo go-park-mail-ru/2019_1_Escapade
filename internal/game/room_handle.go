@@ -228,7 +228,14 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 		}
 	} else {
 		if action == ActionRestart {
-			room.addPlayer(conn)
+			if room.Status == StatusFinished {
+				room.Restart()
+				room.lobby.addRoom(room)
+			}
+			//room.Status = StatusPeopleFinding
+			if room.Status == StatusPeopleFinding {
+				room.addPlayer(conn)
+			}
 			return true
 		}
 	}
