@@ -52,8 +52,8 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", handler.GameHistory)
-	r.Handle("/metrics", promhttp.Handler())
+	r.HandleFunc("history/ws", handler.GameHistory)
+	r.Handle("history/metrics", promhttp.Handler())
 
 	metrics.InitHitsMetric("api")
 
