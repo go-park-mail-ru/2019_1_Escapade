@@ -60,9 +60,9 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("game/ws", handler.GameOnline)
+	r.HandleFunc("/game/ws", handler.GameOnline)
 
-	r.Handle("game/metrics", promhttp.Handler())
+	r.Handle("/game/metrics", promhttp.Handler())
 
 	game.Launch(&configuration.Game, &handler.DB, true)
 	defer game.GetLobby().Stop()
