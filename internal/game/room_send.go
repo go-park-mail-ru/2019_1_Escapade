@@ -1,6 +1,8 @@
 package game
 
 import (
+	"time"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
@@ -250,6 +252,8 @@ func (room *Room) greet(conn *Connection) {
 
 	copy := *conn
 
+	leftTime := room.Settings.TimeToPlay + room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
@@ -257,11 +261,13 @@ func (room *Room) greet(conn *Connection) {
 			You      models.UserPublicInfo `json:"you"`
 			Observer bool                  `json:"observer"`
 			Flag     Cell                  `json:"flag,omitempty"`
+			Time     int                   `json:"time"`
 		}{
 			Room:     room,
 			You:      *copy.User,
 			Observer: copy.Index() < 0,
 			Flag:     flag,
+			Time:     leftTime,
 		},
 	}
 	conn.SendInformation(response)

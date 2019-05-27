@@ -12,7 +12,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 		metrics.WaitingPlayers.Add(1)
 	}
 	fmt.Println("addWaiter called")
-	go lobby.waitingAdd(newConn)
+	lobby.waitingAdd(newConn)
 	if !newConn.Both() {
 		lobby.greet(newConn)
 	}
@@ -63,11 +63,13 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	conn.PushToLobby()
 }
 
-func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
+func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) bool {
 	// find such player
-	i, room := lobby.allRoomsSearchPlayer(newConn)
+	fmt.Println("somebody wants you to recover")
 
-	if i > 0 {
+	i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
+
+	if i >= 0 {
 		fmt.Println("we found you in game!")
 		room.RecoverPlayer(newConn)
 		return true

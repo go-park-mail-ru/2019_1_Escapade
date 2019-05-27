@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-func (lobby *Lobby) JoinConn(conn *Connection) {
+func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 	if lobby.done() {
 		return
 	}
@@ -17,6 +17,7 @@ func (lobby *Lobby) JoinConn(conn *Connection) {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
 	}()
+	fmt.Println("call me")
 	lobby.chanJoin <- conn
 }
 
@@ -34,7 +35,7 @@ func (lobby *Lobby) Run() {
 	for {
 		select {
 		case connection := <-lobby.chanJoin:
-			go lobby.Join(connection)
+			go lobby.Join(connection, false)
 
 		case message := <-lobby.chanBroadcast:
 			go lobby.Analize(message)
@@ -57,11 +58,12 @@ func (lobby *Lobby) Run() {
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(newConn *Connection) {
+func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
+	fmt.Println("join")
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
@@ -69,11 +71,10 @@ func (lobby *Lobby) Join(newConn *Connection) {
 
 	lobby.addWaiter(newConn)
 
-	if lobby.recoverInRoom(newConn) {
+	if lobby.recoverInRoom(newConn, disconnected) {
 		go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
 		return
 	}
-
 	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 
 	newConn.debug("new waiter")
@@ -90,23 +91,28 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("disconnected -  #", conn.ID())
+	var disconnected bool
 
-	if !conn.InRoom() {
-		go lobby.waitingRemove(conn)
-		go lobby.sendWaiterExit(*conn, AllExceptThat(conn))
-	}
-
-	fmt.Println("here ", conn.Both(), conn.InRoom())
 	if conn.Both() || conn.InRoom() {
 		fmt.Println("both -  #", conn.ID())
-		go lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
+		disconnected = lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
+	}
+
+	if !conn.InRoom() {
+		disconnected = lobby.waitingRemove(conn)
+		if disconnected {
+			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
+		}
+	}
+
+	if disconnected {
+		fmt.Println("disconnected -  #", conn.ID())
 	}
 	return
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
+func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bool) {
 
 	if lobby.done() {
 		return
@@ -120,15 +126,15 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) {
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
 		lobby.PlayerToWaiter(conn)
+		done = room.Leave(conn, action) // exit to lobby
 	} else {
 		//go lobby.playingRemove(conn)
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
-
-	room.Leave(conn, action) // exit to lobby
-	if len(room.playersConnections()) > 0 {
-		go lobby.sendRoomUpdate(*room, AllExceptThat(conn))
+	if done && len(room.playersConnections()) > 0 {
+		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
+	return done
 }
 
 // EnterRoom handle user join to room
@@ -143,6 +149,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		lobby.wGroup.Done()
 	}()
 
+	fmt.Println("see block!")
 	conn.actionSem <- struct{}{}
 	defer func() { <-conn.actionSem }()
 
@@ -212,7 +219,9 @@ func (lobby *Lobby) Analize(req *Request) {
 		lobby.wGroup.Done()
 	}()
 
+	fmt.Println("analyze", req.Connection.Both(), req.Connection.InRoom())
 	if req.Connection.Both() || !req.Connection.InRoom() {
+		fmt.Println("lobby work")
 		var send *LobbyRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			req.Connection.SendInformation(err)
@@ -221,15 +230,19 @@ func (lobby *Lobby) Analize(req *Request) {
 		}
 	}
 	if req.Connection.Both() || req.Connection.InRoom() {
+		fmt.Println("room work")
 		if req.Connection.Room() == nil {
+			fmt.Println("bot room")
 			return
 		}
 		var send *RoomRequest
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			req.Connection.SendInformation(err)
 		} else {
+			fmt.Println("room is here")
 			room := req.Connection.Room()
 			if room == nil {
+				fmt.Println("no room")
 				return
 			}
 			room.HandleRequest(req.Connection, send)
@@ -257,6 +270,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		}
 		lobby.EnterRoom(conn, lr.Send.RoomSettings)
 	} else if lr.Message != nil {
+		lr.Message.Status = models.StatusLobby
 		Message(lobby, conn, lr.Message, lobby.setToMessages,
 			lobby.send, All, false, "")
 	}

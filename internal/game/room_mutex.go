@@ -322,19 +322,19 @@ func (room *Room) observersAdd(conn *Connection, kill bool) {
 }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersRemove(conn *Connection) {
+func (room *Room) playersRemove(conn *Connection, disconnect bool) bool {
 
 	room.playersM.Lock()
 	defer room.playersM.Unlock()
-	room._Players.Remove(conn)
+	return room._Players.Remove(conn, disconnect)
 }
 
 // getMatrixValue get a value from matrix
-func (room *Room) observersRemove(conn *Connection) {
+func (room *Room) observersRemove(conn *Connection, disconnect bool) bool {
 
 	room.observersM.Lock()
 	defer room.observersM.Unlock()
-	room._Observers.Remove(conn)
+	return room._Observers.Remove(conn, disconnect)
 }
 
 // getMatrixValue get a value from matrix

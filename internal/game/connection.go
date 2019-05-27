@@ -186,8 +186,8 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	all := &sync.WaitGroup{}
 
-	//fmt.Println("JoinConn!")
-	conn.lobby.JoinConn(conn)
+	fmt.Println("JoinConn!")
+	conn.lobby.JoinConn(conn, 3)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
@@ -195,7 +195,7 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	//fmt.Println("Wait!")
 	all.Wait()
-	//fmt.Println("conn finished")
+	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
 	conn.Free()
 }
@@ -300,7 +300,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			}
 			if start != end {
 				print := str[start:end]
-				print = str
+				//print = str
 				fmt.Println("#", conn.ID(), " get that:", print)
 			}
 

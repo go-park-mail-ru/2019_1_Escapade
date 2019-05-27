@@ -174,8 +174,8 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 
 // Remove delete element and decrement size if element
 // exists in map
-func (onlinePlayers *OnlinePlayers) Remove(conn *Connection) {
-	onlinePlayers.Connections.Remove(conn)
+func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bool {
+	return onlinePlayers.Connections.Remove(conn, disconnect)
 	/*
 		size := len(onlinePlayers.Connections)
 		i := onlinePlayers.SearchConnection(conn)
@@ -214,17 +214,20 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 
 // SearchPlayer find connection in rooms players and return it if success
 // otherwise nil
-func (rooms *Rooms) SearchPlayer(new *Connection) (int, *Room) {
+func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *Room) {
 	for _, room := range rooms.Get {
 		i := room.playersSearchIndexPlayer(new)
+		fmt.Println("room", room.ID, i)
 		// cant found
 		if i < 0 {
 			continue
 		}
-		if room.playerFinished(i) {
+		if mustNotFinished && room.playerFinished(i) {
+			fmt.Println("next!!!")
 			continue
 		}
 
+		fmt.Println("happy return")
 		return i, room
 	}
 	return -1, nil
@@ -310,6 +313,9 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
+		conn._room = conns.Get[i].Room()
+		conn._Index = conns.Get[i].Index()
+
 		conns.Get[i] = conn
 		i = oldConn.Index()
 	} else if conns.enoughPlace() {
@@ -323,15 +329,19 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 
 // Remove delete element and decrement size if element
 // exists in map
-func (conns *Connections) Remove(conn *Connection) {
+func (conns *Connections) Remove(conn *Connection, onlyIfDisconnected bool) bool {
 	i := conns.Search(conn)
 	if i < 0 {
-		return
+		return false
+	}
+	if onlyIfDisconnected && !conns.Get[i].Disconnected() {
+		return false
 	}
 	size := len(conns.Get)
 	conns.Get[i], conns.Get[size-1] = conns.Get[size-1], conns.Get[i]
 	fmt.Println("delete it", conns.Get[size-1].ID())
 	conns.Get[size-1] = nil
 	conns.Get = conns.Get[:size-1]
+	return true
 	//sendError(conn, "Remove", "You disconnected ")
 }
