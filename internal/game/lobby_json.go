@@ -19,8 +19,8 @@ func (lobby *Lobby) JSON() LobbyJSON {
 	return LobbyJSON{
 		AllRooms:  *lobby._AllRooms,
 		FreeRooms: *lobby._FreeRooms,
-		Waiting:   *lobby._Waiting,
-		Playing:   *lobby._Playing,
+		Waiting:   *lobby.Waiting,
+		Playing:   *lobby.Playing,
 		Messages:  lobby._Messages,
 	}
 }
@@ -37,8 +37,8 @@ func (lobby *Lobby) UnmarshalJSON(b []byte) error {
 	}
 	lobby._AllRooms = &temp.AllRooms
 	lobby._FreeRooms = &temp.FreeRooms
-	lobby._Waiting = &temp.Waiting
-	lobby._Playing = &temp.Playing
+	lobby.Waiting = &temp.Waiting
+	lobby.Playing = &temp.Playing
 	lobby._Messages = temp.Messages
 
 	return nil

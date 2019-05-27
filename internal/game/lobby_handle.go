@@ -99,7 +99,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	}
 
 	if !conn.InRoom() {
-		disconnected = lobby.waitingRemove(conn)
+		disconnected = lobby.Waiting.Remove(conn, true) //lobby.waitingRemove(conn)
 		if disconnected {
 			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 		}
@@ -131,7 +131,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 		//go lobby.playingRemove(conn)
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
-	if done && len(room.playersConnections()) > 0 {
+	if done && len(room.RPlayersConnections()) > 0 {
 		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
 	return done

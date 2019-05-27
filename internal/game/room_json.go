@@ -30,7 +30,7 @@ func (room *Room) JSON() RoomJSON {
 		Name:      room.Name,
 		Status:    room.Status,
 		Players:   room._Players,
-		Observers: room._Observers,
+		Observers: room.Observers,
 		History:   room.history(),
 		Messages:  room._Messages,
 		Field:     room.Field,
@@ -52,7 +52,7 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 	room.Name = temp.Name
 	room.Status = temp.Status
 	room._Players = temp.Players
-	room._Observers = temp.Observers
+	room.Observers = temp.Observers
 	room._History = temp.History
 	room._Messages = temp.Messages
 	room.Date = temp.Date

@@ -12,7 +12,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 		metrics.WaitingPlayers.Add(1)
 	}
 	fmt.Println("addWaiter called")
-	lobby.waitingAdd(newConn)
+	lobby.Waiting.Add(newConn, false)
 	if !newConn.Both() {
 		lobby.greet(newConn)
 	}
@@ -29,7 +29,8 @@ func (lobby *Lobby) Anonymous() int {
 
 func (lobby *Lobby) addPlayer(newConn *Connection) {
 	fmt.Println("addPlayer called")
-	lobby.playingAdd(newConn)
+	//lobby.playingAdd(newConn)
+	lobby.Playing.Add(newConn, false)
 }
 
 func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
@@ -43,7 +44,8 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 	}()
 
 	fmt.Println("waiterToPlayer called")
-	lobby.waitingRemove(newConn)
+	lobby.Waiting.Remove(newConn, true)
+	//lobby.waitingRemove(newConn)
 	lobby.addPlayer(newConn)
 }
 
@@ -58,7 +60,8 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	}()
 
 	fmt.Println("PlayerToWaiter called")
-	lobby.playingRemove(conn)
+	lobby.Playing.Remove(conn, true)
+	//lobby.playingRemove(conn)
 	lobby.addWaiter(conn)
 	conn.PushToLobby()
 }

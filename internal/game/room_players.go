@@ -59,7 +59,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 	}
 
 	// if we havent a place
-	if !room.observersEnoughPlace() {
+	if !room.Observers.EnoughPlace() {
 		conn.debug("Room cant execute request ")
 		return false
 	}
@@ -153,7 +153,7 @@ func (room *Room) MakeObserver(conn *Connection) {
 	} else {
 		conn.setBoth(true)
 	}
-	room.observersAdd(conn, false)
+	room.Observers.Add(conn, false)
 	go room.greet(conn, false)
 	conn.PushToRoom(room)
 }
@@ -181,7 +181,7 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool
 			room.sendPlayerExit(*conn, room.All)
 		}
 	} else {
-		done = room.observersRemove(conn, disconnected)
+		done = room.Observers.Remove(conn, disconnected)
 		if done {
 			go room.sendObserverExit(*conn, room.All)
 		}

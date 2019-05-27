@@ -43,14 +43,12 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 	if thatID == founder.ID() {
 		return
 	}
-	go room.IncreasePlayerPoints(founder.Index(), 1000)
-	connections := room.playersConnections()
-	for _, conn := range connections {
-		fmt.Println("compare:", thatID, conn.ID())
-		if thatID == conn.ID() {
-			go room.Kill(conn, ActionFlagLost)
-			return
-		}
+	room.IncreasePlayerPoints(founder.Index(), 1000)
+
+	conns := room.RPConnections()
+	killConn, index := conns.SearchByID(thatID)
+	if index >= 0 {
+		room.Kill(killConn, ActionFlagLost)
 	}
 }
 
@@ -96,7 +94,7 @@ func (room *Room) GiveUp(conn *Connection) {
 }
 
 // flagExists find players with such flag. This - flag owner
-func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Connection) {
+func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Connection) {
 	var player int
 	flags := room.playersFlags()
 	for index, flag := range flags {
@@ -111,13 +109,7 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn Conn
 	if !found {
 		return
 	}
-	connections := room.playersConnections()
-	for _, connection := range connections {
-		if connection.Index() == player {
-			conn = *connection
-			break
-		}
-	}
+	conn = room.RPConnections().SearchByIndex(player)
 	return
 }
 
@@ -173,7 +165,7 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 
 	if found, prevConn := room.flagExists(*cell, conn); found {
 		go room.SetAndSendNewCell(*conn)
-		go room.SetAndSendNewCell(prevConn)
+		go room.SetAndSendNewCell(*prevConn)
 		return true
 	}
 

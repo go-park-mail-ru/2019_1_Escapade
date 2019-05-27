@@ -10,8 +10,8 @@ import (
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
-	players := room.playersConnections()
-	observers := room.observers()
+	players := room.RPlayersConnections()
+	observers := room.Observers.RGet()
 	SendToConnections(info, predicate, players, observers)
 }
 
@@ -259,14 +259,12 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 		Value: struct {
 			Room     *Room                 `json:"room"`
 			You      models.UserPublicInfo `json:"you"`
-			Observer bool                  `json:"observer"`
 			Flag     Cell                  `json:"flag,omitempty"`
 			Time     int                   `json:"time"`
-			IsPlayer bool                  `json:"isPlayer"`
+			IsPlayer bool                  `json:"isPlёayer"`
 		}{
 			Room:     room,
 			You:      *copy.User,
-			Observer: copy.Index() < 0,
 			Flag:     flag,
 			Time:     leftTime,
 			IsPlayer: isPlayer,

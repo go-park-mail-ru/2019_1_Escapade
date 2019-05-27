@@ -12,11 +12,11 @@ import (
 // recover panic
 
 func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.waiting())
+	SendToConnections(info, predicate, lobby.Waiting.RGet())
 }
 
 func (lobby *Lobby) sendToAll(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.waiting(), lobby.playing())
+	SendToConnections(info, predicate, lobby.Waiting.RGet(), lobby.Playing.RGet())
 }
 
 func (lobby *Lobby) greet(conn *Connection) {

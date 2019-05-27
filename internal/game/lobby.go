@@ -29,11 +29,11 @@ type Lobby struct {
 	freeRoomsM *sync.RWMutex
 	_FreeRooms *Rooms
 
-	waitingM *sync.RWMutex
-	_Waiting *Connections
+	//waitingM *sync.RWMutex
+	Waiting *Connections
 
-	playingM *sync.RWMutex
-	_Playing *Connections
+	//playingM *sync.RWMutex
+	Playing *Connections
 
 	messagesM *sync.Mutex
 	_Messages []*models.Message
@@ -86,11 +86,11 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		freeRoomsM: &sync.RWMutex{},
 		_FreeRooms: NewRooms(roomsCapacity),
 
-		waitingM: &sync.RWMutex{},
-		_Waiting: NewConnections(connectionsCapacity),
+		//waitingM: &sync.RWMutex{},
+		Waiting: NewConnections(connectionsCapacity),
 
-		playingM: &sync.RWMutex{},
-		_Playing: NewConnections(connectionsCapacity),
+		//playingM: &sync.RWMutex{},
+		Playing: NewConnections(connectionsCapacity),
 
 		messagesM: &sync.Mutex{},
 		_Messages: messages,
@@ -163,8 +163,8 @@ func (lobby *Lobby) Free() {
 
 	go lobby.allRoomsFree()
 	go lobby.freeRoomsFree()
-	go lobby.waitingFree()
-	go lobby.playingFree()
+	go lobby.Waiting.Free()
+	go lobby.Playing.Free()
 
 	lobby.cancel()
 

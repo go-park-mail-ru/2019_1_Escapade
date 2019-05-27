@@ -49,7 +49,7 @@ func (room *Room) Free() {
 	go room.historyFree()
 	go room.messagesFree()
 	go room.playersFree()
-	go room.observersFree()
+	go room.Observers.Free()
 	go room.Field.Free()
 
 	close(room.chanFinish)
@@ -89,11 +89,11 @@ func (room *Room) LeaveAll() {
 		room.wGroup.Done()
 	}()
 
-	players := room.playersConnections()
+	players := room.RPlayersConnections()
 	for _, conn := range players {
 		go room.Leave(conn, ActionDisconnect)
 	}
-	observers := room.observers()
+	observers := room.Observers.RGet()
 	for _, conn := range observers {
 		go room.Leave(conn, ActionDisconnect)
 	}
@@ -280,8 +280,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		//room.finishGame(true)
 		//}
 	} else if rr.Message != nil {
-		i := room.observersSearch(conn)
-		if i >= 0 {
+		if conn.Index() < 0 {
 			rr.Message.Status = models.StatusObserver
 		} else {
 			rr.Message.Status = models.StatusPlayer
@@ -303,11 +302,11 @@ func (room *Room) StartFlagPlacing() {
 	//fmt.Println("StartFlagPlacing")
 
 	room.Status = StatusFlagPlacing
-	players := room.playersConnections()
+	players := room.RPlayersConnections()
 	for _, conn := range players {
 		room.MakePlayer(conn)
 	}
-	observers := room.observers()
+	observers := room.Observers.RGet()
 	for _, conn := range observers {
 		room.MakeObserver(conn)
 	}
@@ -366,17 +365,9 @@ func (room *Room) FinishGame(timer bool) {
 		player.Finished = true
 	}
 
-	playersConns := room.playersConnections()
-	for i, conn := range playersConns {
-		fmt.Println("found", i)
-		if conn == nil {
-			fmt.Println("fine nil")
-			//continue
-		} else {
-			fmt.Println("id", conn.ID())
-		}
-		//room.playersRemove(conn)
-		room.observersAdd(conn, false)
+	playersConns := room.RPlayersConnections()
+	for _, conn := range playersConns {
+		room.Observers.Add(conn, false)
 	}
 	room.zeroPlayers()
 	room.lobby.roomFinish(room)

@@ -29,8 +29,8 @@ type Room struct {
 	playersM *sync.RWMutex
 	_Players *OnlinePlayers
 
-	observersM *sync.RWMutex
-	_Observers *Connections
+	//observersM *sync.RWMutex
+	Observers *Connections
 
 	historyM *sync.RWMutex
 	_History []*PlayerAction
@@ -111,8 +111,8 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.playersM = &sync.RWMutex{}
 	room._Players = newOnlinePlayers(rs.Players, *field)
 
-	room.observersM = &sync.RWMutex{}
-	room._Observers = NewConnections(rs.Observers)
+	//room.observersM = &sync.RWMutex{}
+	room.Observers = NewConnections(rs.Observers)
 
 	room.historyM = &sync.RWMutex{}
 	room._History = make([]*PlayerAction, 0)
@@ -145,9 +145,9 @@ func (room *Room) Restart() {
 	room._Players = newOnlinePlayers(room.Settings.Players, *field)
 	room.playersM.Unlock()
 
-	room.observersM.Lock()
-	room._Observers = NewConnections(room.Settings.Observers)
-	room.observersM.Unlock()
+	//room.observersM.Lock()
+	room.Observers = NewConnections(room.Settings.Observers)
+	//room.observersM.Unlock()
 
 	room.historyM.Lock()
 	room._History = make([]*PlayerAction, 0)
