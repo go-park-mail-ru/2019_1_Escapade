@@ -172,6 +172,7 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 	fmt.Println(" stat:", room.Settings.TimeToPrepare, room.Settings.TimeToPlay, int(time.Since(room.Date).Seconds()))
 	if room.Status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+
 		fmt.Println(" StatusFlagPlacing leftTime:", leftTime)
 	}
 	if room.Status == StatusRunning {
@@ -275,7 +276,7 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 			You  models.UserPublicInfo `json:"you"`
 			Flag Flag                  `json:"flag,omitempty"`
 			//Time     int                   `json:"time"`
-			IsPlayer bool `json:"isPlёayer"`
+			IsPlayer bool `json:"isPlayer"`
 		}{
 			Room: room,
 			You:  *copy.User,

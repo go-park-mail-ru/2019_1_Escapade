@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 // RGet return connections slice only for Read!
 func (onlinePlayers *OnlinePlayers) Capacity() int {
 
@@ -70,6 +72,7 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 	if index < 0 {
 		return false
 	}
+	fmt.Println("somebody set flag")
 	onlinePlayers._flags[index].Cell.X = cell.X
 	onlinePlayers._flags[index].Cell.Y = cell.Y
 	onlinePlayers._flags[index].Cell.PlayerID = conn.ID()

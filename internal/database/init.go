@@ -256,12 +256,13 @@ func (db *DataBase) createTableAction(tx *sql.Tx) (err error) {
            FOREIGN KEY (game_id)
            REFERENCES Game(id)
            ON DELETE CASCADE;
-
+/*
     ALTER TABLE Action
         ADD CONSTRAINT action_player
             FOREIGN KEY (player_id)
             REFERENCES Player(id)
             ON DELETE CASCADE;
+            */
     
     `
 	_, err = tx.Exec(sqlStatement)

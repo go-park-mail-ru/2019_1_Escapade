@@ -648,7 +648,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		//rw.WriteHeader(http.StatusUnauthorized)
 		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		//utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
+		//return
 	}
 
 	if userID < 0 {
