@@ -55,20 +55,20 @@ services:
       - PORT_GAME_URL=:3002
     command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/game"
 
-  # history:
-  #   build:
-  #     dockerfile: ./history/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg"
-  #     - "auth"
-  #   ports:
-  #     - 3004:3004
-  #   environment:
-  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-  #     - AUTHSERVICE_URL=auth:3333
-  #     - PORT_HISTORY_URL=:3004
-  #   command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+  history:
+    build:
+      dockerfile: ./history/Dockerfile
+      context: .
+    depends_on:
+      - "pg"
+      - "auth"
+    ports:
+      - 3004:3004
+    environment:
+      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+      - AUTHSERVICE_URL=auth:3333
+      - PORT_HISTORY_URL=:3004
+    command: /bin/sh -c "./bin/history"
 
   prometheus:
     build:
