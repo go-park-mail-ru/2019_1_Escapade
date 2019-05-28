@@ -1,6 +1,8 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // RGet return connections slice only for Read!
 func (onlinePlayers *OnlinePlayers) Capacity() int {
@@ -35,7 +37,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayers(players []Player) {
 	return
 }
 
-func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index, points int) {
+func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index int, points float64) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -45,6 +47,9 @@ func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index, points int) {
 	}
 
 	onlinePlayers._players[index].Points += points
+	if onlinePlayers._players[index].Points < 0 {
+		onlinePlayers._players[index].Points = 0
+	}
 }
 
 func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
@@ -76,7 +81,7 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 	onlinePlayers._flags[index].Cell.X = cell.X
 	onlinePlayers._flags[index].Cell.Y = cell.Y
 	onlinePlayers._flags[index].Cell.PlayerID = conn.ID()
-	onlinePlayers._flags[index].Cell.Value = conn.ID() + CellIncrement
+	onlinePlayers._flags[index].Cell.Value = FlagID(conn.ID())
 
 	if !onlinePlayers._flags[conn.Index()].Set {
 		onlinePlayers._flags[conn.Index()].Set = true

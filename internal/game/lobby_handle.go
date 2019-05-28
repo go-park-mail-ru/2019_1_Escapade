@@ -271,7 +271,9 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		lobby.EnterRoom(conn, lr.Send.RoomSettings)
 	} else if lr.Message != nil {
 		lr.Message.Status = models.StatusLobby
-		Message(lobby, conn, lr.Message, lobby.setToMessages,
+		Message(lobby, conn, lr.Message,
+			lobby.appendMessage, lobby.setMessage,
+			lobby.removeMessage, lobby.findMessage,
 			lobby.send, All, false, "")
 	}
 }

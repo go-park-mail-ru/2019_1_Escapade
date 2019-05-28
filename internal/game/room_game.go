@@ -17,7 +17,7 @@ func (room *Room) Winner() (idWin int) {
 		room.wGroup.Done()
 	}()
 
-	max := 0
+	max := 0.
 
 	players := room.Players.RPlayers()
 	for id, player := range players {
@@ -39,13 +39,12 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		room.wGroup.Done()
 	}()
 
-	thatID := found.Value - CellIncrement
-	if thatID == founder.ID() {
+	flagID := FlagID(founder.ID())
+	if found.Value == flagID {
 		return
 	}
-	room.Players.IncreasePlayerPoints(founder.Index(), 1000)
 
-	killConn, index := room.Players.Connections.SearchByID(thatID)
+	killConn, index := room.Players.Connections.SearchByID(found.PlayerID)
 	if index >= 0 {
 		room.Kill(killConn, ActionFlagLost)
 	}

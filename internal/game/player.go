@@ -3,7 +3,7 @@ package game
 // Player has name, ID, points and flag Finish
 type Player struct {
 	ID       int
-	Points   int
+	Points   float64
 	Finished bool
 	Died     bool
 }

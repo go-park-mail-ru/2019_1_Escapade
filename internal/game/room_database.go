@@ -86,9 +86,9 @@ func (room *Room) Save() (err error) {
 	}
 
 	//var room1 *Room
-	if _, err = lobby.Load(room.ID); err != nil {
-		fmt.Println("err. Cant load.", err.Error())
-	} //else {
+	// if _, err = lobby.Load(room.ID); err != nil {
+	// 	fmt.Println("err. Cant load.", err.Error())
+	// } //else {
 	//room1.debug()
 	//}
 

@@ -40,7 +40,7 @@ func (conns *Connections) remove(i int) {
 	size := len(conns._get)
 
 	conns._get[i], conns._get[size-1] = conns._get[size-1], conns._get[i]
-	//conns._get[size-1] = nil // now not pointer
+	conns._get[size-1] = nil // now not pointer
 	conns._get = conns._get[:size-1]
 	return
 }

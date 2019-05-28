@@ -163,10 +163,44 @@ func (lobby *Lobby) freeRooms() []*Room {
 }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) setToMessages(message *models.Message) {
+func (lobby *Lobby) appendMessage(message *models.Message) {
 	lobby.messagesM.Lock()
 	defer lobby.messagesM.Unlock()
 	lobby._Messages = append(lobby._Messages, message)
+}
+
+func (lobby *Lobby) removeMessage(i int) {
+
+	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
+	size := len(lobby._Messages)
+
+	lobby._Messages[i], lobby._Messages[size-1] = lobby._Messages[size-1], lobby._Messages[i]
+	lobby._Messages[size-1] = nil
+	lobby._Messages = lobby._Messages[:size-1]
+	return
+}
+
+func (lobby *Lobby) setMessage(i int, message *models.Message) {
+
+	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
+	lobby._Messages[i] = message
+	return
+}
+
+func (lobby *Lobby) findMessage(search *models.Message) int {
+
+	lobby.messagesM.Lock()
+	messages := lobby._Messages
+	lobby.messagesM.Unlock()
+
+	for i, message := range messages {
+		if message.ID == search.ID {
+			return i
+		}
+	}
+	return -1
 }
 
 // getMatrixValue get a value from matrix

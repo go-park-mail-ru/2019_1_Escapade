@@ -17,12 +17,12 @@ func (room *Room) send(info interface{}, predicate SendPredicate) {
 }
 
 func (room *Room) sendMessage(text string, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendMessage()")
 	}()
 
@@ -31,12 +31,12 @@ func (room *Room) sendMessage(text string, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendPlayerPoints()")
 	}()
 
@@ -49,12 +49,12 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendGameOver()")
 	}()
 
@@ -78,12 +78,12 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 }
 
 func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go RoomNewCells()")
 	}()
 
@@ -96,12 +96,12 @@ func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go RoomPlayerEnter()")
 	}()
 
@@ -114,12 +114,12 @@ func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go RoomPlayerExit()")
 	}()
 
@@ -141,12 +141,12 @@ func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go RoomObserverExit()")
 	}()
 
@@ -159,12 +159,12 @@ func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
 
 // sendTAIRPeople send players, observers and history to all in room
 func (room *Room) sendStatus(predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go RoomStatus()")
 	}()
 
@@ -196,12 +196,12 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 
 // sendTAIRHistory send actions history to all in room
 func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendAction()")
 	}()
 
@@ -214,12 +214,12 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 
 // sendTAIRHistory send actions history to all in room
 func (room *Room) sendError(err error, conn Connection) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendError()")
 	}()
 
@@ -232,12 +232,12 @@ func (room *Room) sendError(err error, conn Connection) {
 
 // sendTAIRField send field to all in room
 func (room *Room) sendField(predicate SendPredicate) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go sendField()")
 	}()
 
@@ -250,12 +250,12 @@ func (room *Room) sendField(predicate SendPredicate) {
 
 // sendTAIRAll send everything to one connection
 func (room *Room) greet(conn *Connection, isPlayer bool) {
-	if lobby.done() {
+	if room.done() {
 		return
 	}
-	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
-		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("room_send.go greet()")
 	}()
 

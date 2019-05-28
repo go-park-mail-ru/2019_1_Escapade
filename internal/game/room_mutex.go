@@ -241,21 +241,6 @@ func (room *Room) SetFinished(conn *Connection) {
 	room.killedM.Unlock()
 }
 
-// SetFinished increment amount of killed
-// func (room *Room) setCell(conn *Connection) (flag *Cell) {
-
-// 	index := conn.Index()
-// 	if index < 0 {
-// 		return
-// 	}
-// 	room.playersM.Lock()
-// 	room._Players.Flags[index].PlayerID = conn.ID()
-// 	room._Players.Flags[index].Value = conn.ID() + CellIncrement
-// 	flag = &room._Players.Flags[index]
-// 	room.playersM.Unlock()
-// 	return
-// }
-
 // getMatrixValue get a value from matrix
 func (room *Room) history() []*PlayerAction {
 	room.historyM.RLock()
@@ -272,10 +257,44 @@ func (room *Room) setToHistory(action *PlayerAction) {
 }
 
 // getMatrixValue get a value from matrix
-func (room *Room) setToMessages(message *models.Message) {
+func (room *Room) appendMessage(message *models.Message) {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
 	room._Messages = append(room._Messages, message)
+}
+
+func (room *Room) removeMessage(i int) {
+
+	room.messagesM.Lock()
+	defer room.messagesM.Unlock()
+	size := len(room._Messages)
+
+	room._Messages[i], room._Messages[size-1] = room._Messages[size-1], room._Messages[i]
+	room._Messages[size-1] = nil
+	room._Messages = room._Messages[:size-1]
+	return
+}
+
+func (room *Room) setMessage(i int, message *models.Message) {
+
+	room.messagesM.Lock()
+	defer room.messagesM.Unlock()
+	room._Messages[i] = message
+	return
+}
+
+func (room *Room) findMessage(search *models.Message) int {
+
+	room.messagesM.Lock()
+	messages := room._Messages
+	room.messagesM.Unlock()
+
+	for i, message := range messages {
+		if message.ID == search.ID {
+			return i
+		}
+	}
+	return -1
 }
 
 func (room *Room) historyFree() {

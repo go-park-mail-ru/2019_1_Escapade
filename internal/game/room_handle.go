@@ -119,6 +119,22 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 	return room.RemoveFromGame(conn, action == ActionDisconnect)
 }
 
+func (room *Room) applyAction(conn *Connection, cell *Cell) {
+	index := conn.Index()
+
+	fmt.Println("points:", room.Settings.Width, room.Settings.Height, 100*float64(cell.Value+1)/float64(room.Settings.Width*room.Settings.Height))
+	switch {
+	case cell.Value < CellMine:
+		room.Players.IncreasePlayerPoints(index, 100*float64(cell.Value+1)/float64(room.Settings.Width*room.Settings.Height))
+	case cell.Value == CellMine:
+		room.Players.IncreasePlayerPoints(index, float64(-100))
+		room.Kill(conn, ActionExplode)
+	case cell.Value > CellIncrement:
+		room.Players.IncreasePlayerPoints(index, 30)
+		room.FlagFound(*conn, cell)
+	}
+}
+
 // openCell open cell
 func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	if room.done() {
@@ -143,7 +159,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	if !room.isAlive(conn) {
 		return
 	}
-	index := conn.Index()
+	//index := conn.Index()
 
 	// set who try open cell(for history)
 	cell.PlayerID = conn.ID()
@@ -151,28 +167,15 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	fmt.Println("len cell", len(cells))
 	if len(cells) == 1 {
 		newCell := cells[0]
-		fmt.Println("newCell value", newCell.Value)
-		if newCell.Value < CellMine {
-			room.Players.IncreasePlayerPoints(index, 1+newCell.Value)
-		} else if newCell.Value == CellMine {
-			go room.Players.IncreasePlayerPoints(index, -100) // в конфиг
-			room.Kill(conn, ActionExplode)
-		} else if newCell.Value >= CellIncrement {
-			room.FlagFound(*conn, &newCell)
-		} else if newCell.Value == CellOpened {
-			return
-		}
+		room.applyAction(conn, &newCell)
 	} else {
 		for _, foundCell := range cells {
-			value := foundCell.Value
-			if value < CellMine {
-				room.Players.IncreasePlayerPoints(index, 1+value)
-			}
+			room.applyAction(conn, &foundCell)
 		}
 	}
 
 	if len(cells) > 0 {
-		room.sendPlayerPoints(room.Players.Player(index), room.All)
+		room.sendPlayerPoints(room.Players.Player(conn.Index()), room.All)
 		go room.sendNewCells(cells, room.All)
 	}
 	if room.Field.IsCleared() {
@@ -285,7 +288,8 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		} else {
 			rr.Message.Status = models.StatusPlayer
 		}
-		Message(lobby, conn, rr.Message, room.setToMessages,
+		Message(room.lobby, conn, rr.Message, room.appendMessage,
+			room.setMessage, room.removeMessage, room.findMessage,
 			room.send, room.InGame, true, room.ID)
 	}
 }

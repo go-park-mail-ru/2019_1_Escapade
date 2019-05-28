@@ -115,23 +115,23 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 
 // lobby singleton
 var (
-	lobby *Lobby
+	LOBBY *Lobby
 )
 
 // Launch launchs lobby goroutine
 func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool) {
 
-	if lobby == nil {
-		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
+	if LOBBY == nil {
+		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
 			db, gc.CanClose, metrics)
 
-		go lobby.Run()
+		go LOBBY.Run()
 	}
 }
 
 // GetLobby create lobby if it is nil and get it
 func GetLobby() *Lobby {
-	return lobby
+	return LOBBY
 }
 
 func (lobby *Lobby) Metrics() bool {
