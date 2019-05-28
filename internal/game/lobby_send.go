@@ -180,3 +180,37 @@ func (lobby *Lobby) sendPlayerExit(conn Connection, predicate SendPredicate) {
 	}
 	lobby.send(response, predicate)
 }
+
+func (lobby *Lobby) sendInvitation(inv *Invitation, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby sendInvitation")
+	}()
+
+	response := models.Response{
+		Type:  "LobbyInvitation",
+		Value: inv,
+	}
+	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendInvitationCallback(conn *Connection, err error) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby sendCallback")
+	}()
+
+	response := models.Response{
+		Type:  "LobbyInvitationCallback",
+		Value: err,
+	}
+	conn.SendInformation(response)
+}

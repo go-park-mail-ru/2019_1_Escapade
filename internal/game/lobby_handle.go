@@ -1,7 +1,10 @@
 package game
 
 import (
+	"time"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"encoding/json"
@@ -264,11 +267,13 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 	if lr.IsGet() {
 		go lobby.greet(conn)
 	} else if lr.IsSend() {
-		if lr.Send.RoomSettings == nil {
-			conn.debug("lobby cant execute request")
+		if lr.Send.RoomSettings != nil {
+			lobby.EnterRoom(conn, lr.Send.RoomSettings)
 			return
 		}
-		lobby.EnterRoom(conn, lr.Send.RoomSettings)
+		if lr.Send.Invitation != nil {
+			lobby.Invite(conn, lr.Send.Invitation)
+		}
 	} else if lr.Message != nil {
 		lr.Message.Status = models.StatusLobby
 		Message(lobby, conn, lr.Message,
@@ -276,4 +281,40 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 			lobby.removeMessage, lobby.findMessage,
 			lobby.send, All, false, "")
 	}
+}
+
+func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
+
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go EnterRoom()")
+		lobby.wGroup.Done()
+	}()
+
+	inv.From = conn.User
+	inv.Message.User = conn.User
+	inv.Message.Time = time.Now()
+	if inv.All {
+		lobby.sendInvitation(inv, All)
+		lobby.sendInvitationCallback(conn, nil)
+	} else {
+		waiting := lobby.Waiting.RGet()
+		var find *Connection
+		for _, conn := range waiting {
+			if conn.User.Name == inv.To {
+				find = conn
+				break
+			}
+		}
+		if find != nil {
+			lobby.sendInvitation(inv, Me(find))
+			lobby.sendInvitationCallback(conn, nil)
+		} else {
+			lobby.sendInvitationCallback(conn, re.ErrorUserNotFound())
+		}
+	}
+
 }
