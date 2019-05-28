@@ -79,7 +79,7 @@ func (room *Room) Save() (err error) {
 		Cells:   cells,
 	}
 
-	fmt.Println("gameInformation:", gameInformation)
+	//fmt.Println("gameInformation:", gameInformation)
 
 	if err = room.lobby.db.SaveGame(gameInformation); err != nil {
 		fmt.Println("err. Cant save.", err.Error())

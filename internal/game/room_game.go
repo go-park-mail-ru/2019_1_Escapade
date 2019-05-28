@@ -39,12 +39,22 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		room.wGroup.Done()
 	}()
 
-	flagID := FlagID(founder.ID())
-	if found.Value == flagID {
+	which := 0
+	for _, flag := range room.Players.Flags() {
+		if flag.Cell.X == found.X && flag.Cell.Y == found.Y {
+			which = flag.Cell.PlayerID
+		}
+	}
+
+	if which == founder.ID() {
 		return
 	}
 
-	killConn, index := room.Players.Connections.SearchByID(found.PlayerID)
+	fmt.Println(which, "was found by", founder.ID())
+
+	room.Players.IncreasePlayerPoints(founder.Index(), 30)
+
+	killConn, index := room.Players.Connections.SearchByID(which)
 	if index >= 0 {
 		room.Kill(killConn, ActionFlagLost)
 	}

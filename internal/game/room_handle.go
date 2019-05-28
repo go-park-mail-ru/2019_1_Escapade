@@ -130,7 +130,6 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 		room.Players.IncreasePlayerPoints(index, float64(-100))
 		room.Kill(conn, ActionExplode)
 	case cell.Value > CellIncrement:
-		room.Players.IncreasePlayerPoints(index, 30)
 		room.FlagFound(*conn, cell)
 	}
 }
@@ -336,9 +335,16 @@ func (room *Room) StartGame() {
 
 	room.Date = time.Now()
 	room.Status = StatusRunning
-	go room.sendStatus(room.All)
-	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
+	room.sendStatus(room.All)
+	room.sendMessage("Battle began! Destroy your enemy!", room.All)
+
 	room.FillField()
+
+	open := float64(room.Settings.Mines) / float64(room.Settings.Width*room.Settings.Height) * float64(100)
+	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
+
+	cells := room.Field.OpenSave(int(open))
+	go room.sendNewCells(cells, room.All)
 }
 
 func (room *Room) FinishGame(timer bool) {

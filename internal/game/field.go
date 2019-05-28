@@ -210,6 +210,23 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 	return cell
 }
 
+func (field *Field) OpenSave(n int) (cells []Cell) {
+	cells = make([]Cell, 0)
+	size := 0
+	fmt.Println("OpenSave wanan open ", n)
+	for n > size {
+		rand.Seed(time.Now().UnixNano())
+		i := rand.Intn(field.Width)
+		j := rand.Intn(field.Height)
+		if field.lessThenMine(i, j) {
+			cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
+			size = len(cells)
+		}
+	}
+	fmt.Println("size is ", size)
+	return
+}
+
 // SetMines fill matrix with mines
 func (field *Field) SetMines() {
 	if field.getDone() {
