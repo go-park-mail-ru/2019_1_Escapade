@@ -304,11 +304,11 @@ func (room *Room) StartFlagPlacing() {
 	room.Status = StatusFlagPlacing
 	players := room.Players.Connections.RGet()
 	for _, conn := range players {
-		room.MakePlayer(conn)
+		room.MakePlayer(conn, false)
 	}
 	observers := room.Observers.RGet()
 	for _, conn := range observers {
-		room.MakeObserver(conn)
+		room.MakeObserver(conn, false)
 	}
 	room.Players.Init(room.Field)
 

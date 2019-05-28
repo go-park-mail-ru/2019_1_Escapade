@@ -286,5 +286,4 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 		},
 	}
 	conn.SendInformation(response)
-	room.sendStatus(Me(conn))
 }

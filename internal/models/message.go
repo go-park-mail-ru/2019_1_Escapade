@@ -15,4 +15,5 @@ type Message struct {
 	Text   string          `json:"text"`
 	Time   time.Time       `json:"time"`
 	Status int             `json:"status"`
+	Action int             `json:"action"`
 }
