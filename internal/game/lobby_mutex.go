@@ -35,92 +35,92 @@ func (lobby *Lobby) freeRoomsFree() {
 }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) waitingFree() {
-	lobby.waitingM.Lock()
-	defer lobby.waitingM.Unlock()
-	lobby._Waiting.Free()
-}
+// func (lobby *Lobby) waitingFree() {
+// 	lobby.waitingM.Lock()
+// 	defer lobby.waitingM.Unlock()
+// 	lobby._Waiting.Free()
+// }
+
+// // getMatrixValue get a value from matrix
+// func (lobby *Lobby) playingFree() {
+// 	lobby.playingM.Lock()
+// 	defer lobby.playingM.Unlock()
+// 	lobby._Playing.Free()
+// }
+
+// // getMatrixValue get a value from matrix
+// func (lobby *Lobby) waiting() []*Connection {
+// 	lobby.waitingM.RLock()
+// 	defer lobby.waitingM.RUnlock()
+// 	v := lobby._Waiting.Get
+
+// 	return v
+// }
+
+// // getMatrixValue get a value from matrix
+// func (lobby *Lobby) playing() []*Connection {
+// 	lobby.playingM.RLock()
+// 	defer lobby.playingM.RUnlock()
+// 	v := lobby._Playing.Get
+
+// 	return v
+// }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) playingFree() {
-	lobby.playingM.Lock()
-	defer lobby.playingM.Unlock()
-	lobby._Playing.Free()
-}
+// func (lobby *Lobby) playingRemove(conn *Connection) {
+// 	if lobby.done() {
+// 		return
+// 	}
+// 	lobby.wGroup.Add(1)
+// 	defer func() {
+// 		utils.CatchPanic("lobby_mutex.go playingRemove()")
+// 		lobby.wGroup.Done()
+// 	}()
+
+// 	lobby.playingM.Lock()
+// 	defer lobby.playingM.Unlock()
+// 	lobby._Playing.Remove(conn, false)
+// }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) waiting() []*Connection {
-	lobby.waitingM.RLock()
-	defer lobby.waitingM.RUnlock()
-	v := lobby._Waiting.Get
+// func (lobby *Lobby) playingAdd(conn *Connection) {
+// 	if lobby.done() {
+// 		return
+// 	}
+// 	lobby.wGroup.Add(1)
+// 	defer func() {
+// 		utils.CatchPanic("lobby_mutex.go playingRemove()")
+// 		lobby.wGroup.Done()
+// 	}()
 
-	return v
-}
-
-// getMatrixValue get a value from matrix
-func (lobby *Lobby) playing() []*Connection {
-	lobby.playingM.RLock()
-	defer lobby.playingM.RUnlock()
-	v := lobby._Playing.Get
-
-	return v
-}
+// 	lobby.playingM.Lock()
+// 	defer lobby.playingM.Unlock()
+// 	lobby._Playing.Add(conn, false)
+// }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) playingRemove(conn *Connection) {
-	if lobby.done() {
-		return
-	}
-	lobby.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("lobby_mutex.go playingRemove()")
-		lobby.wGroup.Done()
-	}()
+// func (lobby *Lobby) waitingRemove(conn *Connection) bool {
 
-	lobby.playingM.Lock()
-	defer lobby.playingM.Unlock()
-	lobby._Playing.Remove(conn, false)
-}
+// 	lobby.waitingM.Lock()
+// 	defer lobby.waitingM.Unlock()
+// 	return lobby._Waiting.Remove(conn, true)
+// }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) playingAdd(conn *Connection) {
-	if lobby.done() {
-		return
-	}
-	lobby.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("lobby_mutex.go playingRemove()")
-		lobby.wGroup.Done()
-	}()
+// func (lobby *Lobby) waitingAdd(conn *Connection) {
+// 	if lobby.done() {
+// 		return
+// 	}
+// 	lobby.wGroup.Add(1)
+// 	defer func() {
+// 		utils.CatchPanic("lobby_mutex.go waitingAdd()")
+// 		lobby.wGroup.Done()
+// 	}()
 
-	lobby.playingM.Lock()
-	defer lobby.playingM.Unlock()
-	lobby._Playing.Add(conn, false)
-}
-
-// getMatrixValue get a value from matrix
-func (lobby *Lobby) waitingRemove(conn *Connection) bool {
-
-	lobby.waitingM.Lock()
-	defer lobby.waitingM.Unlock()
-	return lobby._Waiting.Remove(conn, true)
-}
-
-// getMatrixValue get a value from matrix
-func (lobby *Lobby) waitingAdd(conn *Connection) {
-	if lobby.done() {
-		return
-	}
-	lobby.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("lobby_mutex.go waitingAdd()")
-		lobby.wGroup.Done()
-	}()
-
-	lobby.waitingM.Lock()
-	defer lobby.waitingM.Unlock()
-	lobby._Waiting.Add(conn, false)
-}
+// 	lobby.waitingM.Lock()
+// 	defer lobby.waitingM.Unlock()
+// 	lobby._Waiting.Add(conn, false)
+// }
 
 // getMatrixValue get a value from matrix
 func (lobby *Lobby) allRoomsSearch(roomID string) (int, *Room) {
@@ -163,10 +163,44 @@ func (lobby *Lobby) freeRooms() []*Room {
 }
 
 // getMatrixValue get a value from matrix
-func (lobby *Lobby) setToMessages(message *models.Message) {
+func (lobby *Lobby) appendMessage(message *models.Message) {
 	lobby.messagesM.Lock()
 	defer lobby.messagesM.Unlock()
 	lobby._Messages = append(lobby._Messages, message)
+}
+
+func (lobby *Lobby) removeMessage(i int) {
+
+	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
+	size := len(lobby._Messages)
+
+	lobby._Messages[i], lobby._Messages[size-1] = lobby._Messages[size-1], lobby._Messages[i]
+	lobby._Messages[size-1] = nil
+	lobby._Messages = lobby._Messages[:size-1]
+	return
+}
+
+func (lobby *Lobby) setMessage(i int, message *models.Message) {
+
+	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
+	lobby._Messages[i] = message
+	return
+}
+
+func (lobby *Lobby) findMessage(search *models.Message) int {
+
+	lobby.messagesM.Lock()
+	messages := lobby._Messages
+	lobby.messagesM.Unlock()
+
+	for i, message := range messages {
+		if message.ID == search.ID {
+			return i
+		}
+	}
+	return -1
 }
 
 // getMatrixValue get a value from matrix

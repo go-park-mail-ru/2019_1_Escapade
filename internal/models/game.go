@@ -16,13 +16,13 @@ type Game struct {
 
 // Gamer show all personal info(gamers results) about game
 type Gamer struct {
-	ID         int  `json:"-"`
-	Score      int  `json:"score"`
-	Time       int  `json:"time"`
-	LeftClick  int  `json:"leftClick"`
-	RightClick int  `json:"rightClick"`
-	Explosion  bool `json:"online"`
-	Won        bool `json:"won"`
+	ID         int     `json:"-"`
+	Score      float64 `json:"score"`
+	Time       int     `json:"time"`
+	LeftClick  int     `json:"leftClick"`
+	RightClick int     `json:"rightClick"`
+	Explosion  bool    `json:"online"`
+	Won        bool    `json:"won"`
 }
 
 // Action is the database model of game.Action

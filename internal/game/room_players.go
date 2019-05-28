@@ -17,11 +17,11 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 	}()
 
 	// add connection as player
-	room.MakePlayer(newConn)
+	room.MakePlayer(newConn, true)
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
 	room.addPlayer(newConn)
 	room.sendAction(pa, room.AllExceptThat(newConn))
-	room.greet(newConn)
+	//room.greet(newConn, true)
 
 	return
 }
@@ -36,10 +36,10 @@ func (room *Room) RecoverObserver(oldConn *Connection, newConn *Connection) {
 		room.wGroup.Done()
 	}()
 
-	go room.MakeObserver(newConn)
+	go room.MakeObserver(newConn, true)
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
 	go room.sendAction(pa, room.AllExceptThat(newConn))
-	go room.greet(newConn)
+	//go room.greet(newConn, false)
 
 	return
 }
@@ -59,12 +59,12 @@ func (room *Room) addObserver(conn *Connection) bool {
 	}
 
 	// if we havent a place
-	if !room.observersEnoughPlace() {
+	if !room.Observers.EnoughPlace() {
 		conn.debug("Room cant execute request ")
 		return false
 	}
 	conn.debug("addObserver")
-	room.MakeObserver(conn)
+	room.MakeObserver(conn, true)
 
 	go room.addAction(conn.ID(), ActionConnectAsObserver)
 	go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
@@ -95,19 +95,18 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	conn.debug("Room(" + room.ID + ") wanna connect you")
 
 	// if room hasnt got places
-	if !room.playersEnoughPlace() {
+	if !room.Players.EnoughPlace() {
 		conn.debug("Room(" + room.ID + ") hasnt any place")
 		return false
 	}
 
-	room.MakePlayer(conn)
+	room.MakePlayer(conn, true)
 
 	go room.addAction(conn.ID(), ActionConnectAsPlayer)
 	go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
 	go room.lobby.sendRoomUpdate(*room, All)
 
-	fmt.Println("len", room._Players.Connections)
-	if !room.playersEnoughPlace() {
+	if !room.Players.EnoughPlace() {
 		room.StartFlagPlacing()
 	}
 
@@ -116,7 +115,7 @@ func (room *Room) addPlayer(conn *Connection) bool {
 
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
-func (room *Room) MakePlayer(conn *Connection) {
+func (room *Room) MakePlayer(conn *Connection, recover bool) {
 	if room.done() {
 		return
 	}
@@ -131,14 +130,17 @@ func (room *Room) MakePlayer(conn *Connection) {
 	} else {
 		conn.setBoth(true)
 	}
-	room.playersAdd(conn, false)
-	room.greet(conn)
+	room.Players.Add(conn, false)
+	room.greet(conn, true)
+	if recover {
+		room.sendStatus(Me(conn))
+	}
 	conn.PushToRoom(room)
 }
 
 // MakeObserver mark connection as connected as Observer
 // add to observers slice and set flag inRoom true
-func (room *Room) MakeObserver(conn *Connection) {
+func (room *Room) MakeObserver(conn *Connection, recover bool) {
 	if room.done() {
 		return
 	}
@@ -153,8 +155,11 @@ func (room *Room) MakeObserver(conn *Connection) {
 	} else {
 		conn.setBoth(true)
 	}
-	room.observersAdd(conn, false)
-	go room.greet(conn)
+	room.Observers.Add(conn, false)
+	room.greet(conn, false)
+	if recover {
+		room.sendStatus(Me(conn))
+	}
 	conn.PushToRoom(room)
 }
 
@@ -169,19 +174,19 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool
 
 	//fmt.Println("removeDuringGame before len", len(room._Players.Connections))
 
-	i := room.playersSearchIndexPlayer(conn)
+	i := room.Players.SearchIndexPlayer(conn)
 	if i >= 0 {
 		if (room.Status == StatusFlagPlacing || room.Status == StatusRunning) && !disconnected {
 			fmt.Println("give up", i)
 			room.GiveUp(conn)
 		}
 
-		done = room.playersRemove(conn, disconnected)
+		done = room.Players.Remove(conn, disconnected)
 		if done {
 			room.sendPlayerExit(*conn, room.All)
 		}
 	} else {
-		done = room.observersRemove(conn, disconnected)
+		done = room.Observers.Remove(conn, disconnected)
 		if done {
 			go room.sendObserverExit(*conn, room.All)
 		}
@@ -191,8 +196,8 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool
 	}
 	fmt.Println("removeDuringGame")
 	//fmt.Println("removeDuringGame after len", len(room._Players.Connections))
-	fmt.Println("removeDuringGame system says", room.playersEmpty())
-	if room.playersEmpty() {
+	fmt.Println("removeDuringGame system says", room.Players.Empty())
+	if room.Players.Empty() {
 		if room.lobby.Metrics() {
 			metrics.Rooms.Dec()
 		}

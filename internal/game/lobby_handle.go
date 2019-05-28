@@ -99,7 +99,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	}
 
 	if !conn.InRoom() {
-		disconnected = lobby.waitingRemove(conn)
+		disconnected = lobby.Waiting.Remove(conn, true) //lobby.waitingRemove(conn)
 		if disconnected {
 			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 		}
@@ -131,7 +131,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 		//go lobby.playingRemove(conn)
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
-	if done && len(room.playersConnections()) > 0 {
+	if done && len(room.Players.Connections.RGet()) > 0 {
 		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
 	return done
@@ -271,7 +271,9 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		lobby.EnterRoom(conn, lr.Send.RoomSettings)
 	} else if lr.Message != nil {
 		lr.Message.Status = models.StatusLobby
-		Message(lobby, conn, lr.Message, lobby.setToMessages,
+		Message(lobby, conn, lr.Message,
+			lobby.appendMessage, lobby.setMessage,
+			lobby.removeMessage, lobby.findMessage,
 			lobby.send, All, false, "")
 	}
 }
