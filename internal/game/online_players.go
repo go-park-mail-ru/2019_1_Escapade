@@ -4,38 +4,35 @@ import (
 	"fmt"
 )
 
-// OnlinePlayers online players
-type OnlinePlayers struct {
-	Capacity    int         `json:"capacity"`
-	Players     []Player    `json:"players"`
-	Flags       []Cell      `json:"flags"`
-	Connections Connections `json:"connections"`
-}
-
 // Rooms - slice of rooms with capacity
 type Rooms struct {
 	Capacity int     `json:"capacity"`
 	Get      []*Room `json:"get"`
 }
 
-// NewConnections create instance of Connections
-func newOnlinePlayers(size int, field Field) *OnlinePlayers {
-	players := make([]Player, size)
-	flags := field.RandomFlags(players)
-	return &OnlinePlayers{
-		Capacity:    size,
-		Players:     players,
-		Flags:       flags,
-		Connections: *NewConnections(size),
-	}
+func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
+	size := onlinePlayers.Capacity()
 
+	players := make([]Player, size)
+	onlinePlayers.SetPlayers(players)
+
+	flags := field.RandomFlags(players)
+	onlinePlayers.SetFlags(flags)
+
+	onlinePlayers.flagsLeft = size
+	onlinePlayers.RefreshConnections()
+}
+
+func (onlinePlayers *OnlinePlayers) RefreshConnections() {
+	size := onlinePlayers.Capacity()
+	onlinePlayers.Connections = *NewConnections(size)
 }
 
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections._get {
-		if i > onlinePlayers.Capacity {
+		if i > onlinePlayers.Capacity() {
 			room := conn.Room()
 			if room == nil {
 				continue
@@ -43,7 +40,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			go room.Leave(conn, ActionBackToLobby)
 			continue
 		}
-		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
+		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}
 	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
@@ -67,22 +64,10 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-// Free free memory
-func (onlinePlayers *OnlinePlayers) Free() {
-
-	if onlinePlayers == nil {
-		return
-	}
-	onlinePlayers.Connections.Free()
-	onlinePlayers.Players = nil
-	onlinePlayers.Flags = nil
-	onlinePlayers = nil
-}
-
 // SearchIndexPlayer search connection index in the slice of Players
 func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) {
-	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
-		return onlinePlayers.Players[i].ID == conn.ID()
+	return sliceIndex(onlinePlayers.Capacity(), func(i int) bool {
+		return onlinePlayers.Player(i).ID == conn.ID()
 	})
 }
 
@@ -124,7 +109,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	if i < 0 {
 		return false
 	}
-	onlinePlayers.Players[i].ID = conn.ID()
+	onlinePlayers.SetPlayerID(i, conn.ID())
 	conn.SetIndex(i)
 	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
@@ -169,7 +154,7 @@ func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bo
 }
 
 // enoughPlace check that you can add more elements
-func (onlinePlayers *OnlinePlayers) enoughPlace() bool {
+func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
 	return onlinePlayers.Connections.EnoughPlace()
 }
 
@@ -194,13 +179,13 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 // otherwise nil
 func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *Room) {
 	for _, room := range rooms.Get {
-		i := room.playersSearchIndexPlayer(new)
+		i := room.Players.SearchIndexPlayer(new) //playersSearchIndexPlayer(new)
 		fmt.Println("room", room.ID, i)
 		// cant found
 		if i < 0 {
 			continue
 		}
-		if mustNotFinished && room.playerFinished(i) {
+		if mustNotFinished && room.Players.Player(i).Finished {
 			fmt.Println("next!!!")
 			continue
 		}

@@ -26,8 +26,8 @@ type Room struct {
 	doneM *sync.RWMutex
 	_done bool
 
-	playersM *sync.RWMutex
-	_Players *OnlinePlayers
+	//playersM *sync.RWMutex
+	Players *OnlinePlayers
 
 	//observersM *sync.RWMutex
 	Observers *Connections
@@ -50,6 +50,9 @@ type Room struct {
 
 	Date       time.Time
 	chanFinish chan struct{}
+
+	play    *time.Timer
+	prepare *time.Timer
 
 	Settings *models.RoomSettings
 }
@@ -108,8 +111,8 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room._done = false
 	room.doneM = &sync.RWMutex{}
 
-	room.playersM = &sync.RWMutex{}
-	room._Players = newOnlinePlayers(rs.Players, *field)
+	//room.playersM = &sync.RWMutex{}
+	room.Players = newOnlinePlayers(rs.Players, *field)
 
 	//room.observersM = &sync.RWMutex{}
 	room.Observers = NewConnections(rs.Observers)
@@ -141,9 +144,9 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 func (room *Room) Restart() {
 
 	field := NewField(room.Settings)
-	room.playersM.Lock()
-	room._Players = newOnlinePlayers(room.Settings.Players, *field)
-	room.playersM.Unlock()
+	//room.playersM.Lock()
+	room.Players.Refresh(*field)
+	//room.playersM.Unlock()
 
 	//room.observersM.Lock()
 	room.Observers = NewConnections(room.Settings.Observers)
@@ -182,7 +185,7 @@ func (room *Room) debug() {
 	fmt.Println("Room status:", room.Status)
 	fmt.Println("Room date  :", room.Date)
 	fmt.Println("Room killed:", room.killed())
-	players := room.players()
+	players := room.Players.RPlayers()
 	if len(players) == 0 {
 		fmt.Println("cant debug nil players")
 		return

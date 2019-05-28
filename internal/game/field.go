@@ -176,18 +176,21 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 }
 
 // RandomFlags create random players flags
-func (field *Field) RandomFlags(players []Player) (cells []Cell) {
+func (field *Field) RandomFlags(players []Player) (flags []Flag) {
 	if field.getDone() {
 		return
 	}
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
-	cells = make([]Cell, len(players))
+	flags = make([]Flag, len(players))
 	for i, player := range players {
-		cells[i] = field.CreateRandomFlag(player.ID)
+		flags[i] = Flag{
+			Cell: field.CreateRandomFlag(player.ID),
+			Set:  false,
+		}
 	}
-	return cells
+	return flags
 }
 
 // CreateRandomFlag create flag for player

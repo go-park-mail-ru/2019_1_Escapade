@@ -53,170 +53,172 @@ func (room *Room) setKilled(killed int) {
 // }
 
 // getMatrixValue get a value from matrix
-func (room *Room) players() (v []Player) {
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// func (room *Room) players() (v []Player) {
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	players := room._Players
-	if players == nil {
-		return
-	}
-	v = room._Players.Players
-	return
-}
+// 	players := room._Players
+// 	if players == nil {
+// 		return
+// 	}
+// 	v = room._Players.Players
+// 	return
+// }
 
-func (room *Room) SetFlagCoordinates(conn Connection, cell Cell) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
+// func (room *Room) SetFlagCoordinates(conn Connection, cell Cell) {
+// 	if room.done() {
+// 		return
+// 	}
+// 	room.wGroup.Add(1)
+// 	defer func() {
+// 		room.wGroup.Done()
+// 	}()
 
-	room.playersM.Lock()
-	room._Players.Flags[conn.Index()].X = cell.X
-	room._Players.Flags[conn.Index()].Y = cell.Y
-	room.playersM.Unlock()
-}
-
-// getMatrixValue get a value from matrix
-func (room *Room) RPlayersConnections() (v []*Connection) {
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
-
-	if room._Players == nil {
-		return
-	}
-	v = room._Players.Connections.RGet()
-	return
-}
+// 	room.playersM.Lock()
+// 	room._Players.Flags[conn.Index()].X = cell.X
+// 	room._Players.Flags[conn.Index()].Y = cell.Y
+// 	room.playersM.Unlock()
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) RPConnections() (v Connections) {
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// func (room *Room) RPlayersConnections() (v []*Connection) {
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	if room._Players == nil {
-		return
-	}
-	v = room._Players.Connections
-	return
-}
-
-// getMatrixValue get a value from matrix
-func (room *Room) zeroPlayers() {
-	room.playersM.Lock()
-	defer room.playersM.Unlock()
-
-	room._Players.Connections = *NewConnections(room._Players.Capacity)
-}
+// 	if room._Players == nil {
+// 		return
+// 	}
+// 	v = room._Players.Connections.RGet()
+// 	return
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersFlags() (v []Cell) {
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// func (room *Room) RPConnections() (v Connections) {
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	if room._Players == nil {
-		return
-	}
-	v = room._Players.Flags
-	return
-}
+// 	if room._Players == nil {
+// 		return
+// 	}
+// 	v = room._Players.Connections
+// 	return
+// }
+
+// -> room.Players.Connections.Set(*NewConnections(room.Players.Capacity()))
+// getMatrixValue get a value from matrix
+// func (room *Room) zeroPlayers() {
+// 	room.playersM.Lock()
+// 	defer room.playersM.Unlock()
+
+// 	room._Players.Connections = *NewConnections(room._Players.Capacity)
+
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersCapacity() int {
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// func (room *Room) playersFlags() (v []Cell) {
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	if room._Players == nil {
-		return 0
-	}
-	v := room._Players.Capacity
-	return v
-}
-
-// getMatrixValue get a value from matrix
-func (room *Room) IncreasePlayerPoints(index, points int) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	room.playersM.Lock()
-	defer room.playersM.Unlock()
-
-	players := room._Players
-	if players == nil {
-		return
-	}
-	if index >= len(room._Players.Players) {
-		return
-	}
-	room._Players.Players[index].Points += points
-}
+// 	if room._Players == nil {
+// 		return
+// 	}
+// 	v = room._Players.Flags
+// 	return
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playerFinished(index int) bool {
+// func (room *Room) playersCapacity() int {
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
-
-	players := room._Players
-	if players == nil {
-		return false
-	}
-	if index >= len(room._Players.Players) {
-		return false
-	}
-	v := room._Players.Players[index].Finished
-	return v
-}
+// 	if room._Players == nil {
+// 		return 0
+// 	}
+// 	v := room._Players.Capacity
+// 	return v
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) player(index int) (v Player) {
+// func (room *Room) IncreasePlayerPoints(index, points int) {
+// 	if room.done() {
+// 		return
+// 	}
+// 	room.wGroup.Add(1)
+// 	defer func() {
+// 		room.wGroup.Done()
+// 	}()
 
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// 	room.playersM.Lock()
+// 	defer room.playersM.Unlock()
 
-	players := room._Players
-	if players == nil {
-		return
-	}
-	if index >= len(room._Players.Players) {
-		return
-	}
-	v = room._Players.Players[index]
-	return v
-}
-
-// getMatrixValue get a value from matrix
-func (room *Room) playersInit() {
-
-	room.playersM.Lock()
-	defer room.playersM.Unlock()
-	room._Players.Init(room.Field)
-}
+// 	players := room._Players
+// 	if players == nil {
+// 		return
+// 	}
+// 	if index >= len(room._Players.Players) {
+// 		return
+// 	}
+// 	room._Players.Players[index].Points += points
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playerFlag(index int) (v Cell) {
+// func (room *Room) playerFinished(index int) bool {
 
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
 
-	players := room._Players
-	if players == nil {
-		return
-	}
-	if index >= len(room._Players.Players) {
-		return
-	}
-	v = room._Players.Flags[index]
-	return v
-}
+// 	players := room._Players
+// 	if players == nil {
+// 		return false
+// 	}
+// 	if index >= len(room._Players.Players) {
+// 		return false
+// 	}
+// 	v := room._Players.Players[index].Finished
+// 	return v
+// }
+
+// getMatrixValue get a value from matrix
+// func (room *Room) player(index int) (v Player) {
+
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
+
+// 	players := room._Players
+// 	if players == nil {
+// 		return
+// 	}
+// 	if index >= len(room._Players.Players) {
+// 		return
+// 	}
+// 	v = room._Players.Players[index]
+// 	return v
+// }
+
+// getMatrixValue get a value from matrix
+// func (room *Room) playersInit() {
+
+// 	room.playersM.Lock()
+// 	defer room.playersM.Unlock()
+// 	room._Players.Init(room.Field)
+// }
+
+// getMatrixValue get a value from matrix
+// func (room *Room) playerFlag(index int) (v Cell) {
+
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
+
+// 	players := room._Players
+// 	if players == nil {
+// 		return
+// 	}
+// 	if index >= len(room._Players.Players) {
+// 		return
+// 	}
+// 	v = room._Players.Flags[index]
+// 	return v
+// }
 
 // SetFinished increment amount of killed
 func (room *Room) SetFinished(conn *Connection) {
@@ -232,10 +234,7 @@ func (room *Room) SetFinished(conn *Connection) {
 	if index < 0 {
 		return
 	}
-	room.playersM.Lock()
-	room._Players.Players[index].Finished = true
-	room._Players.Players[index].Died = true
-	room.playersM.Unlock()
+	room.Players.PlayerFinish(index)
 
 	room.killedM.Lock()
 	room._killed++
@@ -243,19 +242,19 @@ func (room *Room) SetFinished(conn *Connection) {
 }
 
 // SetFinished increment amount of killed
-func (room *Room) setCell(conn *Connection) (flag *Cell) {
+// func (room *Room) setCell(conn *Connection) (flag *Cell) {
 
-	index := conn.Index()
-	if index < 0 {
-		return
-	}
-	room.playersM.Lock()
-	room._Players.Flags[index].PlayerID = conn.ID()
-	room._Players.Flags[index].Value = conn.ID() + CellIncrement
-	flag = &room._Players.Flags[index]
-	room.playersM.Unlock()
-	return
-}
+// 	index := conn.Index()
+// 	if index < 0 {
+// 		return
+// 	}
+// 	room.playersM.Lock()
+// 	room._Players.Flags[index].PlayerID = conn.ID()
+// 	room._Players.Flags[index].Value = conn.ID() + CellIncrement
+// 	flag = &room._Players.Flags[index]
+// 	room.playersM.Unlock()
+// 	return
+// }
 
 // getMatrixValue get a value from matrix
 func (room *Room) history() []*PlayerAction {
@@ -291,11 +290,11 @@ func (room *Room) messagesFree() {
 	room.messagesM.Unlock()
 }
 
-func (room *Room) playersFree() {
-	room.playersM.Lock()
-	room._Players = nil
-	room.playersM.Unlock()
-}
+// func (room *Room) playersFree() {
+// 	room.playersM.Lock()
+// 	room._Players = nil
+// 	room.playersM.Unlock()
+// }
 
 // func (room *Room) observersFree() {
 // 	room.observersM.Lock()
@@ -310,20 +309,20 @@ func (room *Room) playersFree() {
 // 	return v
 // }
 
-func (room *Room) playersEnoughPlace() bool {
-	room.playersM.RLock()
-	v := room._Players.enoughPlace()
-	room.playersM.RUnlock()
-	return v
-}
+// func (room *Room) playersEnoughPlace() bool {
+// 	room.playersM.RLock()
+// 	v := room._Players.enoughPlace()
+// 	room.playersM.RUnlock()
+// 	return v
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersAdd(conn *Connection, kill bool) {
+// func (room *Room) playersAdd(conn *Connection, kill bool) {
 
-	room.playersM.Lock()
-	defer room.playersM.Unlock()
-	room._Players.Add(conn, kill)
-}
+// 	room.playersM.Lock()
+// 	defer room.playersM.Unlock()
+// 	room._Players.Add(conn, kill)
+// }
 
 // getMatrixValue get a value from matrix
 // func (room *Room) observersAdd(conn *Connection, kill bool) {
@@ -334,12 +333,12 @@ func (room *Room) playersAdd(conn *Connection, kill bool) {
 // }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersRemove(conn *Connection, disconnect bool) bool {
+// func (room *Room) playersRemove(conn *Connection, disconnect bool) bool {
 
-	room.playersM.Lock()
-	defer room.playersM.Unlock()
-	return room._Players.Remove(conn, disconnect)
-}
+// 	room.playersM.Lock()
+// 	defer room.playersM.Unlock()
+// 	return room._Players.Remove(conn, disconnect)
+// }
 
 // getMatrixValue get a value from matrix
 // func (room *Room) observersRemove(conn *Connection, disconnect bool) bool {
@@ -350,22 +349,22 @@ func (room *Room) playersRemove(conn *Connection, disconnect bool) bool {
 // }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersSearchIndexPlayer(conn *Connection) int {
+// func (room *Room) playersSearchIndexPlayer(conn *Connection) int {
 
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
-	i := room._Players.SearchIndexPlayer(conn)
-	return i
-}
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
+// 	i := room._Players.SearchIndexPlayer(conn)
+// 	return i
+// }
 
 // getMatrixValue get a value from matrix
-func (room *Room) playersEmpty() bool {
+// func (room *Room) playersEmpty() bool {
 
-	room.playersM.RLock()
-	defer room.playersM.RUnlock()
-	v := room._Players.Empty()
-	return v
-}
+// 	room.playersM.RLock()
+// 	defer room.playersM.RUnlock()
+// 	v := room._Players.Empty()
+// 	return v
+// }
 
 // getMatrixValue get a value from matrix
 // func (room *Room) observersSearch(conn *Connection) int {

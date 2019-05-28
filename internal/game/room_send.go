@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -10,7 +11,7 @@ import (
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
-	players := room.RPlayersConnections()
+	players := room.Players.Connections.RGet()
 	observers := room.Observers.RGet()
 	SendToConnections(info, predicate, players, observers)
 }
@@ -67,7 +68,7 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 			Winner  int      `json:"winner"`
 			Timer   bool     `json:"timer"`
 		}{
-			Players: room.players(),
+			Players: room.Players.RPlayers(),
 			Cells:   cells,
 			Winner:  room.Winner(),
 			Timer:   timer,
@@ -167,14 +168,26 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 		utils.CatchPanic("room_send.go RoomStatus()")
 	}()
 
+	var leftTime int
+	fmt.Println(" stat:", room.Settings.TimeToPrepare, room.Settings.TimeToPlay, int(time.Since(room.Date).Seconds()))
+	if room.Status == StatusFlagPlacing {
+		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+		fmt.Println(" StatusFlagPlacing leftTime:", leftTime)
+	}
+	if room.Status == StatusRunning {
+		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
+		fmt.Println(" StatusRunning leftTime:", leftTime)
+	}
 	response := models.Response{
 		Type: "RoomStatus",
 		Value: struct {
 			ID     string `json:"id"`
 			Status int    `json:"status"`
+			Time   int    `json:"time"`
 		}{
 			ID:     room.ID,
 			Status: room.Status,
+			Time:   leftTime,
 		},
 	}
 	room.send(response, predicate)
@@ -245,30 +258,32 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 		utils.CatchPanic("room_send.go greet()")
 	}()
 
-	var flag Cell
-	if conn.Index() >= 0 {
-		flag = *room.setCell(conn)
+	var flag Flag
+	index := conn.Index()
+	if index >= 0 {
+		flag = room.Players.Flag(index)
 	}
 
 	copy := *conn
 
-	leftTime := room.Settings.TimeToPlay + room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+	//leftTime := room.Settings.TimeToPlay + room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
 
 	response := models.Response{
 		Type: "Room",
 		Value: struct {
-			Room     *Room                 `json:"room"`
-			You      models.UserPublicInfo `json:"you"`
-			Flag     Cell                  `json:"flag,omitempty"`
-			Time     int                   `json:"time"`
-			IsPlayer bool                  `json:"isPlёayer"`
+			Room *Room                 `json:"room"`
+			You  models.UserPublicInfo `json:"you"`
+			Flag Flag                  `json:"flag,omitempty"`
+			//Time     int                   `json:"time"`
+			IsPlayer bool `json:"isPlёayer"`
 		}{
-			Room:     room,
-			You:      *copy.User,
-			Flag:     flag,
-			Time:     leftTime,
+			Room: room,
+			You:  *copy.User,
+			Flag: flag,
+			//Time:     leftTime,
 			IsPlayer: isPlayer,
 		},
 	}
 	conn.SendInformation(response)
+	room.sendStatus(Me(conn))
 }
