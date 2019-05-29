@@ -1,18 +1,17 @@
 sudo: true
-
 language: go
-
 go:
-  - 1.12.x
-
+- 1.12.x
 services: docker
-
 env:
-  - GO111MODULE=on USE_DOCKER_DB=on
-
+- GO111MODULE=on USE_DOCKER_DB=on
 install: true
-
 script:
-  - ./wait-for-it.sh pg:5432
-  - ./wait-for-it.sh auth:3333
-  - go test -coverprofile cover.out
+- docker-compose up --build -d
+before_install:
+- openssl aes-256-cbc -K $encrypted_a9b69efaae82_key -iv $encrypted_a9b69efaae82_iv
+  -in id_rsa.enc -out ./id_rsa -d
+- docker-machine create
+    --driver generic
+    --generic-ip-address=139.59.155.44
+    --generic-ssh-key ./id_rsa vm
