@@ -6,6 +6,9 @@ services: docker
 env:
 - GO111MODULE=on USE_DOCKER_DB=on
 install: true
+branches:
+  only:
+  - develop
 script:
 - docker-compose up --build -d
 before_install:
