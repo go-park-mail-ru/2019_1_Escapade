@@ -232,7 +232,7 @@ func (field *Field) Zero() {
 	for i := 0; i < field.Width; i++ {
 		for j := 0; j < field.Height; j++ {
 			field.setMatrixValue(i, j, 0)
-			fmt.Println("zero", i, j, field.Matrix[i][j])
+			//fmt.Println("zero", i, j, field.Matrix[i][j])
 		}
 	}
 }
@@ -251,27 +251,28 @@ func (field *Field) SetMines() {
 
 	for i := 0; i < width; i++ {
 		for j := 0; j < height; j++ {
-			fmt.Println("cell", i, j, field.Matrix[i][j])
+			fmt.Println("before", i, j, field.Matrix[i][j])
 		}
 	}
 
 	for mines > 0 {
 		rand.Seed(time.Now().UnixNano())
-		i := rand.Intn(width)
-		j := rand.Intn(height)
-		fmt.Println("mins send", i, j, field.Matrix[i][j], mines)
-		if field.lessThenMine(i, j) {
-			field.setMine(i, j)
+		someX := rand.Intn(width)
+		someY := rand.Intn(height)
+		//fmt.Println("mins send", i, j, field.Matrix[i][j], mines)
+		if field.lessThenMine(someX, someY) {
+			field.setMine(someX, someY)
 			mines--
+			fmt.Println("mins send", someX, someY, field.Matrix[someX][someY], mines)
 		}
 	}
 
 	for i := 0; i < width; i++ {
 		for j := 0; j < height; j++ {
-			fmt.Println("cell after", i, j, field.Matrix[i][j])
+			fmt.Println("after", i, j, field.Matrix[i][j])
 		}
 	}
-	fmt.Println("end SetMines")
+	//fmt.Println("end SetMines")
 }
 
 // generate matrix

@@ -87,7 +87,8 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.Field.SetCellFlagTaken(&cell.Cell)
 
 		if room.Players.Capacity() <= room.killed()+1 {
-			room.FinishGame(false)
+			room.chanStatus <- StatusFinished
+			//room.FinishGame(false)
 		}
 		pa := *room.addAction(conn.ID(), action)
 		go room.sendAction(pa, room.All)
@@ -138,9 +139,10 @@ func (room *Room) SetAndSendNewCell(conn Connection) {
 		found, _ = room.flagExists(cell, nil)
 	}
 	if room.Players.SetFlag(conn, cell) {
-		room.prepare.Stop()
-		room.StartGame()
+		//room.prepare.Stop()
+		//room.StartGame()
 		//
+		room.chanStatus <- StatusRunning
 	}
 	response := models.RandomFlagSet(cell)
 	conn.SendInformation(response)
@@ -182,9 +184,9 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 	}
 
 	if room.Players.SetFlag(*conn, *cell) {
-		room.prepare.Stop()
-		room.StartGame()
-		//
+		//room.prepare.Stop()
+		//room.StartGame()
+		room.chanStatus <- StatusRunning
 	}
 	return true
 }

@@ -53,6 +53,7 @@ func (room *Room) Free() {
 	go room.Field.Free()
 
 	close(room.chanFinish)
+	close(room.chanStatus)
 }
 
 // Close drives away players out of the room, free resources
@@ -179,7 +180,8 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 		go room.sendNewCells(cells, room.All)
 	}
 	if room.Field.IsCleared() {
-		go room.FinishGame(false)
+		room.chanStatus <- StatusFinished
+		//go room.FinishGame(false)
 	}
 	return
 }
@@ -233,11 +235,11 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 		}
 	} else {
 		if action == ActionRestart {
+			conn.lobby.greet(conn)
 			if room.Status == StatusFinished {
 				room.Restart()
 				room.lobby.addRoom(room)
 			}
-			//room.Status = StatusPeopleFinding
 			if room.Status == StatusPeopleFinding {
 				room.addPlayer(conn)
 			}
@@ -317,7 +319,7 @@ func (room *Room) StartFlagPlacing() {
 	room.Players.Init(room.Field)
 
 	room.lobby.RoomStart(room)
-	go room.run()
+	go room.runGame()
 
 	room.Date = time.Now()
 	room.sendStatus(room.All)
@@ -334,6 +336,7 @@ func (room *Room) StartGame() {
 	defer func() {
 		room.wGroup.Done()
 	}()
+	fmt.Println("SSSSSSSSSSSSSSSSSSSSSSs")
 
 	room.FillField()
 
@@ -363,9 +366,9 @@ func (room *Room) FinishGame(timer bool) {
 		fmt.Println("room.Status == StatusFinished!")
 		return
 	}
-	if !timer {
-		room.chanFinish <- struct{}{}
-	}
+	// if !timer {
+	// 	room.chanFinish <- struct{}{}
+	// }
 	fmt.Println(room.ID, "We finish room!", room.Status)
 
 	room.Status = StatusFinished
@@ -394,8 +397,39 @@ func (room *Room) initTimers() {
 	return
 }
 
+func (room *Room) runRoom() {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
+	for {
+		newStatus := <-room.chanStatus
+		if newStatus == room.Status || newStatus > StatusFinished {
+			continue
+		}
+		switch newStatus {
+		// case StatusPeopleFinding:
+		// 	//
+		case StatusFlagPlacing:
+			room.StartFlagPlacing()
+		case StatusRunning:
+			room.prepare.Stop()
+			room.StartGame()
+		case StatusFinished:
+			ok := room.play.Stop()
+			room.FinishGame(!ok)
+			return
+		}
+	}
+}
+
 // run - room goroutine
-func (room *Room) run() {
+func (room *Room) runGame() {
 	if room.done() {
 		return
 	}
@@ -422,10 +456,11 @@ func (room *Room) run() {
 		case <-room.chanFinish:
 			return
 		case <-room.prepare.C:
-			go room.StartGame()
+			room.chanStatus <- StatusRunning
 		case <-room.play.C:
-			fmt.Println("finish!")
-			room.FinishGame(true)
+			room.chanStatus <- StatusFinished
+			//fmt.Println("finish!")
+			//room.FinishGame(true)
 			return
 		case clock := <-ticker.C:
 			//fmt.Println("clock!", room.ID)
