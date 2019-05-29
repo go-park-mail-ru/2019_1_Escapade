@@ -17,6 +17,16 @@ type UserPublicInfo struct {
 	Difficult int            `json:"difficult"`
 }
 
+type UserPublicInfoSQL struct {
+	ID        sql.NullInt64  `json:"id"`
+	Name      sql.NullString `json:"name"`
+	PhotoURL  sql.NullString `json:"photo,omitempty"`
+	FileKey   sql.NullString `json:"-"`
+	BestScore sql.NullString `json:"bestScore"`
+	BestTime  sql.NullString `json:"bestTime"`
+	Difficult sql.NullInt64  `json:"difficult"`
+}
+
 // Compare compare two users
 func (a UserPublicInfo) Compare(b UserPublicInfo) bool {
 	return a.ID == b.ID && a.Name == b.Name
