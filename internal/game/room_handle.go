@@ -119,6 +119,7 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 	return room.RemoveFromGame(conn, action == ActionDisconnect)
 }
 
+// applyAction applies the effects of opening a cell
 func (room *Room) applyAction(conn *Connection, cell *Cell) {
 	index := conn.Index()
 
@@ -134,7 +135,7 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 	}
 }
 
-// openCell open cell
+// OpenCell open cell
 func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	if room.done() {
 		return
@@ -183,6 +184,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	return
 }
 
+// CellHandle processes the Cell came from the user
 func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 	if room.done() {
 		return
@@ -213,6 +215,7 @@ func (room *Room) IsActive() bool {
 	return room.Status == StatusFlagPlacing || room.Status == StatusRunning
 }
 
+// ActionHandle processes the Action came from the user
 func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 	if room.done() {
 		return false
@@ -251,7 +254,7 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 	return false
 }
 
-// handleRequest
+// HandleRequest processes the equest came from the user
 func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 	if room.done() {
 		return
@@ -293,6 +296,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 	}
 }
 
+// StartFlagPlacing prepare field, players and observers
 func (room *Room) StartFlagPlacing() {
 	if room.done() {
 		return
@@ -301,8 +305,6 @@ func (room *Room) StartFlagPlacing() {
 	defer func() {
 		room.wGroup.Done()
 	}()
-
-	//fmt.Println("StartFlagPlacing")
 
 	room.Status = StatusFlagPlacing
 	players := room.Players.Connections.RGet()
@@ -324,6 +326,7 @@ func (room *Room) StartFlagPlacing() {
 	go room.sendMessage("Battle will be start soon! Set your flag!", room.All)
 }
 
+// StartGame start game
 func (room *Room) StartGame() {
 	if room.done() {
 		return
@@ -347,6 +350,7 @@ func (room *Room) StartGame() {
 	go room.sendNewCells(cells, room.All)
 }
 
+// FinishGame finish game
 func (room *Room) FinishGame(timer bool) {
 	if room.done() {
 		fmt.Println("room.done()!")
@@ -392,6 +396,7 @@ func (room *Room) initTimers() {
 	return
 }
 
+// run - room goroutine
 func (room *Room) run() {
 	if room.done() {
 		return

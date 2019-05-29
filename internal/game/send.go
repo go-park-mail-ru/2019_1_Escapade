@@ -38,8 +38,8 @@ func All(conn *Connection) bool {
 	return !conn.done() && conn.IsConnected()
 }
 
-// All is SendPredicate to SendToConnections
-// it will send everybody, who is connected
+// Me is SendPredicate to SendToConnections
+// it will send only to selected connection
 func Me(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
 		return !conn.done() && !me.done() && conn.ID() == me.ID() && conn.IsConnected()

@@ -11,6 +11,7 @@ import (
 	"fmt"
 )
 
+// JoinConn is the wrapper in order to put the connection in the channel chanJoin
 func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 	if lobby.done() {
 		return
@@ -31,9 +32,6 @@ func (lobby *Lobby) Run() {
 		lobby.Free()
 	}()
 
-	//var lobbyCancel context.CancelFunc
-	//lobby.Context, lobbyCancel = context.WithCancel(context.Background())
-
 	fmt.Println("Lobby run")
 	for {
 		select {
@@ -42,20 +40,6 @@ func (lobby *Lobby) Run() {
 
 		case message := <-lobby.chanBroadcast:
 			go lobby.Analize(message)
-
-			// TODO delete chanleavem cause Leave call direcrly
-		case connection := <-lobby.chanLeave:
-			lobby.Leave(connection, "You disconnected!")
-			// if need_stop {
-			// 	if len(lobby.Playing.Get)+len(lobby.Waiting.Get) == 0 {
-			// 		fmt.Println("Nobody there!")
-			// 		lobbyCancel()
-			// 		return
-			// 	}
-			// }
-		case <-lobby.chanBreak:
-			fmt.Println("Stop saw!")
-			return
 		}
 	}
 }
@@ -159,8 +143,8 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	fmt.Println("EnterRoom", rs)
 	if conn.InRoom() {
 		fmt.Println("in room", rs)
-		fmt.Println("EnterRoom ID compare", conn.RoomID(), rs.ID, rs)
-		if conn.RoomID() == rs.ID {
+		fmt.Println("EnterRoom ID compare", conn.Room().ID, rs.ID, rs)
+		if conn.Room().ID == rs.ID {
 			return
 		}
 		lobby.LeaveRoom(conn, conn.Room(), ActionBackToLobby)
@@ -186,7 +170,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 }
 
-// pickUpRoom find room for player
+// PickUpRoom find room for player
 func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room *Room) {
 
 	if lobby.done() {
@@ -211,7 +195,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	return
 }
 
-// analize handle where the connection sends the request
+// Analize handle where the connection sends the request
 func (lobby *Lobby) Analize(req *Request) {
 	if lobby.done() {
 		return
@@ -253,7 +237,7 @@ func (lobby *Lobby) Analize(req *Request) {
 	}
 }
 
-// handleRequest handle any request sent to lobby
+// HandleRequest handle any request sent to lobby
 func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 	if lobby.done() {
 		return
@@ -283,6 +267,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 	}
 }
 
+// Invite invite people to your room
 func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 
 	if lobby.done() {

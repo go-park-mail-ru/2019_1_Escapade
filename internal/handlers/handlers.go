@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 
@@ -34,7 +36,7 @@ type Handler struct {
 	Clients   *clients.Clients
 }
 
-// catch CORS preflight
+// Ok catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
 // @ID OK1
@@ -615,6 +617,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		userID int
 		ws     *websocket.Conn
 		user   *models.UserPublicInfo
+		roomID string
 	)
 
 	lobby := game.GetLobby()
@@ -623,6 +626,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		utils.SendErrorJSON(rw, re.ErrorServer(), place)
 		utils.PrintResult(err, http.StatusInternalServerError, place)
 	}
+
+	roomID = getStringFromPath(r, "id", "")
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  h.WebSocket.ReadBufferSize,
@@ -653,8 +658,9 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 
 	if userID < 0 {
 		user = &models.UserPublicInfo{
-			Name: "Anonymos",
-			ID:   userID,
+			Name:     "Anonymos" + strconv.Itoa(rand.Intn(10000)),
+			ID:       userID,
+			PhotoURL: "Anonymos",
 		}
 	} else {
 		if user, err = h.DB.GetUser(userID, 0); err != nil {
@@ -674,7 +680,9 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	conn := game.NewConnection(ws, user, lobby)
-	conn.Launch(h.WebSocket)
+	fmt.Println("roomID", roomID)
+	conn.Launch(h.WebSocket, roomID)
+
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }

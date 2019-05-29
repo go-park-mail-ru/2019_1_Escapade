@@ -9,8 +9,7 @@ import (
 	"fmt"
 )
 
-// ----- handle room status
-// roomStart - room remove from free
+// RoomStart - room remove from free
 func (lobby *Lobby) RoomStart(room *Room) {
 	if lobby.done() {
 		return
@@ -59,7 +58,7 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	go lobby.sendRoomDelete(*room, All)
 }
 
-// createAndAddToRoom create room and add player to it
+// CreateAndAddToRoom create room and add player to it
 func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
 	if lobby.done() {
 		return

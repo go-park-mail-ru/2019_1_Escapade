@@ -113,44 +113,12 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	conn.SetIndex(i)
 	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
-	/*
-		if i = onlinePlayers.SearchConnection(conn); i >= 0 {
-			//oldConn := onlinePlayers.Connections[i]
-			oldConn := conn
-			if kill && !oldConn.Disconnected() {
-				oldConn.Kill("Another connection found", true)
-			}
-			onlinePlayers.Connections[i] = conn
-			i = oldConn.Index()
-		} else if onlinePlayers.enoughPlace() {
-			i = len(onlinePlayers.Connections)
-			onlinePlayers.Connections = append(onlinePlayers.Connections, conn)
-		} else {
-			return false
-		}
-		onlinePlayers.Players[i].ID = onlinePlayers.Connections[i].ID()
-		onlinePlayers.Connections[i].SetIndex(i)
-
-		return false
-	*/
 }
 
 // Remove delete element and decrement size if element
 // exists in map
 func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bool {
 	return onlinePlayers.Connections.Remove(conn, disconnect)
-	/*
-		size := len(onlinePlayers.Connections)
-		i := onlinePlayers.SearchConnection(conn)
-		if i < 0 {
-			fmt.Println("cant found", i, size)
-			return
-		}
-		onlinePlayers.Connections[i], onlinePlayers.Connections[size-1] = onlinePlayers.Connections[size-1], onlinePlayers.Connections[i]
-		onlinePlayers.Connections[size-1] = nil
-		onlinePlayers.Connections = onlinePlayers.Connections[:size-1]
-		//sendError(conn, "Remove", "You disconnected ")
-	*/
 }
 
 // enoughPlace check that you can add more elements

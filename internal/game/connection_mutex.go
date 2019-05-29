@@ -2,18 +2,16 @@ package game
 
 import (
 	"fmt"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
-// setMatrixValue set a value to matrix
+// setDone set done = true. It will finish all operaions on Connection
 func (conn *Connection) setDone() {
 	conn.doneM.Lock()
 	conn._done = true
 	conn.doneM.Unlock()
 }
 
-// getMatrixValue get a value from matrix
+// done return '_done' field
 func (conn *Connection) done() bool {
 	if conn == nil {
 		fmt.Println("conn nil")
@@ -24,7 +22,7 @@ func (conn *Connection) done() bool {
 	return v
 }
 
-// getMatrixValue get a value from matrix
+// Disconnected return   '_disconnected' field
 func (conn *Connection) Disconnected() bool {
 	if conn.done() {
 		return false
@@ -35,19 +33,19 @@ func (conn *Connection) Disconnected() bool {
 	}()
 
 	conn.disconnectedM.RLock()
-	v := conn._Disconnected
+	v := conn._disconnected
 	conn.disconnectedM.RUnlock()
 	return v
 }
 
-// getMatrixValue get a value from matrix
+// setDisconnected set _disconnected true
 func (conn *Connection) setDisconnected() {
 	conn.disconnectedM.Lock()
-	conn._Disconnected = true
+	conn._disconnected = true
 	conn.disconnectedM.Unlock()
 }
 
-// getMatrixValue get a value from matrix
+// Room return   '_room' field
 func (conn *Connection) Room() *Room {
 	if conn.done() {
 		return conn._room
@@ -64,22 +62,22 @@ func (conn *Connection) Room() *Room {
 }
 
 // getMatrixValue get a value from matrix
-func (conn *Connection) RoomID() string {
-	if conn.done() {
-		return re.ErrorConnectionDone().Error()
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
+// func (conn *Connection) RoomID() string {
+// 	if conn.done() {
+// 		return re.ErrorConnectionDone().Error()
+// 	}
+// 	conn.wGroup.Add(1)
+// 	defer func() {
+// 		conn.wGroup.Done()
+// 	}()
 
-	conn.roomM.RLock()
-	v := conn._room.ID
-	conn.roomM.RUnlock()
-	return v
-}
+// 	conn.roomM.RLock()
+// 	v := conn._room.ID
+// 	conn.roomM.RUnlock()
+// 	return v
+// }
 
-// getMatrixValue get a value from matrix
+// Both return   '_both' field
 func (conn *Connection) Both() bool {
 	if conn.done() {
 		return conn._both
@@ -95,10 +93,10 @@ func (conn *Connection) Both() bool {
 	return v
 }
 
-// getMatrixValue get a value from matrix
+// Index return   '_index' field
 func (conn *Connection) Index() int {
 	if conn.done() {
-		return conn._Index
+		return conn._index
 	}
 	conn.wGroup.Add(1)
 	defer func() {
@@ -106,11 +104,12 @@ func (conn *Connection) Index() int {
 	}()
 
 	conn.indexM.RLock()
-	v := conn._Index
+	v := conn._index
 	conn.indexM.RUnlock()
 	return v
 }
 
+// SetIndex set '_index' - index in slice of players
 func (conn *Connection) SetIndex(value int) {
 	if conn.done() {
 		return
@@ -121,18 +120,18 @@ func (conn *Connection) SetIndex(value int) {
 	}()
 
 	conn.indexM.Lock()
-	conn._Index = value
+	conn._index = value
 	conn.indexM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
+// setRoom set a pointer to the room in which the connection is located
 func (conn *Connection) setRoom(room *Room) {
 	conn.roomM.Lock()
 	conn._room = room
 	conn.roomM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
+// setBoth sets the flag whether the connection belongs to both the lobby and the room
 func (conn *Connection) setBoth(both bool) {
 	conn.bothM.Lock()
 	conn._both = both

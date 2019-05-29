@@ -34,13 +34,13 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		_room: nil,
 
 		disconnectedM: &sync.RWMutex{},
-		_Disconnected: false,
+		_disconnected: false,
 
 		bothM: &sync.RWMutex{},
 		_both: false,
 
 		indexM: &sync.RWMutex{},
-		_Index: -1,
+		_index: -1,
 
 		User: user,
 
@@ -94,7 +94,7 @@ func (conn *Connection) IsConnected() bool {
 	return conn.Disconnected() == false
 }
 
-// dirty make connection dirty. it make connection ID
+// Dirty make connection dirty. it make connection ID
 // -1 and when connection try to leave lobby, lobby will not
 // delete this connections from list, cause it will not find
 // anybody with such id
@@ -176,7 +176,7 @@ func (conn *Connection) InRoom() bool {
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
-func (conn *Connection) Launch(ws config.WebSocketSettings) {
+func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 
 	// dont place there conn.wGroup.Add(1)
 	if conn.lobby == nil || conn.lobby.context == nil {
@@ -194,6 +194,11 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 	go conn.ReadConn(conn.context, ws, all)
 
 	//fmt.Println("Wait!")
+	if roomID != "" {
+		rs := &models.RoomSettings{}
+		rs.ID = roomID
+		conn.lobby.EnterRoom(conn, rs)
+	}
 	all.Wait()
 	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
@@ -374,7 +379,7 @@ func (conn *Connection) ID() int {
 	return conn.User.ID
 }
 
-// debug print devug information to console and websocket
+// debug print debug information to console and websocket
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.ID(), "-", message)
 	//conn.SendInformation(message)

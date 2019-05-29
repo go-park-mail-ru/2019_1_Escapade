@@ -10,9 +10,16 @@ import (
 // Sender is the func that send information to connections
 type Sender func(interface{}, SendPredicate)
 
+// AppendMessage - the function to append message to message slice
 type AppendMessage func(*models.Message)
+
+// UpdateMessage - the function to update message in message slice
 type UpdateMessage func(int, *models.Message)
+
+// FindMessage - the function to search message in message slice
 type FindMessage func(*models.Message) int
+
+// DeleteMessage - the function to delete message from message slice
 type DeleteMessage func(int)
 
 // Message send message to connections

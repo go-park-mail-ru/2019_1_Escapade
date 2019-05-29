@@ -24,10 +24,10 @@ type Lobby struct {
 	_done bool
 
 	allRoomsM *sync.RWMutex
-	_AllRooms *Rooms
+	_allRooms *Rooms
 
 	freeRoomsM *sync.RWMutex
-	_FreeRooms *Rooms
+	_freeRooms *Rooms
 
 	//waitingM *sync.RWMutex
 	Waiting *Connections
@@ -36,19 +36,17 @@ type Lobby struct {
 	Playing *Connections
 
 	messagesM *sync.Mutex
-	_Messages []*models.Message
+	_messages []*models.Message
 
 	anonymousM *sync.Mutex
-	_Anonymous int
+	_anonymous int
 
 	context context.Context
 	cancel  context.CancelFunc
 
 	// connection joined lobby
 	chanJoin chan *Connection
-	// connection left lobby
-	chanLeave chan *Connection
-
+	// connection send some JSON
 	chanBroadcast chan *Request
 
 	chanBreak chan interface{}
@@ -81,10 +79,10 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		_done: false,
 
 		allRoomsM: &sync.RWMutex{},
-		_AllRooms: NewRooms(roomsCapacity),
+		_allRooms: NewRooms(roomsCapacity),
 
 		freeRoomsM: &sync.RWMutex{},
-		_FreeRooms: NewRooms(roomsCapacity),
+		_freeRooms: NewRooms(roomsCapacity),
 
 		//waitingM: &sync.RWMutex{},
 		Waiting: NewConnections(connectionsCapacity),
@@ -93,16 +91,15 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		Playing: NewConnections(connectionsCapacity),
 
 		messagesM: &sync.Mutex{},
-		_Messages: messages,
+		_messages: messages,
 
 		anonymousM: &sync.Mutex{},
-		_Anonymous: -1,
+		_anonymous: -1,
 
 		context: context,
 		cancel:  cancel,
 
 		chanJoin:      make(chan *Connection),
-		chanLeave:     make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
 
@@ -134,6 +131,7 @@ func GetLobby() *Lobby {
 	return LOBBY
 }
 
+// Metrics return metrics flag
 func (lobby *Lobby) Metrics() bool {
 	return lobby.metrics
 }
@@ -169,7 +167,6 @@ func (lobby *Lobby) Free() {
 	lobby.cancel()
 
 	close(lobby.chanJoin)
-	close(lobby.chanLeave)
 	close(lobby.chanBroadcast)
 	lobby.db = nil
 	lobby = nil

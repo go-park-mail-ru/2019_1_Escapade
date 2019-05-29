@@ -49,7 +49,7 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 		user := createRandomUser(id)
 
 		Convey("When create new connection", func() {
-			lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+			lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 			conn := NewConnection(ws, user, lobby)
 
 			Convey("All pointers fields should be not nil", func() {
@@ -65,11 +65,11 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 				So(conn.send, ShouldNotBeNil)
 			})
 			Convey("All not pointers fields should be default", func() {
-				So(conn._done, ShouldBeFalse)
-				So(conn._room, ShouldBeNil)
-				So(conn._Disconnected, ShouldBeFalse)
-				So(conn._both, ShouldBeFalse)
-				So(conn._Index, ShouldEqual, -1)
+				So(conn.done(), ShouldBeFalse)
+				So(conn.Room(), ShouldBeNil)
+				So(conn.Disconnected(), ShouldBeFalse)
+				So(conn.Both(), ShouldBeFalse)
+				So(conn.Index(), ShouldEqual, -1)
 				So(conn.ws, ShouldEqual, ws)
 			})
 		})
@@ -95,7 +95,7 @@ func TestNewConnectionWithoutInputParameters(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 		Convey("When create new connection without lobby", func() {
 			conn := NewConnection(ws, user, nil)
@@ -140,7 +140,7 @@ func TestPushToRoom(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -190,7 +190,7 @@ func TestPushToLobby(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -244,7 +244,7 @@ func TestIsConnected(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -265,7 +265,7 @@ func TestIsConnected(t *testing.T) {
 		})
 
 		Convey("When done and connected", func() {
-			conn._Disconnected = false
+			conn._disconnected = false
 			conn.setDone()
 			conn.setDisconnected()
 			v := conn.IsConnected()
@@ -306,7 +306,7 @@ func TestDirty(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -356,7 +356,7 @@ func TestKill(t *testing.T) {
 		Convey("When push to room", func() {
 			roomID := utils.RandomString(16)
 			settings := models.NewSmallRoom()
-			room, err := NewRoom(settings, roomID, lobby)
+			room, err := NewRoom(settings, roomID, LOBBY)
 
 			So(err, ShouldBeNil)
 			TestConnection.PushToRoom(room)
@@ -408,7 +408,6 @@ func TestAll(t *testing.T) {
 		TestConnection.Disconnected()
 		TestConnection.setDisconnected()
 		TestConnection.Room()
-		TestConnection.RoomID()
 		TestConnection.Both()
 		TestConnection.Index()
 		TestConnection.SetIndex(1)
@@ -427,7 +426,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 	id := rand.Intn(10000)
 	user := createRandomUser(id)
-	lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true)
+	lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
 
 	TestConnection = NewConnection(ws, user, lobby)
 	settings := config.WebSocketSettings{
@@ -440,7 +439,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("seeeend")
 	ready <- struct{}{}
-	TestConnection.Launch(settings)
+	TestConnection.Launch(settings, "")
 }
 
 func createRandomUser(id int) *models.UserPublicInfo {

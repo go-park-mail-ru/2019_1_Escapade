@@ -163,6 +163,7 @@ func (room *Room) MakeObserver(conn *Connection, recover bool) {
 	conn.PushToRoom(room)
 }
 
+// RemoveFromGame control the removal of the connection from the room
 func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool) {
 	if room.done() {
 		return

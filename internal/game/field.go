@@ -168,7 +168,7 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		if cell.Value != FlagID(cell.PlayerID) {
+		if cell.Value != FlagID(cell.PlayerID) && cell.Value != CellOpened {
 			field.saveCell(cell, &cells)
 		}
 	}
@@ -210,6 +210,7 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 	return cell
 }
 
+// OpenSave open n(or more) cells that do not contain any mines or flags
 func (field *Field) OpenSave(n int) (cells []Cell) {
 	cells = make([]Cell, 0)
 	size := 0
@@ -274,11 +275,12 @@ func (field Field) IsInside(cell *Cell) bool {
 	return field.areCoordinatesRight(cell.X, cell.Y)
 }
 
-///////////////////// Set cells func //////////
-
+// FlagID convert player ID to Flag ID
 func FlagID(connID int) int {
 	return int(math.Abs(float64(connID))) + CellIncrement
 }
+
+///////////////////// Set cells func //////////
 
 // SetFlag works only when mines not set
 func (field *Field) SetFlag(cell *Cell) {

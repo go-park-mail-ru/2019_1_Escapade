@@ -6,7 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-// Room consist of players and observers, field and history
+// LobbyJSON is a wrapper for sending Lobby by JSON
 type LobbyJSON struct {
 	AllRooms  Rooms             `json:"allRooms"`
 	FreeRooms Rooms             `json:"freeRooms"`
@@ -15,31 +15,34 @@ type LobbyJSON struct {
 	Messages  []*models.Message `json:"messages"`
 }
 
+// JSON convert Lobby to LobbyJSON
 func (lobby *Lobby) JSON() LobbyJSON {
 	return LobbyJSON{
-		AllRooms:  *lobby._AllRooms,
-		FreeRooms: *lobby._FreeRooms,
+		AllRooms:  *lobby._allRooms,
+		FreeRooms: *lobby._freeRooms,
 		Waiting:   *lobby.Waiting,
 		Playing:   *lobby.Playing,
-		Messages:  lobby._Messages,
+		Messages:  lobby._messages,
 	}
 }
 
+// MarshalJSON - overriding the standard method json.Marshal
 func (lobby Lobby) MarshalJSON() ([]byte, error) {
 	return json.Marshal(lobby.JSON())
 }
 
+// UnmarshalJSON - overriding the standard method json.Unmarshal
 func (lobby *Lobby) UnmarshalJSON(b []byte) error {
 	temp := &LobbyJSON{}
 
 	if err := json.Unmarshal(b, &temp); err != nil {
 		return err
 	}
-	lobby._AllRooms = &temp.AllRooms
-	lobby._FreeRooms = &temp.FreeRooms
+	lobby._allRooms = &temp.AllRooms
+	lobby._freeRooms = &temp.FreeRooms
 	lobby.Waiting = &temp.Waiting
 	lobby.Playing = &temp.Playing
-	lobby._Messages = temp.Messages
+	lobby._messages = temp.Messages
 
 	return nil
 }

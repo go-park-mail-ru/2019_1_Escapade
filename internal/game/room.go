@@ -33,10 +33,10 @@ type Room struct {
 	Observers *Connections
 
 	historyM *sync.RWMutex
-	_History []*PlayerAction
+	_history []*PlayerAction
 
 	messagesM *sync.Mutex
-	_Messages []*models.Message
+	_messages []*models.Message
 
 	killedM *sync.RWMutex
 	_killed int //amount of killed users
@@ -66,43 +66,10 @@ func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
 	var room = &Room{}
 
 	room.Init(rs, id, lobby)
-	//:= &Room{
-	// 	wGroup: &sync.WaitGroup{},
-
-	// 	doneM: &sync.RWMutex{},
-	// 	_done: false,
-
-	// 	playersM: &sync.RWMutex{},
-	// 	_Players: newOnlinePlayers(rs.Players, *field),
-
-	// 	observersM: &sync.RWMutex{},
-	// 	_Observers: NewConnections(rs.Observers),
-
-	// 	historyM: &sync.RWMutex{},
-	// 	_History: make([]*PlayerAction, 0),
-
-	// 	messagesM: &sync.Mutex{},
-	// 	_Messages: make([]*models.Message, 0),
-
-	// 	killedM: &sync.RWMutex{},
-	// 	_killed: 0,
-
-	// 	ID:     id,
-	// 	Name:   rs.Name,
-	// 	Status: StatusPeopleFinding,
-
-	// 	lobby: lobby,
-	// 	Field: field,
-
-	// 	Date:       time.Now(),
-	// 	chanFinish: make(chan struct{}),
-
-	// 	Settings: rs,
-	// }
 	return room, nil
 }
 
-// NewRoom return new instance of room
+// Init init instance of room
 func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 
 	room.wGroup = &sync.WaitGroup{}
@@ -111,53 +78,52 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room._done = false
 	room.doneM = &sync.RWMutex{}
 
-	//room.playersM = &sync.RWMutex{}
+	// cant use Restart cause need to
 	room.Players = newOnlinePlayers(rs.Players, *field)
 
 	//room.observersM = &sync.RWMutex{}
-	room.Observers = NewConnections(rs.Observers)
+	//room.Observers = NewConnections(rs.Observers)
 
 	room.historyM = &sync.RWMutex{}
-	room._History = make([]*PlayerAction, 0)
+	//room._history = make([]*PlayerAction, 0)
 
 	room.messagesM = &sync.Mutex{}
-	room._Messages = make([]*models.Message, 0)
+	//room._messages = make([]*models.Message, 0)
 
 	room.killedM = &sync.RWMutex{}
-	room._killed = 0
+	//room._killed = 0
 
-	room.ID = id
 	room.Name = rs.Name
-	room.Status = StatusPeopleFinding
+	//room.Status = StatusPeopleFinding
 
 	room.lobby = lobby
-	room.Field = field
+	//room.Field = field
 
-	room.Date = time.Now()
-	room.chanFinish = make(chan struct{})
+	//room.Date = time.Now()
+	//room.chanFinish = make(chan struct{})
 
 	room.Settings = rs
+
+	room.ID = id
+	room.Restart()
 
 	return
 }
 
+// Restart fill in the room fields with the original values
 func (room *Room) Restart() {
 
 	field := NewField(room.Settings)
-	//room.playersM.Lock()
 	room.Players.Refresh(*field)
-	//room.playersM.Unlock()
 
-	//room.observersM.Lock()
 	room.Observers = NewConnections(room.Settings.Observers)
-	//room.observersM.Unlock()
 
 	room.historyM.Lock()
-	room._History = make([]*PlayerAction, 0)
+	room._history = make([]*PlayerAction, 0)
 	room.historyM.Unlock()
 
 	room.messagesM.Lock()
-	room._Messages = make([]*models.Message, 0)
+	room._messages = make([]*models.Message, 0)
 	room.messagesM.Unlock()
 
 	room.killedM.Lock()
@@ -175,6 +141,7 @@ func (room *Room) Restart() {
 	return
 }
 
+// debug print all room fields
 func (room *Room) debug() {
 	if room == nil {
 		fmt.Println("cant debug nil room")

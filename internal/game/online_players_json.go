@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// Flag contaion Cell and flag, that it was set by User
 type Flag struct {
 	Cell Cell `json:"cell"`
 	Set  bool `json:"set"`
@@ -24,6 +25,7 @@ type OnlinePlayers struct {
 	Connections Connections `json:"connections"`
 }
 
+// OnlinePlayersJSON is a wrapper for sending OnlinePlayers by JSON
 type OnlinePlayersJSON struct {
 	Capacity    int             `json:"capacity"`
 	Players     []Player        `json:"players"`
@@ -31,6 +33,7 @@ type OnlinePlayersJSON struct {
 	Flags       []Flag          `json:"flags"`
 }
 
+// JSON convert OnlinePlayers to OnlinePlayersJSON
 func (op *OnlinePlayers) JSON() OnlinePlayersJSON {
 	return OnlinePlayersJSON{
 		Capacity:    op.Capacity(),
@@ -40,10 +43,12 @@ func (op *OnlinePlayers) JSON() OnlinePlayersJSON {
 	}
 }
 
+// MarshalJSON - overriding the standard method json.Marshal
 func (op *OnlinePlayers) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.JSON())
 }
 
+// UnmarshalJSON - overriding the standard method json.Unmarshal
 func (op *OnlinePlayers) UnmarshalJSON(b []byte) error {
 	temp := &OnlinePlayersJSON{}
 
