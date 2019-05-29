@@ -18,12 +18,13 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 	sqlStatement := `
 	select GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time 
 		from GameChat as GC 
-		left join Player as P on P.id = GC.player_id`
+		left join Player as P on P.id = GC.player_id
+		`
 	if inRoom {
-		sqlStatement += ` where GC.roomID like $1;`
+		sqlStatement += ` where GC.roomID like $1 ORDER BY GC.ID ASC;`
 		rows, err = tx.Query(sqlStatement, gameID)
 	} else {
-		sqlStatement += ` where GC.in_room = false;`
+		sqlStatement += ` where GC.in_room = false ORDER BY GC.ID ASC;`
 		rows, err = tx.Query(sqlStatement)
 	}
 	if err != nil {
@@ -46,6 +47,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 
 			break
 		}
+		user.PhotoURL = "https://escapade.hb.bizmrg.com/76813f9e-60a6-41cf-a541-84efa50397c3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ciyXwq2TpzVGXEcQAqSdew%2F20190529%2Fru-msk%2Fs3%2Faws4_request&X-Amz-Date=20190529T123909Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=55d828f49ad5ecdaf07d40fb0c55003f5d6616ee8a2c631ca8e769636031a5b8"
 		if id, erro := userSQL.ID.Value(); erro == nil {
 			user.ID = int(id.(int64))
 		}
@@ -53,10 +55,10 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 			user.Name = name.(string)
 		}
 		if photoURL, _ := userSQL.PhotoURL.Value(); photoURL != nil {
-			user.PhotoURL = photoURL.(string)
+			user.FileKey = photoURL.(string)
 		}
 
-		fmt.Println("load message:", message)
+		fmt.Println("load message:", user.Name, user.PhotoURL)
 
 		messages = append(messages, message)
 	}

@@ -658,9 +658,9 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 
 	if userID < 0 {
 		user = &models.UserPublicInfo{
-			Name:     "Anonymos" + strconv.Itoa(rand.Intn(10000)),
+			Name:     "Anonymous" + strconv.Itoa(rand.Intn(10000)),
 			ID:       userID,
-			PhotoURL: "Anonymos",
+			PhotoURL: "https://escapade.hb.bizmrg.com/76813f9e-60a6-41cf-a541-84efa50397c3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ciyXwq2TpzVGXEcQAqSdew%2F20190529%2Fru-msk%2Fs3%2Faws4_request&X-Amz-Date=20190529T123909Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=55d828f49ad5ecdaf07d40fb0c55003f5d6616ee8a2c631ca8e769636031a5b8",
 		}
 	} else {
 		if user, err = h.DB.GetUser(userID, 0); err != nil {
