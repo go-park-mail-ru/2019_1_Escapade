@@ -5,6 +5,7 @@ go:
 services: docker
 env:
 - GO111MODULE=on USE_DOCKER_DB=on
+- DOCKER_COMPOSE_VERSION=3
 install: true
 branches:
   only:
