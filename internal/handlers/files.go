@@ -27,6 +27,8 @@ func (h *Handler) Setfiles(users ...*models.UserPublicInfo) (err error) {
 			fmt.Println("h.getURLToAvatar", err.Error())
 			continue
 			//return re.ErrorAvatarNotFound()
+		} else {
+			fmt.Println("h.getURLToAvatar", user.PhotoURL)
 		}
 	}
 	return nil
@@ -62,6 +64,7 @@ func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 		Key:    aws.String(key),
 	})
 	url, err = req.Presign(24 * time.Hour)
+	fmt.Println("url:", url)
 	return
 }
 
