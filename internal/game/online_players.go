@@ -1,20 +1,8 @@
 package game
 
-import "fmt"
-
-// OnlinePlayers online players
-type OnlinePlayers struct {
-	Capacity    int         `json:"capacity"`
-	Players     []Player    `json:"players"`
-	Flags       []Cell      `json:"flags"`
-	Connections Connections `json:"connections"`
-}
-
-// Connections - slice of connections with capacity
-type Connections struct {
-	Capacity int           `json:"capacity"`
-	Get      []*Connection `json:"get"`
-}
+import (
+	"fmt"
+)
 
 // Rooms - slice of rooms with capacity
 type Rooms struct {
@@ -22,24 +10,29 @@ type Rooms struct {
 	Get      []*Room `json:"get"`
 }
 
-// NewConnections create instance of Connections
-func newOnlinePlayers(size int, field Field) *OnlinePlayers {
-	players := make([]Player, size)
-	flags := field.RandomFlags(players)
-	return &OnlinePlayers{
-		Capacity:    size,
-		Players:     players,
-		Flags:       flags,
-		Connections: *NewConnections(size),
-	}
+func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
+	size := onlinePlayers.Capacity()
 
+	players := make([]Player, size)
+	onlinePlayers.SetPlayers(players)
+
+	flags := field.RandomFlags(players)
+	onlinePlayers.SetFlags(flags)
+
+	onlinePlayers.flagsLeft = size
+	onlinePlayers.RefreshConnections()
+}
+
+func (onlinePlayers *OnlinePlayers) RefreshConnections() {
+	size := onlinePlayers.Capacity()
+	onlinePlayers.Connections = *NewConnections(size)
 }
 
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
-	for i, conn := range onlinePlayers.Connections.Get {
-		if i > onlinePlayers.Capacity {
+	for i, conn := range onlinePlayers.Connections._get {
+		if i > onlinePlayers.Capacity() {
 			room := conn.Room()
 			if room == nil {
 				continue
@@ -47,18 +40,12 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			go room.Leave(conn, ActionBackToLobby)
 			continue
 		}
-		onlinePlayers.Players[i] = *NewPlayer(conn.User.ID)
+		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}
 	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
 	return
-}
-
-// NewConnections create instance of Connections
-func NewConnections(capacity int) *Connections {
-	return &Connections{capacity,
-		make([]*Connection, 0, capacity)}
 }
 
 // NewRooms create instance of Rooms
@@ -77,28 +64,16 @@ func sliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-// Free free memory
-func (onlinePlayers *OnlinePlayers) Free() {
-
-	if onlinePlayers == nil {
-		return
-	}
-	onlinePlayers.Connections.Free()
-	onlinePlayers.Players = nil
-	onlinePlayers.Flags = nil
-	onlinePlayers = nil
-}
-
 // SearchIndexPlayer search connection index in the slice of Players
 func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) {
-	return sliceIndex(onlinePlayers.Capacity, func(i int) bool {
-		return onlinePlayers.Players[i].ID == conn.ID()
+	return sliceIndex(onlinePlayers.Capacity(), func(i int) bool {
+		return onlinePlayers.Player(i).ID == conn.ID()
 	})
 }
 
 // SearchConnection search connection index in the slice of connections
-func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (i int) {
-	return onlinePlayers.Connections.Search(conn)
+func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (*Connection, int) {
+	return onlinePlayers.Connections.SearchByID(conn.ID())
 }
 
 // Free free memory
@@ -112,18 +87,6 @@ func (rooms *Rooms) Free() {
 	rooms.Get = nil
 	rooms.Capacity = 0
 	rooms = nil
-}
-
-// Free free memory
-func (conns *Connections) Free() {
-	if conns == nil {
-		return
-	}
-	for _, conn := range conns.Get {
-		conn.Free()
-	}
-	conns.Get = nil
-	conns.Capacity = 0
 }
 
 // Empty check rooms length is 0
@@ -146,7 +109,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
 	if i < 0 {
 		return false
 	}
-	onlinePlayers.Players[i].ID = conn.ID()
+	onlinePlayers.SetPlayerID(i, conn.ID())
 	conn.SetIndex(i)
 	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
@@ -191,8 +154,8 @@ func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bo
 }
 
 // enoughPlace check that you can add more elements
-func (onlinePlayers *OnlinePlayers) enoughPlace() bool {
-	return onlinePlayers.Connections.enoughPlace()
+func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
+	return onlinePlayers.Connections.EnoughPlace()
 }
 
 // enoughPlace check that you can add more elements
@@ -216,13 +179,13 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 // otherwise nil
 func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *Room) {
 	for _, room := range rooms.Get {
-		i := room.playersSearchIndexPlayer(new)
+		i := room.Players.SearchIndexPlayer(new) //playersSearchIndexPlayer(new)
 		fmt.Println("room", room.ID, i)
 		// cant found
 		if i < 0 {
 			continue
 		}
-		if mustNotFinished && room.playerFinished(i) {
+		if mustNotFinished && room.Players.Player(i).Finished {
 			fmt.Println("next!!!")
 			continue
 		}
@@ -237,12 +200,12 @@ func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *R
 // otherwise nil
 func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 	for _, room := range rooms.Get {
-		i := room.observersSearch(new)
+		old, i := room.Observers.SearchByID(new.ID())
 		if i < 0 {
 			continue
 		}
 
-		return room.observers()[i]
+		return old
 	}
 	return nil
 }
@@ -271,77 +234,4 @@ func (rooms *Rooms) Remove(room *Room) {
 	rooms.Get[i], rooms.Get[size-1] = rooms.Get[size-1], rooms.Get[i]
 	rooms.Get[size-1] = nil
 	rooms.Get = rooms.Get[:size-1]
-}
-
-// CopyLast copy Last element of 'from' to that as slice
-func (rooms *Rooms) CopyLast(from *Rooms) {
-	rooms.Capacity = 1
-	rooms.Get = from.Get[len(from.Get)-1:]
-}
-
-////////////////// Connections //////////////////////
-
-// CopyLast copy Last element of 'from' to that as slice
-func (conns *Connections) CopyLast(from *Connections) {
-	conns.Capacity = 1
-	conns.Get = from.Get[len(from.Get)-1:]
-}
-
-// Empty check rooms capacity is 0
-// it will happen, when finish is over, cause
-// when somebody explodes, the capacity decrements
-func (conns *Connections) Empty() bool {
-	return len(conns.Get) == 0
-}
-
-// Search find connection in slice and return its index if success
-// otherwise -1
-func (conns *Connections) Search(conn *Connection) (i int) {
-	return sliceIndex(len(conns.Get), func(i int) bool { return conns.Get[i].ID() == conn.ID() })
-}
-
-// enoughPlace check that you can add more elements
-func (conns *Connections) enoughPlace() bool {
-	return len(conns.Get) < conns.Capacity
-}
-
-// Add try add element if its possible. Return bool result
-// if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
-	if i = conns.Search(conn); i >= 0 {
-		oldConn := conns.Get[i]
-		if kill && !oldConn.Disconnected() {
-			oldConn.Kill("Another connection found", true)
-		}
-		conn._room = conns.Get[i].Room()
-		conn._Index = conns.Get[i].Index()
-
-		conns.Get[i] = conn
-		i = oldConn.Index()
-	} else if conns.enoughPlace() {
-		i = len(conns.Get)
-		conns.Get = append(conns.Get, conn)
-	} else {
-		return -1
-	}
-	return i
-}
-
-// Remove delete element and decrement size if element
-// exists in map
-func (conns *Connections) Remove(conn *Connection, onlyIfDisconnected bool) bool {
-	i := conns.Search(conn)
-	if i < 0 {
-		return false
-	}
-	if onlyIfDisconnected && !conns.Get[i].Disconnected() {
-		return false
-	}
-	size := len(conns.Get)
-	conns.Get[i], conns.Get[size-1] = conns.Get[size-1], conns.Get[i]
-	fmt.Println("delete it", conns.Get[size-1].ID())
-	conns.Get[size-1] = nil
-	conns.Get = conns.Get[:size-1]
-	return true
-	//sendError(conn, "Remove", "You disconnected ")
 }

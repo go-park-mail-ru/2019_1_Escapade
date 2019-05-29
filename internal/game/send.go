@@ -39,6 +39,14 @@ func All(conn *Connection) bool {
 }
 
 // All is SendPredicate to SendToConnections
+// it will send everybody, who is connected
+func Me(me *Connection) func(*Connection) bool {
+	return func(conn *Connection) bool {
+		return !conn.done() && !me.done() && conn.ID() == me.ID() && conn.IsConnected()
+	}
+}
+
+// All is SendPredicate to SendToConnections
 // it will send everybody in room, who is connected
 func (room *Room) All(conn *Connection) bool {
 	return !conn.done() && conn.Room() == room && conn.IsConnected()

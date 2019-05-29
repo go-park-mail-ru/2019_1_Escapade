@@ -29,11 +29,11 @@ type Lobby struct {
 	freeRoomsM *sync.RWMutex
 	_FreeRooms *Rooms
 
-	waitingM *sync.RWMutex
-	_Waiting *Connections
+	//waitingM *sync.RWMutex
+	Waiting *Connections
 
-	playingM *sync.RWMutex
-	_Playing *Connections
+	//playingM *sync.RWMutex
+	Playing *Connections
 
 	messagesM *sync.Mutex
 	_Messages []*models.Message
@@ -86,11 +86,11 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		freeRoomsM: &sync.RWMutex{},
 		_FreeRooms: NewRooms(roomsCapacity),
 
-		waitingM: &sync.RWMutex{},
-		_Waiting: NewConnections(connectionsCapacity),
+		//waitingM: &sync.RWMutex{},
+		Waiting: NewConnections(connectionsCapacity),
 
-		playingM: &sync.RWMutex{},
-		_Playing: NewConnections(connectionsCapacity),
+		//playingM: &sync.RWMutex{},
+		Playing: NewConnections(connectionsCapacity),
 
 		messagesM: &sync.Mutex{},
 		_Messages: messages,
@@ -115,23 +115,23 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 
 // lobby singleton
 var (
-	lobby *Lobby
+	LOBBY *Lobby
 )
 
 // Launch launchs lobby goroutine
 func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool) {
 
-	if lobby == nil {
-		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
+	if LOBBY == nil {
+		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
 			db, gc.CanClose, metrics)
 
-		go lobby.Run()
+		go LOBBY.Run()
 	}
 }
 
 // GetLobby create lobby if it is nil and get it
 func GetLobby() *Lobby {
-	return lobby
+	return LOBBY
 }
 
 func (lobby *Lobby) Metrics() bool {
@@ -163,8 +163,8 @@ func (lobby *Lobby) Free() {
 
 	go lobby.allRoomsFree()
 	go lobby.freeRoomsFree()
-	go lobby.waitingFree()
-	go lobby.playingFree()
+	go lobby.Waiting.Free()
+	go lobby.Playing.Free()
 
 	lobby.cancel()
 

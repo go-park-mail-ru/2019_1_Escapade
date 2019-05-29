@@ -18,7 +18,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 
 	uuid "github.com/satori/go.uuid"
@@ -170,9 +169,10 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
-		user  models.UserPrivateInfo
-		err   error
-		found *models.UserPublicInfo
+		user        models.UserPrivateInfo
+		err         error
+		found       *models.UserPublicInfo
+		sessionName string
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -182,26 +182,30 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if found, err = h.DB.Login(&user); err != nil {
+	sessionName = utils.RandomString(16)
+	if found, err = h.DB.Login(&user, sessionName); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	ctx := r.Context()
+	/*
+		ctx := r.Context()
 
-	sessionID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(user.ID),
-			Login:  user.Name,
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("cookie set ", sessionID.ID)
-	cookie.CreateAndSet(rw, h.Session, sessionID.ID)
+		sessionID, err := h.Clients.Session.Create(ctx,
+			&session.Session{
+				UserID: int32(user.ID),
+				Login:  user.Name,
+			})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("cookie set ", sessionID.ID)
+	*/
+
+	cookie.CreateAndSet(rw, h.Session, sessionName)
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -231,16 +235,17 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
-
-	ctx := context.Background()
-	_, err = h.Clients.Session.Delete(ctx,
-		&session.SessionID{
-			ID: sessionID,
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	h.DB.DeleteSession(sessionID)
+	/*
+		ctx := context.Background()
+		_, err = h.Clients.Session.Delete(ctx,
+			&session.SessionID{
+				ID: sessionID,
+			})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}*/
 
 	cookie.CreateAndSet(rw, h.Session, "")
 	rw.WriteHeader(http.StatusOK)
@@ -643,7 +648,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		//rw.WriteHeader(http.StatusUnauthorized)
 		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		//utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
+		//return
 	}
 
 	if userID < 0 {

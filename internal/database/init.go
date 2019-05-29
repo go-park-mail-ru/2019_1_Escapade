@@ -256,12 +256,13 @@ func (db *DataBase) createTableAction(tx *sql.Tx) (err error) {
            FOREIGN KEY (game_id)
            REFERENCES Game(id)
            ON DELETE CASCADE;
-
+/*
     ALTER TABLE Action
         ADD CONSTRAINT action_player
             FOREIGN KEY (player_id)
             REFERENCES Player(id)
             ON DELETE CASCADE;
+            */
     
     `
 	_, err = tx.Exec(sqlStatement)
@@ -282,7 +283,7 @@ func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
         id SERIAL PRIMARY KEY,
         player_id int NOT NULL,
         game_id int NOT NULL,
-        score int default 0,
+        score float default 0,
         time interval default '24 hour'::interval,
         left_click int default 0,
         right_click int default 0,

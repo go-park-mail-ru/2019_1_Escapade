@@ -1,9 +1,7 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,8 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 
 	"github.com/gorilla/mux"
 )
@@ -126,18 +122,24 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 
 func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (userID int, err error) {
 	sessionID, _ := cookie.GetSessionCookie(r, cc)
-	fmt.Println("sessionID", sessionID)
 
-	ctx := context.Background()
-	sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
-		ID: sessionID,
-	})
-	if err != nil {
+	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
 		return
 	}
-	fmt.Println("your id is", sess.UserID)
-	userID = int(sess.UserID)
+	/*
+		fmt.Println("sessionID", sessionID)
 
+		ctx := context.Background()
+
+		sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
+			ID: sessionID,
+		})
+		if err != nil {
+			return
+		}
+		fmt.Println("your id is", sess.UserID)
+		userID = int(sess.UserID)
+	*/
 	return
 }
 

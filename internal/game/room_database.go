@@ -17,7 +17,7 @@ func (room *Room) Save() (err error) {
 		room.wGroup.Done()
 	}()
 
-	players := room.players()
+	players := room.Players.RPlayers()
 	game := models.Game{
 		RoomID:        room.ID,
 		Name:          room.Name,
@@ -79,16 +79,16 @@ func (room *Room) Save() (err error) {
 		Cells:   cells,
 	}
 
-	fmt.Println("gameInformation:", gameInformation)
+	//fmt.Println("gameInformation:", gameInformation)
 
 	if err = room.lobby.db.SaveGame(gameInformation); err != nil {
 		fmt.Println("err. Cant save.", err.Error())
 	}
 
 	//var room1 *Room
-	if _, err = lobby.Load(room.ID); err != nil {
-		fmt.Println("err. Cant load.", err.Error())
-	} //else {
+	// if _, err = lobby.Load(room.ID); err != nil {
+	// 	fmt.Println("err. Cant load.", err.Error())
+	// } //else {
 	//room1.debug()
 	//}
 
@@ -163,14 +163,14 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	// players
-	room._Players = newOnlinePlayers(info.Game.Players, *room.Field)
+	room.Players = newOnlinePlayers(info.Game.Players, *room.Field)
 	for i, gamer := range info.Gamers {
-		room._Players.Players[i] = Player{
+		room.Players.SetPlayer(i, Player{
 			ID:       gamer.ID,
 			Points:   gamer.Score,
 			Died:     gamer.Explosion,
 			Finished: true,
-		}
+		})
 	}
 
 	room._Messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)

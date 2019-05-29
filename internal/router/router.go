@@ -39,6 +39,8 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
 
+	v1.HandleFunc("/users/profile", API.GetProfile).Methods("GET")
+
 	v1.HandleFunc("/session", mi.ApplyMiddleware(API.Logout,
 		mi.CORS(conf.Cors, false))).Methods("DELETE")
 	v1.HandleFunc("/session", mi.ApplyMiddleware(API.Login,

@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -38,14 +36,14 @@ func main() {
 		return
 	}
 	config.InitPrivate(secretPath)
-
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
-
-	handler, err = api.GetGameHandler(configuration, authConn) // init.go
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
+	handler, err = api.GetGameHandler(configuration /*, authConn*/) // init.go
 	if err != nil {
 		fmt.Println("eeeer", err.Error())
 		return

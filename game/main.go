@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
@@ -46,14 +44,15 @@ func main() {
 	metrics.InitPlayersMetric("game")
 
 	prometheus.MustRegister(metrics.Rooms, metrics.Players, metrics.FreeRooms, metrics.WaitingPlayers)
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
 
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
-
-	handler, err = api.GetGameHandler(configuration, authConn) // init.go
+	handler, err = api.GetGameHandler(configuration /*, authConn*/) // init.go
 	if err != nil {
 		fmt.Println("eeeer", err.Error())
 		return
