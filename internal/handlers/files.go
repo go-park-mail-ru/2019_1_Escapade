@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"fmt"
 	"mime/multipart"
@@ -13,16 +12,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func (h *Handler) setfiles(users ...*models.UserPublicInfo) (err error) {
+func (h *Handler) Setfiles(users ...*models.UserPublicInfo) (err error) {
 
 	for _, user := range users {
+		if user == nil {
+			continue
+		}
 		if user.FileKey == "" {
 			fmt.Println("user.FileKey == ''")
-			return re.ErrorAvatarNotFound()
+			continue
+			//return re.ErrorAvatarNotFound()
 		}
 		if user.PhotoURL, err = h.getURLToAvatar(user.FileKey); err != nil {
 			fmt.Println("h.getURLToAvatar", err.Error())
-			return re.ErrorAvatarNotFound()
+			continue
+			//return re.ErrorAvatarNotFound()
+		} else {
+			fmt.Println("h.getURLToAvatar", user.PhotoURL)
 		}
 	}
 	return nil
@@ -58,6 +64,7 @@ func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 		Key:    aws.String(key),
 	})
 	url, err = req.Presign(24 * time.Hour)
+	fmt.Println("url:", url)
 	return
 }
 

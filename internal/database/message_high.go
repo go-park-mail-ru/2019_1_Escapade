@@ -8,26 +8,57 @@ import (
 	"fmt"
 )
 
-// SaveMessage save messages to database
-func (db *DataBase) SaveMessage(message *models.Message,
-	inRoom bool, gameID string) (err error) {
+// CreateMessage create message
+func (db *DataBase) CreateMessage(message *models.Message,
+	inRoom bool, gameID string) (id int, err error) {
+	sqlInsert := `
+	INSERT INTO GameChat(player_id, name, in_room, roomID, message, time) VALUES
+		($1, $2, $3, $4, $5, $6)
+		RETURNING ID;
+		`
+	row := db.Db.QueryRow(sqlInsert, message.User.ID, message.User.Name, inRoom,
+		gameID, message.Text, message.Time)
 
-	var (
-		tx *sql.Tx
-	)
-
-	if tx, err = db.Db.Begin(); err != nil {
+	if err = row.Scan(&id); err != nil {
+		fmt.Println("createMessage err:", err.Error())
 		return
 	}
-	defer tx.Rollback()
+	fmt.Println("createMessage success", inRoom, gameID)
 
-	if err = db.createMessage(tx, message, inRoom, gameID); err != nil {
+	return
+}
+
+// UpdateMessage update message
+func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
+	sqlInsert := `
+	Update GameChat set message = $1 where id = $2
+		RETURNING ID;
+		`
+	row := db.Db.QueryRow(sqlInsert, message.Text, message.ID)
+
+	if err = row.Scan(&id); err != nil {
+		fmt.Println("createMessage err:", err.Error())
 		return
 	}
+	fmt.Println("createMessage success")
 
-	fmt.Println("database/SaveMessage +")
+	return
+}
 
-	err = tx.Commit()
+// DeleteMessage delete message
+func (db *DataBase) DeleteMessage(message *models.Message) (id int, err error) {
+	sqlInsert := `
+	Delete GameChat where id = $1
+		RETURNING ID;
+		`
+	row := db.Db.QueryRow(sqlInsert, message.ID)
+
+	if err = row.Scan(&id); err != nil {
+		fmt.Println("createMessage err:", err.Error())
+		return
+	}
+	fmt.Println("createMessage success")
+
 	return
 }
 

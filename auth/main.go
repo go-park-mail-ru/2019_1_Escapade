@@ -35,7 +35,7 @@ func main() {
 	}
 
 	if lis, err = net.Listen("tcp", router.GetPort(conf)); err != nil {
-		fmt.Println("cant listen that adress:", err.Error())
+		fmt.Println("cant listen that address:", err.Error())
 		return
 	}
 

@@ -1,0 +1,52 @@
+{
+	"server": {
+		"host": "http://localhost",
+		"portUrl": "PORT_API_URL",
+		"portValue": ":3001"
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL",
+		"connectionString": "dbname=escabase user=rolepade password=escapade sslmode=disable",
+		"maxOpenConns": 20,
+		"PageGames": 2,
+		"PageUsers": 100
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"address": ":3003"
+	},
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"https://escapade-frontend.herokuapp.com",
+			"http://ser.ru.com"
+		],
+		"headers": [
+			"Content-type"
+		],
+		"credentials": "true",
+		"methods": [
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS"
+		]
+	},
+	"storage": {
+		"playersAvatarsStorage": "escapade",
+		"defaultAvatar": "1.png"
+	},
+	"aws": {
+		"region": "ru-msk",
+		"endpoint": "https://hb.bizmrg.com"
+	},
+	"session": {
+		"name": "sessionid",
+		"path": "/",
+		"length": 16,
+		"lifetime": 604800,
+		"httpOnly": true
+	}
+}

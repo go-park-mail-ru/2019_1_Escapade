@@ -21,6 +21,7 @@ const (
 	ActionGiveUp
 	ActionBackToLobby
 	ActionTimeOver
+	ActionRestart
 )
 
 // PlayerAction combine player and his action
@@ -38,26 +39,4 @@ func NewPlayerAction(player int, action int) *PlayerAction {
 		Time:   time.Now(),
 	}
 	return pa
-}
-
-// Free free memory
-func (pa *PlayerAction) Free() {
-	if pa == nil {
-		return
-	}
-	pa = nil
-}
-
-func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	pa = NewPlayerAction(id, action)
-	room.setToHistory(pa)
-	return
 }

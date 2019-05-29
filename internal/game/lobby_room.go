@@ -1,6 +1,7 @@
 package game
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -8,8 +9,7 @@ import (
 	"fmt"
 )
 
-// ----- handle room status
-// roomStart - room remove from free
+// RoomStart - room remove from free
 func (lobby *Lobby) RoomStart(room *Room) {
 	if lobby.done() {
 		return
@@ -36,7 +36,7 @@ func (lobby *Lobby) roomFinish(room *Room) {
 	}()
 
 	go lobby.allRoomsRemove(room)
-	go lobby.sendRoomUpdate(*room, All)
+	go lobby.sendRoomDelete(*room, All)
 }
 
 // CloseRoom free room resources
@@ -58,7 +58,7 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	go lobby.sendRoomDelete(*room, All)
 }
 
-// createAndAddToRoom create room and add player to it
+// CreateAndAddToRoom create room and add player to it
 func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
 	if lobby.done() {
 		return
@@ -118,6 +118,11 @@ func (lobby *Lobby) LoadRooms(URLs []string) error {
 }
 
 func (lobby *Lobby) addRoom(room *Room) (err error) {
+	if lobby.metrics {
+		metrics.Rooms.Add(1)
+		metrics.FreeRooms.Add(1)
+	}
+
 	if !lobby.allRoomsAdd(room) {
 		err = re.ErrorLobbyCantCreateRoom()
 		fmt.Println("cant add to all")
@@ -130,6 +135,6 @@ func (lobby *Lobby) addRoom(room *Room) (err error) {
 		return err
 	}
 
-	go lobby.sendRoomCreate(*room, All) // inform all about new room
+	lobby.sendRoomCreate(*room, All) // inform all about new room
 	return
 }

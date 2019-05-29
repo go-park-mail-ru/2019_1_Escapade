@@ -65,7 +65,7 @@ func (db *DataBase) GetGames(userID int) (
 
 	games = make([]models.GameInformation, 0)
 	for _, URL := range URLs {
-		info := models.GameInformation{}
+		var info models.GameInformation
 		if info, err = db.GetGame(URL); err != nil {
 			break
 		}

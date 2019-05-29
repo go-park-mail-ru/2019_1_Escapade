@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+
+	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -38,23 +40,30 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
+	metrics.InitRoomMetric("game")
+	metrics.InitPlayersMetric("game")
 
-	handler, err = api.GetGameHandler(configuration, authConn) // init.go
+	prometheus.MustRegister(metrics.Rooms, metrics.Players, metrics.FreeRooms, metrics.WaitingPlayers)
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
+
+	handler, err = api.GetGameHandler(configuration /*, authConn*/) // init.go
 	if err != nil {
 		fmt.Println("eeeer", err.Error())
 		return
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", mi.ApplyMiddleware(handler.GameOnline,
-		mi.CORS(configuration.Cors, false)))
+	r.HandleFunc("/game/ws", handler.GameOnline)
 
-	game.Launch(&configuration.Game, &handler.DB)
+	r.Handle("/game/metrics", promhttp.Handler())
+
+	game.Launch(&configuration.Game, &handler.DB, true, handler.Setfiles)
 	defer game.GetLobby().Stop()
 
 	// c := make(chan os.Signal)

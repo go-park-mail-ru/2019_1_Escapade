@@ -4,6 +4,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"fmt"
 	"os"
@@ -20,7 +21,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 
 	v.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	var v1 = r
+	var v1 = v
 
 	v1.HandleFunc("/", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, false))).Methods("GET")
@@ -37,6 +38,8 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 		mi.Auth(conf.Session), mi.CORS(conf.Cors, false))).Methods("PUT")
 	v1.HandleFunc("/user", mi.ApplyMiddleware(API.Ok,
 		mi.CORS(conf.Cors, true))).Methods("OPTIONS")
+
+	v1.HandleFunc("/users/profile", API.GetProfile).Methods("GET")
 
 	v1.HandleFunc("/session", mi.ApplyMiddleware(API.Logout,
 		mi.CORS(conf.Cors, false))).Methods("DELETE")
@@ -71,6 +74,7 @@ func GetRouter(API *api.Handler, conf *config.Configuration) *mux.Router {
 	// v1.HandleFunc("/users/{name}/games/{page}", mi.CORS(conf.Cors)(API.GetPlayerGames)).Methods("GET")
 	// v1.HandleFunc("/users/{name}/profile", mi.CORS(conf.Cors)(API.GetProfile)).Methods("GET")
 
+	r.Handle("/metrics", promhttp.Handler())
 	return r
 }
 

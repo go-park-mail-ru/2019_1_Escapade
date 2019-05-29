@@ -87,8 +87,8 @@ type GameConfig struct {
 
 // AuthClient client of auth microservice
 type AuthClient struct {
-	URL    string `json:"url"`
-	Adress string `json:"adress"`
+	URL     string `json:"url"`
+	Address string `json:"address"`
 }
 
 // SessionConfig set cookie name, path, length, expiration time
@@ -133,7 +133,7 @@ func InitEnvironment(c *Configuration) {
 
 	set(c.DataBase.URL, c.DataBase.ConnectionString)
 	set(c.Server.PortURL, c.Server.PortValue)
-	set(c.AuthClient.URL, c.AuthClient.Adress)
+	set(c.AuthClient.URL, c.AuthClient.Address)
 }
 
 // InitPublic load configuration file

@@ -10,6 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+type SetImage func(users ...*models.UserPublicInfo) (err error)
+
 // Request connect Connection and his message
 type Request struct {
 	Connection *Connection
@@ -24,44 +26,58 @@ type Lobby struct {
 	_done bool
 
 	allRoomsM *sync.RWMutex
-	_AllRooms *Rooms
+	_allRooms *Rooms
 
 	freeRoomsM *sync.RWMutex
-	_FreeRooms *Rooms
+	_freeRooms *Rooms
 
-	waitingM *sync.RWMutex
-	_Waiting *Connections
+	//waitingM *sync.RWMutex
+	Waiting *Connections
 
-	playingM *sync.RWMutex
-	_Playing *Connections
+	//playingM *sync.RWMutex
+	Playing *Connections
 
 	messagesM *sync.Mutex
-	_Messages []*models.Message
+	_messages []*models.Message
+
+	anonymousM *sync.Mutex
+	_anonymous int
 
 	context context.Context
 	cancel  context.CancelFunc
 
 	// connection joined lobby
-	ChanJoin chan *Connection
-	// connection left lobby
-	chanLeave chan *Connection
-
+	chanJoin chan *Connection
+	// connection send some JSON
 	chanBroadcast chan *Request
 
 	chanBreak chan interface{}
 
 	db            *database.DataBase
 	canCloseRooms bool
+	metrics       bool
+
+	SetImage SetImage
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(connectionsCapacity, roomsCapacity,
-	maxJoin, maxRequest int, db *database.DataBase,
-	canCloseRooms bool) *Lobby {
+func NewLobby(connectionsCapacity, roomsCapacity int,
+	db *database.DataBase, canCloseRooms bool, metrics bool,
+	SetImage SetImage) *Lobby {
 
-	messages, err := db.LoadMessages(false, "")
-	if err != nil {
-		fmt.Println("cant load messages:", err.Error())
+	var (
+		messages []*models.Message
+		err      error
+	)
+	if db != nil {
+		if messages, err = db.LoadMessages(false, ""); err != nil {
+			fmt.Println("cant load messages:", err.Error())
+		}
+		for _, message := range messages {
+			SetImage(message.User)
+		}
+	} else {
+		messages = make([]*models.Message, 0)
 	}
 	context, cancel := context.WithCancel(context.Background())
 	lobby := &Lobby{
@@ -71,53 +87,62 @@ func NewLobby(connectionsCapacity, roomsCapacity,
 		_done: false,
 
 		allRoomsM: &sync.RWMutex{},
-		_AllRooms: NewRooms(roomsCapacity),
+		_allRooms: NewRooms(roomsCapacity),
 
 		freeRoomsM: &sync.RWMutex{},
-		_FreeRooms: NewRooms(roomsCapacity),
+		_freeRooms: NewRooms(roomsCapacity),
 
-		waitingM: &sync.RWMutex{},
-		_Waiting: NewConnections(connectionsCapacity),
+		//waitingM: &sync.RWMutex{},
+		Waiting: NewConnections(connectionsCapacity),
 
-		playingM: &sync.RWMutex{},
-		_Playing: NewConnections(connectionsCapacity),
+		//playingM: &sync.RWMutex{},
+		Playing: NewConnections(connectionsCapacity),
 
 		messagesM: &sync.Mutex{},
-		_Messages: messages,
+		_messages: messages,
+
+		anonymousM: &sync.Mutex{},
+		_anonymous: -1,
 
 		context: context,
 		cancel:  cancel,
 
-		ChanJoin:      make(chan *Connection),
-		chanLeave:     make(chan *Connection),
+		chanJoin:      make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
 
 		db:            db,
 		canCloseRooms: canCloseRooms,
+		metrics:       metrics,
+		SetImage:      SetImage,
 	}
 	return lobby
 }
 
 // lobby singleton
 var (
-	lobby *Lobby
+	LOBBY *Lobby
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase) {
+func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool, si SetImage) {
 
-	if lobby == nil {
-		lobby = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
-			gc.LobbyJoin, gc.LobbyRequest, db, gc.CanClose)
+	if LOBBY == nil {
+		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
+			db, gc.CanClose, metrics, si)
 
-		go lobby.Run(nil)
+		go LOBBY.Run()
 	}
 }
 
 // GetLobby create lobby if it is nil and get it
 func GetLobby() *Lobby {
-	return lobby
+	return LOBBY
+}
+
+// Metrics return metrics flag
+func (lobby *Lobby) Metrics() bool {
+	return lobby.metrics
 }
 
 // Stop lobby goroutine
@@ -128,7 +153,7 @@ func (lobby *Lobby) Stop() {
 	}
 }
 
-// Free delete all rooms and conenctions. Inform all players
+// Free delete all rooms and connections. Inform all players
 // about closing
 func (lobby *Lobby) Free() {
 
@@ -145,13 +170,12 @@ func (lobby *Lobby) Free() {
 
 	go lobby.allRoomsFree()
 	go lobby.freeRoomsFree()
-	go lobby.waitingFree()
-	go lobby.playingFree()
+	go lobby.Waiting.Free()
+	go lobby.Playing.Free()
 
 	lobby.cancel()
 
-	close(lobby.ChanJoin)
-	close(lobby.chanLeave)
+	close(lobby.chanJoin)
 	close(lobby.chanBroadcast)
 	lobby.db = nil
 	lobby = nil

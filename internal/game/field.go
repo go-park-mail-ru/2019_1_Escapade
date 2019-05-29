@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -167,7 +168,7 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		if cell.Value != cell.PlayerID+CellIncrement {
+		if cell.Value != FlagID(cell.PlayerID) && cell.Value != CellOpened {
 			field.saveCell(cell, &cells)
 		}
 	}
@@ -176,18 +177,21 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 }
 
 // RandomFlags create random players flags
-func (field *Field) RandomFlags(players []Player) (cells []Cell) {
+func (field *Field) RandomFlags(players []Player) (flags []Flag) {
 	if field.getDone() {
 		return
 	}
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
-	cells = make([]Cell, len(players))
+	flags = make([]Flag, len(players))
 	for i, player := range players {
-		cells[i] = field.CreateRandomFlag(player.ID)
+		flags[i] = Flag{
+			Cell: field.CreateRandomFlag(player.ID),
+			Set:  false,
+		}
 	}
-	return cells
+	return flags
 }
 
 // CreateRandomFlag create flag for player
@@ -201,9 +205,27 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 	rand.Seed(time.Now().UnixNano())
 	x := rand.Intn(field.Width)
 	y := rand.Intn(field.Height)
-	cell = *NewCell(x, y, playerID+CellIncrement, playerID)
+	cell = *NewCell(x, y, FlagID(playerID), playerID)
 
 	return cell
+}
+
+// OpenSave open n(or more) cells that do not contain any mines or flags
+func (field *Field) OpenSave(n int) (cells []Cell) {
+	cells = make([]Cell, 0)
+	size := 0
+	fmt.Println("OpenSave wanan open ", n)
+	for n > size {
+		rand.Seed(time.Now().UnixNano())
+		i := rand.Intn(field.Width)
+		j := rand.Intn(field.Height)
+		if field.lessThenMine(i, j) {
+			cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
+			size = len(cells)
+		}
+	}
+	fmt.Println("size is ", size)
+	return
 }
 
 // SetMines fill matrix with mines
@@ -253,6 +275,11 @@ func (field Field) IsInside(cell *Cell) bool {
 	return field.areCoordinatesRight(cell.X, cell.Y)
 }
 
+// FlagID convert player ID to Flag ID
+func FlagID(connID int) int {
+	return int(math.Abs(float64(connID))) + CellIncrement
+}
+
 ///////////////////// Set cells func //////////
 
 // SetFlag works only when mines not set
@@ -269,7 +296,7 @@ func (field *Field) SetFlag(cell *Cell) {
 	// something < 9 (to find not mine places)
 	fmt.Println("setFlag", cell.X, cell.Y, cell.PlayerID, CellIncrement)
 
-	field.setMatrixValue(cell.X, cell.Y, cell.PlayerID+CellIncrement)
+	field.setMatrixValue(cell.X, cell.Y, FlagID(cell.PlayerID))
 }
 
 // SetCellFlagTaken set cells flag taken

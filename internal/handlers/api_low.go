@@ -9,8 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	ran "math/rand"
-
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 )
 
 func (h *Handler) register(ctx context.Context,
@@ -24,20 +22,23 @@ func (h *Handler) register(ctx context.Context,
 		fmt.Println("No db")
 		return
 	}
-	if userID, err = h.DB.Register(&user); err != nil {
+	sessionID = utils.RandomString(16)
+	if userID, err = h.DB.Register(&user, sessionID); err != nil {
 		return
 	}
 
-	sessID, err := h.Clients.Session.Create(ctx,
+	fmt.Println("send to save", userID, user.Name)
+	/*sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),
 			Login:  user.Name,
 		})
+
 	if err != nil {
 		return
 	}
 
-	sessionID = sessID.ID
+	sessionID = sessID.ID*/
 	return
 }
 
@@ -48,14 +49,15 @@ func (h *Handler) deleteAccount(ctx context.Context,
 		return
 	}
 
-	_, err = h.Clients.Session.Delete(ctx,
-		&session.SessionID{
-			ID: sessionID,
-		})
+	// _, err = h.Clients.Session.Delete(ctx,
+	// 	&session.SessionID{
+	// 		ID: sessionID,
+	// 	})
 
 	return
 }
 
+// RandomUsers create n random users
 func (h *Handler) RandomUsers(limit int) {
 
 	n := 16
@@ -63,7 +65,6 @@ func (h *Handler) RandomUsers(limit int) {
 		ran.Seed(time.Now().UnixNano())
 		user := models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
-			Email:    utils.RandomString(n),
 			Password: utils.RandomString(n)}
 		userID, sessID, err := h.register(context.Background(), user)
 		if err != nil {

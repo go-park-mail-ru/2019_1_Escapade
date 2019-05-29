@@ -4,7 +4,6 @@ package models
 type UserPrivateInfo struct {
 	ID       int    `json:"-"`
 	Name     string `json:"name"`
-	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -12,7 +11,6 @@ type UserPrivateInfo struct {
 func (confirmed *UserPrivateInfo) Update(another *UserPrivateInfo) {
 	another.ID = confirmed.ID
 	updateParameter(&another.Name, confirmed.Name)
-	updateParameter(&another.Email, confirmed.Email)
 	updateParameter(&another.Password, confirmed.Password)
 }
 

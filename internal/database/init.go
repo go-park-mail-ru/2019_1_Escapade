@@ -128,12 +128,10 @@ func (db *DataBase) createTablePlayer(tx *sql.Tx) (err error) {
         id SERIAL PRIMARY KEY,
         name varchar(30) NOT NULL,
         password varchar(30) NOT NULL,
-        email varchar(30) NOT NULL,
 		photo_title varchar(50) default '1.png',
         firstSeen   TIMESTAMPTZ,
         lastSeen    TIMESTAMPTZ,
-        unique(name),
-        unique(email)
+        unique(name)
     );
     `
 	_, err = tx.Exec(sqlStatement)
@@ -204,17 +202,12 @@ func (db *DataBase) createTableGameChat(tx *sql.Tx) (err error) {
 	CREATE Table GameChat (
         id SERIAL PRIMARY KEY,
         in_room bool,
+        name varchar(30),
         roomID varchar(20),
         player_id int NOT NULL,
         message varchar(8000),
         time   TIMESTAMPTZ
     );
-
-    ALTER TABLE GameChat
-    ADD CONSTRAINT chat_player
-       FOREIGN KEY (player_id)
-       REFERENCES Player(id)
-       ON DELETE CASCADE;
     `
 	_, err = tx.Exec(sqlStatement)
 	return err
@@ -258,12 +251,13 @@ func (db *DataBase) createTableAction(tx *sql.Tx) (err error) {
            FOREIGN KEY (game_id)
            REFERENCES Game(id)
            ON DELETE CASCADE;
-
+/*
     ALTER TABLE Action
         ADD CONSTRAINT action_player
             FOREIGN KEY (player_id)
             REFERENCES Player(id)
             ON DELETE CASCADE;
+            */
     
     `
 	_, err = tx.Exec(sqlStatement)
@@ -284,19 +278,20 @@ func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
         id SERIAL PRIMARY KEY,
         player_id int NOT NULL,
         game_id int NOT NULL,
-        score int default 0,
+        score float default 0,
         time interval default '24 hour'::interval,
         left_click int default 0,
         right_click int default 0,
         explosion bool default false,
         won bool default false
     );
-    
+    /*
     ALTER TABLE Gamer
     ADD CONSTRAINT gamer_player
        FOREIGN KEY (player_id)
        REFERENCES Player(id)
        ON DELETE CASCADE;
+    */
     
     ALTER TABLE Gamer
     ADD CONSTRAINT gamer_game

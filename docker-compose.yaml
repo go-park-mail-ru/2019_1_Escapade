@@ -46,14 +46,14 @@ services:
       context: .
     depends_on:
        - "pg"
-      - "auth"
+       - "auth"
     ports:
       - 3002:3002
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/game"
 
   history:
     build:
@@ -68,33 +68,61 @@ services:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
       - PORT_HISTORY_URL=:3004
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+    command: /bin/sh -c "./bin/history"
 
-  chat:
+  prometheus:
     build:
       dockerfile: ./Dockerfile
-      context: ./escapade-chat
-    depends_on:
-      - "pg"
+      context: ./prometheus
+    # image: prom/prometheus:latest
+    container_name: prometheus
+    # volumes:
+    #   - './prometheus/:/etc/prometheus/'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
     ports:
-      - 3005:3005
+      - "9090:9090"
+    
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
     environment:
-      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTHSERVICE_URL=auth:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/chat"
+     - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+     - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+     - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+      - 3000:3000
 
-  nginx:
+  # nginx:
 
-   build: .
-   restart: always
+  #  build: .
+  #  restart: always
 
-   ports:
-     - "80:80"
-   deploy:
-     mode: replicated
-     replicas: 3
+  #  ports:
+  #    - "80:80"
 
-   depends_on:
-     - api
-     - chat
+  #  depends_on:
+  #    - api
+  #    - game
+  
+  # nodeexporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: nodeexporter
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - '--path.procfs=/host/proc'
+  #     - '--path.sysfs=/host/sys'
+  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)'
+  #   restart: unless-stopped
+  #   deploy:
+  #     mode: global
+  #   ports:
+  #     - "9000:9000"
+    
+
 

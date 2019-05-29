@@ -18,6 +18,10 @@ import (
 
 // NewConnection creates a new connection
 func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
+	if ws == nil || user == nil || lobby == nil {
+		return nil
+	}
+
 	context, cancel := context.WithCancel(lobby.context)
 
 	return &Connection{
@@ -30,13 +34,13 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		_room: nil,
 
 		disconnectedM: &sync.RWMutex{},
-		_Disconnected: false,
+		_disconnected: false,
 
 		bothM: &sync.RWMutex{},
 		_both: false,
 
 		indexM: &sync.RWMutex{},
-		_Index: -1,
+		_index: -1,
 
 		User: user,
 
@@ -90,7 +94,7 @@ func (conn *Connection) IsConnected() bool {
 	return conn.Disconnected() == false
 }
 
-// dirty make connection dirty. it make connection ID
+// Dirty make connection dirty. it make connection ID
 // -1 and when connection try to leave lobby, lobby will not
 // delete this connections from list, cause it will not find
 // anybody with such id
@@ -116,12 +120,16 @@ func (conn *Connection) Kill(message string, makeDirty bool) {
 		conn.wGroup.Done()
 	}()
 
+	fmt.Println("SendInformation")
 	conn.SendInformation(message)
 	if makeDirty {
 		conn.Dirty()
 	}
+	fmt.Println("setDisconnected")
 	conn.setDisconnected()
+	fmt.Println("cancel")
 	conn.cancel()
+	fmt.Println("done")
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
@@ -152,7 +160,7 @@ func (conn *Connection) Free() {
 	conn.lobby = nil
 	conn.setRoom(nil)
 
-	fmt.Println("conn free memory")
+	//fmt.Println("conn free memory")
 }
 
 // InRoom check is player in room
@@ -168,7 +176,7 @@ func (conn *Connection) InRoom() bool {
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
-func (conn *Connection) Launch(ws config.WebSocketSettings) {
+func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 
 	// dont place there conn.wGroup.Add(1)
 	if conn.lobby == nil || conn.lobby.context == nil {
@@ -178,12 +186,19 @@ func (conn *Connection) Launch(ws config.WebSocketSettings) {
 
 	all := &sync.WaitGroup{}
 
-	conn.lobby.ChanJoin <- conn
+	fmt.Println("JoinConn!")
+	conn.lobby.JoinConn(conn, 3)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
 	all.Add(1)
 	go conn.ReadConn(conn.context, ws, all)
 
+	//fmt.Println("Wait!")
+	if roomID != "" {
+		rs := &models.RoomSettings{}
+		rs.ID = roomID
+		conn.lobby.EnterRoom(conn, rs)
+	}
 	all.Wait()
 	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
@@ -227,7 +242,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				//conn.Kill("Client websocket died", false)
 				return
 			}
-			conn.debug("read from conn")
+			fmt.Println("#", conn.ID(), "read from conn:", string(message))
 			conn.lobby.chanBroadcast <- &Request{
 				Connection: conn,
 				Message:    message,
@@ -265,10 +280,33 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			fmt.Println("WriteConn done catched")
 			return
 		case message, ok := <-conn.send:
+
+			//fmt.Println("saw!")
 			//fmt.Println("server wrote:", string(message))
 			if !ok {
+				//fmt.Println("errrrrr!")
 				conn.write(websocket.CloseMessage, []byte{}, wsc)
 				return
+			}
+
+			str := string(message)
+			var start, end, counter int
+			for i, s := range str {
+				if s == '"' {
+					counter++
+					if counter == 3 {
+						start = i + 1
+					} else if counter == 4 {
+						end = i
+					} else if counter > 4 {
+						break
+					}
+				}
+			}
+			if start != end {
+				print := str[start:end]
+				//print = str
+				fmt.Println("#", conn.ID(), " get that:", print)
 			}
 
 			conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
@@ -308,10 +346,11 @@ func (conn *Connection) SendInformation(value interface{}) {
 		bytes, err = json.Marshal(value)
 
 		if err != nil {
-			fmt.Println("cant send information")
+			fmt.Println("cant send information", err.Error())
 		} else {
-			fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
+			//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
 			conn.send <- bytes
+			//fmt.Println("move!")
 		}
 	}
 }
@@ -340,8 +379,8 @@ func (conn *Connection) ID() int {
 	return conn.User.ID
 }
 
-// debug print devug information to console and websocket
+// debug print debug information to console and websocket
 func (conn *Connection) debug(message string) {
 	fmt.Println("Connection #", conn.ID(), "-", message)
-	conn.SendInformation(message)
+	//conn.SendInformation(message)
 }

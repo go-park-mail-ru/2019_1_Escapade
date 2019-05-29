@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -35,6 +35,10 @@ func main() {
 		API           *api.Handler
 	)
 
+	metrics.InitHitsMetric("api")
+
+	prometheus.MustRegister(metrics.Hits)
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Zap logger error:", err)
@@ -48,13 +52,14 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
-
-	API, err = api.GetAPIHandler(configuration, authConn) // init.go
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
+	API, err = api.GetAPIHandler(configuration /*, authConn*/) // init.go
 
 	if err != nil {
 		utils.PrintResult(err, 0, "main")

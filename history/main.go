@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -36,22 +36,26 @@ func main() {
 		return
 	}
 	config.InitPrivate(secretPath)
-
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		log.Fatal("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
-
-	handler, err = api.GetGameHandler(configuration, authConn) // init.go
+	/*
+		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+		if err != nil {
+			log.Fatal("serviceConnectionsInit error:", err)
+		}
+		defer authConn.Close()
+	*/
+	handler, err = api.GetGameHandler(configuration /*, authConn*/) // init.go
 	if err != nil {
 		fmt.Println("eeeer", err.Error())
 		return
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", mi.ApplyMiddleware(handler.GameHistory,
-		mi.CORS(configuration.Cors, false)))
+	r.HandleFunc("/history/ws", handler.GameHistory)
+	r.Handle("/history/metrics", promhttp.Handler())
+
+	metrics.InitHitsMetric("api")
+
+	prometheus.MustRegister(metrics.Hits)
 
 	port := router.GetPort(configuration)
 	if err = http.ListenAndServe(port, r); err != nil {

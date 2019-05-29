@@ -12,11 +12,11 @@ import (
 // recover panic
 
 func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.waiting())
+	SendToConnections(info, predicate, lobby.Waiting.RGet())
 }
 
 func (lobby *Lobby) sendToAll(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.waiting(), lobby.playing())
+	SendToConnections(info, predicate, lobby.Waiting.RGet(), lobby.Playing.RGet())
 }
 
 func (lobby *Lobby) greet(conn *Connection) {
@@ -32,11 +32,13 @@ func (lobby *Lobby) greet(conn *Connection) {
 	response := models.Response{
 		Type: "Lobby",
 		Value: struct {
-			Lobby LobbyJSON              `json:"lobby"`
-			You   *models.UserPublicInfo `json:"you"`
+			Lobby Lobby                 `json:"lobby"`
+			You   models.UserPublicInfo `json:"you"`
+			Room  *Room                 `json:"room, omitempty"`
 		}{
-			Lobby: lobby.JSON(),
-			You:   conn.User,
+			Lobby: *lobby,
+			You:   *conn.User,
+			Room:  conn.Room(),
 		},
 	}
 	fmt.Println("greet")
@@ -177,4 +179,38 @@ func (lobby *Lobby) sendPlayerExit(conn Connection, predicate SendPredicate) {
 		Value: conn,
 	}
 	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendInvitation(inv *Invitation, predicate SendPredicate) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby sendInvitation")
+	}()
+
+	response := models.Response{
+		Type:  "LobbyInvitation",
+		Value: inv,
+	}
+	lobby.send(response, predicate)
+}
+
+func (lobby *Lobby) sendInvitationCallback(conn *Connection, err error) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby sendCallback")
+	}()
+
+	response := models.Response{
+		Type:  "LobbyInvitationCallback",
+		Value: err,
+	}
+	conn.SendInformation(response)
 }

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 
@@ -18,7 +20,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 
 	uuid "github.com/satori/go.uuid"
@@ -35,7 +36,7 @@ type Handler struct {
 	Clients   *clients.Clients
 }
 
-// catch CORS preflight
+// Ok catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
 // @ID OK1
@@ -71,6 +72,7 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
+	fmt.Println("Get my profiel", userID)
 
 	h.getUser(rw, r, userID)
 
@@ -99,6 +101,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("register new account", user.Name)
 	if _, sessionID, err = h.register(r.Context(), user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
@@ -162,15 +165,16 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 // @Description login
 // @ID Login
 // @Success 200 {object} models.UserPublicInfo "Get successfully"
-// @Failure 400 {object} models.Result "invalid name/email or password"
+// @Failure 400 {object} models.Result "invalid name or password"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [POST]
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 	const place = "Login"
 	var (
-		user  models.UserPrivateInfo
-		err   error
-		found *models.UserPublicInfo
+		user        models.UserPrivateInfo
+		err         error
+		found       *models.UserPublicInfo
+		sessionName string
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -180,23 +184,30 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if found, err = h.DB.Login(&user); err != nil {
+	sessionName = utils.RandomString(16)
+	if found, err = h.DB.Login(&user, sessionName); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
 
-	ctx := r.Context()
-	sessionID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(user.ID),
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	cookie.CreateAndSet(rw, h.Session, sessionID.ID)
+	/*
+		ctx := r.Context()
+
+		sessionID, err := h.Clients.Session.Create(ctx,
+			&session.Session{
+				UserID: int32(user.ID),
+				Login:  user.Name,
+			})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("cookie set ", sessionID.ID)
+	*/
+
+	cookie.CreateAndSet(rw, h.Session, sessionName)
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -226,16 +237,17 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
-
-	ctx := context.Background()
-	_, err = h.Clients.Session.Delete(ctx,
-		&session.SessionID{
-			ID: sessionID,
-		})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	h.DB.DeleteSession(sessionID)
+	/*
+		ctx := context.Background()
+		_, err = h.Clients.Session.Delete(ctx,
+			&session.SessionID{
+				ID: sessionID,
+			})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}*/
 
 	cookie.CreateAndSet(rw, h.Session, "")
 	rw.WriteHeader(http.StatusOK)
@@ -343,7 +355,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.setfiles(users...); err != nil {
+	if err = h.Setfiles(users...); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -499,6 +511,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
+	fmt.Println("getProfile", userID)
 
 	h.getUser(rw, r, userID)
 	return
@@ -573,6 +586,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 
 	difficult = h.getDifficult(r)
 
+	fmt.Println("userID:", userID)
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
 
 		rw.WriteHeader(http.StatusNotFound)
@@ -580,7 +594,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if err = h.setfiles(user); err != nil {
+	if err = h.Setfiles(user); err != nil {
 		fmt.Println("h.setfiles(user) err")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
@@ -603,14 +617,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		userID int
 		ws     *websocket.Conn
 		user   *models.UserPublicInfo
+		roomID string
 	)
-
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
-	}
 
 	lobby := game.GetLobby()
 	if lobby == nil {
@@ -618,6 +626,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		utils.SendErrorJSON(rw, re.ErrorServer(), place)
 		utils.PrintResult(err, http.StatusInternalServerError, place)
 	}
+
+	roomID = getStringFromPath(r, "id", "")
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  h.WebSocket.ReadBufferSize,
@@ -638,23 +648,41 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user, err = h.DB.GetUser(userID, 0); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+		userID = lobby.Anonymous()
+		//rw.WriteHeader(http.StatusUnauthorized)
+		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+		//utils.PrintResult(err, http.StatusUnauthorized, place)
+		//return
 	}
 
-	if err = h.setfiles(user); err != nil {
-		fmt.Println("h.setfiles(user) err")
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+	if userID < 0 {
+		user = &models.UserPublicInfo{
+			Name:     "Anonymous" + strconv.Itoa(rand.Intn(10000)),
+			ID:       userID,
+			PhotoURL: "https://escapade.hb.bizmrg.com/2c4929b0-038a-4160-8079-856b69d6b303?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ciyXwq2TpzVGXEcQAqSdew%2F20190529%2Fru-msk%2Fs3%2Faws4_request&X-Amz-Date=20190529T124958Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=574ee1ae4038fce096c6745a9f32a91f90a2cfcdf3ac624183ee0d705429bb3d",
+		}
+	} else {
+		if user, err = h.DB.GetUser(userID, 0); err != nil {
+			rw.WriteHeader(http.StatusNotFound)
+			utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+			utils.PrintResult(err, http.StatusNotFound, place)
+			return
+		}
+
+		if err = h.Setfiles(user); err != nil {
+			fmt.Println("h.setfiles(user) err")
+			rw.WriteHeader(http.StatusNotFound)
+			utils.SendErrorJSON(rw, err, place)
+			utils.PrintResult(err, http.StatusNotFound, place)
+			return
+		}
 	}
 
 	conn := game.NewConnection(ws, user, lobby)
-	conn.Launch(h.WebSocket)
+	fmt.Println("roomID", roomID)
+	conn.Launch(h.WebSocket, roomID)
+
 	utils.PrintResult(err, http.StatusOK, place)
 	return
 }
@@ -685,6 +713,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
+		fmt.Println("err689", err.Error())
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
@@ -696,19 +725,22 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if user, err = h.DB.GetUser(userID, 0); err != nil {
+		fmt.Println("err700", err.Error())
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	if err = h.setfiles(user); err != nil {
+	if err = h.Setfiles(user); err != nil {
+		fmt.Println("err707", err.Error())
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
 
-	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game)
+	fmt.Println("success!!")
+	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game, h.Setfiles)
 	return
 }

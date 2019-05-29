@@ -3,22 +3,39 @@ package game
 import (
 	"fmt"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+// addWaiter add connection to waiters slice and send to the connection LobbyJSON
 func (lobby *Lobby) addWaiter(newConn *Connection) {
+	if lobby.metrics {
+		metrics.WaitingPlayers.Add(1)
+	}
 	fmt.Println("addWaiter called")
-	go lobby.waitingAdd(newConn)
+	lobby.Waiting.Add(newConn, false)
 	if !newConn.Both() {
 		lobby.greet(newConn)
 	}
 }
 
-func (lobby *Lobby) addPlayer(newConn *Connection) {
-	fmt.Println("addPlayer called")
-	lobby.playingAdd(newConn)
+// Anonymous return anonymous id
+func (lobby *Lobby) Anonymous() int {
+	var id int
+	lobby.anonymousM.Lock()
+	id = lobby._anonymous
+	lobby._anonymous--
+	lobby.anonymousM.Unlock()
+	return id
 }
 
+// addPlayer add connection to players slice
+func (lobby *Lobby) addPlayer(newConn *Connection) {
+	fmt.Println("addPlayer called")
+	lobby.Playing.Add(newConn, false)
+}
+
+// waiterToPlayer turns the waiting into a player
 func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 	if lobby.done() {
 		return
@@ -30,10 +47,12 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 	}()
 
 	fmt.Println("waiterToPlayer called")
-	lobby.waitingRemove(newConn)
+	lobby.Waiting.Remove(newConn, true)
+	//lobby.waitingRemove(newConn)
 	lobby.addPlayer(newConn)
 }
 
+// PlayerToWaiter turns the player into a waiting
 func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	if lobby.done() {
 		return
@@ -45,16 +64,21 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	}()
 
 	fmt.Println("PlayerToWaiter called")
-	lobby.playingRemove(conn)
+	lobby.Playing.Remove(conn, true)
+	//lobby.playingRemove(conn)
 	lobby.addWaiter(conn)
 	conn.PushToLobby()
 }
 
-func (lobby *Lobby) recoverInRoom(newConn *Connection) bool {
+// recoverInRoom return true if can find Connection in any room
+// otherwise false
+func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) bool {
 	// find such player
-	i, room := lobby.allRoomsSearchPlayer(newConn)
+	fmt.Println("somebody wants you to recover")
 
-	if i > 0 {
+	i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
+
+	if i >= 0 {
 		fmt.Println("we found you in game!")
 		room.RecoverPlayer(newConn)
 		return true

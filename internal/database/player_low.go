@@ -12,18 +12,19 @@ import (
 // createPlayer create player
 func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id int, err error) {
 	sqlInsert := `
-	INSERT INTO Player(name, password, email, firstSeen, lastSeen) VALUES
-		($1, $2, $3, $4, $5)
+	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
+		($1, $2, $3, $4)
 		RETURNING id;
 		`
 	t := time.Now()
 	row := db.Db.QueryRow(sqlInsert, user.Name,
-		user.Password, user.Email, t, t)
+		user.Password, t, t)
 
 	err = row.Scan(&id)
 	if err == nil {
-		fmt.Println("register:", user.Name,
-			user.Password, user.Email, id)
+		fmt.Println("register:", user.Name, user.Password, id)
+	} else {
+		fmt.Println("create err", err.Error())
 	}
 	return
 }
@@ -31,22 +32,21 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo) (err error) {
 	sqlStatement := `
 			UPDATE Player 
-			SET name = $1, email = $2, password = $3, lastSeen = $4
-			WHERE id = $5
+			SET name = $1, password = $2, lastSeen = $3
+			WHERE id = $4
 			RETURNING id
 		`
 
-	fmt.Println("Update to", user.Name,
-		user.Email, user.Password)
+	fmt.Println("Update to", user.Name, user.Password)
 	row := tx.QueryRow(sqlStatement, user.Name,
-		user.Email, user.Password, time.Now(), user.ID)
+		user.Password, time.Now(), user.ID)
 	err = row.Scan(&user.ID)
 	if err != nil {
 		fmt.Println("updatePlayerPersonalInfo: err", err.Error())
 		err = re.ErrorUserIsExist()
 	} else {
 		fmt.Println("updatePlayerPersonalInfo done", user.Name,
-			user.Email, user.Password, user.ID)
+			user.Password, user.ID)
 	}
 
 	return
@@ -66,26 +66,26 @@ func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) (err error) {
 
 func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int, user *models.UserPublicInfo, err error) {
 	sqlStatement := `
-	SELECT pl.id, pl.name, pl.email, r.score, r.time, r.difficult
+	SELECT pl.id, pl.name, r.score, r.time, r.difficult
 		FROM Player as pl
 		join Record as r 
 		on r.player_id = pl.id
-		where r.difficult = 0 and password like $1 and (name like $2 or email like $2)`
+		where r.difficult = 0 and password like $1 and name like $2`
 
 	row := tx.QueryRow(sqlStatement, password, field)
 
 	user = &models.UserPublicInfo{}
-	err = row.Scan(&id, &user.Name, &user.Email, &user.BestScore,
+	err = row.Scan(&id, &user.Name, &user.BestScore,
 		&user.BestTime, &user.Difficult)
 	if err == nil {
-		fmt.Println("login:", id, user.Name, user.Email)
+		fmt.Println("login:", id, user.Name)
 	}
 	return
 }
 
 // GetPrivateInfo get player's personal info
 func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPrivateInfo, err error) {
-	sqlStatement := "SELECT name, email, password " +
+	sqlStatement := "SELECT name, password " +
 		"FROM Player where id = $1"
 
 	row := tx.QueryRow(sqlStatement, userID)
@@ -93,7 +93,7 @@ func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPriv
 
 	user = &models.UserPrivateInfo{}
 	user.ID = userID
-	err = row.Scan(&user.Name, &user.Email, &user.Password)
+	err = row.Scan(&user.Name, &user.Password)
 
 	return
 }
@@ -104,7 +104,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 	sort string) (players []*models.UserPublicInfo, err error) {
 
 	sqlStatement := `
-	SELECT P.id, P.photo_title, P.name, P.email,
+	SELECT P.id, P.photo_title, P.name,
 				 R.score, R.time, R.Difficult
 	FROM Player as P
 	join Record as R 
@@ -129,7 +129,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 
 	for rows.Next() {
 		player := &models.UserPublicInfo{}
-		if err = rows.Scan(&player.ID, &player.FileKey, &player.Name, &player.Email, &player.BestScore,
+		if err = rows.Scan(&player.ID, &player.FileKey, &player.Name, &player.BestScore,
 			&player.BestTime, &player.Difficult); err != nil {
 			break
 		}
@@ -145,7 +145,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *models.UserPublicInfo, err error) {
 
 	sqlStatement := `
-	SELECT P.id, P.photo_title, P.name, P.email,
+	SELECT P.id, P.photo_title, P.name,
 				 R.score, R.time, R.Difficult
 	FROM Player as P
 	join Record as R 
@@ -157,20 +157,18 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *mode
 	player = &models.UserPublicInfo{}
 	row := tx.QueryRow(sqlStatement, userID, difficult)
 	err = row.Scan(&player.ID, &player.FileKey, &player.Name,
-		&player.Email, &player.BestScore, &player.BestTime, &player.Difficult)
+		&player.BestScore, &player.BestTime, &player.Difficult)
 	return
 }
 
 func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
 	sqlStatement := `
-	DELETE FROM Player where name=$1 and password=$2 and email=$3
+	DELETE FROM Player where name=$1 and password=$2
 	RETURNING ID
 		`
-	row := tx.QueryRow(sqlStatement, user.Name,
-		user.Password, user.Email)
+	row := tx.QueryRow(sqlStatement, user.Name, user.Password)
 
-	fmt.Println("deletePlayer:", user.Name,
-		user.Password, user.Email)
+	fmt.Println("deletePlayer:", user.Name, user.Password)
 
 	err := row.Scan(&user.ID)
 

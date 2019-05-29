@@ -12,6 +12,15 @@ type LobbyRequest struct {
 	Get     *LobbyGet       `json:"get"`
 }
 
+// Invitation - client can invite everybody to room
+type Invitation struct {
+	From    *models.UserPublicInfo `json:"from"`
+	Room    *Room                  `json:"room"`
+	Message *models.Message        `json:"message"`
+	To      string                 `json:"to"`
+	All     bool                   `json:"all"`
+}
+
 // NewLobbyRequest creates Lobby instance
 func NewLobbyRequest(s *LobbySend, g *LobbyGet) *LobbyRequest {
 	return &LobbyRequest{
@@ -33,6 +42,8 @@ func (lr *LobbyRequest) IsSend() bool {
 // LobbySend - Information, that client can send to lobby
 type LobbySend struct {
 	RoomSettings *models.RoomSettings
+	Invitation   *Invitation
+	Messages     *models.Messages
 }
 
 // LobbyGet - Information, that client can get from lobby

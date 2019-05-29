@@ -1,6 +1,6 @@
 module github.com/go-park-mail-ru/2019_1_Escapade
 
-go 1.11
+go 1.12
 
 // +heroku goVersion go1.12
 
@@ -16,6 +16,7 @@ require (
 	github.com/go-openapi/swag v0.19.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gobwas/gws v0.0.0-20170427155341-6ec9a5ac805b // indirect
+	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/btree v1.0.0 // indirect
@@ -28,6 +29,7 @@ require (
 	github.com/lib/pq v1.1.0
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/mattn/go-colorable v0.1.1 // indirect
+	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a

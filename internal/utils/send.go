@@ -37,5 +37,6 @@ func SendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 			Message: "no error",
 		}
 	}
+	fmt.Println("result:", result)
 	json.NewEncoder(rw).Encode(result)
 }
