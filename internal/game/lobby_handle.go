@@ -249,17 +249,15 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 	}()
 
 	if lr.IsGet() {
-		go lobby.greet(conn)
+		//go lobby.greet(conn)
 	} else if lr.IsSend() {
-		if lr.Send.RoomSettings != nil {
+		switch {
+		case lr.Send.Messages != nil:
+			Messages(conn, lr.Send.Messages, lobby.Messages())
+		case lr.Send.RoomSettings != nil:
 			lobby.EnterRoom(conn, lr.Send.RoomSettings)
-			return
-		}
-		if lr.Send.Invitation != nil {
-			lobby.Invite(conn, lr.Send.Invitation)
 		}
 	} else if lr.Message != nil {
-		lr.Message.Status = models.StatusLobby
 		Message(lobby, conn, lr.Message,
 			lobby.appendMessage, lobby.setMessage,
 			lobby.removeMessage, lobby.findMessage,

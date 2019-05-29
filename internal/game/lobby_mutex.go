@@ -116,6 +116,14 @@ func (lobby *Lobby) findMessage(search *models.Message) int {
 	return -1
 }
 
+// Messages return slice of messages
+func (lobby *Lobby) Messages() []*models.Message {
+
+	lobby.messagesM.Lock()
+	defer lobby.messagesM.Unlock()
+	return lobby._messages
+}
+
 // freeRoomsRemove remove room from free rooms slice
 func (lobby *Lobby) freeRoomsRemove(room *Room) {
 	if lobby.done() {

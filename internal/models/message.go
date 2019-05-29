@@ -25,3 +25,10 @@ type Message struct {
 	Status int             `json:"status"`
 	Action int             `json:"action"`
 }
+
+type Messages struct {
+	Messages []*Message `json:"Messages"`
+	Limit    int        `json:"limit"`
+	Offset   int        `json:"offset"`
+	Capacity int        `json:"capacity"`
+}

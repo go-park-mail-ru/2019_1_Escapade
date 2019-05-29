@@ -61,3 +61,23 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	return err
 
 }
+
+func Messages(conn *Connection, messages *models.Messages,
+	messageSlice []*models.Message) {
+	size := len(messageSlice)
+	if messages.Offset < 0 || messages.Offset >= size {
+		messages.Offset = 0
+	}
+	if messages.Limit < 0 || messages.Limit > size {
+		messages.Limit = size
+	}
+	messages.Messages = messageSlice[messages.Offset:messages.Limit]
+	messages.Capacity = size
+
+	response := models.Response{
+		Type:  "GameMessages",
+		Value: messages,
+	}
+
+	conn.SendInformation(response)
+}
