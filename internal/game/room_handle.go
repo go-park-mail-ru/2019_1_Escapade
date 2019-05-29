@@ -273,17 +273,16 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		//go room.greet(conn)
 	} else if rr.IsSend() {
 		//done := false
-		if rr.Send.Cell != nil {
+		switch {
+		case rr.Send.Messages != nil:
+			Messages(conn, rr.Send.Messages, room.Messages())
+		case rr.Send.Cell != nil:
 			if room.isAlive(conn) {
 				go room.CellHandle(conn, rr.Send.Cell)
 			}
-		} else if rr.Send.Action != nil {
-			fmt.Println("action")
+		case rr.Send.Action != nil:
 			room.ActionHandle(conn, *rr.Send.Action)
 		}
-		//if done {
-		//room.finishGame(true)
-		//}
 	} else if rr.Message != nil {
 		if conn.Index() < 0 {
 			rr.Message.Status = models.StatusObserver

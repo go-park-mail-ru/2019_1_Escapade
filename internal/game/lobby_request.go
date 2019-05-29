@@ -43,6 +43,7 @@ func (lr *LobbyRequest) IsSend() bool {
 type LobbySend struct {
 	RoomSettings *models.RoomSettings
 	Invitation   *Invitation
+	Messages     *models.Messages
 }
 
 // LobbyGet - Information, that client can get from lobby

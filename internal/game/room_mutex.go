@@ -118,6 +118,14 @@ func (room *Room) findMessage(search *models.Message) int {
 	return -1
 }
 
+// Messages return slice of messages
+func (room *Room) Messages() []*models.Message {
+
+	room.messagesM.Lock()
+	defer room.messagesM.Unlock()
+	return room._messages
+}
+
 // historyFree free action slice
 func (room *Room) historyFree() {
 	room.historyM.Lock()

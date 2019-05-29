@@ -80,27 +80,13 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 
 	// cant use Restart cause need to
 	room.Players = newOnlinePlayers(rs.Players, *field)
-
-	//room.observersM = &sync.RWMutex{}
-	//room.Observers = NewConnections(rs.Observers)
-
 	room.historyM = &sync.RWMutex{}
-	//room._history = make([]*PlayerAction, 0)
-
 	room.messagesM = &sync.Mutex{}
-	//room._messages = make([]*models.Message, 0)
-
 	room.killedM = &sync.RWMutex{}
-	//room._killed = 0
 
 	room.Name = rs.Name
-	//room.Status = StatusPeopleFinding
 
 	room.lobby = lobby
-	//room.Field = field
-
-	//room.Date = time.Now()
-	//room.chanFinish = make(chan struct{})
 
 	room.Settings = rs
 
@@ -251,8 +237,9 @@ func (rr *RoomRequest) IsSend() bool {
 
 // RoomSend is struct of information, that client can send to room
 type RoomSend struct {
-	Cell   *Cell `json:"cell,omitempty"`
-	Action *int  `json:"action,omitempty"`
+	Cell     *Cell            `json:"cell,omitempty"`
+	Action   *int             `json:"action,omitempty"`
+	Messages *models.Messages `json:"messages,omitempty"`
 }
 
 // RoomGet is struct of flags, that client can get from room
