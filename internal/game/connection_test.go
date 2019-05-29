@@ -49,7 +49,7 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 		user := createRandomUser(id)
 
 		Convey("When create new connection", func() {
-			lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+			lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 			conn := NewConnection(ws, user, lobby)
 
 			Convey("All pointers fields should be not nil", func() {
@@ -95,7 +95,7 @@ func TestNewConnectionWithoutInputParameters(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 		Convey("When create new connection without lobby", func() {
 			conn := NewConnection(ws, user, nil)
@@ -140,7 +140,7 @@ func TestPushToRoom(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -190,7 +190,7 @@ func TestPushToLobby(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -244,7 +244,7 @@ func TestIsConnected(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -306,7 +306,7 @@ func TestDirty(t *testing.T) {
 
 		id := rand.Intn(10000)
 		user := createRandomUser(id)
-		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+		lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 		conn := NewConnection(ws, user, lobby)
 
@@ -426,7 +426,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 	id := rand.Intn(10000)
 	user := createRandomUser(id)
-	lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false)
+	lobby := NewLobby(RANDOMSIZE, RANDOMSIZE, nil, true, false, nil)
 
 	TestConnection = NewConnection(ws, user, lobby)
 	settings := config.WebSocketSettings{

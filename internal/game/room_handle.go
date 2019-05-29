@@ -335,18 +335,17 @@ func (room *Room) StartGame() {
 		room.wGroup.Done()
 	}()
 
-	room.Date = time.Now()
-	room.Status = StatusRunning
-	room.sendStatus(room.All)
-	room.sendMessage("Battle began! Destroy your enemy!", room.All)
-
 	room.FillField()
 
 	open := float64(room.Settings.Mines) / float64(room.Settings.Width*room.Settings.Height) * float64(100)
 	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
 
 	cells := room.Field.OpenSave(int(open))
-	go room.sendNewCells(cells, room.All)
+	room.sendNewCells(cells, room.All)
+	room.Status = StatusRunning
+	room.Date = time.Now()
+	room.sendStatus(room.All)
+	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
 // FinishGame finish game

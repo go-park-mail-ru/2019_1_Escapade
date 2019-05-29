@@ -206,7 +206,8 @@ func (db *DataBase) createTableGameChat(tx *sql.Tx) (err error) {
         roomID varchar(20),
         player_id int NOT NULL,
         message varchar(8000),
-        time   TIMESTAMPTZ
+        time   TIMESTAMPTZ,
+        edited bool default false
     );
     `
 	_, err = tx.Exec(sqlStatement)
