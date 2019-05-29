@@ -20,13 +20,13 @@ type Connection struct {
 	_room *Room
 
 	disconnectedM *sync.RWMutex
-	_Disconnected bool
+	_disconnected bool
 
 	bothM *sync.RWMutex
 	_both bool
 
 	indexM *sync.RWMutex
-	_Index int
+	_index int
 
 	User *models.UserPublicInfo
 
@@ -41,6 +41,7 @@ type Connection struct {
 	send chan []byte
 }
 
+// ConnectionJSON is a wrapper for sending Connection by JSON
 type ConnectionJSON struct {
 	Disconnected bool `json:"disconnected"`
 	Index        int  `json:"index"`
@@ -48,6 +49,7 @@ type ConnectionJSON struct {
 	User *models.UserPublicInfo `json:"user,omitempty"`
 }
 
+// JSON convert Connection to ConnectionJSON
 func (conn *Connection) JSON() ConnectionJSON {
 	return ConnectionJSON{
 		Disconnected: conn.Disconnected(),
@@ -56,10 +58,12 @@ func (conn *Connection) JSON() ConnectionJSON {
 	}
 }
 
+// MarshalJSON - overriding the standard method json.Marshal
 func (conn *Connection) MarshalJSON() ([]byte, error) {
 	return json.Marshal(conn.JSON())
 }
 
+// UnmarshalJSON - overriding the standard method json.Unmarshal
 func (conn *Connection) UnmarshalJSON(b []byte) error {
 	temp := &ConnectionJSON{}
 
@@ -67,8 +71,8 @@ func (conn *Connection) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	conn._Disconnected = temp.Disconnected
-	conn._Index = temp.Index
+	conn._disconnected = temp.Disconnected
+	conn._index = temp.Index
 	conn.User = temp.User
 
 	return nil

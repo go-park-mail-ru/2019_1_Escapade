@@ -8,7 +8,7 @@ func (conns *Connections) RGet() []*Connection {
 	return conns._get
 }
 
-// RGet return connections slice only for Read!
+// Capacity return the capacity of the stored slice
 func (conns *Connections) Capacity() int {
 
 	conns.capacityM.RLock()
@@ -16,7 +16,7 @@ func (conns *Connections) Capacity() int {
 	return conns._capacity
 }
 
-// RGet return connections slice only for Read!
+// Set set slice of connections
 func (conns *Connections) Set(slice []*Connection) {
 
 	conns.getM.Lock()
@@ -24,7 +24,7 @@ func (conns *Connections) Set(slice []*Connection) {
 	conns._get = slice
 }
 
-// RGet return connections slice only for Read!
+// SetCapacity set the capacity of slice
 func (conns *Connections) SetCapacity(size int) {
 
 	conns.capacityM.Lock()
@@ -32,7 +32,7 @@ func (conns *Connections) SetCapacity(size int) {
 	conns._capacity = size
 }
 
-// RGet return connections slice only for Read!
+// remove connection with index 'i' from connection slice
 func (conns *Connections) remove(i int) {
 
 	conns.getM.Lock()
@@ -45,6 +45,7 @@ func (conns *Connections) remove(i int) {
 	return
 }
 
+// append new connection to connection slice
 func (conns *Connections) append(conn *Connection) {
 
 	conns.getM.Lock()
@@ -55,6 +56,7 @@ func (conns *Connections) append(conn *Connection) {
 	return
 }
 
+// updates the value of an array element with an index i
 func (conns *Connections) set(i int, conn *Connection) {
 
 	conns.getM.Lock()
@@ -74,7 +76,7 @@ func (conns *Connections) Empty() bool {
 	return len(conns._get) == 0
 }
 
-// enoughPlace check that you can add more elements
+// EnoughPlace check that you can add more elements
 func (conns *Connections) EnoughPlace() bool {
 
 	conns.getM.RLock()
@@ -87,8 +89,9 @@ func (conns *Connections) EnoughPlace() bool {
 	return size < cap
 }
 
-// Search find connection in slice and return its index if success
-// otherwise -1
+// SearchByID find connection by connection ID
+// return this connection and its index if success
+// otherwise nil and -1
 func (conns *Connections) SearchByID(connectionID int) (connection *Connection, index int) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
@@ -103,6 +106,9 @@ func (conns *Connections) SearchByID(connectionID int) (connection *Connection, 
 	return
 }
 
+// SearchByIndex find connection by its Index
+// return this connection and its index if success
+// otherwise nil and -1
 func (conns Connections) SearchByIndex(index int) (connection *Connection) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()

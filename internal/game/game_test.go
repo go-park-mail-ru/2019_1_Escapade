@@ -247,16 +247,16 @@ func TestRoom(t *testing.T) {
 		}
 
 		time.Sleep(3 * time.Second)
-		room.playersCapacity()
-		room.player(0)
-		room.players()
+		room.Players.Capacity()
+		room.Players.Player(0)
+		room.Players.RPlayers()
 		room.sendPlayerEnter(*connections[7], All)
-		room.playerFlag(0)
+		room.Players.Flag(0)
 		room.sendField(All)
 		room.sendObserverEnter(*connections[7], All)
 		room.sendObserverExit(*connections[7], All)
 		room.sendPlayerExit(*connections[7], All)
-		room.playerFinished(0)
+		room.Players.Finish()
 		room.sendStatus(All)
 
 		room.RecoverPlayer(connections[7])
@@ -279,7 +279,7 @@ func testGame(i int) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer ws.Close()
-		Launch(gc, nil)
+		Launch(gc, nil, false)
 
 		//TestConnection = NewConnection(ws, user, lobby)
 
@@ -295,7 +295,7 @@ func testGame(i int) func(w http.ResponseWriter, r *http.Request) {
 		user := createRandomUser(i + 1)
 		connections[i] = NewConnection(ws, user, GetLobby())
 		ready <- struct{}{}
-		connections[i].Launch(wss)
+		connections[i].Launch(wss, "")
 		//all.Add(1)
 		//go ConnectionLaunch(connections[i], settings, all)
 		//}
@@ -311,10 +311,10 @@ func testLobby(i int) func(w http.ResponseWriter, r *http.Request) {
 		}
 		defer ws.Close()
 
-		tl := NewLobby(500, 500, nil, true)
+		tl := NewLobby(500, 500, nil, true, false)
 		user := createRandomUser(i + 1)
 		connections[i] = NewConnection(ws, user, tl)
-		connections[i].Launch(wss)
+		connections[i].Launch(wss, "")
 		//all.Add(1)
 		//go ConnectionLaunch(connections[i], settings, all)
 		//}
@@ -324,5 +324,5 @@ func testLobby(i int) func(w http.ResponseWriter, r *http.Request) {
 func ConnectionLaunch(conn *Connection, wss config.WebSocketSettings,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
-	conn.Launch(wss)
+	conn.Launch(wss, "")
 }

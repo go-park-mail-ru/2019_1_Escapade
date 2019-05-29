@@ -67,8 +67,8 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
-		conn._room = oldConn.Room()
-		conn._Index = oldConn.Index()
+		conn.setRoom(oldConn.Room())
+		conn.SetIndex(oldConn.Index())
 
 		conns.set(i, conn)
 		i = oldConn.Index()
@@ -81,11 +81,13 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 	return i
 }
 
+// ConnectionsJSON is a wrapper for sending Connections by JSON
 type ConnectionsJSON struct {
 	Capacity int           `json:"capacity"`
 	Get      []*Connection `json:"get"`
 }
 
+// JSON convert Connections to ConnectionsJSON
 func (conns *Connections) JSON() ConnectionsJSON {
 	return ConnectionsJSON{
 		Capacity: conns.Capacity(),
@@ -93,10 +95,12 @@ func (conns *Connections) JSON() ConnectionsJSON {
 	}
 }
 
+// MarshalJSON - overriding the standard method json.Marshal
 func (conns *Connections) MarshalJSON() ([]byte, error) {
 	return json.Marshal(conns.JSON())
 }
 
+// UnmarshalJSON - overriding the standard method json.Unmarshal
 func (conns *Connections) UnmarshalJSON(b []byte) error {
 	temp := &ConnectionsJSON{}
 

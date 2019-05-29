@@ -57,6 +57,7 @@ func (h *Handler) deleteAccount(ctx context.Context,
 	return
 }
 
+// RandomUsers create n random users
 func (h *Handler) RandomUsers(limit int) {
 
 	n := 16

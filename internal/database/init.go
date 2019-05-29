@@ -207,12 +207,6 @@ func (db *DataBase) createTableGameChat(tx *sql.Tx) (err error) {
         message varchar(8000),
         time   TIMESTAMPTZ
     );
-
-    ALTER TABLE GameChat
-    ADD CONSTRAINT chat_player
-       FOREIGN KEY (player_id)
-       REFERENCES Player(id)
-       ON DELETE CASCADE;
     `
 	_, err = tx.Exec(sqlStatement)
 	return err

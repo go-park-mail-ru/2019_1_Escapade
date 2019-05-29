@@ -42,6 +42,6 @@ func LaunchLobbyHistory(db *database.DataBase,
 
 	fmt.Println("connection create!")
 	conn := NewConnection(ws, user, lobby)
-	conn.Launch(WSsettings)
+	conn.Launch(WSsettings, "")
 	fmt.Println("conn launch")
 }

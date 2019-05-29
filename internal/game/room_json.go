@@ -8,7 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-// Room consist of players and observers, field and history
+// RoomJSON is a wrapper for sending Room by JSON
 type RoomJSON struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -24,6 +24,7 @@ type RoomJSON struct {
 	Settings *models.RoomSettings `json:"settings"`
 }
 
+// JSON convert Room to RoomJSON
 func (room *Room) JSON() RoomJSON {
 	return RoomJSON{
 		ID:        room.ID,
@@ -32,17 +33,19 @@ func (room *Room) JSON() RoomJSON {
 		Players:   room.Players,
 		Observers: room.Observers,
 		History:   room.history(),
-		Messages:  room._Messages,
+		Messages:  room._messages,
 		Field:     room.Field,
 		Date:      room.Date,
 		Settings:  room.Settings,
 	}
 }
 
+// MarshalJSON - overriding the standard method json.Marshal
 func (room *Room) MarshalJSON() ([]byte, error) {
 	return json.Marshal(room.JSON())
 }
 
+// UnmarshalJSON - overriding the standard method json.Unmarshal
 func (room *Room) UnmarshalJSON(b []byte) error {
 	temp := &RoomJSON{}
 
@@ -53,8 +56,8 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 	room.Status = temp.Status
 	room.Players = temp.Players
 	room.Observers = temp.Observers
-	room._History = temp.History
-	room._Messages = temp.Messages
+	room._history = temp.History
+	room._messages = temp.Messages
 	room.Date = temp.Date
 	room.Settings = temp.Settings
 

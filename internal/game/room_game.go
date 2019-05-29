@@ -29,7 +29,7 @@ func (room *Room) Winner() (idWin int) {
 	return
 }
 
-// flagFound is called, when somebody find cell flag
+// FlagFound is called, when somebody find cell flag
 func (room *Room) FlagFound(founder Connection, found *Cell) {
 	if room.done() {
 		return
@@ -66,7 +66,7 @@ func (room *Room) isAlive(conn *Connection) bool {
 	return index >= 0 && !room.Players.Player(index).Finished
 }
 
-// kill make user die and check for finish battle
+// Kill make user die and check for finish battle
 func (room *Room) Kill(conn *Connection, action int) {
 	if room.done() {
 		return
@@ -121,6 +121,7 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Con
 	return
 }
 
+// SetAndSendNewCell set and send cell to conn
 func (room *Room) SetAndSendNewCell(conn Connection) {
 	if room.done() {
 		return
@@ -146,7 +147,7 @@ func (room *Room) SetAndSendNewCell(conn Connection) {
 	conn.SendInformation(response)
 }
 
-// setFlag handle user wanna set flag
+// SetFlag handle user want set flag
 func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 	if room.done() {
 		return false
@@ -198,7 +199,7 @@ func (room *Room) setFlags() {
 	}
 }
 
-// fillField set flags and mines
+// FillField set flags and mines
 func (room *Room) FillField() {
 	if room.done() {
 		return
@@ -215,6 +216,7 @@ func (room *Room) FillField() {
 
 }
 
+// addAction creates an action and passes it on appendAction()
 func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
 	if room.done() {
 		return
@@ -225,6 +227,6 @@ func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
 	}()
 
 	pa = NewPlayerAction(id, action)
-	room.setToHistory(pa)
+	room.appendAction(pa)
 	return
 }
