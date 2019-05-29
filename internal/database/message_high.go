@@ -8,26 +8,27 @@ import (
 	"fmt"
 )
 
-// createPlayer create player
+// CreateMessage create message
 func (db *DataBase) CreateMessage(message *models.Message,
 	inRoom bool, gameID string) (id int, err error) {
 	sqlInsert := `
-	INSERT INTO GameChat(player_id, in_room, roomID, message, time) VALUES
-		($1, $2, $3, $4, $5)
+	INSERT INTO GameChat(player_id, name, in_room, roomID, message, time) VALUES
+		($1, $2, $3, $4, $5, $6)
 		RETURNING ID;
 		`
-	row := db.Db.QueryRow(sqlInsert, message.User.ID, inRoom,
+	row := db.Db.QueryRow(sqlInsert, message.User.ID, message.User.Name, inRoom,
 		gameID, message.Text, message.Time)
 
 	if err = row.Scan(&id); err != nil {
 		fmt.Println("createMessage err:", err.Error())
 		return
 	}
-	fmt.Println("createMessage success")
+	fmt.Println("createMessage success", inRoom, gameID)
 
 	return
 }
 
+// UpdateMessage update message
 func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 	sqlInsert := `
 	Update GameChat set message = $1 where id = $2
@@ -44,6 +45,7 @@ func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 	return
 }
 
+// DeleteMessage delete message
 func (db *DataBase) DeleteMessage(message *models.Message) (id int, err error) {
 	sqlInsert := `
 	Delete GameChat where id = $1

@@ -16,9 +16,9 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 		rows *sql.Rows
 	)
 	sqlStatement := `
-	select GC.player_id, P.name, P.photo_title, GC.message, GC.time 
+	select GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time 
 		from GameChat as GC 
-		join Player as P on P.id = GC.player_id`
+		left join Player as P on P.id = GC.player_id`
 	if inRoom {
 		sqlStatement += ` where GC.roomID like $1;`
 		rows, err = tx.Query(sqlStatement, gameID)
@@ -36,15 +36,26 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 
 	for rows.Next() {
 		user := &models.UserPublicInfo{}
+		userSQL := &models.UserPublicInfoSQL{}
 		message := &models.Message{
 			User: user,
 		}
 
-		if err = rows.Scan(&message.User.ID, &message.User.Name,
-			&message.User.PhotoURL, &message.Text, &message.Time); err != nil {
+		if err = rows.Scan(&userSQL.ID, &user.Name, &userSQL.Name,
+			&userSQL.PhotoURL, &message.Text, &message.Time); err != nil {
 
 			break
 		}
+		if id, erro := userSQL.ID.Value(); erro == nil {
+			user.ID = int(id.(int64))
+		}
+		if name, _ := userSQL.Name.Value(); name != nil {
+			user.Name = name.(string)
+		}
+		if photoURL, _ := userSQL.PhotoURL.Value(); photoURL != nil {
+			user.PhotoURL = photoURL.(string)
+		}
+
 		fmt.Println("load message:", message)
 
 		messages = append(messages, message)

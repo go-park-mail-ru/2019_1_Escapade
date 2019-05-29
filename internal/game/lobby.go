@@ -10,6 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+type SetImage func(users ...*models.UserPublicInfo) (err error)
+
 // Request connect Connection and his message
 type Request struct {
 	Connection *Connection
@@ -54,11 +56,14 @@ type Lobby struct {
 	db            *database.DataBase
 	canCloseRooms bool
 	metrics       bool
+
+	SetImage SetImage
 }
 
 // NewLobby create new instance of Lobby
 func NewLobby(connectionsCapacity, roomsCapacity int,
-	db *database.DataBase, canCloseRooms bool, metrics bool) *Lobby {
+	db *database.DataBase, canCloseRooms bool, metrics bool,
+	SetImage SetImage) *Lobby {
 
 	var (
 		messages []*models.Message
@@ -67,6 +72,9 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 	if db != nil {
 		if messages, err = db.LoadMessages(false, ""); err != nil {
 			fmt.Println("cant load messages:", err.Error())
+		}
+		for _, message := range messages {
+			SetImage(message.User)
 		}
 	} else {
 		messages = make([]*models.Message, 0)
@@ -106,6 +114,7 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		db:            db,
 		canCloseRooms: canCloseRooms,
 		metrics:       metrics,
+		SetImage:      SetImage,
 	}
 	return lobby
 }
@@ -116,11 +125,11 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool) {
+func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool, si SetImage) {
 
 	if LOBBY == nil {
 		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
-			db, gc.CanClose, metrics)
+			db, gc.CanClose, metrics, si)
 
 		go LOBBY.Run()
 	}

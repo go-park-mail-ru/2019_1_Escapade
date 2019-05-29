@@ -355,7 +355,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.setfiles(users...); err != nil {
+	if err = h.Setfiles(users...); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -594,7 +594,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if err = h.setfiles(user); err != nil {
+	if err = h.Setfiles(user); err != nil {
 		fmt.Println("h.setfiles(user) err")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
@@ -670,7 +670,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err = h.setfiles(user); err != nil {
+		if err = h.Setfiles(user); err != nil {
 			fmt.Println("h.setfiles(user) err")
 			rw.WriteHeader(http.StatusNotFound)
 			utils.SendErrorJSON(rw, err, place)
@@ -732,7 +732,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.setfiles(user); err != nil {
+	if err = h.Setfiles(user); err != nil {
 		fmt.Println("err707", err.Error())
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
@@ -741,6 +741,6 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("success!!")
-	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game)
+	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game, h.Setfiles)
 	return
 }

@@ -63,7 +63,7 @@ func main() {
 
 	r.Handle("/game/metrics", promhttp.Handler())
 
-	game.Launch(&configuration.Game, &handler.DB, true)
+	game.Launch(&configuration.Game, &handler.DB, true, handler.Setfiles)
 	defer game.GetLobby().Stop()
 
 	// c := make(chan os.Signal)

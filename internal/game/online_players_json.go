@@ -17,12 +17,12 @@ type OnlinePlayers struct {
 	_capacity int
 
 	playersM *sync.RWMutex
-	_players []Player `json:"players"`
+	_players []Player
 
 	flagsM      *sync.RWMutex
-	_flags      []Flag `json:"flags"`
+	_flags      []Flag
 	flagsLeft   int
-	Connections Connections `json:"connections"`
+	Connections Connections
 }
 
 // OnlinePlayersJSON is a wrapper for sending OnlinePlayers by JSON
