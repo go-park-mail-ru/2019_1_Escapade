@@ -51,6 +51,8 @@ type Room struct {
 	Date       time.Time
 	chanFinish chan struct{}
 
+	chanStatus chan int
+
 	play    *time.Timer
 	prepare *time.Timer
 
@@ -123,6 +125,9 @@ func (room *Room) Restart() {
 
 	room.Date = time.Now()
 	room.chanFinish = make(chan struct{})
+	room.chanStatus = make(chan int)
+
+	go room.runRoom()
 
 	return
 }

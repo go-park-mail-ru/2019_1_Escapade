@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 )
 
@@ -46,14 +47,18 @@ func (conns *Connections) Free() {
 // Remove delete element and decrement size if element
 // exists in map
 func (conns *Connections) Remove(conn *Connection, onlyIfDisconnected bool) bool {
-	_, i := conns.SearchByID(conn.ID())
+	fmt.Println("lets find")
+	conn, i := conns.SearchByID(conn.ID())
 	if i < 0 {
 		return false
 	}
+	//fmt.Println("find, set disconnected", i)
+	//conn.setDisconnected()
 	if onlyIfDisconnected && !conns.RGet()[i].Disconnected() {
 		return false
 	}
 	conns.remove(i)
+	fmt.Println("delete о_О")
 	return true
 	//sendError(conn, "Remove", "You disconnected ")
 }

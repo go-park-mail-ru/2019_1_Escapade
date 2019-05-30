@@ -53,6 +53,7 @@ func (room *Room) Free() {
 	go room.Field.Free()
 
 	close(room.chanFinish)
+	close(room.chanStatus)
 }
 
 // Close drives away players out of the room, free resources
@@ -109,6 +110,7 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 		room.wGroup.Done()
 	}()
 
+	//conn.setDisconnected()
 	if room.lobby.Metrics() {
 		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
 	}
@@ -116,7 +118,9 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 	room.sendAction(pa, room.AllExceptThat(conn))
 	fmt.Println("Left room")
 
-	return room.RemoveFromGame(conn, action == ActionDisconnect)
+	done = room.RemoveFromGame(conn, action == ActionDisconnect)
+
+	return
 }
 
 // applyAction applies the effects of opening a cell
@@ -179,7 +183,8 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 		go room.sendNewCells(cells, room.All)
 	}
 	if room.Field.IsCleared() {
-		go room.FinishGame(false)
+		room.chanStatus <- StatusFinished
+		//go room.FinishGame(false)
 	}
 	return
 }
@@ -225,32 +230,30 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 		room.wGroup.Done()
 	}()
 	fmt.Println("action", action)
-	if room.IsActive() {
-		if action == ActionGiveUp {
-			conn.debug("we see you wanna give up?")
+
+	switch action {
+	case ActionGiveUp:
+		if room.IsActive() {
 			go room.GiveUp(conn)
 			return true
 		}
-	} else {
-		if action == ActionRestart {
-			if room.Status == StatusFinished {
-				room.Restart()
-				room.lobby.addRoom(room)
-			}
-			//room.Status = StatusPeopleFinding
-			if room.Status == StatusPeopleFinding {
-				room.addPlayer(conn)
-			}
-			return true
+	case ActionRestart:
+		if room.Status == StatusRunning || room.Status == StatusFlagPlacing {
+			return false
 		}
-	}
-	if action == ActionBackToLobby {
-		conn.debug("we see you wanna back to lobby?")
+		conn.lobby.greet(conn)
+		if room.Status == StatusFinished {
+			room.Restart()
+			room.lobby.addRoom(room)
+		}
+		if room.Status == StatusPeopleFinding {
+			room.addPlayer(conn)
+		}
+		return true
+	case ActionBackToLobby:
 		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
-		conn.debug("we did it")
 		return true
 	}
-
 	return false
 }
 
@@ -305,6 +308,8 @@ func (room *Room) StartFlagPlacing() {
 		room.wGroup.Done()
 	}()
 
+	room.FillField()
+
 	room.Status = StatusFlagPlacing
 	players := room.Players.Connections.RGet()
 	for _, conn := range players {
@@ -317,7 +322,7 @@ func (room *Room) StartFlagPlacing() {
 	room.Players.Init(room.Field)
 
 	room.lobby.RoomStart(room)
-	go room.run()
+	go room.runGame()
 
 	room.Date = time.Now()
 	room.sendStatus(room.All)
@@ -334,11 +339,7 @@ func (room *Room) StartGame() {
 	defer func() {
 		room.wGroup.Done()
 	}()
-
-	room.Date = time.Now()
-	room.Status = StatusRunning
-	room.sendStatus(room.All)
-	room.sendMessage("Battle began! Destroy your enemy!", room.All)
+	fmt.Println("SSSSSSSSSSSSSSSSSSSSSSs")
 
 	room.FillField()
 
@@ -346,7 +347,11 @@ func (room *Room) StartGame() {
 	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
 
 	cells := room.Field.OpenSave(int(open))
-	go room.sendNewCells(cells, room.All)
+	room.sendNewCells(cells, room.All)
+	room.Status = StatusRunning
+	room.Date = time.Now()
+	room.sendStatus(room.All)
+	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
 // FinishGame finish game
@@ -364,9 +369,9 @@ func (room *Room) FinishGame(timer bool) {
 		fmt.Println("room.Status == StatusFinished!")
 		return
 	}
-	if !timer {
-		room.chanFinish <- struct{}{}
-	}
+	// if !timer {
+	// 	room.chanFinish <- struct{}{}
+	// }
 	fmt.Println(room.ID, "We finish room!", room.Status)
 
 	room.Status = StatusFinished
@@ -395,8 +400,88 @@ func (room *Room) initTimers() {
 	return
 }
 
+func (room *Room) launchGarbageCollector() {
+	fmt.Println("launchGarbageCollector")
+
+	var timeout float64 // в конфиг
+	if room.Status == StatusPeopleFinding {
+		timeout = 5.
+	} else {
+		timeout = 60.
+	}
+	i := 0
+	for _, conn := range room.Players.Connections.RGet() {
+		if conn == nil {
+			continue
+		}
+		i++
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
+			fmt.Println(conn.User.Name, " - bad")
+			room.Leave(conn, ActionTimeOver)
+		} else {
+			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+		}
+	}
+	for _, conn := range room.Observers.RGet() {
+		if conn == nil {
+			continue
+		}
+		i++
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
+			fmt.Println(conn.User.Name, " - bad")
+			room.Leave(conn, ActionTimeOver)
+		} else {
+			fmt.Println(conn.User.Name, " - good", conn)
+		}
+	}
+	if i == 0 {
+		room.chanStatus <- StatusAborted
+	}
+}
+
+func (room *Room) runRoom() {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
+	ticker := time.NewTicker(time.Second * 1)
+
+	for {
+		select {
+		case <-ticker.C:
+			go room.launchGarbageCollector()
+		case newStatus := <-room.chanStatus:
+			if newStatus == room.Status || newStatus > StatusFinished {
+				continue
+			}
+			switch newStatus {
+			// case StatusPeopleFinding:
+			// 	//
+			case StatusFlagPlacing:
+				room.StartFlagPlacing()
+			case StatusRunning:
+				room.prepare.Stop()
+				room.StartGame()
+			case StatusFinished:
+				ok := room.play.Stop()
+				ticker.Stop()
+				room.FinishGame(!ok)
+				return
+			case StatusAborted:
+				ticker.Stop()
+				return
+			}
+		}
+	}
+}
+
 // run - room goroutine
-func (room *Room) run() {
+func (room *Room) runGame() {
 	if room.done() {
 		return
 	}
@@ -423,10 +508,11 @@ func (room *Room) run() {
 		case <-room.chanFinish:
 			return
 		case <-room.prepare.C:
-			go room.StartGame()
+			room.chanStatus <- StatusRunning
 		case <-room.play.C:
-			fmt.Println("finish!")
-			room.FinishGame(true)
+			room.chanStatus <- StatusFinished
+			//fmt.Println("finish!")
+			//room.FinishGame(true)
 			return
 		case clock := <-ticker.C:
 			//fmt.Println("clock!", room.ID)

@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"time"
 )
 
 // setDone set done = true. It will finish all operaions on Connection
@@ -25,7 +26,7 @@ func (conn *Connection) done() bool {
 // Disconnected return   '_disconnected' field
 func (conn *Connection) Disconnected() bool {
 	if conn.done() {
-		return false
+		return conn._disconnected
 	}
 	conn.wGroup.Add(1)
 	defer func() {
@@ -43,6 +44,7 @@ func (conn *Connection) setDisconnected() {
 	conn.disconnectedM.Lock()
 	conn._disconnected = true
 	conn.disconnectedM.Unlock()
+	conn.time = time.Now()
 }
 
 // Room return   '_room' field

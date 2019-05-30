@@ -24,6 +24,7 @@ type Message struct {
 	Time   time.Time       `json:"time"`
 	Status int             `json:"status"`
 	Action int             `json:"action"`
+	Edited bool            `json:"edited"`
 }
 
 type Messages struct {

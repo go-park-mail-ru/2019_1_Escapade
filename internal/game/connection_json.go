@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/gorilla/websocket"
@@ -35,6 +36,8 @@ type Connection struct {
 
 	context context.Context
 	cancel  context.CancelFunc
+
+	time time.Time
 
 	actionSem chan struct{}
 

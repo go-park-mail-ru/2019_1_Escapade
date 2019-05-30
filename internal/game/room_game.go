@@ -50,11 +50,10 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		return
 	}
 
-	fmt.Println(which, "was found by", founder.ID())
-
 	room.Players.IncreasePlayerPoints(founder.Index(), 30)
 
 	killConn, index := room.Players.Connections.SearchByID(which)
+	fmt.Println(killConn.User.Name, "was found by", founder.User.Name)
 	if index >= 0 {
 		room.Kill(killConn, ActionFlagLost)
 	}
@@ -88,7 +87,8 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.Field.SetCellFlagTaken(&cell.Cell)
 
 		if room.Players.Capacity() <= room.killed()+1 {
-			room.FinishGame(false)
+			room.chanStatus <- StatusFinished
+			//room.FinishGame(false)
 		}
 		pa := *room.addAction(conn.ID(), action)
 		go room.sendAction(pa, room.All)
@@ -139,9 +139,10 @@ func (room *Room) SetAndSendNewCell(conn Connection) {
 		found, _ = room.flagExists(cell, nil)
 	}
 	if room.Players.SetFlag(conn, cell) {
-		room.prepare.Stop()
-		go room.StartGame()
+		//room.prepare.Stop()
+		//room.StartGame()
 		//
+		room.chanStatus <- StatusRunning
 	}
 	response := models.RandomFlagSet(cell)
 	conn.SendInformation(response)
@@ -183,9 +184,9 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 	}
 
 	if room.Players.SetFlag(*conn, *cell) {
-		room.prepare.Stop()
-		go room.StartGame()
-		//
+		//room.prepare.Stop()
+		//room.StartGame()
+		room.chanStatus <- StatusRunning
 	}
 	return true
 }
@@ -211,6 +212,7 @@ func (room *Room) FillField() {
 
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 
+	room.Field.Zero()
 	room.setFlags()
 	room.Field.SetMines()
 

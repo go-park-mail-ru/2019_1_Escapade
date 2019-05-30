@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	cook "github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -109,7 +109,7 @@ func getUserCreateCases() []TestCase {
 			StatusCode: http.StatusBadRequest,
 		}, // no email
 		TestCase{
-			Response:   createResult(place, re.ErrorInvalidEmail()),
+			Response:   createResult(place, re.ErrorInvalidPassword()),
 			Body:       createPrivateUser(RANDOM, RANDOM, ""),
 			StatusCode: http.StatusBadRequest,
 		}, // no name
@@ -164,7 +164,7 @@ func getUserDeleteCases() []TestCase {
 			StatusCode: http.StatusBadRequest,
 		}, // no email
 		TestCase{
-			Response:   createResult(place, re.ErrorInvalidEmail()),
+			Response:   createResult(place, re.ErrorInvalidPassword()),
 			Body:       createPrivateUser(RANDOM, RANDOM, ""),
 			StatusCode: http.StatusBadRequest,
 		}, // no name
@@ -224,14 +224,14 @@ func TestAll(t *testing.T) {
 		return
 	}
 
-	fmt.Println("launchTests")
-	authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	if err != nil {
-		t.Error("serviceConnectionsInit error:", err)
-	}
-	defer authConn.Close()
+	// fmt.Println("launchTests")
+	// authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
+	// if err != nil {
+	// 	t.Error("serviceConnectionsInit error:", err)
+	// }
+	// defer authConn.Close()
 
-	H, err = GetAPIHandler(configuration, authConn) // init.go
+	H, err = GetAPIHandler(configuration) // init.go
 	if err != nil {
 		t.Error("serviceConnectionsInit error:", err)
 	}
@@ -352,7 +352,6 @@ func TUpdateProfile(t *testing.T, H *Handler) {
 	user := models.UserPrivateInfo{
 		Name:     takenName,
 		Password: utils.RandomString(16),
-		Email:    takenEmail,
 	}
 
 	H.register(context.Background(), user)
@@ -391,8 +390,7 @@ func TGetMyProfile(t *testing.T, H *Handler) {
 	url := "/user"
 
 	user := models.UserPrivateInfo{
-		Name:  name,
-		Email: email,
+		Name: name,
 	}
 	_, cookiestr, err := H.register(context.Background(), user)
 	if err != nil {
@@ -434,7 +432,6 @@ func TGetProfile(t *testing.T, H *Handler) {
 	user := models.UserPrivateInfo{
 		Name:     name,
 		Password: utils.RandomString(16),
-		Email:    email,
 	}
 
 	id, _, err := H.register(context.Background(), user)
@@ -481,7 +478,6 @@ func TLogin(t *testing.T, H *Handler) {
 	user := models.UserPrivateInfo{
 		Name:     name,
 		Password: password,
-		Email:    email,
 	}
 
 	_, cookiestr, err := H.register(context.Background(), user)
@@ -944,7 +940,6 @@ func createPublicUser(name, email, photo, bestScore, valid1, bestTime, valid2, d
 func createRandomUser() *models.UserPrivateInfo {
 	return &models.UserPrivateInfo{
 		Name:     utils.RandomString(16),
-		Email:    utils.RandomString(16),
 		Password: utils.RandomString(16),
 	}
 }
@@ -953,7 +948,6 @@ func getCookie(H *Handler, name, password, email string) (cookie *http.Cookie, e
 	user := models.UserPrivateInfo{
 		Name:     name,
 		Password: password,
-		Email:    email,
 	}
 
 	var cookiestr string

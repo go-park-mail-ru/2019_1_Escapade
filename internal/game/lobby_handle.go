@@ -78,14 +78,18 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		lobby.wGroup.Done()
 	}()
 
+	fmt.Println("LEAVE!")
+
 	var disconnected bool
 
 	if conn.Both() || conn.InRoom() {
+		fmt.Println("delete from room")
 		fmt.Println("both -  #", conn.ID())
 		disconnected = lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
 	}
 
 	if !conn.InRoom() {
+		fmt.Println("delete from lobby")
 		disconnected = lobby.Waiting.Remove(conn, true) //lobby.waitingRemove(conn)
 		if disconnected {
 			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
@@ -116,6 +120,13 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 		done = room.Leave(conn, action) // exit to lobby
 	} else {
 		//go lobby.playingRemove(conn)
+		found := room.Search(conn)
+		if found != nil {
+			fmt.Println("found!", found.Disconnected())
+			found.setDisconnected()
+			found = room.Search(conn)
+			fmt.Println("found!", found.Disconnected())
+		}
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
 	if done && len(room.Players.Connections.RGet()) > 0 {

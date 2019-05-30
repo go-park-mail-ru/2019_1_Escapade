@@ -99,6 +99,7 @@ func (lobby *Lobby) setMessage(i int, message *models.Message) {
 	lobby.messagesM.Lock()
 	defer lobby.messagesM.Unlock()
 	lobby._messages[i] = message
+	lobby._messages[i].Edited = true
 	return
 }
 

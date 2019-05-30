@@ -111,7 +111,6 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.getMatrixValue(x, y)
-		fmt.Printf("openCellArea Cell(%d/%d)=%d", x, y, v)
 
 		if v < CellMine {
 			cell := NewCell(x, y, v, ID)
@@ -151,6 +150,7 @@ func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 		field.setToHistory(*cell)
 	}
 	*cells = append(*cells, *cell)
+	fmt.Printf("save openCellArea Cell(%d/%d)=%d\n", cell.X, cell.Y, cell.Value)
 }
 
 // OpenCell open cell and return slice of opened cells
@@ -214,7 +214,7 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 func (field *Field) OpenSave(n int) (cells []Cell) {
 	cells = make([]Cell, 0)
 	size := 0
-	fmt.Println("OpenSave wanan open ", n)
+
 	for n > size {
 		rand.Seed(time.Now().UnixNano())
 		i := rand.Intn(field.Width)
@@ -224,8 +224,16 @@ func (field *Field) OpenSave(n int) (cells []Cell) {
 			size = len(cells)
 		}
 	}
-	fmt.Println("size is ", size)
 	return
+}
+
+// Zero clears the entire matrix of values
+func (field *Field) Zero() {
+	for i := 0; i < field.Width; i++ {
+		for j := 0; j < field.Height; j++ {
+			field.setMatrixValue(i, j, 0)
+		}
+	}
 }
 
 // SetMines fill matrix with mines
@@ -239,18 +247,17 @@ func (field *Field) SetMines() {
 	width := field.Width
 	height := field.Height
 	mines := field.Mines
-	fmt.Println("begin SetMines")
+
 	for mines > 0 {
 		rand.Seed(time.Now().UnixNano())
-		i := rand.Intn(width)
-		j := rand.Intn(height)
-		fmt.Println(i, j)
-		if field.lessThenMine(i, j) {
-			field.setMine(i, j)
+		someX := rand.Intn(width)
+		someY := rand.Intn(height)
+
+		if field.lessThenMine(someX, someY) {
+			field.setMine(someX, someY)
 			mines--
 		}
 	}
-	fmt.Println("end SetMines")
 }
 
 // generate matrix
