@@ -7,10 +7,10 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
-// Winner determine who won the game
-func (room *Room) Winner() (idWin int) {
+// Winners determine who won the game
+func (room *Room) Winners() (winners []int) {
 	if room.done() {
-		return 0
+		return nil
 	}
 	room.wGroup.Add(1)
 	defer func() {
@@ -20,13 +20,31 @@ func (room *Room) Winner() (idWin int) {
 	max := 0.
 
 	players := room.Players.RPlayers()
-	for id, player := range players {
-		if player.Points > max {
+	for _, player := range players {
+		if player.Points > max && !player.Died {
 			max = player.Points
-			idWin = id
 		}
 	}
+
+	winners = make([]int, 0)
+	for index, player := range players {
+		if player.Points == max && !player.Died {
+			max = player.Points
+			winners = append(winners, index)
+		}
+	}
+
 	return
+}
+
+// Winner check id in the winners slice
+func (room *Room) Winner(winners []int, find int) bool {
+	for i := range winners {
+		if find == i {
+			return true
+		}
+	}
+	return false
 }
 
 // FlagFound is called, when somebody find cell flag
@@ -50,7 +68,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		return
 	}
 
-	room.Players.IncreasePlayerPoints(founder.Index(), 30)
+	room.Players.IncreasePlayerPoints(founder.Index(), 300)
 
 	killConn, index := room.Players.Connections.SearchByID(which)
 	fmt.Println(killConn.User.Name, "was found by", founder.User.Name)

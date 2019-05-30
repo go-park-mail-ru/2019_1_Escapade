@@ -58,7 +58,7 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 
 	lobby.addWaiter(newConn)
 
-	if lobby.recoverInRoom(newConn, disconnected) {
+	if !lobby.canCloseRooms && lobby.recoverInRoom(newConn, disconnected) {
 		go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
 		return
 	}

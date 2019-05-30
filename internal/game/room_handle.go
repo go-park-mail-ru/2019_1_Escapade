@@ -130,9 +130,9 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 	fmt.Println("points:", room.Settings.Width, room.Settings.Height, 100*float64(cell.Value+1)/float64(room.Settings.Width*room.Settings.Height))
 	switch {
 	case cell.Value < CellMine:
-		room.Players.IncreasePlayerPoints(index, 100*float64(cell.Value+1)/float64(room.Settings.Width*room.Settings.Height))
+		room.Players.IncreasePlayerPoints(index, 1000*float64(cell.Value)/float64(room.Settings.Width*room.Settings.Height))
 	case cell.Value == CellMine:
-		room.Players.IncreasePlayerPoints(index, float64(-100))
+		room.Players.IncreasePlayerPoints(index, float64(-1000))
 		room.Kill(conn, ActionExplode)
 	case cell.Value > CellIncrement:
 		room.FlagFound(*conn, cell)
@@ -444,6 +444,56 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		room.chanStatus <- StatusAborted
 	}
 }
+
+/*
+func (room *Room) runHistory() {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
+	//players := *room.Players
+	actions := room.history()
+	cells := room.Field.History
+	actionsSize := len(actions)
+	cellsSize := len(cells)
+	actionsI := 0
+	cellsI := 0
+	actionTime := time.Now()
+	cellTime := time.Now()
+	if actionsSize > 0 {
+		actionTime = actions[0].Time
+	}
+	if cellsSize > 0 {
+		cellTime = cells[0].Time
+	}
+
+	room.StartFlagPlacing()
+
+	ticker := time.NewTicker(time.Millisecond * 10)
+	defer func() {
+		room.Status = StatusHistory
+		ticker.Stop()
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			if (actionsSize + cellsSize) == (actionsI + cellsI) {
+				return
+			}
+			for actionsI < actionsSize{
+
+			}
+
+		}
+	}
+}
+*/
 
 func (room *Room) runRoom() {
 	if room.done() {

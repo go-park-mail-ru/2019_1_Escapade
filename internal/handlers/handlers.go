@@ -101,6 +101,12 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = validateUser(&user); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+	}
+
 	fmt.Println("register new account", user.Name)
 	if _, sessionID, err = h.register(r.Context(), user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)

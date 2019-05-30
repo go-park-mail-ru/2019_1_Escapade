@@ -28,14 +28,14 @@ func (room *Room) Save() (err error) {
 		Date:          room.Date,
 	}
 
-	idWin := room.Winner()
+	winners := room.Winners()
 	gamers := make([]models.Gamer, 0)
 	for id, player := range players {
 		gamer := models.Gamer{
 			ID:        player.ID,
 			Score:     player.Points,
 			Explosion: player.Died,
-			Won:       idWin == id,
+			Won:       room.Winner(winners, id),
 		}
 		gamers = append(gamers, gamer)
 	}
@@ -165,6 +165,8 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+
+	room.Status = StatusHistory
 
 	return
 }

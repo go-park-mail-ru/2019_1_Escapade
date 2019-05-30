@@ -48,7 +48,7 @@ func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 // DeleteMessage delete message
 func (db *DataBase) DeleteMessage(message *models.Message) (id int, err error) {
 	sqlInsert := `
-	Delete GameChat where id = $1
+	Delete From GameChat where id = $1
 		RETURNING ID;
 		`
 	row := db.Db.QueryRow(sqlInsert, message.ID)
