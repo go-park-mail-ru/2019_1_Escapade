@@ -47,7 +47,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 
 			break
 		}
-		user.PhotoURL = "https://escapade.hb.bizmrg.com/2c4929b0-038a-4160-8079-856b69d6b303?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ciyXwq2TpzVGXEcQAqSdew%2F20190529%2Fru-msk%2Fs3%2Faws4_request&X-Amz-Date=20190529T124958Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=574ee1ae4038fce096c6745a9f32a91f90a2cfcdf3ac624183ee0d705429bb3d"
+		user.FileKey = "anonymous.jpg"
 		if id, erro := userSQL.ID.Value(); erro == nil {
 			user.ID = int(id.(int64))
 		}
