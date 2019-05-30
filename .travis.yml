@@ -8,7 +8,7 @@ env:
 install: true
 branches:
   only:
-  - develop
+  - master
 script:
 - docker-compose up --build -d
 before_install:
