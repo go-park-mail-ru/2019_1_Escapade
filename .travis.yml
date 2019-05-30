@@ -20,3 +20,4 @@ before_install:
 - machine-import escapade-compose.zip
 - eval $(docker-machine env escapade-compose)
 - docker-machine ls
+- export COMPOSE_TLS_VERSION=TLSv1_2
