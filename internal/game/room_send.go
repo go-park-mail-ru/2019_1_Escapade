@@ -77,7 +77,7 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 	room.send(response, predicate)
 }
 
-func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
+func (room *Room) sendNewCells(predicate SendPredicate, cells ...Cell) {
 	if room.done() {
 		return
 	}

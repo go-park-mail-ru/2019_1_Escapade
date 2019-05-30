@@ -84,7 +84,12 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.SetFinished(conn)
 
 		cell := room.Players.Flag(conn.Index())
-		room.Field.SetCellFlagTaken(&cell.Cell)
+		//room.Field.SetCellFlagTaken(&cell.Cell)
+
+		cells := make([]Cell, 0)
+		room.Field.saveCell(&cell.Cell, &cells)
+
+		room.sendNewCells(room.All, cell.Cell)
 
 		if room.Players.Capacity() <= room.killed()+1 {
 			room.chanStatus <- StatusFinished

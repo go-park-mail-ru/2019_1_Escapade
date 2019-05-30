@@ -122,10 +122,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 		//go lobby.playingRemove(conn)
 		found := room.Search(conn)
 		if found != nil {
-			fmt.Println("found!", found.Disconnected())
 			found.setDisconnected()
-			found = room.Search(conn)
-			fmt.Println("found!", found.Disconnected())
 		}
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
@@ -178,7 +175,6 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		conn.debug("lobby search room for you")
 		lobby.PickUpRoom(conn, rs)
 	}
-
 }
 
 // PickUpRoom find room for player
@@ -217,7 +213,7 @@ func (lobby *Lobby) Analize(req *Request) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("analyze", req.Connection.Both(), req.Connection.InRoom())
+	fmt.Println("analyze", req.Connection.Both(), req.Connection.InRoom(), req.Connection.Disconnected())
 	if req.Connection.Both() || !req.Connection.InRoom() {
 		fmt.Println("lobby work")
 		var send *LobbyRequest

@@ -180,7 +180,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 
 	if len(cells) > 0 {
 		room.sendPlayerPoints(room.Players.Player(conn.Index()), room.All)
-		go room.sendNewCells(cells, room.All)
+		go room.sendNewCells(room.All, cells...)
 	}
 	if room.Field.IsCleared() {
 		room.chanStatus <- StatusFinished
@@ -271,7 +271,11 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		return
 	}
 
-	conn.debug("room handle conn")
+	fmt.Println("room handle conn", room.isAlive(conn), conn.Index(), conn.Disconnected())
+	found := room.Search(conn)
+	if found != nil {
+		fmt.Println("room handle found", room.isAlive(found), found.Index(), found.Disconnected())
+	}
 	if rr.IsGet() {
 		//go room.greet(conn)
 	} else if rr.IsSend() {
@@ -347,7 +351,7 @@ func (room *Room) StartGame() {
 	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
 
 	cells := room.Field.OpenSave(int(open))
-	room.sendNewCells(cells, room.All)
+	room.sendNewCells(room.All, cells...)
 	room.Status = StatusRunning
 	room.Date = time.Now()
 	room.sendStatus(room.All)
@@ -400,14 +404,16 @@ func (room *Room) initTimers() {
 	return
 }
 
-func (room *Room) launchGarbageCollector() {
-	fmt.Println("launchGarbageCollector")
+func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64) {
+	//fmt.Println("launchGarbageCollector")
 
-	var timeout float64 // в конфиг
 	if room.Status == StatusPeopleFinding {
-		timeout = 5.
-	} else {
-		timeout = 60.
+		timeoutPlayer = timeoutPeopleFinding
+		timeoutObserver = timeoutPeopleFinding
+	}
+	if room.Status == StatusFinished {
+		timeoutPlayer = timeoutFinished
+		timeoutObserver = timeoutFinished
 	}
 	i := 0
 	for _, conn := range room.Players.Connections.RGet() {
@@ -415,11 +421,11 @@ func (room *Room) launchGarbageCollector() {
 			continue
 		}
 		i++
-		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
-			fmt.Println(conn.User.Name, " - bad")
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutPlayer {
+			//fmt.Println(conn.User.Name, " - bad")
 			room.Leave(conn, ActionTimeOver)
 		} else {
-			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+			//fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
 		}
 	}
 	for _, conn := range room.Observers.RGet() {
@@ -427,11 +433,11 @@ func (room *Room) launchGarbageCollector() {
 			continue
 		}
 		i++
-		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
-			fmt.Println(conn.User.Name, " - bad")
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutObserver {
+			//fmt.Println(conn.User.Name, " - bad")
 			room.Leave(conn, ActionTimeOver)
 		} else {
-			fmt.Println(conn.User.Name, " - good", conn)
+			//fmt.Println(conn.User.Name, " - good", conn)
 		}
 	}
 	if i == 0 {
@@ -449,12 +455,18 @@ func (room *Room) runRoom() {
 		room.wGroup.Done()
 	}()
 
+	// все в конфиг
 	ticker := time.NewTicker(time.Second * 1)
+	var timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64
+	timeoutPeopleFinding = 2
+	timeoutPlayer = 60
+	timeoutObserver = 5
+	timeoutFinished = 20
 
 	for {
 		select {
 		case <-ticker.C:
-			go room.launchGarbageCollector()
+			go room.launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished)
 		case newStatus := <-room.chanStatus:
 			if newStatus == room.Status || newStatus > StatusFinished {
 				continue
