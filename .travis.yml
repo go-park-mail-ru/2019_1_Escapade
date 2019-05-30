@@ -16,8 +16,8 @@ branches:
 script:
 - docker-compose up -d
 before_install:
-- openssl aes-256-cbc -K $encrypted_a9b69efaae82_key -iv $encrypted_a9b69efaae82_iv
-  -in id_rsa.enc -out ./id_rsa -d
+# - openssl aes-256-cbc -K $encrypted_a9b69efaae82_key -iv $encrypted_a9b69efaae82_iv
+#   -in id_rsa.enc -out ./id_rsa -d
 - base=https://github.com/docker/machine/releases/download/v0.16.0 && curl -L $base/docker-machine-$(uname -s)-$(uname -m) >/tmp/docker-machine && sudo install /tmp/docker-machine /usr/local/bin/docker-machine
 - npm install -g machine-share
 - machine-import escapade-compose.zip
