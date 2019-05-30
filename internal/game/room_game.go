@@ -7,10 +7,10 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
-// Winner determine who won the game
-func (room *Room) Winner() (idWin int) {
+// Winners determine who won the game
+func (room *Room) Winners() (winners []int) {
 	if room.done() {
-		return 0
+		return nil
 	}
 	room.wGroup.Add(1)
 	defer func() {
@@ -20,13 +20,31 @@ func (room *Room) Winner() (idWin int) {
 	max := 0.
 
 	players := room.Players.RPlayers()
-	for id, player := range players {
-		if player.Points > max {
+	for _, player := range players {
+		if player.Points > max && !player.Died {
 			max = player.Points
-			idWin = id
 		}
 	}
+
+	winners = make([]int, 0)
+	for index, player := range players {
+		if player.Points == max && !player.Died {
+			max = player.Points
+			winners = append(winners, index)
+		}
+	}
+
 	return
+}
+
+// Winner check id in the winners slice
+func (room *Room) Winner(winners []int, find int) bool {
+	for i := range winners {
+		if find == i {
+			return true
+		}
+	}
+	return false
 }
 
 // FlagFound is called, when somebody find cell flag
@@ -50,7 +68,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		return
 	}
 
-	room.Players.IncreasePlayerPoints(founder.Index(), 30)
+	room.Players.IncreasePlayerPoints(founder.Index(), 300)
 
 	killConn, index := room.Players.Connections.SearchByID(which)
 	fmt.Println(killConn.User.Name, "was found by", founder.User.Name)
@@ -84,7 +102,12 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.SetFinished(conn)
 
 		cell := room.Players.Flag(conn.Index())
-		room.Field.SetCellFlagTaken(&cell.Cell)
+		//room.Field.SetCellFlagTaken(&cell.Cell)
+
+		cells := make([]Cell, 0)
+		room.Field.saveCell(&cell.Cell, &cells)
+
+		room.sendNewCells(room.All, cell.Cell)
 
 		if room.Players.Capacity() <= room.killed()+1 {
 			room.chanStatus <- StatusFinished
@@ -110,6 +133,7 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Con
 			if this == nil || index != this.Index() {
 				found = true
 				player = index
+				fmt.Println("find the same")
 			}
 			break
 		}
@@ -212,6 +236,7 @@ func (room *Room) FillField() {
 
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 
+	//room.Players.SetFlags(room.Field.RandomFlags(room.Players.RPlayers()))
 	room.Field.Zero()
 	room.setFlags()
 	room.Field.SetMines()

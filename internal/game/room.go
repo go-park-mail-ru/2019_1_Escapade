@@ -17,6 +17,7 @@ const (
 	StatusFlagPlacing   = 2
 	StatusRunning       = 3
 	StatusFinished      = 4
+	StatusHistory       = 5
 )
 
 // Room consist of players and observers, field and history

@@ -66,7 +66,7 @@ func (op *OnlinePlayers) UnmarshalJSON(b []byte) error {
 // NewConnections create instance of Connections
 func newOnlinePlayers(size int, field Field) *OnlinePlayers {
 	players := make([]Player, size)
-	flags := field.RandomFlags(players)
+	flags := make([]Flag, size)
 	return &OnlinePlayers{
 		capacityM: &sync.RWMutex{},
 		_capacity: size,

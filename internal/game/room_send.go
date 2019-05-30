@@ -65,19 +65,19 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 		Value: struct {
 			Players []Player `json:"players"`
 			Cells   []Cell   `json:"cells"`
-			Winner  int      `json:"winner"`
+			Winners []int    `json:"winners"`
 			Timer   bool     `json:"timer"`
 		}{
 			Players: room.Players.RPlayers(),
 			Cells:   cells,
-			Winner:  room.Winner(),
+			Winners: room.Winners(),
 			Timer:   timer,
 		},
 	}
 	room.send(response, predicate)
 }
 
-func (room *Room) sendNewCells(cells []Cell, predicate SendPredicate) {
+func (room *Room) sendNewCells(predicate SendPredicate, cells ...Cell) {
 	if room.done() {
 		return
 	}

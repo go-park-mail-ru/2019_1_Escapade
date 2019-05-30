@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -30,6 +31,8 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	message.User = conn.User
 	message.Time = time.Now()
 
+	fmt.Println("Message start")
+
 	// ignore models.StartWrite, models.FinishWrite
 	switch message.Action {
 	case models.Write:
@@ -42,24 +45,27 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		update(find(message), message)
 		_, err = lobby.db.UpdateMessage(message)
 	case models.Delete:
+		fmt.Println("message.ID", message.ID)
 		if message.ID <= 0 {
 			return re.ErrorMessageInvalidID()
 		}
 		delete(find(message))
+		fmt.Println("delete")
 		_, err = lobby.db.DeleteMessage(message)
+		fmt.Println("delete from db")
 	}
 	if err != nil {
+		fmt.Println("err while messaging", err.Error())
 		return err
 	}
 
-	if message.Action != models.Delete && message.Action != models.Update {
-		response := models.Response{
-			Type:  "GameMessage",
-			Value: message,
-		}
-
-		send(response, predicate)
+	response := models.Response{
+		Type:  "GameMessage",
+		Value: message,
 	}
+	fmt.Println("message done")
+
+	send(response, predicate)
 	return err
 
 }

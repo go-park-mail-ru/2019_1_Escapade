@@ -81,7 +81,7 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 	if index < 0 {
 		return false
 	}
-	fmt.Println("somebody set flag")
+	fmt.Println("somebody set flag", index, cell.X, cell.Y, FlagID(conn.ID()))
 	onlinePlayers._flags[index].Cell.X = cell.X
 	onlinePlayers._flags[index].Cell.Y = cell.Y
 	onlinePlayers._flags[index].Cell.PlayerID = conn.ID()
@@ -91,6 +91,7 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 		onlinePlayers._flags[conn.Index()].Set = true
 		onlinePlayers.flagsLeft--
 	}
+	fmt.Println("flagsLeft", onlinePlayers.flagsLeft)
 	return onlinePlayers.flagsLeft == 0
 }
 

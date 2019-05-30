@@ -94,16 +94,27 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
+	var flagsFound int
+
 	for i := 0; i < field.Height; i++ {
 		for j := 0; j < field.Width; j++ {
 			v := field.getMatrixValue(i, j)
-			if v != CellOpened {
+			fmt.Println("cell ", i, j, v)
+			if v > CellIncrement {
+				fmt.Println("flag!!!!", i, j, v)
+				flagsFound++
+			}
+			if v == CellFlagTaken {
+				fmt.Println("CellFlagTaken!!!!", i, j, v)
+			}
+			if v != CellOpened && v != CellFlagTaken {
 				cell := NewCell(i, j, v, 0)
 				field.saveCell(cell, cells)
-				field.setCellOpen(i, j)
+				field.setCellOpen(i, j, v)
 			}
 		}
 	}
+	fmt.Println("flagsFound", flagsFound)
 }
 
 // openCellArea open cell area, if there is no mines around
@@ -116,7 +127,6 @@ func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 			cell := NewCell(x, y, v, ID)
 			field.saveCell(cell, cells)
 			field.decrementCellsLeft()
-			field.setCellOpen(x, y)
 		}
 		if v == 0 {
 			field.openCellArea(x-1, y-1, ID, cells)
@@ -148,9 +158,10 @@ func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
 		cell.Time = time.Now()
 		field.setToHistory(*cell)
+		*cells = append(*cells, *cell)
+		field.setCellOpen(cell.X, cell.Y, cell.Value)
 	}
-	*cells = append(*cells, *cell)
-	fmt.Printf("save openCellArea Cell(%d/%d)=%d\n", cell.X, cell.Y, cell.Value)
+	//fmt.Printf("save openCellArea Cell(%d/%d)=%d\n", cell.X, cell.Y, cell.Value)
 }
 
 // OpenCell open cell and return slice of opened cells
@@ -168,7 +179,7 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		if cell.Value != FlagID(cell.PlayerID) && cell.Value != CellOpened {
+		if cell.Value != FlagID(cell.PlayerID) {
 			field.saveCell(cell, &cells)
 		}
 	}
@@ -258,6 +269,14 @@ func (field *Field) SetMines() {
 			mines--
 		}
 	}
+
+	// for i := 0; i < field.Width; i++ {
+	// 	for j := 0; j < field.Height; j++ {
+	// 		if field.Matrix[i][j] == CellIncrement {
+	// 			panic("field.Matrix[i][j] == CellIncrement")
+	// 		}
+	// 	}
+	// }
 }
 
 // generate matrix
@@ -284,6 +303,9 @@ func (field Field) IsInside(cell *Cell) bool {
 
 // FlagID convert player ID to Flag ID
 func FlagID(connID int) int {
+	// if connID == 0 {
+	// 	panic("connID")
+	// }
 	return int(math.Abs(float64(connID))) + CellIncrement
 }
 
@@ -320,8 +342,12 @@ func (field *Field) SetCellFlagTaken(cell *Cell) {
 }
 
 // setCellOpen set cell opened
-func (field *Field) setCellOpen(x, y int) {
-	field.setMatrixValue(x, y, CellOpened)
+func (field *Field) setCellOpen(x, y, v int) {
+	if v < CellMine {
+		field.setMatrixValue(x, y, CellOpened)
+	} else {
+		field.setMatrixValue(x, y, CellFlagTaken)
+	}
 }
 
 // setMine add mine to matrix and increase dangerous value in cells near mine

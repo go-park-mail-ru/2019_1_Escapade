@@ -130,7 +130,7 @@ func (room *Room) MakePlayer(conn *Connection, recover bool) {
 	} else {
 		conn.setBoth(true)
 	}
-	room.Players.Add(conn, false)
+	room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false)
 	room.greet(conn, true)
 	if recover {
 		room.sendStatus(Me(conn))

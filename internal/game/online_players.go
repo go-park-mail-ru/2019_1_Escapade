@@ -103,16 +103,26 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
-	if conn == nil {
-		panic(1)
-	}
+func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool) bool {
+	// if conn == nil {
+	// 	panic(1)
+	// }
 	i := onlinePlayers.Connections.Add(conn, kill)
 	if i < 0 {
 		return false
 	}
 	onlinePlayers.SetPlayerID(i, conn.ID())
 	conn.SetIndex(i)
+
+	fmt.Println("add cell", cell.X, cell.Y, cell.Value, cell.PlayerID)
+
+	if !onlinePlayers._flags[i].Set {
+		onlinePlayers._flags[i] = Flag{
+			Cell: cell,
+			Set:  false,
+		}
+	}
+
 	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
 }

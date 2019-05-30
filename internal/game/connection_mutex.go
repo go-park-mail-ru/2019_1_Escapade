@@ -47,6 +47,14 @@ func (conn *Connection) setDisconnected() {
 	conn.time = time.Now()
 }
 
+// SetConnected set _disconnected false
+func (conn *Connection) SetConnected() {
+	conn.disconnectedM.Lock()
+	conn._disconnected = false
+	conn.disconnectedM.Unlock()
+	conn.time = time.Now()
+}
+
 // Room return   '_room' field
 func (conn *Connection) Room() *Room {
 	if conn.done() {

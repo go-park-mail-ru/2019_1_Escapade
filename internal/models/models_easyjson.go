@@ -1256,6 +1256,8 @@ func easyjsonD2b7633eDecodeModels9(in *jlexer.Lexer, out *Message) {
 			out.Status = int(in.Int())
 		case "action":
 			out.Action = int(in.Int())
+		case "edited":
+			out.Edited = bool(in.Bool())
 		default:
 			in.SkipRecursive()
 		}
@@ -1333,6 +1335,16 @@ func easyjsonD2b7633eEncodeModels9(out *jwriter.Writer, in Message) {
 			out.RawString(prefix)
 		}
 		out.Int(int(in.Action))
+	}
+	{
+		const prefix string = ",\"edited\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.Edited))
 	}
 	out.RawByte('}')
 }
