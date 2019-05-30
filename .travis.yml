@@ -8,7 +8,7 @@ addons:
     packages:
     - node
 env:
-- COMPOSE_TLS_VERSION=TLSv1_2
+- DOCKER_COMPOSE_VERSION=3
 install: true
 branches:
   only:
@@ -25,3 +25,4 @@ before_install:
 - npm install -g machine-share
 - machine-import escapade-compose.zip
 - eval $(docker-machine env escapade-compose)
+- export COMPOSE_TLS_VERSION=TLSv1_2
