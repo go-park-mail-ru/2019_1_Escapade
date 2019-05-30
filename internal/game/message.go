@@ -64,6 +64,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 
 }
 
+// Messages processes the receipt of an object Messages from the user
 func Messages(conn *Connection, messages *models.Messages,
 	messageSlice []*models.Message) {
 	size := len(messageSlice)

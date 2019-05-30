@@ -214,7 +214,7 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 func (field *Field) OpenSave(n int) (cells []Cell) {
 	cells = make([]Cell, 0)
 	size := 0
-	fmt.Println("OpenSave wanan open ", n)
+
 	for n > size {
 		rand.Seed(time.Now().UnixNano())
 		i := rand.Intn(field.Width)
@@ -224,15 +224,14 @@ func (field *Field) OpenSave(n int) (cells []Cell) {
 			size = len(cells)
 		}
 	}
-	fmt.Println("size is ", size)
 	return
 }
 
+// Zero clears the entire matrix of values
 func (field *Field) Zero() {
 	for i := 0; i < field.Width; i++ {
 		for j := 0; j < field.Height; j++ {
 			field.setMatrixValue(i, j, 0)
-			//fmt.Println("zero", i, j, field.Matrix[i][j])
 		}
 	}
 }
@@ -249,30 +248,16 @@ func (field *Field) SetMines() {
 	height := field.Height
 	mines := field.Mines
 
-	for i := 0; i < width; i++ {
-		for j := 0; j < height; j++ {
-			fmt.Println("before", i, j, field.Matrix[i][j])
-		}
-	}
-
 	for mines > 0 {
 		rand.Seed(time.Now().UnixNano())
 		someX := rand.Intn(width)
 		someY := rand.Intn(height)
-		//fmt.Println("mins send", i, j, field.Matrix[i][j], mines)
+
 		if field.lessThenMine(someX, someY) {
 			field.setMine(someX, someY)
 			mines--
-			fmt.Println("mins send", someX, someY, field.Matrix[someX][someY], mines)
 		}
 	}
-
-	for i := 0; i < width; i++ {
-		for j := 0; j < height; j++ {
-			fmt.Println("after", i, j, field.Matrix[i][j])
-		}
-	}
-	//fmt.Println("end SetMines")
 }
 
 // generate matrix

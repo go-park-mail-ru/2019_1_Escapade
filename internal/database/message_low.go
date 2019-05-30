@@ -43,7 +43,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 		}
 
 		if err = rows.Scan(&userSQL.ID, &user.Name, &userSQL.Name,
-			&userSQL.PhotoURL, &message.Text, &message.Time, message.Edited); err != nil {
+			&userSQL.PhotoURL, &message.Text, &message.Time, &message.Edited); err != nil {
 
 			break
 		}

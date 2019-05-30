@@ -163,6 +163,21 @@ func (room *Room) MakeObserver(conn *Connection, recover bool) {
 	conn.PushToRoom(room)
 }
 
+// Search search connection in players and observers of room
+func (room *Room) Search(find *Connection) *Connection {
+	found, i := room.Players.SearchConnection(find)
+	if i >= 0 {
+		fmt.Println("player!", found.Disconnected(), found)
+		return found
+	}
+	found, i = room.Observers.SearchByID(find.ID())
+	if i >= 0 {
+		fmt.Println("observer!", found.Disconnected())
+		return found
+	}
+	return nil
+}
+
 // RemoveFromGame control the removal of the connection from the room
 func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool) {
 	if room.done() {
@@ -205,6 +220,8 @@ func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool
 
 		fmt.Println("room.Players.Empty")
 		room.Close()
+	} else {
+		room.lobby.sendRoomUpdate(*room, All)
 	}
 	fmt.Println("there")
 	return done

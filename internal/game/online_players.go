@@ -10,6 +10,7 @@ type Rooms struct {
 	Get      []*Room `json:"get"`
 }
 
+// Refresh reset the players, their connections and flags(generate new)
 func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
 	size := onlinePlayers.Capacity()
 
@@ -23,6 +24,7 @@ func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
 	onlinePlayers.RefreshConnections()
 }
 
+// RefreshConnections reset connections
 func (onlinePlayers *OnlinePlayers) RefreshConnections() {
 	size := onlinePlayers.Capacity()
 	onlinePlayers.Connections = *NewConnections(size)
@@ -121,7 +123,7 @@ func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bo
 	return onlinePlayers.Connections.Remove(conn, disconnect)
 }
 
-// enoughPlace check that you can add more elements
+// EnoughPlace check that you can add more elements
 func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
 	return onlinePlayers.Connections.EnoughPlace()
 }

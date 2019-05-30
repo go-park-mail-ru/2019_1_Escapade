@@ -110,6 +110,7 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 		room.wGroup.Done()
 	}()
 
+	//conn.setDisconnected()
 	if room.lobby.Metrics() {
 		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
 	}
@@ -117,7 +118,9 @@ func (room *Room) Leave(conn *Connection, action int) (done bool) {
 	room.sendAction(pa, room.AllExceptThat(conn))
 	fmt.Println("Left room")
 
-	return room.RemoveFromGame(conn, action == ActionDisconnect)
+	done = room.RemoveFromGame(conn, action == ActionDisconnect)
+
+	return
 }
 
 // applyAction applies the effects of opening a cell
@@ -227,32 +230,30 @@ func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
 		room.wGroup.Done()
 	}()
 	fmt.Println("action", action)
-	if room.IsActive() {
-		if action == ActionGiveUp {
-			conn.debug("we see you wanna give up?")
+
+	switch action {
+	case ActionGiveUp:
+		if room.IsActive() {
 			go room.GiveUp(conn)
 			return true
 		}
-	} else {
-		if action == ActionRestart {
-			conn.lobby.greet(conn)
-			if room.Status == StatusFinished {
-				room.Restart()
-				room.lobby.addRoom(room)
-			}
-			if room.Status == StatusPeopleFinding {
-				room.addPlayer(conn)
-			}
-			return true
+	case ActionRestart:
+		if room.Status == StatusRunning || room.Status == StatusFlagPlacing {
+			return false
 		}
-	}
-	if action == ActionBackToLobby {
-		conn.debug("we see you wanna back to lobby?")
+		conn.lobby.greet(conn)
+		if room.Status == StatusFinished {
+			room.Restart()
+			room.lobby.addRoom(room)
+		}
+		if room.Status == StatusPeopleFinding {
+			room.addPlayer(conn)
+		}
+		return true
+	case ActionBackToLobby:
 		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
-		conn.debug("we did it")
 		return true
 	}
-
 	return false
 }
 
@@ -306,6 +307,8 @@ func (room *Room) StartFlagPlacing() {
 	defer func() {
 		room.wGroup.Done()
 	}()
+
+	room.FillField()
 
 	room.Status = StatusFlagPlacing
 	players := room.Players.Connections.RGet()
@@ -397,6 +400,45 @@ func (room *Room) initTimers() {
 	return
 }
 
+func (room *Room) launchGarbageCollector() {
+	fmt.Println("launchGarbageCollector")
+
+	var timeout float64 // в конфиг
+	if room.Status == StatusPeopleFinding {
+		timeout = 5.
+	} else {
+		timeout = 60.
+	}
+	i := 0
+	for _, conn := range room.Players.Connections.RGet() {
+		if conn == nil {
+			continue
+		}
+		i++
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
+			fmt.Println(conn.User.Name, " - bad")
+			room.Leave(conn, ActionTimeOver)
+		} else {
+			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+		}
+	}
+	for _, conn := range room.Observers.RGet() {
+		if conn == nil {
+			continue
+		}
+		i++
+		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeout {
+			fmt.Println(conn.User.Name, " - bad")
+			room.Leave(conn, ActionTimeOver)
+		} else {
+			fmt.Println(conn.User.Name, " - good", conn)
+		}
+	}
+	if i == 0 {
+		room.chanStatus <- StatusAborted
+	}
+}
+
 func (room *Room) runRoom() {
 	if room.done() {
 		return
@@ -407,23 +449,33 @@ func (room *Room) runRoom() {
 		room.wGroup.Done()
 	}()
 
+	ticker := time.NewTicker(time.Second * 1)
+
 	for {
-		newStatus := <-room.chanStatus
-		if newStatus == room.Status || newStatus > StatusFinished {
-			continue
-		}
-		switch newStatus {
-		// case StatusPeopleFinding:
-		// 	//
-		case StatusFlagPlacing:
-			room.StartFlagPlacing()
-		case StatusRunning:
-			room.prepare.Stop()
-			room.StartGame()
-		case StatusFinished:
-			ok := room.play.Stop()
-			room.FinishGame(!ok)
-			return
+		select {
+		case <-ticker.C:
+			go room.launchGarbageCollector()
+		case newStatus := <-room.chanStatus:
+			if newStatus == room.Status || newStatus > StatusFinished {
+				continue
+			}
+			switch newStatus {
+			// case StatusPeopleFinding:
+			// 	//
+			case StatusFlagPlacing:
+				room.StartFlagPlacing()
+			case StatusRunning:
+				room.prepare.Stop()
+				room.StartGame()
+			case StatusFinished:
+				ok := room.play.Stop()
+				ticker.Stop()
+				room.FinishGame(!ok)
+				return
+			case StatusAborted:
+				ticker.Stop()
+				return
+			}
 		}
 	}
 }

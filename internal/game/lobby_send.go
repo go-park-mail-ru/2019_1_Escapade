@@ -34,7 +34,7 @@ func (lobby *Lobby) greet(conn *Connection) {
 		Value: struct {
 			Lobby Lobby                 `json:"lobby"`
 			You   models.UserPublicInfo `json:"you"`
-			Room  *Room                 `json:"room, omitempty"`
+			Room  *Room                 `json:"room,omitempty"`
 		}{
 			Lobby: *lobby,
 			You:   *conn.User,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// RGet return connections slice only for Read!
+// Capacity return '_capacity' field
 func (onlinePlayers *OnlinePlayers) Capacity() int {
 
 	onlinePlayers.capacityM.RLock()
@@ -12,7 +12,7 @@ func (onlinePlayers *OnlinePlayers) Capacity() int {
 	return onlinePlayers._capacity
 }
 
-// RGet return connections slice only for Read!
+// SetCapacity set capacity
 func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int) {
 
 	onlinePlayers.capacityM.Lock()
@@ -20,7 +20,7 @@ func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int) {
 	onlinePlayers._capacity = capacity
 }
 
-// RGet return connections slice only for Read!
+// SetPlayer set player in slice of players
 func (onlinePlayers *OnlinePlayers) SetPlayer(i int, player Player) {
 
 	onlinePlayers.playersM.Lock()
@@ -29,6 +29,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayer(i int, player Player) {
 	return
 }
 
+// SetPlayers set player slice
 func (onlinePlayers *OnlinePlayers) SetPlayers(players []Player) {
 
 	onlinePlayers.playersM.Lock()
@@ -37,6 +38,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayers(players []Player) {
 	return
 }
 
+// IncreasePlayerPoints increase points of element of player slice where index i
 func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index int, points float64) {
 
 	onlinePlayers.playersM.Lock()
@@ -52,6 +54,7 @@ func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index int, points float
 	}
 }
 
+// SetFlags set flag slice
 func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
 
 	onlinePlayers.flagsM.Lock()
@@ -60,7 +63,7 @@ func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
 	return
 }
 
-// RGet return connections slice only for Read!
+// SetPlayerID sets the id of an player slice element with an index i
 func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int) {
 
 	onlinePlayers.playersM.Lock()
@@ -69,6 +72,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int) {
 	return
 }
 
+// SetFlag set flag which connection is conn
 func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 
 	onlinePlayers.flagsM.Lock()
@@ -90,6 +94,7 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 	return onlinePlayers.flagsLeft == 0
 }
 
+// Flags return '_flags' field
 func (onlinePlayers *OnlinePlayers) Flags() []Flag {
 
 	onlinePlayers.flagsM.Lock()
@@ -98,6 +103,7 @@ func (onlinePlayers *OnlinePlayers) Flags() []Flag {
 	return onlinePlayers._flags
 }
 
+// Finish set flag finish true to all players
 func (onlinePlayers *OnlinePlayers) Finish() {
 
 	// all players 'Finished' set true
@@ -109,7 +115,7 @@ func (onlinePlayers *OnlinePlayers) Finish() {
 
 }
 
-// RGet return connections slice only for Read!
+// Player return element from slice of players with index i
 func (onlinePlayers *OnlinePlayers) Player(i int) Player {
 
 	onlinePlayers.playersM.Lock()
@@ -117,6 +123,7 @@ func (onlinePlayers *OnlinePlayers) Player(i int) Player {
 	return onlinePlayers._players[i]
 }
 
+// PlayerFinish set to player with index i in slice of players flags Finished and Died true
 func (onlinePlayers *OnlinePlayers) PlayerFinish(i int) {
 
 	onlinePlayers.playersM.Lock()
@@ -125,6 +132,7 @@ func (onlinePlayers *OnlinePlayers) PlayerFinish(i int) {
 	onlinePlayers._players[i].Died = true
 }
 
+// Flag return element from slice of flags with index i
 func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
 
 	onlinePlayers.flagsM.Lock()
@@ -132,7 +140,7 @@ func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
 	return onlinePlayers._flags[i]
 }
 
-// RGet return connections slice only for Read!
+// RPlayers return slice of players only for read
 func (onlinePlayers *OnlinePlayers) RPlayers() []Player {
 
 	onlinePlayers.playersM.Lock()

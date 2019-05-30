@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+// SetImage function to set image
 type SetImage func(users ...*models.UserPublicInfo) (err error)
 
 // Request connect Connection and his message

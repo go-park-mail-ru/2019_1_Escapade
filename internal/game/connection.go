@@ -50,6 +50,8 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		context: context,
 		cancel:  cancel,
 
+		time: time.Now(),
+
 		send:      make(chan []byte),
 		actionSem: make(chan struct{}, 1),
 	}
