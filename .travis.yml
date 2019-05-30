@@ -10,7 +10,7 @@ branches:
   only:
   - develop
 script:
-- docker-compose up -d
+- docker-compose up --build -d
 before_install:
 # - openssl aes-256-cbc -K $encrypted_a9b69efaae82_key -iv $encrypted_a9b69efaae82_iv
 #   -in id_rsa.enc -out ~./id_rsa -d
@@ -21,3 +21,5 @@ before_install:
 - eval $(docker-machine env escapade-compose)
 - docker-machine ls
 - export COMPOSE_TLS_VERSION=TLSv1_2
+- docker-compose ps
+- docker-compose stop
