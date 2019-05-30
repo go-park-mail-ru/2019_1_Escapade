@@ -31,7 +31,7 @@ func (db *DataBase) CreateMessage(message *models.Message,
 // UpdateMessage update message
 func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 	sqlInsert := `
-	Update GameChat set message = $1 where id = $2
+	Update GameChat set message = $1, edited = true where id = $2
 		RETURNING ID;
 		`
 	row := db.Db.QueryRow(sqlInsert, message.Text, message.ID)

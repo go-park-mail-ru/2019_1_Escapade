@@ -100,6 +100,7 @@ func (room *Room) setMessage(i int, message *models.Message) {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
 	room._messages[i] = message
+	room._messages[i].Edited = true
 	return
 }
 

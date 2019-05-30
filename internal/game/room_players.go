@@ -107,7 +107,7 @@ func (room *Room) addPlayer(conn *Connection) bool {
 	go room.lobby.sendRoomUpdate(*room, All)
 
 	if !room.Players.EnoughPlace() {
-		room.StartFlagPlacing()
+		room.chanStatus <- StatusFlagPlacing
 	}
 
 	return true

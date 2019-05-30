@@ -7,7 +7,7 @@
 	"dataBase": {
 		"driverName": "postgres",
 		"url": "DATABASE_URL",
-		"connectionString": "dbname=escabase user=rolepad password=escabase sslmode=disable",
+		"connectionString": "dbname=escabase user=rolepade password=escapade sslmode=disable",
 		"maxOpenConns": 20,
 		"PageGames": 2,
 		"PageUsers": 100

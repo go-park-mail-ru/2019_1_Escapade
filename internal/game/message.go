@@ -52,12 +52,14 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		return err
 	}
 
-	response := models.Response{
-		Type:  "GameMessage",
-		Value: message,
-	}
+	if message.Action != models.Delete && message.Action != models.Update {
+		response := models.Response{
+			Type:  "GameMessage",
+			Value: message,
+		}
 
-	send(response, predicate)
+		send(response, predicate)
+	}
 	return err
 
 }

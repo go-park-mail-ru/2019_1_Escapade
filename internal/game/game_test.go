@@ -279,7 +279,7 @@ func testGame(i int) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer ws.Close()
-		Launch(gc, nil, false)
+		Launch(gc, nil, false, nil)
 
 		//TestConnection = NewConnection(ws, user, lobby)
 
@@ -311,7 +311,7 @@ func testLobby(i int) func(w http.ResponseWriter, r *http.Request) {
 		}
 		defer ws.Close()
 
-		tl := NewLobby(500, 500, nil, true, false)
+		tl := NewLobby(500, 500, nil, true, false, nil)
 		user := createRandomUser(i + 1)
 		connections[i] = NewConnection(ws, user, tl)
 		connections[i].Launch(wss, "")
