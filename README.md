@@ -2,10 +2,11 @@
 
 :heart_eyes: Top backend :heart_eyes:
 
-## Микросервисы:
-- [API](https://escapade-backend.herokuapp.com)
-- [Авторизация](https://escapade-auth.herokuapp.com)
-- [Чат](https://escapade-chat.herokuapp.com)
+## Локальный запуск:
+- sudo apt  install docker-compose
+- sudo docker-compose up -d
+- Enjoy!
+P.S. Пользовательские аватарки не будут отображаться, поскольку для доступа к фотографиям мы используем AWS ключи, которые в репозитории не содержатся
 
 ## Состав:
 - Надежный ментор - [Дмитрий Липко](https://github.com/dlipko)
@@ -13,11 +14,8 @@
 - Креативный фронтендер - [Иван Спасенов](https://github.com/slevinsps)
 - Усердный фронтендер - [Сергей Апарин](https://github.com/Bigyin1)
 
-Мы в [Heroku](https://dashboard.heroku.com/teams/escapade/apps)
-
-
 ## Фронт
-- [Играть](https://escapade-frontend.herokuapp.com)
+- [Играть](https://ser.ru.com/)
 - [Разрабатывать](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
 - [Рисовать](https://www.figma.com/file/WcFryEu51iySsuBd8F0CLi0S/explose)
 
