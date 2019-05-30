@@ -343,7 +343,7 @@ func (room *Room) StartGame() {
 	defer func() {
 		room.wGroup.Done()
 	}()
-	fmt.Println("SSSSSSSSSSSSSSSSSSSSSSs")
+	fmt.Println("StartGame")
 
 	room.FillField()
 

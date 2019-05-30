@@ -269,6 +269,14 @@ func (field *Field) SetMines() {
 			mines--
 		}
 	}
+
+	// for i := 0; i < field.Width; i++ {
+	// 	for j := 0; j < field.Height; j++ {
+	// 		if field.Matrix[i][j] == CellIncrement {
+	// 			panic("field.Matrix[i][j] == CellIncrement")
+	// 		}
+	// 	}
+	// }
 }
 
 // generate matrix
@@ -295,6 +303,9 @@ func (field Field) IsInside(cell *Cell) bool {
 
 // FlagID convert player ID to Flag ID
 func FlagID(connID int) int {
+	// if connID == 0 {
+	// 	panic("connID")
+	// }
 	return int(math.Abs(float64(connID))) + CellIncrement
 }
 

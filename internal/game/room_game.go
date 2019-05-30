@@ -115,6 +115,7 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Con
 			if this == nil || index != this.Index() {
 				found = true
 				player = index
+				fmt.Println("find the same")
 			}
 			break
 		}
@@ -217,6 +218,7 @@ func (room *Room) FillField() {
 
 	fmt.Println("fillField", room.Field.Height, room.Field.Width, len(room.Field.Matrix))
 
+	//room.Players.SetFlags(room.Field.RandomFlags(room.Players.RPlayers()))
 	room.Field.Zero()
 	room.setFlags()
 	room.Field.SetMines()
