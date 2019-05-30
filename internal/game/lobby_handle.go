@@ -58,7 +58,7 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 
 	lobby.addWaiter(newConn)
 
-	if !lobby.canCloseRooms && lobby.recoverInRoom(newConn, disconnected) {
+	if lobby.canCloseRooms && lobby.recoverInRoom(newConn, disconnected) {
 		go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
 		return
 	}
@@ -124,6 +124,8 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 		if found != nil {
 			found.setDisconnected()
 		}
+		fmt.Println("sendPlayerExit")
+		room.sendPlayerExit(*conn, AllExceptThat(conn))
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
 	if done && len(room.Players.Connections.RGet()) > 0 {
