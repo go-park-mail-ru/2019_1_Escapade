@@ -125,7 +125,8 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 			found.setDisconnected()
 		}
 		fmt.Println("sendPlayerExit")
-		room.sendPlayerExit(*conn, AllExceptThat(conn))
+		pa := *room.addAction(conn.ID(), action)
+		room.sendAction(pa, room.AllExceptThat(conn))
 		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
 	}
 	if done && len(room.Players.Connections.RGet()) > 0 {
