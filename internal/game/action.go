@@ -25,6 +25,7 @@ const (
 	ActionTimeout
 	ActionConnect
 	ActionTaken
+	ActionDisconnectObserver
 )
 
 // PlayerAction combine player and his action
