@@ -153,18 +153,24 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 	observerGone := room.LeaveObserver(conn)
 
 	fmt.Println("look", playerGone, observerGone)
-	if playerGone || observerGone {
+	if playerGone {
 		fmt.Println("go away")
 		room.lobby.LeaveRoom(conn, ActionBackToLobby)
 		room.LeaveMeta(conn, ActionDisconnect)
+	}
+	if observerGone {
+		fmt.Println("go away")
+		room.lobby.LeaveRoom(conn, ActionBackToLobby)
+		room.LeaveMeta(conn, ActionDisconnectObserver)
 	}
 }
 
 func (room *Room) processActionDisconnect(conn *Connection) {
 	found, _ := room.Search(conn)
-	var refreshSeconds = 30
-	if conn.ID() < 0 || time.Since(conn.time).Minutes() > float64(refreshSeconds) {
-		fmt.Println("remove <-room.chanConnection: ")
+	var refreshSeconds = 1
+	fmt.Println("tiiiiiime ", time.Since(conn.time).Seconds(), float64(refreshSeconds))
+	if conn.ID() < 0 || time.Since(conn.time).Seconds() > float64(refreshSeconds) {
+
 		pa := *room.addAction(conn.ID(), ActionTaken)
 		room.sendAction(pa, room.AllExceptThat(found))
 		found.setDisconnected()
