@@ -63,6 +63,16 @@ func (conns *Connections) Remove(conn *Connection, onlyIfDisconnected bool) bool
 	//sendError(conn, "Remove", "You disconnected ")
 }
 
+// Remove -> FastRemove
+func (conns *Connections) FastRemove(conn *Connection) bool {
+	conn, i := conns.SearchByID(conn.ID())
+	if i < 0 {
+		return false
+	}
+	conns.remove(i)
+	return true
+}
+
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (conns *Connections) Add(conn *Connection, kill bool) (i int) {

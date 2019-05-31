@@ -20,6 +20,11 @@ const (
 	StatusHistory       = 5
 )
 
+type ConnectionAction struct {
+	conn   *Connection
+	action int
+}
+
 // Room consist of players and observers, field and history
 type Room struct {
 	wGroup *sync.WaitGroup
@@ -52,7 +57,8 @@ type Room struct {
 	Date       time.Time
 	chanFinish chan struct{}
 
-	chanStatus chan int
+	chanStatus     chan int
+	chanConnection chan ConnectionAction
 
 	play    *time.Timer
 	prepare *time.Timer
@@ -94,7 +100,14 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.Settings = rs
 
 	room.ID = id
+
+	room.chanFinish = make(chan struct{})
+	room.chanStatus = make(chan int)
+	room.chanConnection = make(chan ConnectionAction)
+
 	room.Restart()
+
+	go room.runRoom()
 
 	return
 }
@@ -125,10 +138,6 @@ func (room *Room) Restart() {
 	room.Field = field
 
 	room.Date = time.Now()
-	room.chanFinish = make(chan struct{})
-	room.chanStatus = make(chan int)
-
-	go room.runRoom()
 
 	return
 }

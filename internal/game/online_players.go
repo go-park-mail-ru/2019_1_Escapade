@@ -39,7 +39,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			if room == nil {
 				continue
 			}
-			go room.Leave(conn, ActionBackToLobby)
+			room.LeavePlayer(conn)
 			continue
 		}
 		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
@@ -103,7 +103,7 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool) bool {
+func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, recover bool) bool {
 	// if conn == nil {
 	// 	panic(1)
 	// }
@@ -114,12 +114,14 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool) 
 	onlinePlayers.SetPlayerID(i, conn.ID())
 	conn.SetIndex(i)
 
-	fmt.Println("add cell", cell.X, cell.Y, cell.Value, cell.PlayerID)
+	if !recover {
+		fmt.Println("add cell", cell.X, cell.Y, cell.Value, cell.PlayerID)
 
-	if !onlinePlayers._flags[i].Set {
-		onlinePlayers._flags[i] = Flag{
-			Cell: cell,
-			Set:  false,
+		if !onlinePlayers._flags[i].Set {
+			onlinePlayers._flags[i] = Flag{
+				Cell: cell,
+				Set:  false,
+			}
 		}
 	}
 
@@ -127,7 +129,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool) 
 	return true
 }
 
-// Remove delete element and decrement size if element
+// Deleted -> Remove delete element and decrement size if element
 // exists in map
 func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bool {
 	return onlinePlayers.Connections.Remove(conn, disconnect)

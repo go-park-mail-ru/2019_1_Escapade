@@ -23,6 +23,8 @@ const (
 	ActionTimeOver
 	ActionRestart
 	ActionTimeout
+	ActionConnect
+	ActionTaken
 )
 
 // PlayerAction combine player and his action

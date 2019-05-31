@@ -66,33 +66,52 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	fmt.Println("PlayerToWaiter called")
 	lobby.Playing.Remove(conn, true)
 	//lobby.playingRemove(conn)
-	lobby.addWaiter(conn)
 	conn.PushToLobby()
+	lobby.addWaiter(conn)
 }
 
 // recoverInRoom return true if can find Connection in any room
 // otherwise false
-func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) bool {
-	// find such player
-	fmt.Println("somebody wants you to recover")
+func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 
-	i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
-
-	if i >= 0 {
-		fmt.Println("we found you in game!")
-		room.RecoverPlayer(newConn)
-		return true
+	fmt.Println("recoverInRoom check")
+	_, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
+	fmt.Println("room")
+	if newConn == nil {
+		panic("panic")
 	}
-
-	// find such observer
-	old := lobby.allRoomsSearchObserver(newConn)
-	if old != nil {
-		room = old.Room()
-		if room == nil {
-			return false
-		}
-		room.RecoverObserver(old, newConn)
-		return true
+	if room == nil {
+		return
 	}
-	return false
+	conn, _ := room.Search(newConn)
+	if conn == nil {
+		println("conn, i := room.Search(newConn) failed")
+		return
+	}
+	room.chanConnection <- ConnectionAction{
+		conn:   newConn,
+		action: ActionConnect,
+	}
+	// // find such player
+	// fmt.Println("somebody wants you to recover")
+
+	// i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
+
+	// if i >= 0 {
+	// 	fmt.Println("we found you in game!")
+	// 	room.RecoverPlayer(newConn)
+	// 	return true
+	// }
+
+	// // find such observer
+	// old := lobby.allRoomsSearchObserver(newConn)
+	// if old != nil {
+	// 	room = old.Room()
+	// 	if room == nil {
+	// 		return false
+	// 	}
+	// 	room.RecoverObserver(old, newConn)
+	// 	return true
+	// }
+	// return false
 }
