@@ -46,9 +46,7 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("waiterToPlayer called")
-	lobby.Waiting.Remove(newConn, true)
-	//lobby.waitingRemove(newConn)
+	lobby.Waiting.FastRemove(newConn)
 	lobby.addPlayer(newConn)
 }
 
@@ -64,8 +62,7 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	}()
 
 	fmt.Println("PlayerToWaiter called")
-	lobby.Playing.Remove(conn, true)
-	//lobby.playingRemove(conn)
+	lobby.Playing.FastRemove(conn)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }
@@ -92,26 +89,4 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 		conn:   newConn,
 		action: ActionConnect,
 	}
-	// // find such player
-	// fmt.Println("somebody wants you to recover")
-
-	// i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
-
-	// if i >= 0 {
-	// 	fmt.Println("we found you in game!")
-	// 	room.RecoverPlayer(newConn)
-	// 	return true
-	// }
-
-	// // find such observer
-	// old := lobby.allRoomsSearchObserver(newConn)
-	// if old != nil {
-	// 	room = old.Room()
-	// 	if room == nil {
-	// 		return false
-	// 	}
-	// 	room.RecoverObserver(old, newConn)
-	// 	return true
-	// }
-	// return false
 }

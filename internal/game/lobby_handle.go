@@ -96,7 +96,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 
 	if !conn.InRoom() {
 		fmt.Println("delete from lobby")
-		disconnected = lobby.Waiting.Remove(conn, true) //lobby.waitingRemove(conn)
+		disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
 		if disconnected {
 			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
 		}

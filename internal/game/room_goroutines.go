@@ -168,7 +168,7 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 func (room *Room) processActionDisconnect(conn *Connection) {
 	found, _ := room.Search(conn)
 	var refreshSeconds = 1
-	fmt.Println("tiiiiiime ", time.Since(conn.time).Seconds(), float64(refreshSeconds))
+	fmt.Println("tiiiiiime ", conn.time, time.Since(conn.time).Seconds(), float64(refreshSeconds))
 	if conn.ID() < 0 || time.Since(conn.time).Seconds() > float64(refreshSeconds) {
 
 		pa := *room.addAction(conn.ID(), ActionTaken)

@@ -16,7 +16,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 		rows *sql.Rows
 	)
 	sqlStatement := `
-	select GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time, GC.edited 
+	select GC.id, GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time, GC.edited 
 		from GameChat as GC 
 		left join Player as P on P.id = GC.player_id
 		`
@@ -42,7 +42,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 			User: user,
 		}
 
-		if err = rows.Scan(&userSQL.ID, &user.Name, &userSQL.Name,
+		if err = rows.Scan(&message.ID, &userSQL.ID, &user.Name, &userSQL.Name,
 			&userSQL.PhotoURL, &message.Text, &message.Time, &message.Edited); err != nil {
 
 			break

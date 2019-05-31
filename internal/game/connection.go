@@ -245,7 +245,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				return
 			}
 			fmt.Println("#", conn.ID(), "read from conn:", string(message))
-			conn.SetConnected()
+			//conn.SetConnected()
 			conn.lobby.chanBroadcast <- &Request{
 				Connection: conn,
 				Message:    message,

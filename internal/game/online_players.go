@@ -129,12 +129,6 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, 
 	return true
 }
 
-// Deleted -> Remove delete element and decrement size if element
-// exists in map
-func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bool {
-	return onlinePlayers.Connections.Remove(conn, disconnect)
-}
-
 // EnoughPlace check that you can add more elements
 func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
 	return onlinePlayers.Connections.EnoughPlace()

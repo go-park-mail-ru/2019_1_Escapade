@@ -87,11 +87,6 @@ func (room *Room) addPlayer(conn *Connection, recover bool) bool {
 		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 	}
 
-	// if room have already started
-	// if room.Status != StatusPeopleFinding {
-	// 	return false
-	// }
-
 	conn.debug("Room(" + room.ID + ") wanna connect you")
 
 	// if room hasnt got places
@@ -180,53 +175,4 @@ func (room *Room) Search(find *Connection) (*Connection, bool) {
 		return found, false
 	}
 	return nil, true
-}
-
-// RemoveFromGame control the removal of the connection from the room
-func (room *Room) RemoveFromGame(conn *Connection, disconnected bool) (done bool) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	//fmt.Println("removeDuringGame before len", len(room._Players.Connections))
-
-	i := room.Players.SearchIndexPlayer(conn)
-	if i >= 0 {
-		if (room.Status == StatusFlagPlacing || room.Status == StatusRunning) && !disconnected {
-			fmt.Println("give up", i)
-			room.GiveUp(conn)
-		}
-
-		done = room.Players.Remove(conn, disconnected)
-		if done {
-			room.sendPlayerExit(*conn, room.All)
-		}
-	} else {
-		done = room.Observers.Remove(conn, disconnected)
-		if done {
-			go room.sendObserverExit(*conn, room.All)
-		}
-	}
-	if !done {
-		return done
-	}
-	fmt.Println("removeDuringGame")
-	//fmt.Println("removeDuringGame after len", len(room._Players.Connections))
-	fmt.Println("removeDuringGame system says", room.Players.Empty())
-	if room.Players.Empty() {
-		if room.lobby.Metrics() {
-			metrics.Rooms.Dec()
-		}
-
-		fmt.Println("room.Players.Empty")
-		room.Close()
-	} else {
-		room.lobby.sendRoomUpdate(*room, All)
-	}
-	fmt.Println("there")
-	return done
 }

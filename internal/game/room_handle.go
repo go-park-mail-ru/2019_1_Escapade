@@ -442,9 +442,9 @@ func (room *Room) FinishGame(timer bool) {
 		fmt.Println("room.Status == StatusFinished!")
 		return
 	}
-	// if !timer {
-	// 	room.chanFinish <- struct{}{}
-	// }
+	if !timer {
+		room.chanFinish <- struct{}{}
+	}
 	fmt.Println(room.ID, "We finish room!", room.Status)
 
 	room.Status = StatusFinished
