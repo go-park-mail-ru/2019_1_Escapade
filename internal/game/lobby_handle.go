@@ -56,6 +56,12 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 		lobby.wGroup.Done()
 	}()
 
+	found, _ := lobby.Waiting.SearchByID(newConn.ID())
+	if found != nil {
+		sendAccountTaken(*found)
+	}
+	//sendAccountTaken(*oldConn)
+
 	lobby.addWaiter(newConn)
 
 	if lobby.canCloseRooms {
@@ -168,10 +174,13 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	if _, room := lobby.allRoomsSearch(rs.ID); room != nil {
 		conn.debug("lobby found required room")
 		room.Enter(conn)
-	} else {
-		conn.debug("lobby search room for you")
-		lobby.PickUpRoom(conn, rs)
 	}
+
+	// panic there sometimes... rarely
+	// } else {
+	// 	conn.debug("lobby search room for you")
+	// 	lobby.PickUpRoom(conn, rs)
+	// }
 }
 
 // PickUpRoom find room for player

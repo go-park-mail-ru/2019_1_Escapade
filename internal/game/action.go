@@ -24,7 +24,6 @@ const (
 	ActionRestart            = 16
 	ActionTimeout            = 17
 	ActionConnect            = 18
-	ActionTaken              = 19
 )
 
 // PlayerAction combine player and his action

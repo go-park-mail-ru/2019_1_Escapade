@@ -10,8 +10,8 @@ import (
 type LobbyJSON struct {
 	AllRooms  Rooms             `json:"allRooms"`
 	FreeRooms Rooms             `json:"freeRooms"`
-	Waiting   Connections       `json:"waiting"`
-	Playing   Connections       `json:"playing"`
+	Waiting   ConnectionsJSON   `json:"waiting"`
+	Playing   ConnectionsJSON   `json:"playing"`
 	Messages  []*models.Message `json:"messages"`
 }
 
@@ -20,8 +20,8 @@ func (lobby *Lobby) JSON() LobbyJSON {
 	return LobbyJSON{
 		AllRooms:  *lobby._allRooms,
 		FreeRooms: *lobby._freeRooms,
-		Waiting:   *lobby.Waiting,
-		Playing:   *lobby.Playing,
+		Waiting:   lobby.Waiting.JSON(),
+		Playing:   lobby.Playing.JSON(),
 		Messages:  lobby._messages,
 	}
 }
@@ -40,8 +40,10 @@ func (lobby *Lobby) UnmarshalJSON(b []byte) error {
 	}
 	lobby._allRooms = &temp.AllRooms
 	lobby._freeRooms = &temp.FreeRooms
-	lobby.Waiting = &temp.Waiting
-	lobby.Playing = &temp.Playing
+	lobby.Waiting._get = temp.Waiting.Get
+	lobby.Waiting._capacity = temp.Waiting.Capacity
+	lobby.Playing._get = temp.Playing.Get
+	lobby.Playing._capacity = temp.Playing.Capacity
 	lobby._messages = temp.Messages
 
 	return nil

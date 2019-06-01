@@ -255,11 +255,10 @@ func (room *Room) processActionRestart(conn *Connection) {
 		return
 	}
 	if room.Status == StatusFinished {
-		fmt.Println("goood")
-		room.Restart()
-		room.lobby.addRoom(room)
 		pa := *room.addAction(conn.ID(), ActionRestart)
 		room.sendAction(pa, room.All)
+		room.Restart()
+		room.lobby.addRoom(room)
 	}
 	conn.lobby.greet(conn)
 	if room.Status == StatusPeopleFinding {

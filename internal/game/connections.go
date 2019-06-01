@@ -45,6 +45,9 @@ func (conns *Connections) Free() {
 
 // Remove -> FastRemove
 func (conns *Connections) FastRemove(conn *Connection) bool {
+	if conn == nil {
+		return false
+	}
 	conn, i := conns.SearchByID(conn.ID())
 	if i < 0 {
 		return false
@@ -62,7 +65,6 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
-		//sendAccountTaken(*oldConn)
 		conn.setRoom(oldConn.Room())
 		conn.SetIndex(oldConn.Index())
 
