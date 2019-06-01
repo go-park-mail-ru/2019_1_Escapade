@@ -86,6 +86,9 @@ func (room *Room) appendMessage(message *models.Message) {
 func (room *Room) removeMessage(i int) {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	size := len(room._messages)
 
 	room._messages[i], room._messages[size-1] = room._messages[size-1], room._messages[i]
@@ -99,6 +102,9 @@ func (room *Room) setMessage(i int, message *models.Message) {
 
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	room._messages[i] = message
 	room._messages[i].Edited = true
 	return

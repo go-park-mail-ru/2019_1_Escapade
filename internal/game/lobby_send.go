@@ -96,6 +96,23 @@ func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
+func (lobby *Lobby) sendRoomToOne(room Room, conn Connection) {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		lobby.wGroup.Done()
+		utils.CatchPanic("lobby sendRoomUpdate")
+	}()
+
+	response := models.Response{
+		Type:  "LobbyRoomUpdate",
+		Value: room.JSON(),
+	}
+	conn.SendInformation(response)
+}
+
 func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
 	if lobby.done() {
 		return

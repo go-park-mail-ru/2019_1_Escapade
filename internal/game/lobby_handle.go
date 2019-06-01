@@ -95,10 +95,14 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	}
 
 	if !conn.InRoom() {
-		fmt.Println("delete from lobby")
-		disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
-		if disconnected {
-			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
+		timeout := time.Duration(time.Second) * 60
+		fmt.Println("compate", time.Since(conn.time).Seconds(), timeout.Seconds())
+		if time.Since(conn.time).Seconds() > timeout.Seconds() {
+			fmt.Println("delete from lobby")
+			disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
+			if disconnected {
+				lobby.sendWaiterExit(*conn, AllExceptThat(conn))
+			}
 		}
 	}
 

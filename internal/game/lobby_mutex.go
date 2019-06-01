@@ -86,6 +86,9 @@ func (lobby *Lobby) appendMessage(message *models.Message) {
 func (lobby *Lobby) removeMessage(i int) {
 	lobby.messagesM.Lock()
 	defer lobby.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	size := len(lobby._messages)
 
 	lobby._messages[i], lobby._messages[size-1] = lobby._messages[size-1], lobby._messages[i]
@@ -98,6 +101,9 @@ func (lobby *Lobby) removeMessage(i int) {
 func (lobby *Lobby) setMessage(i int, message *models.Message) {
 	lobby.messagesM.Lock()
 	defer lobby.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	lobby._messages[i] = message
 	lobby._messages[i].Edited = true
 	return

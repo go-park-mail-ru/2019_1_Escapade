@@ -8,15 +8,15 @@ import (
 )
 
 func (room *Room) runRoom() {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		fmt.Println("Sorry it is end")
-		utils.CatchPanic("room_handle.go run()")
-		room.wGroup.Done()
-	}()
+	// if room.done() {
+	// 	return
+	// }
+	// room.wGroup.Add(1)
+	// defer func() {
+	// 	fmt.Println("Sorry it is end")
+	// 	utils.CatchPanic("room_handle.go run()")
+	// 	room.wGroup.Done()
+	// }()
 
 	// все в конфиг
 	ticker := time.NewTicker(time.Second * 1)
@@ -25,6 +25,8 @@ func (room *Room) runRoom() {
 	timeoutPlayer = 60
 	timeoutObserver = 5
 	timeoutFinished = 20
+
+	room.initTimers()
 
 	for {
 		select {
@@ -110,6 +112,14 @@ func (room *Room) initTimers() {
 
 func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64) {
 	//fmt.Println("launchGarbageCollector")
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
 
 	if room.Status == StatusPeopleFinding {
 		timeoutPlayer = timeoutPeopleFinding
@@ -149,6 +159,15 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 }
 
 func (room *Room) processActionBackToLobby(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	playerGone := room.LeavePlayer(conn)
 	observerGone := room.LeaveObserver(conn)
 
@@ -166,10 +185,20 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 }
 
 func (room *Room) processActionDisconnect(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	found, _ := room.Search(conn)
-	var refreshSeconds = 1
-	fmt.Println("tiiiiiime ", conn.time, time.Since(conn.time).Seconds(), float64(refreshSeconds))
-	if conn.ID() < 0 || time.Since(conn.time).Seconds() > float64(refreshSeconds) {
+	timeout := time.Duration(time.Second) * 60
+	fmt.Println("tiiime", time.Since(conn.time).Seconds(), timeout.Seconds())
+
+	if conn.ID() < 0 || time.Since(conn.time).Seconds() > timeout.Seconds() {
 
 		pa := *room.addAction(conn.ID(), ActionTaken)
 		room.sendAction(pa, room.AllExceptThat(found))
@@ -178,6 +207,15 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 }
 
 func (room *Room) processActionConnect(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	found, isPlayer := room.Search(conn)
 	if found == nil {
 		return
@@ -193,27 +231,54 @@ func (room *Room) processActionConnect(conn *Connection) {
 }
 
 func (room *Room) processActionGiveUp(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	if room.IsActive() {
 		go room.GiveUp(conn)
 	}
 }
 
 func (room *Room) processActionRestart(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	if room.Status == StatusRunning || room.Status == StatusFlagPlacing {
 		return
 	}
-	conn.lobby.greet(conn)
 	if room.Status == StatusFinished {
 		fmt.Println("goood")
 		room.Restart()
 		room.lobby.addRoom(room)
 	}
+	conn.lobby.greet(conn)
 	if room.Status == StatusPeopleFinding {
 		room.addPlayer(conn, false)
 	}
 }
 
 func (room *Room) processConnectionAction(ca ConnectionAction) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
 	fmt.Println("processConnectionAction start ")
 
 	switch ca.action {

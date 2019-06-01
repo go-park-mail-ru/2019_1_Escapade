@@ -195,6 +195,8 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 	all.Add(1)
 	go conn.ReadConn(conn.context, ws, all)
 
+	conn.time = time.Now()
+
 	//fmt.Println("Wait!")
 	if roomID != "" {
 		rs := &models.RoomSettings{}

@@ -43,6 +43,7 @@ func (room *Room) Free() {
 	room.setDone()
 
 	room.wGroup.Wait()
+	room.chanStatus <- StatusAborted
 
 	room.Status = StatusFinished
 	go room.historyFree()
@@ -72,9 +73,8 @@ func (room *Room) Close() bool {
 		return false
 	}
 	fmt.Println("We closed room :С")
-	room.chanStatus <- StatusAborted
-	room.LeaveAll()
 	room.lobby.CloseRoom(room)
+	room.LeaveAll()
 	fmt.Println("Prepare to free!")
 	go room.Free()
 	fmt.Println("We did it")
