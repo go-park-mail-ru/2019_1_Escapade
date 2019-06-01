@@ -163,9 +163,6 @@ func (room *Room) SetAndSendNewCell(conn Connection) {
 		found, _ = room.flagExists(cell, nil)
 	}
 	if room.Players.SetFlag(conn, cell) {
-		//room.prepare.Stop()
-		//room.StartGame()
-		//
 		room.chanStatus <- StatusRunning
 	}
 	response := models.RandomFlagSet(cell)
@@ -202,14 +199,17 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 	}
 
 	if found, prevConn := room.flagExists(*cell, conn); found {
+		pa := *room.addAction(conn.ID(), ActionFlagСonflict)
+		room.sendAction(pa, room.All)
 		go room.SetAndSendNewCell(*conn)
 		go room.SetAndSendNewCell(*prevConn)
 		return true
 	}
 
+	pa := *room.addAction(conn.ID(), ActionFlagSet)
+	room.sendAction(pa, room.All)
+
 	if room.Players.SetFlag(*conn, *cell) {
-		//room.prepare.Stop()
-		//room.StartGame()
 		room.chanStatus <- StatusRunning
 	}
 	return true

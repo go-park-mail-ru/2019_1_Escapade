@@ -4,28 +4,27 @@ import "time"
 
 // Player actions
 const (
-	ActionError = iota - 1
-	ActionNo
-	ActionConnectAsPlayer
-	ActionConnectAsObserver
-	ActionReconnect
-	ActionDisconnect
-	ActionStop
-	ActionContinue
-	ActionExplode
-	ActionWin
-	ActionLose
-	ActionFlagLost
-	ActionGetPoints
-	ActionFlagSet
-	ActionGiveUp
-	ActionBackToLobby
-	ActionTimeOver
-	ActionRestart
-	ActionTimeout
-	ActionConnect
-	ActionTaken
-	ActionDisconnectObserver
+	ActionError              = -1
+	ActionNo                 = 0
+	ActionConnectAsPlayer    = 1
+	ActionConnectAsObserver  = 2
+	ActionReconnect          = 3
+	ActionDisconnect         = 4
+	ActionDisconnectObserver = 5
+	ActionFlagСonflict       = 6
+	ActionExplode            = 7
+	ActionWin                = 8
+	ActionLose               = 9
+	ActionFlagLost           = 10
+	ActionGetPoints          = 11
+	ActionFlagSet            = 12
+	ActionGiveUp             = 13
+	ActionBackToLobby        = 14
+	ActionTimeOver           = 15
+	ActionRestart            = 16
+	ActionTimeout            = 17
+	ActionConnect            = 18
+	ActionTaken              = 19
 )
 
 // PlayerAction combine player and his action

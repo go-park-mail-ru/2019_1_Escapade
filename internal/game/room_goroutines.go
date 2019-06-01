@@ -81,7 +81,8 @@ func (room *Room) runGame() {
 		fmt.Println("Room: Game is over!")
 	}()
 
-	room.Date = time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	room.Date = time.Now().In(loc)
 
 	for {
 		select {
@@ -262,6 +263,8 @@ func (room *Room) processActionRestart(conn *Connection) {
 		fmt.Println("goood")
 		room.Restart()
 		room.lobby.addRoom(room)
+		pa := *room.addAction(conn.ID(), ActionRestart)
+		room.sendAction(pa, room.All)
 	}
 	conn.lobby.greet(conn)
 	if room.Status == StatusPeopleFinding {

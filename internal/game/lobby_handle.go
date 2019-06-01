@@ -293,7 +293,8 @@ func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 
 	inv.From = conn.User
 	inv.Message.User = conn.User
-	inv.Message.Time = time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	inv.Message.Time = time.Now().In(loc)
 	if inv.All {
 		lobby.sendInvitation(inv, All)
 		lobby.sendInvitationCallback(conn, nil)

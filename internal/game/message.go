@@ -29,7 +29,9 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	find FindMessage, send Sender, predicate SendPredicate, inRoom bool,
 	roomID string) (err error) {
 	message.User = conn.User
-	message.Time = time.Now()
+
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	message.Time = time.Now().In(loc)
 
 	fmt.Println("Message start")
 

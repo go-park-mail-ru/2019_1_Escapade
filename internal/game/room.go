@@ -137,7 +137,8 @@ func (room *Room) Restart() {
 
 	room.Field = field
 
-	room.Date = time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	room.Date = time.Now().In(loc)
 
 	return
 }

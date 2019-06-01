@@ -397,7 +397,8 @@ func (room *Room) StartFlagPlacing() {
 	room.lobby.RoomStart(room)
 	go room.runGame()
 
-	room.Date = time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	room.Date = time.Now().In(loc)
 	room.sendStatus(room.All)
 	go room.sendField(room.All)
 	go room.sendMessage("Battle will be start soon! Set your flag!", room.All)
@@ -422,7 +423,8 @@ func (room *Room) StartGame() {
 	cells := room.Field.OpenSave(int(open))
 	room.sendNewCells(room.All, cells...)
 	room.Status = StatusRunning
-	room.Date = time.Now()
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	room.Date = time.Now().In(loc)
 	room.sendStatus(room.All)
 	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
