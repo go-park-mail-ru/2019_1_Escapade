@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -78,18 +77,10 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendAccountTaken(conn Connection) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-		utils.CatchPanic("room_send.go sendGameOver()")
-	}()
+func sendAccountTaken(conn Connection) {
 
 	response := models.Response{
-		Type: "RoomAccountTaken",
+		Type: "AccountTaken",
 	}
 	conn.SendInformation(response)
 }
@@ -186,15 +177,11 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 	}()
 
 	var leftTime int
-	fmt.Println(" stat:", room.Settings.TimeToPrepare, room.Settings.TimeToPlay, int(time.Since(room.Date).Seconds()))
 	if room.Status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
-
-		fmt.Println(" StatusFlagPlacing leftTime:", leftTime)
 	}
 	if room.Status == StatusRunning {
 		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
-		fmt.Println(" StatusRunning leftTime:", leftTime)
 	}
 	response := models.Response{
 		Type: "RoomStatus",

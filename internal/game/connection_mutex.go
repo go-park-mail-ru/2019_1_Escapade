@@ -52,6 +52,7 @@ func (conn *Connection) SetConnected() {
 	conn.disconnectedM.Lock()
 	conn._disconnected = false
 	conn.disconnectedM.Unlock()
+	fmt.Println("!!!!!!!!!!!!!!!!!!!1connected", time.Now())
 	conn.time = time.Now()
 }
 

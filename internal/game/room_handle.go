@@ -191,7 +191,6 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 
 	index := conn.Index()
 
-	fmt.Println("points:", room.Settings.Width, room.Settings.Height, 100*float64(cell.Value+1)/float64(room.Settings.Width*room.Settings.Height))
 	switch {
 	case cell.Value < CellMine:
 		room.Players.IncreasePlayerPoints(index, 1000*float64(cell.Value)/float64(room.Settings.Width*room.Settings.Height))
@@ -232,7 +231,6 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	// set who try open cell(for history)
 	cell.PlayerID = conn.ID()
 	cells := room.Field.OpenCell(cell)
-	fmt.Println("len cell", len(cells))
 	if len(cells) == 1 {
 		newCell := cells[0]
 		room.applyAction(conn, &newCell)
@@ -284,43 +282,6 @@ func (room *Room) IsActive() bool {
 	return room.Status == StatusFlagPlacing || room.Status == StatusRunning
 }
 
-// ActionHandle processes the Action came from the user
-// func (room *Room) ActionHandle(conn *Connection, action int) (done bool) {
-// 	if room.done() {
-// 		return false
-// 	}
-// 	room.wGroup.Add(1)
-// 	defer func() {
-// 		room.wGroup.Done()
-// 	}()
-// 	fmt.Println("action", action)
-
-// 	switch action {
-// 	case ActionGiveUp:
-// 		if room.IsActive() {
-// 			go room.GiveUp(conn)
-// 			return true
-// 		}
-// 	case ActionRestart:
-// 		if room.Status == StatusRunning || room.Status == StatusFlagPlacing {
-// 			return false
-// 		}
-// 		conn.lobby.greet(conn)
-// 		if room.Status == StatusFinished {
-// 			room.Restart()
-// 			room.lobby.addRoom(room)
-// 		}
-// 		if room.Status == StatusPeopleFinding {
-// 			room.addPlayer(conn, false)
-// 		}
-// 		return true
-// 	case ActionBackToLobby:
-// 		room.lobby.LeaveRoom(conn, room, ActionBackToLobby)
-// 		return true
-// 	}
-// 	return false
-// }
-
 // HandleRequest processes the equest came from the user
 func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 	if room.done() {
@@ -343,7 +304,6 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 	if rr.IsGet() {
 		//go room.greet(conn)
 	} else if rr.IsSend() {
-		//done := false
 		switch {
 		case rr.Send.Messages != nil:
 			Messages(conn, rr.Send.Messages, room.Messages())
@@ -357,7 +317,6 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 				conn:   conn,
 				action: *rr.Send.Action,
 			}
-			//room.ActionHandle(conn, *rr.Send.Action)
 		}
 	} else if rr.Message != nil {
 		if conn.Index() < 0 {
@@ -441,19 +400,15 @@ func (room *Room) FinishGame(timer bool) {
 	}()
 
 	if room.Status == StatusFinished {
-		fmt.Println("room.Status == StatusFinished!")
 		return
 	}
 	if !timer {
 		room.chanFinish <- struct{}{}
 	}
-	fmt.Println(room.ID, "We finish room!", room.Status)
 
 	room.Status = StatusFinished
-	fmt.Println(room.ID, "We finish room?", room.Status)
 
 	room.sendStatus(room.All)
-	room.sendMessage("Battle finished!", room.All)
 	room.sendGameOver(timer, room.All)
 	room.Save()
 	room.Players.Finish()

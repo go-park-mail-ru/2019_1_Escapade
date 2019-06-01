@@ -1,9 +1,5 @@
 package game
 
-import (
-	"fmt"
-)
-
 // Rooms - slice of rooms with capacity
 type Rooms struct {
 	Capacity int     `json:"capacity"`
@@ -115,7 +111,6 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, 
 	conn.SetIndex(i)
 
 	if !recover {
-		fmt.Println("add cell", cell.X, cell.Y, cell.Value, cell.PlayerID)
 
 		if !onlinePlayers._flags[i].Set {
 			onlinePlayers._flags[i] = Flag{
@@ -156,17 +151,15 @@ func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *Room) {
 	for _, room := range rooms.Get {
 		i := room.Players.SearchIndexPlayer(new) //playersSearchIndexPlayer(new)
-		fmt.Println("room", room.ID, i)
+
 		// cant found
 		if i < 0 {
 			continue
 		}
 		if mustNotFinished && room.Players.Player(i).Finished {
-			fmt.Println("next!!!")
 			continue
 		}
 
-		fmt.Println("happy return")
 		return i, room
 	}
 	return -1, nil

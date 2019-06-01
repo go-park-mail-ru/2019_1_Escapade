@@ -92,7 +92,6 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 		onlinePlayers._flags[conn.Index()].Set = true
 		onlinePlayers.flagsLeft--
 	}
-	fmt.Println("flagsLeft", onlinePlayers.flagsLeft)
 	return onlinePlayers.flagsLeft == 0
 }
 

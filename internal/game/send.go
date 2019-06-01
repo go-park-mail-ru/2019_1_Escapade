@@ -15,6 +15,9 @@ func SendToConnections(info interface{},
 	waitJobs := &sync.WaitGroup{}
 	for _, group := range groups {
 		for _, connection := range group {
+			if connection == nil {
+				continue
+			}
 			if predicate(connection) {
 				waitJobs.Add(1)
 				go connection.sendGroupInformation(info, waitJobs)

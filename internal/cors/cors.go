@@ -10,6 +10,9 @@ import (
 
 // IsAllowed check can this site connect to server
 func IsAllowed(origin string, origins []string) (allowed bool) {
+	if origin == "" {
+		return true
+	}
 	allowed = false
 	for _, str := range origins {
 		if str == origin {

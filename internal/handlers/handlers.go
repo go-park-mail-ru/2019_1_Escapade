@@ -72,7 +72,6 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusUnauthorized, place)
 		return
 	}
-	fmt.Println("Get my profiel", userID)
 
 	h.getUser(rw, r, userID)
 
@@ -107,7 +106,6 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 	}
 
-	fmt.Println("register new account", user.Name)
 	if _, sessionID, err = h.register(r.Context(), user); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, err, place)
@@ -285,7 +283,6 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("h.deleteAccount")
 	if err = h.deleteAccount(context.Background(), &user, ""); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
@@ -517,7 +514,6 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 		return
 	}
-	fmt.Println("getProfile", userID)
 
 	h.getUser(rw, r, userID)
 	return
@@ -592,7 +588,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 
 	difficult = h.getDifficult(r)
 
-	fmt.Println("userID:", userID)
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
 
 		rw.WriteHeader(http.StatusNotFound)
@@ -601,7 +596,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		return
 	}
 	if err = h.Setfiles(user); err != nil {
-		fmt.Println("h.setfiles(user) err")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -678,7 +672,6 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		if err = h.Setfiles(user); err != nil {
-			fmt.Println("h.setfiles(user) err")
 			rw.WriteHeader(http.StatusNotFound)
 			utils.SendErrorJSON(rw, err, place)
 			utils.PrintResult(err, http.StatusNotFound, place)
@@ -687,7 +680,6 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	conn := game.NewConnection(ws, user, lobby)
-	fmt.Println("roomID", roomID)
 	conn.Launch(h.WebSocket, roomID)
 
 	utils.PrintResult(err, http.StatusOK, place)
@@ -747,7 +739,6 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("success!!")
 	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game, h.Setfiles)
 	return
 }

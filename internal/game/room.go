@@ -68,7 +68,6 @@ type Room struct {
 
 // NewRoom return new instance of room
 func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
-	fmt.Println("NewRoom rs = ", *rs)
 	if !rs.AreCorrect() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}

@@ -59,7 +59,7 @@
 		"writeWait": 60,
 		"pongWait": 10,
 		"pingPeriod": 9,
-		"maxMessageSize": 512,
+		"maxMessageSize": 2048,
 		"readBufferSize": 1024,
 		"writeBufferSize": 1024
 	}

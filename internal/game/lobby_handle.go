@@ -133,19 +133,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int) {
 		lobby.PlayerToWaiter(conn)
 	} else if len(conn.Room().Players.Connections.RGet()) > 0 {
 		lobby.sendRoomUpdate(*conn.Room(), AllExceptThat(conn))
-	} //else {
-	//conn.setDisconnected()
-	//room.chanConnection <- *conn
-	//go lobby.playingRemove(conn)
-	//found := room.Search(conn)
-	// if found != nil {
-	// 	found.setDisconnected()
-	// }
-	// fmt.Println("sendPlayerExit", action)
-	// pa := *room.addAction(conn.ID(), action)
-	// room.sendAction(pa, room.AllExceptThat(conn))
-	// go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
-	//}
+	}
 }
 
 // EnterRoom handle user join to room
@@ -168,8 +156,6 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 			return
 		}
 		conn.Room().processActionBackToLobby(conn)
-		//lobby.LeaveRoom(conn, ActionBackToLobby)
-		//conn.debug("change room")
 	}
 
 	if rs.ID == "create" {

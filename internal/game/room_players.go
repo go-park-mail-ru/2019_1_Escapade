@@ -75,6 +75,7 @@ func (room *Room) addObserver(conn *Connection) bool {
 
 // EnterPlayer handle player try to enter room
 func (room *Room) addPlayer(conn *Connection, recover bool) bool {
+	fmt.Println("addPlayer", recover)
 	if room.done() {
 		return false
 	}
@@ -130,6 +131,7 @@ func (room *Room) MakePlayer(conn *Connection, recover bool) {
 		conn.setBoth(true)
 	}
 	room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, recover)
+	fmt.Println("MakePlayer")
 	room.greet(conn, true)
 	if recover {
 		room.sendStatus(Me(conn))
@@ -167,12 +169,10 @@ func (room *Room) MakeObserver(conn *Connection, recover bool) {
 func (room *Room) Search(find *Connection) (*Connection, bool) {
 	found, i := room.Players.SearchConnection(find)
 	if i >= 0 {
-		fmt.Println("player!", found.Disconnected(), found)
 		return found, true
 	}
 	found, i = room.Observers.SearchByID(find.ID())
 	if i >= 0 {
-		fmt.Println("observer!", found.Disconnected())
 		return found, false
 	}
 	return nil, true

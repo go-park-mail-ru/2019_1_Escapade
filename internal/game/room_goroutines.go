@@ -8,15 +8,6 @@ import (
 )
 
 func (room *Room) runRoom() {
-	// if room.done() {
-	// 	return
-	// }
-	// room.wGroup.Add(1)
-	// defer func() {
-	// 	fmt.Println("Sorry it is end")
-	// 	utils.CatchPanic("room_handle.go run()")
-	// 	room.wGroup.Done()
-	// }()
 
 	// все в конфиг
 	ticker := time.NewTicker(time.Second * 1)
@@ -92,11 +83,8 @@ func (room *Room) runGame() {
 			room.chanStatus <- StatusRunning
 		case <-room.play.C:
 			room.chanStatus <- StatusFinished
-			//fmt.Println("finish!")
-			//room.FinishGame(true)
 			return
 		case clock := <-ticker.C:
-			//fmt.Println("clock!", room.ID)
 			go room.sendMessage(clock.String()+" passed", room.All)
 		}
 	}
@@ -196,13 +184,19 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 	}()
 
 	found, _ := room.Search(conn)
-	timeout := time.Duration(time.Second) * 60
-	fmt.Println("tiiime", time.Since(conn.time).Seconds(), timeout.Seconds())
+	if found == nil {
+		room.LeaveObserver(found)
+		room.LeavePlayer(found)
+	}
+	// if found.setDisconnected() {
+	// 	pa := *room.addAction(found.ID(), ActionDisconnect)
+	// 	room.sendAction(pa, room.AllExceptThat(found))
+	// }
 
-	if conn.ID() < 0 || time.Since(conn.time).Seconds() > timeout.Seconds() {
+	if conn.ID() < 0 /*conn.ID() < 0*/ /*|| time.Since(conn.time).Seconds() > timeout.Seconds()*/ {
 
-		pa := *room.addAction(conn.ID(), ActionTaken)
-		room.sendAction(pa, room.AllExceptThat(found))
+		pa := *room.addAction(conn.ID(), ActionDisconnect)
+		room.sendAction(pa, room.All)
 		found.setDisconnected()
 	}
 }
@@ -221,8 +215,9 @@ func (room *Room) processActionConnect(conn *Connection) {
 	if found == nil {
 		return
 	}
-	room.sendAccountTaken(*found)
-	conn.time = time.Now()
+	sendAccountTaken(*found)
+	conn.SetConnected()
+	//conn.time = time.Now()
 	found = conn
 	if isPlayer {
 		room.RecoverPlayer(conn)

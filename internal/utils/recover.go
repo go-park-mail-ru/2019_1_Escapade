@@ -1,8 +1,6 @@
 package utils
 
-import (
-	//"fmt"
-)
+//"fmt"
 
 // CatchPanic stop pani to continue executing
 func CatchPanic(place string) {

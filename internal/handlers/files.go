@@ -19,16 +19,12 @@ func (h *Handler) Setfiles(users ...*models.UserPublicInfo) (err error) {
 			continue
 		}
 		if user.FileKey == "" {
-			fmt.Println("user.FileKey == ''")
 			continue
 			//return re.ErrorAvatarNotFound()
 		}
 		if user.PhotoURL, err = h.getURLToAvatar(user.FileKey); err != nil {
-			fmt.Println("h.getURLToAvatar", err.Error())
 			continue
 			//return re.ErrorAvatarNotFound()
-		} else {
-			fmt.Println("h.getURLToAvatar", user.PhotoURL)
 		}
 	}
 	return nil
@@ -64,7 +60,6 @@ func (h *Handler) getURLToAvatar(key string) (url string, err error) {
 		Key:    aws.String(key),
 	})
 	url, err = req.Presign(24 * time.Hour)
-	fmt.Println("url:", url)
 	return
 }
 

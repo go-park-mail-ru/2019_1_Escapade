@@ -71,18 +71,12 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 // otherwise false
 func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 
-	fmt.Println("recoverInRoom check")
 	_, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
-	fmt.Println("room")
-	if newConn == nil {
-		panic("panic")
-	}
 	if room == nil {
 		return
 	}
 	conn, _ := room.Search(newConn)
 	if conn == nil {
-		println("conn, i := room.Search(newConn) failed")
 		return
 	}
 	room.chanConnection <- ConnectionAction{
