@@ -49,6 +49,16 @@ func (conn *Connection) setDisconnected() {
 
 // SetConnected set _disconnected false
 func (conn *Connection) SetConnected() {
+	if conn._disconnected && conn.InRoom() {
+		_, isPlayer := conn.Room().Search(conn)
+		if isPlayer {
+			conn.Room().addAction(conn.ID(), ActionConnectAsPlayer)
+			conn.Room().sendPlayerEnter(*conn, conn.Room().All)
+		} else {
+			conn.Room().addAction(conn.ID(), ActionConnectAsObserver)
+			conn.Room().sendObserverEnter(*conn, conn.Room().All)
+		}
+	}
 	conn.disconnectedM.Lock()
 	conn._disconnected = false
 	conn.disconnectedM.Unlock()

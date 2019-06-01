@@ -188,17 +188,17 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 		room.LeaveObserver(found)
 		room.LeavePlayer(found)
 	}
-	// if found.setDisconnected() {
-	// 	pa := *room.addAction(found.ID(), ActionDisconnect)
-	// 	room.sendAction(pa, room.AllExceptThat(found))
+	fmt.Println("Disconnected")
+	found.setDisconnected()
+	pa := *room.addAction(found.ID(), ActionDisconnect)
+	room.sendAction(pa, room.All)
+
+	// if conn.ID() < 0 /*conn.ID() < 0*/ /*|| time.Since(conn.time).Seconds() > timeout.Seconds()*/ {
+
+	// 	pa := *room.addAction(conn.ID(), ActionDisconnect)
+	// 	room.sendAction(pa, room.All)
+	// 	found.setDisconnected()
 	// }
-
-	if conn.ID() < 0 /*conn.ID() < 0*/ /*|| time.Since(conn.time).Seconds() > timeout.Seconds()*/ {
-
-		pa := *room.addAction(conn.ID(), ActionDisconnect)
-		room.sendAction(pa, room.All)
-		found.setDisconnected()
-	}
 }
 
 func (room *Room) processActionConnect(conn *Connection) {

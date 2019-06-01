@@ -62,7 +62,7 @@ func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
 		if kill && !oldConn.Disconnected() {
 			oldConn.Kill("Another connection found", true)
 		}
-		sendAccountTaken(*oldConn)
+		//sendAccountTaken(*oldConn)
 		conn.setRoom(oldConn.Room())
 		conn.SetIndex(oldConn.Index())
 

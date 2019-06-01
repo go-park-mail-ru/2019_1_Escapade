@@ -228,6 +228,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 	conn.ws.SetPongHandler(
 		func(string) error {
 			conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
+			conn.SetConnected()
 			return nil
 		})
 	for {
@@ -342,22 +343,22 @@ func (conn *Connection) SendInformation(value interface{}) {
 		conn.wGroup.Done()
 	}()
 
-	if !conn.Disconnected() {
-		var (
-			bytes []byte
-			err   error
-		)
+	//if !conn.Disconnected() {
+	var (
+		bytes []byte
+		err   error
+	)
 
-		bytes, err = json.Marshal(value)
+	bytes, err = json.Marshal(value)
 
-		if err != nil {
-			fmt.Println("cant send information", err.Error())
-		} else {
-			//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
-			conn.send <- bytes
-			//fmt.Println("move!")
-		}
+	if err != nil {
+		fmt.Println("cant send information", err.Error())
+	} else {
+		//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
+		conn.send <- bytes
+		//fmt.Println("move!")
 	}
+	//}
 }
 
 // sendGroupInformation send info with WaitGroup

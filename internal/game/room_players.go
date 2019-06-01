@@ -131,10 +131,10 @@ func (room *Room) MakePlayer(conn *Connection, recover bool) {
 		conn.setBoth(true)
 	}
 	room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, recover)
-	fmt.Println("MakePlayer")
+	fmt.Println("MakePlayer", recover)
 	room.greet(conn, true)
 	if recover {
-		room.sendStatus(Me(conn))
+		room.sendStatusOne(*conn)
 	}
 	conn.PushToRoom(room)
 }
