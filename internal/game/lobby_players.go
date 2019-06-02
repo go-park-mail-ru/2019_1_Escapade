@@ -65,11 +65,12 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	go lobby.sendPlayerExit(*conn, All)
-	go lobby.sendWaiterEnter(*conn, All)
-
 	fmt.Println("PlayerToWaiter called")
-	lobby.Playing.FastRemove(conn)
+	done := lobby.Playing.FastRemove(conn)
+	if done {
+		go lobby.sendPlayerExit(*conn, All)
+		go lobby.sendWaiterEnter(*conn, All)
+	}
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }
