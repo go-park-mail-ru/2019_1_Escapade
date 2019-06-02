@@ -39,6 +39,7 @@ func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 				rw.WriteHeader(http.StatusForbidden)
 				return
 			}
+			//
 			cors.SetCORS(rw, cc, origin)
 
 			if preCORS {
