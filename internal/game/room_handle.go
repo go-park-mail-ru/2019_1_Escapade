@@ -76,7 +76,7 @@ func (room *Room) Close() bool {
 	room.lobby.CloseRoom(room)
 	room.LeaveAll()
 	fmt.Println("Prepare to free!")
-	go room.Free()
+	//go room.Free()
 	fmt.Println("We did it")
 	return true
 }
