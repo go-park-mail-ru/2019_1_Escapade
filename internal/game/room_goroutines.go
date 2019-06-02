@@ -126,7 +126,6 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutPlayer {
 			fmt.Println(conn.User.Name, " - bad")
 			room.LeavePlayer(conn)
-			room.lobby.sendPlayerExit(*conn, All)
 			//room.Leave(conn, ActionTimeOver)
 		} else {
 			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
@@ -140,7 +139,6 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutObserver {
 			//fmt.Println(conn.User.Name, " - bad")
 			room.LeaveObserver(conn)
-			room.lobby.sendPlayerExit(*conn, All)
 			//room.Leave(conn, ActionTimeOver)
 		} else {
 			//fmt.Println(conn.User.Name, " - good", conn)

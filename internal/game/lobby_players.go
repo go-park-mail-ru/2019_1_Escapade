@@ -17,7 +17,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 	if !newConn.Both() {
 		lobby.greet(newConn)
 	}
-	//lobby.sendWaiterEnter(*newConn, All)
+	lobby.sendWaiterEnter(*newConn, All)
 }
 
 // Anonymous return anonymous id
@@ -47,9 +47,6 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	go lobby.sendWaiterExit(*newConn, All)
-	go lobby.sendPlayerEnter(*newConn, All)
-
 	lobby.Waiting.FastRemove(newConn)
 	lobby.addPlayer(newConn)
 }
@@ -66,11 +63,7 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	}()
 
 	fmt.Println("PlayerToWaiter called")
-	done := lobby.Playing.FastRemove(conn)
-	if done {
-		go lobby.sendPlayerExit(*conn, All)
-		go lobby.sendWaiterEnter(*conn, All)
-	}
+	lobby.Playing.FastRemove(conn)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }

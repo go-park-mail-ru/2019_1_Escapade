@@ -69,7 +69,6 @@ func main() {
 	r := router.GetRouter(API, configuration)
 	port := router.GetPort(configuration)
 
-	fmt.Println("port", port)
 	if err = http.ListenAndServe(port, r); err != nil {
 		utils.PrintResult(err, 0, "main")
 	}

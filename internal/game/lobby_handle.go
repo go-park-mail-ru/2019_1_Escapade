@@ -52,9 +52,9 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 // Run the room in goroutine
 func (lobby *Lobby) Run() {
 
-	ticker := time.NewTicker(time.Second * 1)
-	var timeout float64
-	timeout = 10
+	ticker := time.NewTicker(time.Second * 10)
+	//var timeout float64
+	//timeout = 10
 
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
@@ -64,8 +64,8 @@ func (lobby *Lobby) Run() {
 
 	for {
 		select {
-		case <-ticker.C:
-			go lobby.launchGarbageCollector(timeout)
+		//case <-ticker.C:
+		//	go lobby.launchGarbageCollector(timeout)
 		case connection := <-lobby.chanJoin:
 			go lobby.Join(connection, false)
 
@@ -89,8 +89,6 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 	found, _ := lobby.Waiting.SearchByID(newConn.ID())
 	if found != nil {
 		sendAccountTaken(*found)
-	} else {
-		go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 	}
 	//sendAccountTaken(*oldConn)
 
@@ -102,7 +100,7 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 		//go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
 		return
 	}
-	//go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
+	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 
 	newConn.debug("new waiter")
 }
