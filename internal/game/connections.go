@@ -47,7 +47,7 @@ func (conns *Connections) Free() {
 // Remove -> FastRemove
 func (conns *Connections) FastRemove(conn *Connection) bool {
 	if conn == nil {
-		panic("123123123")
+		//panic("123123123")
 		return false
 	}
 	conn, i := conns.SearchByID(conn.ID())
