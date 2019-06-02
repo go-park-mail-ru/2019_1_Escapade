@@ -20,7 +20,8 @@
 			"http://localhost:3001",
 			"http://localhost:3002",
 			"http://localhost:3004",
-			"https://escapade-frontend.herokuapp.com"
+			"https://escapade-frontend.herokuapp.com",
+			"https://explosion.team"
 		],
 		"headers": [
 			"Content-type"
