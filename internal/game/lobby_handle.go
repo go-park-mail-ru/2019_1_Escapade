@@ -25,21 +25,52 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 	lobby.chanJoin <- conn
 }
 
+func (lobby *Lobby) launchGarbageCollector(timeout float64) {
+	fmt.Println("lobby launchGarbageCollector")
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go Join()")
+		lobby.wGroup.Done()
+	}()
+
+	for _, conn := range lobby.Waiting.RGet() {
+		if conn == nil {
+			continue
+		}
+		if time.Since(conn.time).Seconds() > timeout {
+			fmt.Println(conn.User.Name, " - bad")
+			lobby.Leave(conn, "")
+		} else {
+			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+		}
+	}
+}
+
 // Run the room in goroutine
 func (lobby *Lobby) Run() {
+
+	ticker := time.NewTicker(time.Second * 10)
+	var timeout float64
+	timeout = 10
+
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
+		ticker.Stop()
 		lobby.Free()
 	}()
 
-	fmt.Println("Lobby run")
 	for {
 		select {
+		case <-ticker.C:
+			go lobby.launchGarbageCollector(timeout)
 		case connection := <-lobby.chanJoin:
 			go lobby.Join(connection, false)
 
 		case message := <-lobby.chanBroadcast:
-			go lobby.Analize(message)
+			lobby.Analize(message)
 		}
 	}
 }
@@ -50,7 +81,6 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 		return
 	}
 	lobby.wGroup.Add(1)
-	fmt.Println("join")
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
@@ -86,30 +116,27 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("LEAVE!")
-
 	var disconnected bool
 
 	if conn.Both() || conn.InRoom() {
-		fmt.Println("delete from room")
-		fmt.Println("both -  #", conn.ID())
-		conn.Room().chanConnection <- ConnectionAction{
-			conn:   conn,
-			action: ActionDisconnect,
+		if !conn.Room().done() {
+			conn.Room().chanConnection <- ConnectionAction{
+				conn:   conn,
+				action: ActionDisconnect,
+			}
 		}
 		//disconnected = lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
 	}
 
 	if !conn.InRoom() {
-		//timeout := time.Duration(time.Second) * 60
+		timeout := time.Duration(time.Second) * 20
 		//fmt.Println("compate", time.Since(conn.time).Seconds(), timeout.Seconds())
-		//if time.Since(conn.time).Seconds() > timeout.Seconds() {
-		//	fmt.Println("delete from lobby")
-		disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
-		if disconnected {
-			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
+		if time.Since(conn.time).Seconds() > timeout.Seconds() {
+			disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
+			if disconnected {
+				lobby.sendWaiterExit(*conn, All)
+			}
 		}
-		//}
 	}
 
 	if disconnected {
@@ -226,7 +253,7 @@ func (lobby *Lobby) Analize(req *Request) {
 		if err := json.Unmarshal(req.Message, &send); err != nil {
 			req.Connection.SendInformation(err)
 		} else {
-			go lobby.HandleRequest(req.Connection, send)
+			lobby.HandleRequest(req.Connection, send)
 		}
 	}
 	fmt.Println("req.Connection.InRoom()", req.Connection.InRoom())
@@ -264,7 +291,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		case lr.Send.Messages != nil:
 			Messages(conn, lr.Send.Messages, lobby.Messages())
 		case lr.Send.RoomSettings != nil:
-			lobby.EnterRoom(conn, lr.Send.RoomSettings)
+			go lobby.EnterRoom(conn, lr.Send.RoomSettings)
 		}
 	} else if lr.Message != nil {
 		Message(lobby, conn, lr.Message,

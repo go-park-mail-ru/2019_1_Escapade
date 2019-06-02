@@ -127,7 +127,9 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 	if done {
 		room.GiveUp(conn)
 	}
+	fmt.Println("LeavePlayer", room.Empty(), len(room.Observers.RGet()))
 	if room.Empty() {
+		fmt.Println("room.Close()")
 		room.Close()
 	}
 	return done

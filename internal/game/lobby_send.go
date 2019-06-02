@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
@@ -41,7 +39,6 @@ func (lobby *Lobby) greet(conn *Connection) {
 			Room:  conn.Room(),
 		},
 	}
-	fmt.Println("greet")
 	conn.SendInformation(response)
 }
 

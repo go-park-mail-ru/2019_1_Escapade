@@ -80,8 +80,10 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 	if conn == nil {
 		return
 	}
-	room.chanConnection <- ConnectionAction{
-		conn:   newConn,
-		action: ActionConnect,
+	if !room.done() {
+		room.chanConnection <- ConnectionAction{
+			conn:   newConn,
+			action: ActionConnect,
+		}
 	}
 }

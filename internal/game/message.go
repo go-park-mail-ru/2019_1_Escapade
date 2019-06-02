@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -33,8 +32,6 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	message.Time = time.Now().In(loc)
 
-	fmt.Println("Message start")
-
 	// ignore models.StartWrite, models.FinishWrite
 	switch message.Action {
 	case models.Write:
@@ -47,17 +44,13 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		update(find(message), message)
 		_, err = lobby.db.UpdateMessage(message)
 	case models.Delete:
-		fmt.Println("message.ID", message.ID)
 		if message.ID <= 0 {
 			return re.ErrorMessageInvalidID()
 		}
 		delete(find(message))
-		fmt.Println("delete")
 		_, err = lobby.db.DeleteMessage(message)
-		fmt.Println("delete from db")
 	}
 	if err != nil {
-		fmt.Println("err while messaging", err.Error())
 		return err
 	}
 
@@ -65,7 +58,6 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		Type:  "GameMessage",
 		Value: message,
 	}
-	fmt.Println("message done")
 
 	send(response, predicate)
 	return err
@@ -75,6 +67,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 // Messages processes the receipt of an object Messages from the user
 func Messages(conn *Connection, messages *models.Messages,
 	messageSlice []*models.Message) {
+
 	size := len(messageSlice)
 	if messages.Offset < 0 || messages.Offset >= size {
 		messages.Offset = 0

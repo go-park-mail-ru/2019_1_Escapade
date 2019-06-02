@@ -52,17 +52,19 @@ func (conn *Connection) SetConnected() {
 	if conn._disconnected && conn.InRoom() {
 		_, isPlayer := conn.Room().Search(conn)
 		if isPlayer {
-			conn.Room().addAction(conn.ID(), ActionConnectAsPlayer)
-			conn.Room().sendPlayerEnter(*conn, conn.Room().All)
+			pa := *conn.Room().addAction(conn.ID(), ActionConnectAsPlayer)
+			conn.Room().sendAction(pa, conn.Room().All)
+			//conn.Room().sendPlayerEnter(*conn, conn.Room().All)
 		} else {
-			conn.Room().addAction(conn.ID(), ActionConnectAsObserver)
-			conn.Room().sendObserverEnter(*conn, conn.Room().All)
+			pa := *conn.Room().addAction(conn.ID(), ActionConnectAsObserver)
+			conn.Room().sendAction(pa, conn.Room().All)
+			//conn.Room().sendObserverEnter(*conn, conn.Room().All)
 		}
 	}
 	conn.disconnectedM.Lock()
 	conn._disconnected = false
 	conn.disconnectedM.Unlock()
-	fmt.Println("!!!!!!!!!!!!!!!!!!!1connected", time.Now())
+	//fmt.Println("!!!!!!!!!!!!!!!!!!!1connected", time.Now())
 	conn.time = time.Now()
 }
 

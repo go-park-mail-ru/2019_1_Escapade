@@ -93,8 +93,9 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
+	fmt.Println("Status", room.Status)
 	// cause all in pointers
-	if room.Status > StatusRunning {
+	if room.Status < StatusFlagPlacing && room.Status > StatusRunning {
 		return
 	}
 

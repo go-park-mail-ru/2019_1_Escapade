@@ -100,6 +100,8 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 
 	room.ID = id
 
+	room.Observers = NewConnections(room.Settings.Observers)
+
 	room.chanFinish = make(chan struct{})
 	room.chanStatus = make(chan int)
 	room.chanConnection = make(chan ConnectionAction)
@@ -115,9 +117,14 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 func (room *Room) Restart() {
 
 	field := NewField(room.Settings)
+
+	playersConns := room.Players.Connections.RGet()
+	for _, conn := range playersConns {
+		room.Observers.Add(conn, false)
+	}
 	room.Players.Refresh(*field)
 
-	room.Observers = NewConnections(room.Settings.Observers)
+	//room.Observers = NewConnections(room.Settings.Observers)
 
 	room.historyM.Lock()
 	room._history = make([]*PlayerAction, 0)

@@ -38,7 +38,7 @@ func AllExceptThat(me *Connection) func(*Connection) bool {
 // All is SendPredicate to SendToConnections
 // it will send everybody, who is connected
 func All(conn *Connection) bool {
-	return !conn.done() && conn.IsConnected()
+	return !conn.done()
 }
 
 // Me is SendPredicate to SendToConnections
