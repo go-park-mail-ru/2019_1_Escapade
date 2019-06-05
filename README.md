@@ -3,7 +3,7 @@
 :heart_eyes: Top backend :heart_eyes:
 
 ## Фронт
-- [Играть](https://ser.ru.com/)
+- [Играть](https://explosion.team)
 - [Разрабатывать](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
 - [Рисовать](https://www.figma.com/file/WcFryEu51iySsuBd8F0CLi0S/explose)
 
