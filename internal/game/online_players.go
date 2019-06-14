@@ -103,7 +103,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, 
 	// if conn == nil {
 	// 	panic(1)
 	// }
-	i := onlinePlayers.Connections.Add(conn, kill)
+	i := onlinePlayers.Connections.Add(conn, false)
 	if i < 0 {
 		return false
 	}

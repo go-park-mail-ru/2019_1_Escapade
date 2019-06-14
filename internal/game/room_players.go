@@ -125,7 +125,7 @@ func (room *Room) MakePlayer(conn *Connection, recover bool) {
 	}()
 
 	if room.Status != StatusPeopleFinding {
-		room.lobby.waiterToPlayer(conn)
+		room.lobby.waiterToPlayer(conn, room)
 		conn.setBoth(false)
 	} else {
 		conn.setBoth(true)
@@ -151,7 +151,7 @@ func (room *Room) MakeObserver(conn *Connection, recover bool) {
 	}()
 
 	if room.Status != StatusPeopleFinding {
-		room.lobby.waiterToPlayer(conn)
+		room.lobby.waiterToPlayer(conn, room)
 		conn.setBoth(false)
 	} else {
 		conn.setBoth(true)

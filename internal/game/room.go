@@ -20,6 +20,7 @@ const (
 	StatusHistory       = 5
 )
 
+// ConnectionAction is a bundle of Connection and action
 type ConnectionAction struct {
 	conn   *Connection
 	action int

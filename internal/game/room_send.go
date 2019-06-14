@@ -78,13 +78,6 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func sendAccountTaken(conn Connection) {
-
-	response := models.Response{
-		Type: "AccountTaken",
-	}
-	conn.SendInformation(response)
-}
 
 func (room *Room) sendNewCells(predicate SendPredicate, cells ...Cell) {
 	if room.done() {

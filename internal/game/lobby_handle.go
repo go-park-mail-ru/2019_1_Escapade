@@ -25,6 +25,9 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 	lobby.chanJoin <- conn
 }
 
+/*
+А зачем нам рум гарбаж коллекток, если можно ходить по слайсу playing?
+*/
 func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 	fmt.Println("lobby launchGarbageCollector")
 	if lobby.done() {
@@ -49,34 +52,37 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 	}
 }
 
-// Run the room in goroutine
+/*
+Run accepts connections and messages from them
+Goroutine. When it is finished, the lobby will be cleared
+*/
 func (lobby *Lobby) Run() {
-
-	ticker := time.NewTicker(time.Second * 10)
-	//var timeout float64
-	//timeout = 10
-
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
-		ticker.Stop()
 		lobby.Free()
 	}()
 
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	var timeout float64
+	timeout = 10
+
 	for {
 		select {
-		//case <-ticker.C:
-		//	go lobby.launchGarbageCollector(timeout)
+		case <-ticker.C:
+			go lobby.launchGarbageCollector(timeout)
 		case connection := <-lobby.chanJoin:
-			go lobby.Join(connection, false)
-
+			go lobby.Join(connection)
 		case message := <-lobby.chanBroadcast:
 			lobby.Analize(message)
+		case <-lobby.chanBreak:
+			return
 		}
 	}
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
+func (lobby *Lobby) Join(newConn *Connection) {
 	if lobby.done() {
 		return
 	}
@@ -86,21 +92,12 @@ func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
 		lobby.wGroup.Done()
 	}()
 
-	found, _ := lobby.Waiting.SearchByID(newConn.ID())
-	if found != nil {
-		sendAccountTaken(*found)
-	}
-	//sendAccountTaken(*oldConn)
-
-	lobby.addWaiter(newConn)
-
-	if lobby.canCloseRooms {
-
-		lobby.recoverInRoom(newConn, disconnected)
-		//go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
+	// try restore user
+	if lobby.restore(newConn) {
 		return
 	}
-	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
+
+	lobby.addWaiter(newConn)
 
 	newConn.debug("new waiter")
 }
@@ -125,18 +122,9 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 				action: ActionDisconnect,
 			}
 		}
-		//disconnected = lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
-	}
-
-	if !conn.InRoom() {
-		timeout := time.Duration(time.Second) * 20
-		//fmt.Println("compate", time.Since(conn.time).Seconds(), timeout.Seconds())
-		if time.Since(conn.time).Seconds() > timeout.Seconds() {
-			disconnected = lobby.Waiting.FastRemove(conn) //lobby.waitingRemove(conn)
-			if disconnected {
-				lobby.sendWaiterExit(*conn, All)
-			}
-		}
+	} else {
+		disconnected = lobby.Waiting.Remove(conn)
+		go lobby.sendWaiterExit(*conn, All)
 	}
 
 	if disconnected {

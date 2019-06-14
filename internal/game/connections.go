@@ -45,10 +45,10 @@ func (conns *Connections) Free() {
 }
 
 // Remove -> FastRemove
-func (conns *Connections) FastRemove(conn *Connection) bool {
+func (conns *Connections) Remove(conn *Connection) bool {
 	if conn == nil {
-		panic("123123123")
-		return false
+		//panic("123123123")
+		return true
 	}
 	conn, i := conns.SearchByID(conn.ID())
 	fmt.Println("remove conn", i)
@@ -59,20 +59,28 @@ func (conns *Connections) FastRemove(conn *Connection) bool {
 	return true
 }
 
+// Restore connection
+func (conns *Connections) Restore(conn *Connection) bool {
+	found, i := conns.SearchByID(conn.ID())
+	if i != -1 {
+		conn.Restore(found)
+		conns.set(i, conn)
+		go sendAccountTaken(*found)
+	}
+	return i != -1
+}
+
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
-	_, i = conns.SearchByID(conn.ID())
+func (conns *Connections) Add(conn *Connection, copy bool) int {
+	oldConn, i := conns.SearchByID(conn.ID())
 	if i >= 0 {
-		oldConn := conns.RGet()[i]
-		if kill && !oldConn.Disconnected() {
-			oldConn.Kill("Another connection found", true)
+		if copy {
+			conn.setRoom(oldConn.Room())
+			conn.SetIndex(oldConn.Index())
 		}
-		conn.setRoom(oldConn.Room())
-		conn.SetIndex(oldConn.Index())
-
 		conns.set(i, conn)
-		i = oldConn.Index()
+		//i = oldConn.Index()
 	} else if conns.EnoughPlace() {
 		i = len(conns.RGet())
 		conns.append(conn)

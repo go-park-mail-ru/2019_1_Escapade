@@ -57,6 +57,23 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 	}
 }
 
+// new!!!
+// Restore
+// it calls in lobby restore
+func (conn *Connection) Restore(copy *Connection) {
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer func() {
+		conn.wGroup.Done()
+	}()
+
+	conn.setRoom(copy.Room())
+	conn.setBoth(copy.Both())
+	conn.SetIndex(copy.Index())
+}
+
 // PushToRoom set field 'room' to real room
 func (conn *Connection) PushToRoom(room *Room) {
 	if conn.done() {
@@ -383,6 +400,14 @@ func (conn *Connection) ID() int {
 		return -1
 	}
 	return conn.User.ID
+}
+
+func sendAccountTaken(conn Connection) {
+
+	response := models.Response{
+		Type: "AccountTaken",
+	}
+	conn.SendInformation(response)
 }
 
 // debug print debug information to console and websocket

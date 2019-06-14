@@ -76,7 +76,7 @@ func (room *Room) Close() bool {
 	room.lobby.CloseRoom(room)
 	room.LeaveAll()
 	fmt.Println("Prepare to free!")
-	//go room.Free()
+	go room.Free()
 	fmt.Println("We did it")
 	return true
 }
@@ -101,6 +101,7 @@ func (room *Room) LeaveAll() {
 	}
 }
 
+// Empty check room has no people
 func (room *Room) Empty() bool {
 	if room.done() {
 		return true
@@ -113,7 +114,7 @@ func (room *Room) Empty() bool {
 	return len(room.Players.Connections.RGet())+len(room.Observers.RGet()) == 0
 }
 
-// Leave handle user going back to lobby
+// LeavePlayer handle player going back to lobby
 func (room *Room) LeavePlayer(conn *Connection) bool {
 	if room.done() {
 		return false
@@ -123,7 +124,7 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 		room.wGroup.Done()
 	}()
 
-	done := room.Players.Connections.FastRemove(conn)
+	done := room.Players.Connections.Remove(conn)
 	if done {
 		room.GiveUp(conn)
 	}
@@ -135,7 +136,7 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 	return done
 }
 
-// Leave handle user going back to lobby
+// LeaveObserver handle observer leaves room
 func (room *Room) LeaveObserver(conn *Connection) bool {
 	if room.done() {
 		return false
@@ -145,14 +146,14 @@ func (room *Room) LeaveObserver(conn *Connection) bool {
 		room.wGroup.Done()
 	}()
 
-	done := room.Observers.FastRemove(conn)
+	done := room.Observers.Remove(conn)
 	if room.Empty() {
 		room.Close()
 	}
 	return done
 }
 
-// Leave handle user going back to lobby
+// LeaveMeta update metainformation about user leaving room
 func (room *Room) LeaveMeta(conn *Connection, action int) {
 	if room.done() {
 		return

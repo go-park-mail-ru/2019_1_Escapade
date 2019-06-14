@@ -13,11 +13,12 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 		metrics.WaitingPlayers.Add(1)
 	}
 	fmt.Println("addWaiter called")
+
 	lobby.Waiting.Add(newConn, false)
 	if !newConn.Both() {
 		lobby.greet(newConn)
 	}
-	lobby.sendWaiterEnter(*newConn, All)
+	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 }
 
 // Anonymous return anonymous id
@@ -30,14 +31,8 @@ func (lobby *Lobby) Anonymous() int {
 	return id
 }
 
-// addPlayer add connection to players slice
-func (lobby *Lobby) addPlayer(newConn *Connection) {
-	fmt.Println("addPlayer called")
-	lobby.Playing.Add(newConn, false)
-}
-
 // waiterToPlayer turns the waiting into a player
-func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
+func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 	if lobby.done() {
 		return
 	}
@@ -47,8 +42,11 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	lobby.Waiting.FastRemove(newConn)
-	lobby.addPlayer(newConn)
+	lobby.Waiting.Remove(conn)
+	lobby.sendWaiterExit(*conn, All)
+	conn.PushToRoom(room)
+	lobby.Playing.Add(conn, false)
+	lobby.sendPlayerEnter(*conn, All)
 }
 
 // PlayerToWaiter turns the player into a waiting
@@ -62,8 +60,8 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("PlayerToWaiter called")
-	lobby.Playing.FastRemove(conn)
+	lobby.Playing.Remove(conn)
+	lobby.sendPlayerExit(*conn, All)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }
@@ -86,4 +84,28 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 			action: ActionConnect,
 		}
 	}
+}
+
+// r
+// new!!!!
+// restore
+// call it before enter connection
+//
+func (lobby *Lobby) restore(conn *Connection) bool {
+
+	var found = lobby.Playing.Restore(conn)
+
+	if found {
+		room := conn.Room()
+		if !room.done() {
+			room.chanConnection <- ConnectionAction{
+				conn:   conn,
+				action: ActionReconnect, //bug::: не обрабатывается в руме, поправить
+			}
+		}
+		return found
+	}
+	found = lobby.Waiting.Restore(conn)
+
+	return found
 }

@@ -52,6 +52,7 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
+	//review: бесполезный комментарий
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 		if err != nil {
