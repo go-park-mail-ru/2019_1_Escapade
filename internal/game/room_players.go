@@ -1,12 +1,7 @@
 package game
 
-import (
-	"fmt"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
-)
-
 // RecoverPlayer call it in lobby.join if player disconnected
+/*
 func (room *Room) RecoverPlayer(newConn *Connection) {
 	if room.done() {
 		return
@@ -17,7 +12,7 @@ func (room *Room) RecoverPlayer(newConn *Connection) {
 	}()
 
 	// add connection as player
-	room.MakePlayer(newConn, true)
+	// room.MakePlayer(newConn, true)
 	pa := *room.addAction(newConn.ID(), ActionReconnect)
 	room.addPlayer(newConn, true)
 	room.sendAction(pa, room.AllExceptThat(newConn))
@@ -43,8 +38,10 @@ func (room *Room) RecoverObserver(newConn *Connection) {
 
 	return
 }
+*/
 
 // observe try to connect user as observer
+/*
 func (room *Room) addObserver(conn *Connection) bool {
 	if room.done() {
 		return false
@@ -71,11 +68,11 @@ func (room *Room) addObserver(conn *Connection) bool {
 	room.lobby.sendRoomUpdate(*room, All)
 
 	return true
-}
+}*/
 
 // EnterPlayer handle player try to enter room
-func (room *Room) addPlayer(conn *Connection, recover bool) bool {
-	fmt.Println("addPlayer", recover)
+func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover bool) bool {
+	//fmt.Println("addPlayer", recover)
 	if room.done() {
 		return false
 	}
@@ -84,35 +81,88 @@ func (room *Room) addPlayer(conn *Connection, recover bool) bool {
 		room.wGroup.Done()
 	}()
 
-	if room.lobby.Metrics() {
-		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
-	}
+	// later return back!!!!!
+	// if room.lobby.Metrics() {
+	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
+	// }
 
 	conn.debug("Room(" + room.ID + ") wanna connect you")
 
 	// if room hasnt got places
-	if !recover && !room.Players.EnoughPlace() {
-		conn.debug("Room(" + room.ID + ") hasnt any place")
+	if !room.Push(conn, isPlayer, needRecover) {
 		return false
 	}
 
-	room.MakePlayer(conn, recover)
+	var pa *PlayerAction
+	if needRecover {
+		pa = room.addAction(conn.ID(), ActionReconnect)
+	} else if isPlayer {
+		if !room.Players.EnoughPlace() {
+			return false
+		}
+		pa = room.addAction(conn.ID(), ActionConnectAsPlayer)
+		// maybe delete it?
+		go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
+	} else {
+		if !room.Observers.EnoughPlace() {
+			return false
+		}
+		pa = room.addAction(conn.ID(), ActionConnectAsObserver)
+		// maybe delete it?
+		go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
+	}
+	go room.sendAction(*pa, room.AllExceptThat(conn))
 
-	go room.addAction(conn.ID(), ActionConnectAsPlayer)
-	go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
-
-	if !recover {
+	if !needRecover {
 		room.lobby.sendRoomUpdate(*room, All)
-		room.lobby.sendRoomToOne(*room, *conn)
 
 		if !room.Players.EnoughPlace() {
 			room.chanStatus <- StatusFlagPlacing
 		}
+	} else {
+		room.sendStatusOne(*conn)
 	}
 
 	return true
 }
 
+func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
+	if room.done() {
+		return false
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
+	if isPlayer {
+		if !room.Players.EnoughPlace() {
+			return false
+		}
+		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, needRecover)
+		if !room.Players.EnoughPlace() {
+			room.StartFlagPlacing()
+		}
+	} else {
+		if !room.Observers.EnoughPlace() {
+			return false
+		}
+		room.Observers.Add(conn)
+	}
+
+	room.greet(conn, isPlayer)
+	if room.Status != StatusPeopleFinding {
+		room.lobby.waiterToPlayer(conn, room)
+	} else {
+		conn.setWaitingRoom(room)
+		//conn.setBoth(true)
+	}
+
+	return true
+
+}
+
+/*
 // MakePlayer mark connection as connected as Player
 // add to players slice and set flag inRoom true
 func (room *Room) MakePlayer(conn *Connection, recover bool) {
@@ -163,6 +213,7 @@ func (room *Room) MakeObserver(conn *Connection, recover bool) {
 	}
 	conn.PushToRoom(room)
 }
+*/
 
 // Search search connection in players and observers of room
 // return connection and flag isPlayer

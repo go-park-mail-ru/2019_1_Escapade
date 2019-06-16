@@ -43,12 +43,15 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 		if conn == nil {
 			continue
 		}
-		if time.Since(conn.time).Seconds() > timeout {
-			fmt.Println(conn.User.Name, " - bad")
+		if conn.isClosed() {
 			lobby.Leave(conn, "")
-		} else {
-			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
 		}
+		// if time.Since(conn.time).Seconds() > timeout {
+		// 	fmt.Println(conn.User.Name, " - bad")
+		// 	lobby.Leave(conn, "")
+		// } else {
+		// 	fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+		// }
 	}
 }
 
@@ -94,6 +97,7 @@ func (lobby *Lobby) Join(newConn *Connection) {
 
 	// try restore user
 	if lobby.restore(newConn) {
+		fmt.Println("lobby.restore", newConn.ID(), newConn.InPlayingRoom(), newConn.Index())
 		return
 	}
 
@@ -115,15 +119,54 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 
 	var disconnected bool
 
-	if conn.Both() || conn.InRoom() {
-		if !conn.Room().done() {
-			conn.Room().chanConnection <- ConnectionAction{
+	// check
+	waiter, _ := lobby.Waiting.SearchByID(conn.ID())
+	if waiter != nil {
+		if !waiter.isClosed() {
+			return
+		}
+		// err := waiter.ws.Close()
+		// if err != nil {
+		// 	fmt.Println("cant leave:", err.Error())
+		// 	return
+		// }
+	} else {
+		player, _ := lobby.Playing.SearchByID(conn.ID())
+		if player != nil {
+			if !player.isClosed() {
+				return
+			}
+			// err := player.ws.Close()
+			// if err != nil {
+			// 	fmt.Println("cant leave:", err.Error())
+			// 	return
+			// }
+		}
+	}
+	//
+
+	if conn.PlayingRoom() != nil {
+		if !conn.PlayingRoom().done() {
+			conn.PlayingRoom().chanConnection <- ConnectionAction{
 				conn:   conn,
 				action: ActionDisconnect,
 			}
 		}
-	} else {
-		disconnected = lobby.Waiting.Remove(conn)
+		// dont delete from lobby, because player not in lobby
+		return
+	} else if conn.WaitingRoom() != nil {
+		if !conn.WaitingRoom().done() {
+			conn.WaitingRoom().chanConnection <- ConnectionAction{
+				conn:   conn,
+				action: ActionDisconnect,
+			}
+		}
+		// continue, because player in lobby
+	}
+
+	fmt.Println("see disc -  #", conn.ID())
+	disconnected = lobby.Waiting.Remove(conn)
+	if disconnected {
 		go lobby.sendWaiterExit(*conn, All)
 	}
 
@@ -134,7 +177,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, action int) {
+func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 
 	if lobby.done() {
 		return
@@ -145,15 +188,13 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int) {
 		lobby.wGroup.Done()
 	}()
 
-	if conn.Room() == nil {
-		return
-	}
-
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
-		lobby.PlayerToWaiter(conn)
-	} else if len(conn.Room().Players.Connections.RGet()) > 0 {
-		lobby.sendRoomUpdate(*conn.Room(), AllExceptThat(conn))
+		if room.Status != StatusPeopleFinding {
+			lobby.PlayerToWaiter(conn)
+		}
+	} else if len(room.Players.Connections.RGet()) > 0 {
+		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
 }
 
@@ -172,11 +213,11 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	conn.actionSem <- struct{}{}
 	defer func() { <-conn.actionSem }()
 
-	if conn.InRoom() {
-		if conn.Room().ID == rs.ID {
+	if conn.WaitingRoom() != nil {
+		if conn.WaitingRoom().ID == rs.ID {
 			return
 		}
-		conn.Room().processActionBackToLobby(conn)
+		conn.WaitingRoom().processActionBackToLobby(conn)
 	}
 
 	if rs.ID == "create" {
@@ -214,7 +255,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	FreeRooms := lobby.freeRooms()
 	for _, room = range FreeRooms {
 		//if room.SameAs()
-		if room.addPlayer(conn, false) {
+		if room.addConnection(conn, true, false) { //room.addPlayer(conn, false) {
 			return
 		}
 	}
@@ -234,30 +275,31 @@ func (lobby *Lobby) Analize(req *Request) {
 		lobby.wGroup.Done()
 	}()
 
-	//fmt.Println("analyze", req.Connection.Both(), req.Connection.InRoom(), req.Connection.Disconnected())
-	if req.Connection.Both() || !req.Connection.InRoom() {
-		fmt.Println("lobby work")
-		var send *LobbyRequest
-		if err := json.Unmarshal(req.Message, &send); err != nil {
-			req.Connection.SendInformation(err)
-		} else {
-			lobby.HandleRequest(req.Connection, send)
-		}
-	}
-	fmt.Println("req.Connection.InRoom()", req.Connection.InRoom())
-	if req.Connection.Both() || req.Connection.InRoom() {
+	if req.Connection.PlayingRoom() != nil {
 		var rsend *RoomRequest
 		if err := json.Unmarshal(req.Message, &rsend); err != nil {
 			fmt.Println("big json error")
 		} else {
-			fmt.Println("room is here")
-			room := req.Connection.Room()
-			if room == nil {
-				fmt.Println("no room")
-				return
-			}
-			room.HandleRequest(req.Connection, rsend)
+			req.Connection.PlayingRoom().HandleRequest(req.Connection, rsend)
 		}
+		return
+		// not in lobby
+		return
+	} else if req.Connection.WaitingRoom() != nil {
+		var rsend *RoomRequest
+		if err := json.Unmarshal(req.Message, &rsend); err != nil {
+			fmt.Println("big json error")
+		} else {
+			req.Connection.WaitingRoom().HandleRequest(req.Connection, rsend)
+		}
+		// in lobby
+	}
+
+	var send *LobbyRequest
+	if err := json.Unmarshal(req.Message, &send); err != nil {
+		req.Connection.SendInformation(err)
+	} else {
+		lobby.HandleRequest(req.Connection, send)
 	}
 }
 

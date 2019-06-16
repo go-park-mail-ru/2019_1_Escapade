@@ -52,19 +52,13 @@ func Me(me *Connection) func(*Connection) bool {
 // All is SendPredicate to SendToConnections
 // it will send everybody in room, who is connected
 func (room *Room) All(conn *Connection) bool {
-	return !conn.done() && conn.Room() == room
-}
-
-// InGame is SendPredicate to SendToConnections
-// it will send everybody in room, if game began
-func (room *Room) InGame(conn *Connection) bool {
-	return !conn.done() && conn.Room() == room && !conn.Both()
+	return !conn.done()
 }
 
 // AllExceptThat is SendPredicate to SendToConnections
 // it will send everybody in room, except selected one
 func (room *Room) AllExceptThat(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
-		return !conn.done() && !me.done() && conn.Room() == room && conn != me
+		return !conn.done() && !me.done() && conn != me
 	}
 }

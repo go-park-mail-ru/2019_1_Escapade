@@ -49,15 +49,15 @@ func (conn *Connection) setDisconnected() {
 
 // SetConnected set _disconnected false
 func (conn *Connection) SetConnected() {
-	if conn._disconnected && conn.InRoom() {
-		_, isPlayer := conn.Room().Search(conn)
+	if conn._disconnected && conn.InPlayingRoom() {
+		_, isPlayer := conn.PlayingRoom().Search(conn)
 		if isPlayer {
-			pa := *conn.Room().addAction(conn.ID(), ActionConnectAsPlayer)
-			conn.Room().sendAction(pa, conn.Room().All)
+			pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsPlayer)
+			conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
 			//conn.Room().sendPlayerEnter(*conn, conn.Room().All)
 		} else {
-			pa := *conn.Room().addAction(conn.ID(), ActionConnectAsObserver)
-			conn.Room().sendAction(pa, conn.Room().All)
+			pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsObserver)
+			conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
 			//conn.Room().sendObserverEnter(*conn, conn.Room().All)
 		}
 	}
@@ -69,50 +69,34 @@ func (conn *Connection) SetConnected() {
 }
 
 // Room return   '_room' field
-func (conn *Connection) Room() *Room {
+func (conn *Connection) PlayingRoom() *Room {
 	if conn.done() {
-		return conn._room
+		return conn._playingRoom
 	}
 	conn.wGroup.Add(1)
 	defer func() {
 		conn.wGroup.Done()
 	}()
 
-	conn.roomM.RLock()
-	v := conn._room
-	conn.roomM.RUnlock()
+	conn.playingRoomM.RLock()
+	v := conn._playingRoom
+	conn.playingRoomM.RUnlock()
 	return v
 }
 
-// getMatrixValue get a value from matrix
-// func (conn *Connection) RoomID() string {
-// 	if conn.done() {
-// 		return re.ErrorConnectionDone().Error()
-// 	}
-// 	conn.wGroup.Add(1)
-// 	defer func() {
-// 		conn.wGroup.Done()
-// 	}()
-
-// 	conn.roomM.RLock()
-// 	v := conn._room.ID
-// 	conn.roomM.RUnlock()
-// 	return v
-// }
-
 // Both return   '_both' field
-func (conn *Connection) Both() bool {
+func (conn *Connection) WaitingRoom() *Room {
 	if conn.done() {
-		return conn._both
+		return conn._playingRoom
 	}
 	conn.wGroup.Add(1)
 	defer func() {
 		conn.wGroup.Done()
 	}()
 
-	conn.bothM.RLock()
-	v := conn._both
-	conn.bothM.RUnlock()
+	conn.waitingRoomM.RLock()
+	v := conn._waitingRoom
+	conn.waitingRoomM.RUnlock()
 	return v
 }
 
@@ -148,15 +132,15 @@ func (conn *Connection) SetIndex(value int) {
 }
 
 // setRoom set a pointer to the room in which the connection is located
-func (conn *Connection) setRoom(room *Room) {
-	conn.roomM.Lock()
-	conn._room = room
-	conn.roomM.Unlock()
+func (conn *Connection) setPlayingRoom(room *Room) {
+	conn.playingRoomM.Lock()
+	conn._playingRoom = room
+	conn.playingRoomM.Unlock()
 }
 
 // setBoth sets the flag whether the connection belongs to both the lobby and the room
-func (conn *Connection) setBoth(both bool) {
-	conn.bothM.Lock()
-	conn._both = both
-	conn.bothM.Unlock()
+func (conn *Connection) setWaitingRoom(room *Room) {
+	conn.waitingRoomM.Lock()
+	conn._waitingRoom = room
+	conn.waitingRoomM.Unlock()
 }

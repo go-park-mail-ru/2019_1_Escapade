@@ -31,7 +31,7 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections._get {
 		if i > onlinePlayers.Capacity() {
-			room := conn.Room()
+			room := conn.PlayingRoom()
 			if room == nil {
 				continue
 			}
@@ -103,7 +103,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, 
 	// if conn == nil {
 	// 	panic(1)
 	// }
-	i := onlinePlayers.Connections.Add(conn, false)
+	i := onlinePlayers.Connections.Add(conn /*, false*/)
 	if i < 0 {
 		return false
 	}

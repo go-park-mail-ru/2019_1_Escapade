@@ -160,7 +160,7 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 	observerGone := room.LeaveObserver(conn)
 
 	fmt.Println("LeaveRoom")
-	room.lobby.LeaveRoom(conn, ActionBackToLobby)
+	room.lobby.LeaveRoom(conn, ActionBackToLobby, room)
 	fmt.Println("LeaveMeta")
 	room.LeaveMeta(conn, ActionDisconnect)
 	fmt.Println("went back", playerGone, observerGone)
@@ -198,6 +198,7 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 	// }
 }
 
+/*
 func (room *Room) processActionConnect(conn *Connection) {
 	if room.done() {
 		return
@@ -221,6 +222,27 @@ func (room *Room) processActionConnect(conn *Connection) {
 	} else {
 		room.RecoverObserver(conn)
 	}
+}*/
+
+func (room *Room) processActionReconnect(conn *Connection) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("room_handle.go run()")
+		room.wGroup.Done()
+	}()
+
+	found, isPlayer := room.Search(conn)
+	if found == nil {
+		return
+	}
+	//sendAccountTaken(*found)
+	//conn.SetConnected()
+	//conn.time = time.Now()
+	//found = conn
+	room.addConnection(conn, isPlayer, true)
 }
 
 func (room *Room) processActionGiveUp(conn *Connection) {
@@ -262,7 +284,7 @@ func (room *Room) processActionRestart(conn *Connection) {
 	conn.lobby.greet(conn)
 	if room.Status == StatusPeopleFinding {
 		room.LeaveObserver(conn)
-		room.addPlayer(conn, false)
+		room.addConnection(conn, true, false)
 	}
 }
 
@@ -287,9 +309,13 @@ func (room *Room) processConnectionAction(ca ConnectionAction) {
 		fmt.Println("processActionDisconnect ------")
 		room.processActionDisconnect(ca.conn)
 		fmt.Println("processActionDisconnect")
-	case ActionConnect:
+	//case ActionConnect:
+	//fmt.Println("processActionConnect ------")
+	//room.processActionConnect(ca.conn)
+	//fmt.Println("processActionConnect ")
+	case ActionReconnect:
 		//fmt.Println("processActionConnect ------")
-		room.processActionConnect(ca.conn)
+		room.processActionReconnect(ca.conn)
 		//fmt.Println("processActionConnect ")
 	case ActionGiveUp:
 		//fmt.Println("processActionGiveUp ------")

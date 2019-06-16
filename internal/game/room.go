@@ -121,7 +121,7 @@ func (room *Room) Restart() {
 
 	playersConns := room.Players.Connections.RGet()
 	for _, conn := range playersConns {
-		room.Observers.Add(conn, false)
+		room.Observers.Add(conn)
 	}
 	room.Players.Refresh(*field)
 

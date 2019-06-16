@@ -72,13 +72,14 @@ func (conns *Connections) Restore(conn *Connection) bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection, copy bool) int {
-	oldConn, i := conns.SearchByID(conn.ID())
+func (conns *Connections) Add(conn *Connection /*, copy bool*/) int {
+	_, i := conns.SearchByID(conn.ID())
 	if i >= 0 {
-		if copy {
-			conn.setRoom(oldConn.Room())
-			conn.SetIndex(oldConn.Index())
-		}
+		/*
+			if copy {
+				conn.setRoom(oldConn.Room())
+				conn.SetIndex(oldConn.Index())
+			}*/
 		conns.set(i, conn)
 		//i = oldConn.Index()
 	} else if conns.EnoughPlace() {

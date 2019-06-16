@@ -17,14 +17,14 @@ type Connection struct {
 	doneM *sync.RWMutex
 	_done bool
 
-	roomM *sync.RWMutex
-	_room *Room
+	playingRoomM *sync.RWMutex
+	_playingRoom *Room
 
 	disconnectedM *sync.RWMutex
 	_disconnected bool
 
-	bothM *sync.RWMutex
-	_both bool
+	waitingRoomM *sync.RWMutex
+	_waitingRoom *Room
 
 	indexM *sync.RWMutex
 	_index int

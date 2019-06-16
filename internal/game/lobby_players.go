@@ -14,10 +14,8 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 	}
 	fmt.Println("addWaiter called")
 
-	lobby.Waiting.Add(newConn, false)
-	if !newConn.Both() {
-		lobby.greet(newConn)
-	}
+	lobby.Waiting.Add(newConn /*, false*/)
+	lobby.greet(newConn)
 	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 }
 
@@ -42,10 +40,12 @@ func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 		lobby.wGroup.Done()
 	}()
 
+	fmt.Println("waiterToPlayer called for ", conn.ID())
+
 	lobby.Waiting.Remove(conn)
 	lobby.sendWaiterExit(*conn, All)
 	conn.PushToRoom(room)
-	lobby.Playing.Add(conn, false)
+	lobby.Playing.Add(conn /*, false */)
 	lobby.sendPlayerEnter(*conn, All)
 }
 
@@ -60,30 +60,12 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
+	fmt.Println("PlayerToWaiter called for ", conn.ID())
+
 	lobby.Playing.Remove(conn)
 	lobby.sendPlayerExit(*conn, All)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
-}
-
-// recoverInRoom return true if can find Connection in any room
-// otherwise false
-func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
-
-	_, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
-	if room == nil {
-		return
-	}
-	conn, _ := room.Search(newConn)
-	if conn == nil {
-		return
-	}
-	if !room.done() {
-		room.chanConnection <- ConnectionAction{
-			conn:   newConn,
-			action: ActionConnect,
-		}
-	}
 }
 
 // r
@@ -94,18 +76,22 @@ func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) {
 func (lobby *Lobby) restore(conn *Connection) bool {
 
 	var found = lobby.Playing.Restore(conn)
+	var room *Room
 
 	if found {
-		room := conn.Room()
-		if !room.done() {
-			room.chanConnection <- ConnectionAction{
-				conn:   conn,
-				action: ActionReconnect, //bug::: не обрабатывается в руме, поправить
-			}
+		room = conn.PlayingRoom()
+	} else {
+		found = lobby.Waiting.Restore(conn)
+		if found {
+			room = conn.WaitingRoom()
 		}
-		return found
 	}
-	found = lobby.Waiting.Restore(conn)
 
+	if room != nil {
+		room.chanConnection <- ConnectionAction{
+			conn:   conn,
+			action: ActionReconnect, //bug::: не обрабатывается в руме, поправить
+		}
+	}
 	return found
 }

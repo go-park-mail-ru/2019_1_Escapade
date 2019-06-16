@@ -30,14 +30,14 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		doneM: &sync.RWMutex{},
 		_done: false,
 
-		roomM: &sync.RWMutex{},
-		_room: nil,
+		playingRoomM: &sync.RWMutex{},
+		_playingRoom: nil,
 
 		disconnectedM: &sync.RWMutex{},
 		_disconnected: false,
 
-		bothM: &sync.RWMutex{},
-		_both: false,
+		waitingRoomM: &sync.RWMutex{},
+		_waitingRoom: nil,
 
 		indexM: &sync.RWMutex{},
 		_index: -1,
@@ -69,8 +69,9 @@ func (conn *Connection) Restore(copy *Connection) {
 		conn.wGroup.Done()
 	}()
 
-	conn.setRoom(copy.Room())
-	conn.setBoth(copy.Both())
+	//fmt.Println("copy info", copy.PlayingRoom(), copy.Both(), copy.Index())
+	conn.setPlayingRoom(copy.PlayingRoom())
+	conn.setWaitingRoom(copy.WaitingRoom())
 	conn.SetIndex(copy.Index())
 }
 
@@ -84,7 +85,8 @@ func (conn *Connection) PushToRoom(room *Room) {
 		conn.wGroup.Done()
 	}()
 
-	conn.setRoom(room)
+	conn.setPlayingRoom(room)
+	conn.setWaitingRoom(nil)
 }
 
 // PushToLobby set field 'room' to nil
@@ -97,8 +99,7 @@ func (conn *Connection) PushToLobby() {
 		conn.wGroup.Done()
 	}()
 
-	conn.setRoom(nil)
-	conn.setBoth(false)
+	conn.setPlayingRoom(nil)
 }
 
 // IsConnected check player isnt disconnected
@@ -111,44 +112,6 @@ func (conn *Connection) IsConnected() bool {
 		conn.wGroup.Done()
 	}()
 	return conn.Disconnected() == false
-}
-
-// Dirty make connection dirty. it make connection ID
-// -1 and when connection try to leave lobby, lobby will not
-// delete this connections from list, cause it will not find
-// anybody with such id
-func (conn *Connection) Dirty() {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-	conn.User.ID = -1
-}
-
-// Kill call context.CancFunc, that finish goroutines of
-// writer and reader and free connection memory
-func (conn *Connection) Kill(message string, makeDirty bool) {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-
-	fmt.Println("SendInformation")
-	conn.SendInformation(message)
-	if makeDirty {
-		conn.Dirty()
-	}
-	fmt.Println("setDisconnected")
-	conn.setDisconnected()
-	fmt.Println("cancel")
-	conn.cancel()
-	fmt.Println("done")
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
@@ -177,13 +140,14 @@ func (conn *Connection) Free() {
 	// arent nil and we make 'conn.disconnected = true' for them
 
 	conn.lobby = nil
-	conn.setRoom(nil)
+	conn.setPlayingRoom(nil)
+	conn.setWaitingRoom(nil)
 
 	//fmt.Println("conn free memory")
 }
 
 // InRoom check is player in room
-func (conn *Connection) InRoom() bool {
+func (conn *Connection) InPlayingRoom() bool {
 	if conn.done() {
 		return false
 	}
@@ -191,7 +155,7 @@ func (conn *Connection) InRoom() bool {
 	defer func() {
 		conn.wGroup.Done()
 	}()
-	return conn.Room() != nil
+	return conn.PlayingRoom() != nil
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
@@ -261,7 +225,9 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 				} else {
 					fmt.Println("expected error:" + err.Error())
 				}
-				//conn.Kill("Client websocket died", false)
+				if conn.lobby != nil {
+					conn.lobby.Leave(conn, "err.Error()")
+				}
 				return
 			}
 			fmt.Println("#", conn.ID(), "read from conn:", string(message))
@@ -348,6 +314,20 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			}
 		}
 	}
+}
+
+func (conn *Connection) isClosed() bool {
+	_, _, err := conn.ws.ReadMessage()
+	return err != nil
+	// if ce, ok := err.(*websocket.CloseError); ok {
+	// 	switch ce.Code {
+	// 	case websocket.CloseNormalClosure,
+	// 		websocket.CloseGoingAway,
+	// 		websocket.CloseNoStatusReceived:
+	// 		s.env.Statusf("Web socket closed by client: %s", err)
+	// 		return
+	// 	}
+	// }
 }
 
 // SendInformation send info

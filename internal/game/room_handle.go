@@ -23,10 +23,10 @@ func (room *Room) Enter(conn *Connection) bool {
 	// if room is searching new players
 	if room.Status == StatusPeopleFinding {
 		conn.debug("You will be player!")
-		if room.addPlayer(conn, false) {
+		if room.addConnection(conn, true, false) {
 			done = true
 		}
-	} else if room.addObserver(conn) {
+	} else if room.addConnection(conn, false, false) {
 		conn.debug("You will be observer!")
 		done = true
 	}
@@ -329,7 +329,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		}
 		Message(room.lobby, conn, rr.Message, room.appendMessage,
 			room.setMessage, room.removeMessage, room.findMessage,
-			room.send, room.InGame, true, room.ID)
+			room.send, room.All, true, room.ID)
 	}
 }
 
@@ -348,11 +348,13 @@ func (room *Room) StartFlagPlacing() {
 	room.Status = StatusFlagPlacing
 	players := room.Players.Connections.RGet()
 	for _, conn := range players {
-		room.MakePlayer(conn, false)
+		room.greet(conn, true)
+		room.lobby.waiterToPlayer(conn, room)
 	}
 	observers := room.Observers.RGet()
 	for _, conn := range observers {
-		room.MakeObserver(conn, false)
+		room.greet(conn, false)
+		room.lobby.waiterToPlayer(conn, room)
 	}
 	room.Players.Init(room.Field)
 
@@ -418,7 +420,7 @@ func (room *Room) FinishGame(timer bool) {
 
 	playersConns := room.Players.Connections.RGet()
 	for _, conn := range playersConns {
-		room.Observers.Add(conn, false)
+		room.Observers.Add(conn /*, false*/)
 	}
 	room.Players.RefreshConnections()
 	room.lobby.roomFinish(room)
