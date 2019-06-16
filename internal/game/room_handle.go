@@ -91,14 +91,26 @@ func (room *Room) LeaveAll() {
 		room.wGroup.Done()
 	}()
 
-	players := room.Players.Connections.RGet()
-	for _, conn := range players {
-		go room.LeavePlayer(conn)
+	playersIterator := NewConnectionsIterator(room.Players.Connections)
+	for playersIterator.Next() {
+		player := playersIterator.Value()
+		go room.LeavePlayer(player)
 	}
-	observers := room.Observers.RGet()
-	for _, conn := range observers {
-		go room.LeaveObserver(conn)
+
+	observersIterator := NewConnectionsIterator(room.Observers)
+	for observersIterator.Next() {
+		observer := observersIterator.Value()
+		go room.LeaveObserver(observer)
 	}
+	/*
+		players := room.Players.Connections.RGet()
+		for _, conn := range players {
+			go room.LeavePlayer(conn)
+		}
+		observers := room.Observers.RGet()
+		for _, conn := range observers {
+			go room.LeaveObserver(conn)
+		}*/
 }
 
 // Empty check room has no people
@@ -111,7 +123,7 @@ func (room *Room) Empty() bool {
 		room.wGroup.Done()
 	}()
 
-	return len(room.Players.Connections.RGet())+len(room.Observers.RGet()) == 0
+	return room.Players.Connections.len()+room.Observers.len() == 0
 }
 
 // LeavePlayer handle player going back to lobby
@@ -128,7 +140,7 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 	if done {
 		room.GiveUp(conn)
 	}
-	fmt.Println("LeavePlayer", room.Empty(), len(room.Observers.RGet()))
+	//fmt.Println("LeavePlayer", room.Empty(), len(room.Observers.RGet()))
 	if room.Empty() {
 		fmt.Println("room.Close()")
 		room.Close()
@@ -346,16 +358,32 @@ func (room *Room) StartFlagPlacing() {
 	room.FillField()
 
 	room.Status = StatusFlagPlacing
-	players := room.Players.Connections.RGet()
-	for _, conn := range players {
-		room.greet(conn, true)
-		room.lobby.waiterToPlayer(conn, room)
+
+	playersIterator := NewConnectionsIterator(room.Players.Connections)
+	for playersIterator.Next() {
+		player := playersIterator.Value()
+		room.greet(player, true)
+		room.lobby.waiterToPlayer(player, room)
 	}
-	observers := room.Observers.RGet()
-	for _, conn := range observers {
-		room.greet(conn, false)
-		room.lobby.waiterToPlayer(conn, room)
+
+	obsrversIterator := NewConnectionsIterator(room.Observers)
+	for playersIterator.Next() {
+		observer := obsrversIterator.Value()
+		room.greet(observer, true)
+		room.lobby.waiterToPlayer(observer, room)
 	}
+	/*
+		players := room.Players.Connections.RGet()
+		for _, conn := range players {
+			room.greet(conn, true)
+			room.lobby.waiterToPlayer(conn, room)
+		}
+		observers := room.Observers.RGet()
+		for _, conn := range observers {
+			room.greet(conn, false)
+			room.lobby.waiterToPlayer(conn, room)
+		}
+	*/
 	room.Players.Init(room.Field)
 
 	room.lobby.RoomStart(room)
@@ -418,10 +446,16 @@ func (room *Room) FinishGame(timer bool) {
 	room.Save()
 	room.Players.Finish()
 
-	playersConns := room.Players.Connections.RGet()
-	for _, conn := range playersConns {
-		room.Observers.Add(conn /*, false*/)
+	playersIterator := NewConnectionsIterator(room.Players.Connections)
+	for playersIterator.Next() {
+		player := playersIterator.Value()
+		room.Observers.Add(player /*, false*/)
 	}
+	/*
+		playersConns := room.Players.Connections.RGet()
+		for _, conn := range playersConns {
+			room.Observers.Add(conn)
+		}*/
 	room.Players.RefreshConnections()
 	room.lobby.roomFinish(room)
 }

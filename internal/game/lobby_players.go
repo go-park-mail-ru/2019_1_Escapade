@@ -16,7 +16,7 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 
 	lobby.Waiting.Add(newConn /*, false*/)
 	lobby.greet(newConn)
-	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
+	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
 }
 
 // Anonymous return anonymous id

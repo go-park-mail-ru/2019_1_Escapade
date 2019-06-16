@@ -39,20 +39,32 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 		lobby.wGroup.Done()
 	}()
 
-	for _, conn := range lobby.Waiting.RGet() {
-		if conn == nil {
-			continue
+	it := NewConnectionsIterator(lobby.Waiting)
+	for it.Next() {
+		waiter := it.Value()
+		if waiter == nil {
+			panic("why nill")
 		}
-		if conn.isClosed() {
-			lobby.Leave(conn, "")
+		if waiter.isClosed() {
+			lobby.Leave(waiter, "")
 		}
-		// if time.Since(conn.time).Seconds() > timeout {
-		// 	fmt.Println(conn.User.Name, " - bad")
-		// 	lobby.Leave(conn, "")
-		// } else {
-		// 	fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
-		// }
 	}
+	/*
+		for _, conn := range lobby.Waiting.RGet() {
+			if conn == nil {
+				continue
+			}
+			if conn.isClosed() {
+				lobby.Leave(conn, "")
+			}
+			// if time.Since(conn.time).Seconds() > timeout {
+			// 	fmt.Println(conn.User.Name, " - bad")
+			// 	lobby.Leave(conn, "")
+			// } else {
+			// 	fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+			// }
+		}
+	*/
 }
 
 /*
@@ -198,7 +210,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 		if room.Status != StatusPeopleFinding {
 			lobby.PlayerToWaiter(conn)
 		}
-	} else if len(room.Players.Connections.RGet()) > 0 {
+	} else if room.Players.Connections.len() > 0 {
 		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
 	}
 }
@@ -356,10 +368,12 @@ func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 		lobby.sendInvitation(inv, All)
 		lobby.sendInvitationCallback(conn, nil)
 	} else {
-		waiting := lobby.Waiting.RGet()
+
 		var find *Connection
-		for _, conn := range waiting {
-			if conn.User.Name == inv.To {
+		it := NewConnectionsIterator(lobby.Waiting)
+		for it.Next() {
+			waiter := it.Value()
+			if waiter.User.Name == inv.To {
 				find = conn
 				break
 			}

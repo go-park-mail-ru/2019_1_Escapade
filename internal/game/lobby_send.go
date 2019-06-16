@@ -10,11 +10,11 @@ import (
 // recover panic
 
 func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.Waiting.RGet())
+	SendToConnections(info, predicate, lobby.Waiting)
 }
 
 func (lobby *Lobby) sendToAll(info interface{}, predicate SendPredicate) {
-	SendToConnections(info, predicate, lobby.Waiting.RGet(), lobby.Playing.RGet())
+	SendToConnections(info, predicate, lobby.Waiting, lobby.Playing)
 }
 
 func (lobby *Lobby) greet(conn *Connection) {
@@ -110,7 +110,7 @@ func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendWaiterEnter(conn Connection, predicate SendPredicate) {
+func (lobby *Lobby) sendWaiterEnter(conn *Connection, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}

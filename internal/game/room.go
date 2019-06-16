@@ -119,10 +119,10 @@ func (room *Room) Restart() {
 
 	field := NewField(room.Settings)
 
-	playersConns := room.Players.Connections.RGet()
-	for _, conn := range playersConns {
-		room.Observers.Add(conn)
-	}
+	// playersConns := room.Players.Connections.RGet()
+	// for _, conn := range playersConns {
+	// 	room.Observers.Add(conn)
+	// }
 	room.Players.Refresh(*field)
 
 	//room.Observers = NewConnections(room.Settings.Observers)

@@ -11,8 +11,8 @@ import (
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
 func (room *Room) send(info interface{}, predicate SendPredicate) {
-	players := room.Players.Connections.RGet()
-	observers := room.Observers.RGet()
+	players := room.Players.Connections
+	observers := room.Observers
 	SendToConnections(info, predicate, players, observers)
 }
 

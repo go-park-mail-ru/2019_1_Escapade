@@ -1,11 +1,38 @@
 package game
 
 // RGet return connections slice only for Read!
-func (conns *Connections) RGet() []*Connection {
+// func (conns *Connections) RGet() []*Connection {
+
+// 	conns.getM.RLock()
+// 	defer conns.getM.RUnlock()
+// 	return conns._get
+// }
+
+func (conns *Connections) NEWRGet() []*Connection {
 
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
 	return conns._get
+}
+
+// func (conns *Connections) Get(i int) *Connection {
+
+// 	conns.getM.Lock()
+// 	defer conns.getM.Unlock()
+// 	return conns._get[i]
+// }
+
+func (ci *ConnectionsIterator) Value() *Connection {
+	return ci.conns._get[ci.current]
+}
+func (ci *ConnectionsIterator) Next() bool {
+	ci.current++
+	ci.conns.getM.Lock()
+	defer ci.conns.getM.Unlock()
+	if ci.current >= len(ci.conns._get) {
+		return false
+	}
+	return true
 }
 
 // Capacity return the capacity of the stored slice
@@ -30,6 +57,13 @@ func (conns *Connections) SetCapacity(size int) {
 	conns.capacityM.Lock()
 	defer conns.capacityM.Unlock()
 	conns._capacity = size
+}
+
+func (conns *Connections) len() int {
+
+	conns.getM.Lock()
+	defer conns.getM.Unlock()
+	return len(conns._get)
 }
 
 // remove connection with index 'i' from connection slice

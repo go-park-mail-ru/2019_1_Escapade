@@ -44,7 +44,9 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 
 		User: user,
 
-		ws:    ws,
+		wsM: &sync.Mutex{},
+		_ws: ws,
+
 		lobby: lobby,
 
 		context: context,
@@ -133,7 +135,7 @@ func (conn *Connection) Free() {
 
 	conn.setDisconnected()
 
-	conn.ws.Close()
+	conn.wsClose()
 	close(conn.send)
 	close(conn.actionSem)
 	// dont delete. conn = nil make pointer nil, but other pointers
@@ -204,21 +206,14 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 		utils.CatchPanic("connection.go WriteConn()")
 	}()
 
-	conn.ws.SetReadLimit(wsc.MaxMessageSize)
-	conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
-	conn.ws.SetPongHandler(
-		func(string) error {
-			conn.ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
-			conn.SetConnected()
-			return nil
-		})
+	conn.wsInit(wsc)
 	for {
 		select {
 		case <-parent.Done():
 			fmt.Println("ReadConn done catched")
 			return
 		default:
-			_, message, err := conn.ws.ReadMessage()
+			_, message, err := conn.wsReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 					fmt.Println("IsUnexpectedCloseError:" + err.Error())
@@ -238,12 +233,6 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 			}
 		}
 	}
-}
-
-// write writes a message with the given message type and payload.
-func (conn *Connection) write(mt int, payload []byte, wsc config.WebSocketSettings) error {
-	conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
-	return conn.ws.WriteMessage(mt, payload)
 }
 
 // WriteConn connection goroutine to write messages to websockets
@@ -274,7 +263,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			//fmt.Println("server wrote:", string(message))
 			if !ok {
 				//fmt.Println("errrrrr!")
-				conn.write(websocket.CloseMessage, []byte{}, wsc)
+				conn.wsWriteMessage(websocket.CloseMessage, []byte{}, wsc)
 				return
 			}
 
@@ -298,18 +287,12 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 				fmt.Println("#", conn.ID(), " get that:", print)
 			}
 
-			conn.ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
-			w, err := conn.ws.NextWriter(websocket.TextMessage)
-			if err != nil {
+			if err := conn.wsWriteInWriter(message, wsc); err != nil {
 				return
 			}
-			w.Write(message)
 
-			if err := w.Close(); err != nil {
-				return
-			}
 		case <-ticker.C:
-			if err := conn.write(websocket.PingMessage, []byte{}, wsc); err != nil {
+			if err := conn.wsWriteMessage(websocket.PingMessage, []byte{}, wsc); err != nil {
 				return
 			}
 		}
@@ -317,7 +300,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 }
 
 func (conn *Connection) isClosed() bool {
-	_, _, err := conn.ws.ReadMessage()
+	_, _, err := conn.wsReadMessage()
 	return err != nil
 	// if ce, ok := err.(*websocket.CloseError); ok {
 	// 	switch ce.Code {

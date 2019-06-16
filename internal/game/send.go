@@ -10,19 +10,32 @@ type SendPredicate func(conn *Connection) bool
 // SendToConnections send 'info' to everybody,  whose predicate
 // returns true
 func SendToConnections(info interface{},
-	predicate SendPredicate, groups ...[]*Connection) {
+	predicate SendPredicate, groups ...*Connections) {
 
 	waitJobs := &sync.WaitGroup{}
 	for _, group := range groups {
-		for _, connection := range group {
-			if connection == nil {
-				continue
+
+		it := NewConnectionsIterator(group)
+		for it.Next() {
+			member := it.Value()
+			if member == nil {
+				panic("why nill in send")
 			}
-			if predicate(connection) {
+			if predicate(member) {
 				waitJobs.Add(1)
-				go connection.sendGroupInformation(info, waitJobs)
+				go member.sendGroupInformation(info, waitJobs)
 			}
 		}
+
+		// for _, connection := range group {
+		// 	if connection == nil {
+		// 		continue
+		// 	}
+		// 	if predicate(connection) {
+		// 		waitJobs.Add(1)
+		// 		go connection.sendGroupInformation(info, waitJobs)
+		// 	}
+		// }
 	}
 	waitJobs.Wait()
 }

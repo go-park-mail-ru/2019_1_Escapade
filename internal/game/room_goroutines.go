@@ -118,32 +118,69 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		timeoutObserver = timeoutFinished
 	}
 	i := 0
-	for _, conn := range room.Players.Connections.RGet() {
-		if conn == nil {
-			continue
+
+	playersIterator := NewConnectionsIterator(room.Players.Connections)
+	for playersIterator.Next() {
+		player := playersIterator.Value()
+		if player == nil {
+			panic("why nill player")
 		}
+
 		i++
-		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutPlayer {
-			fmt.Println(conn.User.Name, " - bad")
-			room.LeavePlayer(conn)
+		if player.Disconnected() && time.Since(player.time).Seconds() > timeoutPlayer {
+			fmt.Println(player.User.Name, " - bad")
+			room.LeavePlayer(player)
 			//room.Leave(conn, ActionTimeOver)
 		} else {
-			fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+			fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(player.time).Seconds())
 		}
 	}
-	for _, conn := range room.Observers.RGet() {
-		if conn == nil {
-			continue
+
+	observerIterator := NewConnectionsIterator(room.Observers)
+	for observerIterator.Next() {
+		observer := observerIterator.Value()
+		if observer == nil {
+			panic("why nill observer")
 		}
+
 		i++
-		if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutObserver {
+		if observer.Disconnected() && time.Since(observer.time).Seconds() > timeoutObserver {
 			//fmt.Println(conn.User.Name, " - bad")
-			room.LeaveObserver(conn)
+			room.LeaveObserver(observer)
 			//room.Leave(conn, ActionTimeOver)
 		} else {
 			//fmt.Println(conn.User.Name, " - good", conn)
 		}
 	}
+
+	/*
+		for _, conn := range room.Players.Connections.RGet() {
+			if conn == nil {
+				continue
+			}
+			i++
+			if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutPlayer {
+				fmt.Println(conn.User.Name, " - bad")
+				room.LeavePlayer(conn)
+				//room.Leave(conn, ActionTimeOver)
+			} else {
+				fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+			}
+		}
+		for _, conn := range room.Observers.RGet() {
+			if conn == nil {
+				continue
+			}
+			i++
+			if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutObserver {
+				//fmt.Println(conn.User.Name, " - bad")
+				room.LeaveObserver(conn)
+				//room.Leave(conn, ActionTimeOver)
+			} else {
+				//fmt.Println(conn.User.Name, " - good", conn)
+			}
+		}
+	*/
 }
 
 func (room *Room) processActionBackToLobby(conn *Connection) {

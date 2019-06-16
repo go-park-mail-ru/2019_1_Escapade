@@ -31,7 +31,9 @@ type Connection struct {
 
 	User *models.UserPublicInfo
 
-	ws    *websocket.Conn
+	wsM *sync.Mutex
+	_ws *websocket.Conn
+
 	lobby *Lobby
 
 	context context.Context

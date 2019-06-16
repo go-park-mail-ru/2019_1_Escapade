@@ -23,7 +23,7 @@ func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
 // RefreshConnections reset connections
 func (onlinePlayers *OnlinePlayers) RefreshConnections() {
 	size := onlinePlayers.Capacity()
-	onlinePlayers.Connections = *NewConnections(size)
+	onlinePlayers.Connections = NewConnections(size)
 }
 
 // Init create players and flags

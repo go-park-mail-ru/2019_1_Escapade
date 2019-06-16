@@ -22,7 +22,7 @@ type OnlinePlayers struct {
 	flagsM      *sync.RWMutex
 	_flags      []Flag
 	flagsLeft   int
-	Connections Connections
+	Connections *Connections
 }
 
 // OnlinePlayersJSON is a wrapper for sending OnlinePlayers by JSON
@@ -77,7 +77,7 @@ func newOnlinePlayers(size int, field Field) *OnlinePlayers {
 		flagsM:      &sync.RWMutex{},
 		_flags:      flags,
 		flagsLeft:   size,
-		Connections: *NewConnections(size),
+		Connections: NewConnections(size),
 	}
 
 }

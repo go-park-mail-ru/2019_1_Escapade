@@ -44,6 +44,15 @@ func (conns *Connections) Free() {
 	conns.capacityM.Unlock()
 }
 
+type ConnectionsIterator struct {
+	current int
+	conns   *Connections
+}
+
+func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
+	return &ConnectionsIterator{conns: conns, current: -1}
+}
+
 // Remove -> FastRemove
 func (conns *Connections) Remove(conn *Connection) bool {
 	if conn == nil {
@@ -75,15 +84,9 @@ func (conns *Connections) Restore(conn *Connection) bool {
 func (conns *Connections) Add(conn *Connection /*, copy bool*/) int {
 	_, i := conns.SearchByID(conn.ID())
 	if i >= 0 {
-		/*
-			if copy {
-				conn.setRoom(oldConn.Room())
-				conn.SetIndex(oldConn.Index())
-			}*/
 		conns.set(i, conn)
-		//i = oldConn.Index()
 	} else if conns.EnoughPlace() {
-		i = len(conns.RGet())
+		i = conns.len()
 		conns.append(conn)
 	} else {
 		return -1
@@ -101,7 +104,7 @@ type ConnectionsJSON struct {
 func (conns *Connections) JSON() ConnectionsJSON {
 	return ConnectionsJSON{
 		Capacity: conns.Capacity(),
-		Get:      conns.RGet(),
+		Get:      conns.NEWRGet(),
 	}
 }
 
