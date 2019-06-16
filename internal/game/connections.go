@@ -64,8 +64,8 @@ func (conns *Connections) Restore(conn *Connection) bool {
 	found, i := conns.SearchByID(conn.ID())
 	if i != -1 {
 		conn.Restore(found)
+		sendAccountTaken(*found)
 		conns.set(i, conn)
-		go sendAccountTaken(*found)
 	}
 	return i != -1
 }

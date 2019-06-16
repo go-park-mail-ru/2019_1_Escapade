@@ -1,75 +1,5 @@
 package game
 
-// RecoverPlayer call it in lobby.join if player disconnected
-/*
-func (room *Room) RecoverPlayer(newConn *Connection) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	// add connection as player
-	// room.MakePlayer(newConn, true)
-	pa := *room.addAction(newConn.ID(), ActionReconnect)
-	room.addPlayer(newConn, true)
-	room.sendAction(pa, room.AllExceptThat(newConn))
-	//room.greet(newConn, true)
-
-	return
-}
-
-// RecoverObserver recover connection as observer
-func (room *Room) RecoverObserver(newConn *Connection) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	go room.MakeObserver(newConn, true)
-	pa := *room.addAction(newConn.ID(), ActionReconnect)
-	go room.sendAction(pa, room.AllExceptThat(newConn))
-	//go room.greet(newConn, false)
-
-	return
-}
-*/
-
-// observe try to connect user as observer
-/*
-func (room *Room) addObserver(conn *Connection) bool {
-	if room.done() {
-		return false
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	if room.lobby.Metrics() {
-		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
-	}
-
-	// if we havent a place
-	if !room.Observers.EnoughPlace() {
-		conn.debug("Room cant execute request ")
-		return false
-	}
-	conn.debug("addObserver")
-	room.MakeObserver(conn, true)
-
-	go room.addAction(conn.ID(), ActionConnectAsObserver)
-	go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
-	room.lobby.sendRoomUpdate(*room, All)
-
-	return true
-}*/
-
 // EnterPlayer handle player try to enter room
 func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover bool) bool {
 	//fmt.Println("addPlayer", recover)
@@ -102,14 +32,14 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 		}
 		pa = room.addAction(conn.ID(), ActionConnectAsPlayer)
 		// maybe delete it?
-		go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
+		//go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
 	} else {
 		if !room.Observers.EnoughPlace() {
 			return false
 		}
 		pa = room.addAction(conn.ID(), ActionConnectAsObserver)
 		// maybe delete it?
-		go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
+		//go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
 	}
 	go room.sendAction(*pa, room.AllExceptThat(conn))
 
@@ -155,65 +85,11 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		room.lobby.waiterToPlayer(conn, room)
 	} else {
 		conn.setWaitingRoom(room)
-		//conn.setBoth(true)
 	}
 
 	return true
 
 }
-
-/*
-// MakePlayer mark connection as connected as Player
-// add to players slice and set flag inRoom true
-func (room *Room) MakePlayer(conn *Connection, recover bool) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	if room.Status != StatusPeopleFinding {
-		room.lobby.waiterToPlayer(conn, room)
-		conn.setBoth(false)
-	} else {
-		conn.setBoth(true)
-	}
-	room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, recover)
-	fmt.Println("MakePlayer", recover)
-	room.greet(conn, true)
-	if recover {
-		room.sendStatusOne(*conn)
-	}
-	conn.PushToRoom(room)
-}
-
-// MakeObserver mark connection as connected as Observer
-// add to observers slice and set flag inRoom true
-func (room *Room) MakeObserver(conn *Connection, recover bool) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	if room.Status != StatusPeopleFinding {
-		room.lobby.waiterToPlayer(conn, room)
-		conn.setBoth(false)
-	} else {
-		conn.setBoth(true)
-	}
-	room.Observers.Add(conn, false)
-	room.greet(conn, false)
-	if recover {
-		room.sendStatus(Me(conn))
-	}
-	conn.PushToRoom(room)
-}
-*/
 
 // Search search connection in players and observers of room
 // return connection and flag isPlayer

@@ -198,32 +198,6 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 	// }
 }
 
-/*
-func (room *Room) processActionConnect(conn *Connection) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("room_handle.go run()")
-		room.wGroup.Done()
-	}()
-
-	found, isPlayer := room.Search(conn)
-	if found == nil {
-		return
-	}
-	sendAccountTaken(*found)
-	conn.SetConnected()
-	//conn.time = time.Now()
-	found = conn
-	if isPlayer {
-		room.RecoverPlayer(conn)
-	} else {
-		room.RecoverObserver(conn)
-	}
-}*/
-
 func (room *Room) processActionReconnect(conn *Connection) {
 	if room.done() {
 		return
@@ -238,10 +212,6 @@ func (room *Room) processActionReconnect(conn *Connection) {
 	if found == nil {
 		return
 	}
-	//sendAccountTaken(*found)
-	//conn.SetConnected()
-	//conn.time = time.Now()
-	//found = conn
 	room.addConnection(conn, isPlayer, true)
 }
 

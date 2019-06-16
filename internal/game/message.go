@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -58,6 +59,8 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		Type:  "GameMessage",
 		Value: message,
 	}
+
+	fmt.Println("response")
 
 	send(response, predicate)
 	return err

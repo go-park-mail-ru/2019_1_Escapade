@@ -85,7 +85,7 @@ func (lobby *Lobby) Run() {
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(newConn *Connection) {
+func (lobby *Lobby) Join(conn *Connection) {
 	if lobby.done() {
 		return
 	}
@@ -96,14 +96,15 @@ func (lobby *Lobby) Join(newConn *Connection) {
 	}()
 
 	// try restore user
-	if lobby.restore(newConn) {
-		fmt.Println("lobby.restore", newConn.ID(), newConn.InPlayingRoom(), newConn.Index())
+	if lobby.restore(conn) {
+		fmt.Println("lobby.restore", conn.ID(), conn.PlayingRoom(), conn.WaitingRoom(), conn.Index())
+		lobby.greet(conn)
 		return
 	}
 
-	lobby.addWaiter(newConn)
+	lobby.addWaiter(conn)
 
-	newConn.debug("new waiter")
+	conn.debug("new waiter")
 }
 
 // Leave handle user leave lobby
@@ -124,6 +125,8 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	if waiter != nil {
 		if !waiter.isClosed() {
 			return
+		} else {
+			fmt.Println("waiter closed ws:", waiter.isClosed())
 		}
 		// err := waiter.ws.Close()
 		// if err != nil {
@@ -135,6 +138,8 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		if player != nil {
 			if !player.isClosed() {
 				return
+			} else {
+				fmt.Println("player closed ws:", player.isClosed())
 			}
 			// err := player.ws.Close()
 			// if err != nil {
