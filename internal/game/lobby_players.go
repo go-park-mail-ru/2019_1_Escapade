@@ -43,10 +43,10 @@ func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 	fmt.Println("waiterToPlayer called for ", conn.ID())
 
 	lobby.Waiting.Remove(conn)
-	lobby.sendWaiterExit(*conn, All)
+	lobby.sendWaiterExit(conn, All)
 	conn.PushToRoom(room)
 	lobby.Playing.Add(conn /*, false */)
-	lobby.sendPlayerEnter(*conn, All)
+	lobby.sendPlayerEnter(conn, All)
 }
 
 // PlayerToWaiter turns the player into a waiting
@@ -63,7 +63,7 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	fmt.Println("PlayerToWaiter called for ", conn.ID())
 
 	lobby.Playing.Remove(conn)
-	lobby.sendPlayerExit(*conn, All)
+	lobby.sendPlayerExit(conn, All)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }

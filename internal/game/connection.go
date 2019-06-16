@@ -142,6 +142,7 @@ func (conn *Connection) PushToLobby() {
 	}()
 
 	conn.setPlayingRoom(nil)
+	conn.setWaitingRoom(nil)
 }
 
 // IsConnected check player isnt disconnected
@@ -231,7 +232,7 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 	conn.setDisconnected()
 	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
-	conn.Free()
+	//conn.Free()
 }
 
 // ReadConn connection goroutine to read messages from websockets

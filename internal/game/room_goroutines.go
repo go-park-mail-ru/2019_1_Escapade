@@ -26,7 +26,7 @@ func (room *Room) runRoom() {
 		case conn := <-room.chanConnection:
 			go room.processConnectionAction(conn)
 		case newStatus := <-room.chanStatus:
-			if newStatus == room.Status || newStatus > StatusFinished {
+			if newStatus == room.Status() || newStatus > StatusFinished {
 				continue
 			}
 			switch newStatus {
@@ -99,7 +99,7 @@ func (room *Room) initTimers() {
 }
 
 func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64) {
-	fmt.Println("launchGarbageCollector")
+	//fmt.Println("launchGarbageCollector")
 	if room.done() {
 		return
 	}
@@ -109,11 +109,12 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		room.wGroup.Done()
 	}()
 
-	if room.Status == StatusPeopleFinding {
+	status := room.Status()
+	if status == StatusPeopleFinding {
 		timeoutPlayer = timeoutPeopleFinding
 		timeoutObserver = timeoutPeopleFinding
 	}
-	if room.Status == StatusFinished {
+	if status == StatusFinished {
 		timeoutPlayer = timeoutFinished
 		timeoutObserver = timeoutFinished
 	}
@@ -195,14 +196,16 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
-	playerGone := room.LeavePlayer(conn)
-	observerGone := room.LeaveObserver(conn)
+	//if room.Status != StatusPeopleFinding {
+	room.LeavePlayer(conn)
+	room.LeaveObserver(conn)
+	//}
 
 	fmt.Println("LeaveRoom")
 	room.lobby.LeaveRoom(conn, ActionBackToLobby, room)
 	fmt.Println("LeaveMeta")
 	room.LeaveMeta(conn, ActionDisconnect)
-	fmt.Println("went back", playerGone, observerGone)
+	//fmt.Println("went back", playerGone, observerGone)
 }
 
 func (room *Room) processActionDisconnect(conn *Connection) {
@@ -221,11 +224,14 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 
 	found, _ := room.Search(conn)
 	if found == nil {
-		room.LeaveObserver(found)
-		room.LeavePlayer(found)
+		return
 	}
+	room.LeaveObserver(found)
+	room.LeavePlayer(found)
+
 	fmt.Println("Disconnected")
 	found.setDisconnected()
+	fmt.Println("setDisconnected done")
 	pa := *room.addAction(found.ID(), ActionDisconnect)
 	room.sendAction(pa, room.All)
 
@@ -279,11 +285,12 @@ func (room *Room) processActionRestart(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
-	if room.Status == StatusRunning || room.Status == StatusFlagPlacing {
+	status := room.Status()
+	if status == StatusRunning || status == StatusFlagPlacing {
 		fmt.Println("room.Status == StatusRunning || room.Status == StatusFlagPlacing")
 		return
 	}
-	if room.Status == StatusFinished {
+	if status == StatusFinished {
 		pa := *room.addAction(conn.ID(), ActionRestart)
 		room.sendAction(pa, room.All)
 		room.Restart()
@@ -291,7 +298,7 @@ func (room *Room) processActionRestart(conn *Connection) {
 	}
 	fmt.Println("conn.lobby.greet(conn)")
 	conn.lobby.greet(conn)
-	if room.Status == StatusPeopleFinding {
+	if status == StatusPeopleFinding {
 		room.LeaveObserver(conn)
 		room.addConnection(conn, true, false)
 	}

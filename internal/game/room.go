@@ -48,9 +48,14 @@ type Room struct {
 	killedM *sync.RWMutex
 	_killed int //amount of killed users
 
-	ID     string
-	Name   string
-	Status int
+	idM *sync.RWMutex
+	_id string
+
+	nameM *sync.RWMutex
+	_name string
+
+	statusM *sync.RWMutex
+	_status int
 
 	lobby *Lobby
 	Field *Field
@@ -93,13 +98,17 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.messagesM = &sync.Mutex{}
 	room.killedM = &sync.RWMutex{}
 
-	room.Name = rs.Name
+	room.nameM = &sync.RWMutex{}
+	room._name = rs.Name
+
+	room.statusM = &sync.RWMutex{}
 
 	room.lobby = lobby
 
 	room.Settings = rs
 
-	room.ID = id
+	room.idM = &sync.RWMutex{}
+	room._id = id
 
 	room.Observers = NewConnections(room.Settings.Observers)
 
@@ -139,8 +148,8 @@ func (room *Room) Restart() {
 	room._killed = 0
 	room.killedM.Unlock()
 
-	room.ID = utils.RandomString(16)
-	room.Status = StatusPeopleFinding
+	room._id = utils.RandomString(16)
+	room._status = StatusPeopleFinding
 
 	room.Field = field
 
@@ -156,9 +165,9 @@ func (room *Room) debug() {
 		fmt.Println("cant debug nil room")
 		return
 	}
-	fmt.Println("Room id    :", room.ID)
-	fmt.Println("Room name  :", room.Name)
-	fmt.Println("Room status:", room.Status)
+	fmt.Println("Room id    :", room._id)
+	fmt.Println("Room name  :", room._name)
+	fmt.Println("Room status:", room._status)
 	fmt.Println("Room date  :", room.Date)
 	fmt.Println("Room killed:", room.killed())
 	players := room.Players.RPlayers()

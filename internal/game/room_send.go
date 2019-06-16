@@ -26,7 +26,7 @@ func (room *Room) sendMessage(text string, predicate SendPredicate) {
 		utils.CatchPanic("room_send.go sendMessage()")
 	}()
 
-	room.send("Room("+room.ID+"):"+text, predicate)
+	room.send("Room("+room.ID()+"):"+text, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -97,7 +97,7 @@ func (room *Room) sendNewCells(predicate SendPredicate, cells ...Cell) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+func (room *Room) sendPlayerEnter(conn *Connection, predicate SendPredicate) {
 	if room.done() {
 		return
 	}
@@ -115,7 +115,7 @@ func (room *Room) sendPlayerEnter(conn Connection, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
+func (room *Room) sendPlayerExit(conn *Connection, predicate SendPredicate) {
 	if room.done() {
 		return
 	}
@@ -133,7 +133,7 @@ func (room *Room) sendPlayerExit(conn Connection, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
+func (room *Room) sendObserverEnter(conn *Connection, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "RoomObserverEnter",
 		Value: conn,
@@ -142,7 +142,7 @@ func (room *Room) sendObserverEnter(conn Connection, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendObserverExit(conn Connection, predicate SendPredicate) {
+func (room *Room) sendObserverExit(conn *Connection, predicate SendPredicate) {
 	if room.done() {
 		return
 	}
@@ -171,10 +171,11 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 	}()
 
 	var leftTime int
-	if room.Status == StatusFlagPlacing {
+	status := room.Status()
+	if status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
 	}
-	if room.Status == StatusRunning {
+	if status == StatusRunning {
 		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
 	}
 	response := models.Response{
@@ -184,15 +185,15 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 			Status int    `json:"status"`
 			Time   int    `json:"time"`
 		}{
-			ID:     room.ID,
-			Status: room.Status,
+			ID:     room.ID(),
+			Status: status,
 			Time:   leftTime,
 		},
 	}
 	room.send(response, predicate)
 }
 
-func (room *Room) sendStatusOne(conn Connection) {
+func (room *Room) sendStatusOne(conn *Connection) {
 	if room.done() {
 		return
 	}
@@ -203,10 +204,11 @@ func (room *Room) sendStatusOne(conn Connection) {
 	}()
 
 	var leftTime int
-	if room.Status == StatusFlagPlacing {
+	status := room.Status()
+	if status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
 	}
-	if room.Status == StatusRunning {
+	if status == StatusRunning {
 		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
 	}
 	response := models.Response{
@@ -216,8 +218,8 @@ func (room *Room) sendStatusOne(conn Connection) {
 			Status int    `json:"status"`
 			Time   int    `json:"time"`
 		}{
-			ID:     room.ID,
-			Status: room.Status,
+			ID:     room.ID(),
+			Status: status,
 			Time:   leftTime,
 		},
 	}
@@ -244,7 +246,7 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 }
 
 // sendTAIRHistory send actions history to all in room
-func (room *Room) sendError(err error, conn Connection) {
+func (room *Room) sendError(err error, conn *Connection) {
 	if room.done() {
 		return
 	}

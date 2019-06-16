@@ -138,7 +138,7 @@ func (rooms *Rooms) enoughPlace() bool {
 // otherwise nil
 func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
 	for i, room = range rooms.Get {
-		if room.ID == id {
+		if room.ID() == id {
 			return
 		}
 	}
@@ -182,7 +182,7 @@ func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (rooms *Rooms) Add(room *Room) bool {
-	if i, _ := rooms.SearchRoom(room.ID); i >= 0 {
+	if i, _ := rooms.SearchRoom(room.ID()); i >= 0 {
 		rooms.Get[i] = room
 	} else if rooms.enoughPlace() {
 		rooms.Get = append(rooms.Get, room)
@@ -196,7 +196,7 @@ func (rooms *Rooms) Add(room *Room) bool {
 // exists in map
 func (rooms *Rooms) Remove(room *Room) {
 	size := len(rooms.Get)
-	i, _ := rooms.SearchRoom(room.ID)
+	i, _ := rooms.SearchRoom(room.ID())
 	if i < 0 {
 		return
 	}

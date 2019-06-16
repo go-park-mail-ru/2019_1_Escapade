@@ -21,7 +21,7 @@ func (lobby *Lobby) RoomStart(room *Room) {
 	}()
 
 	go lobby.freeRoomsRemove(room)
-	go lobby.sendRoomUpdate(*room, All)
+	go lobby.sendRoomUpdate(room, All)
 }
 
 // roomFinish - room remove from all
@@ -36,7 +36,7 @@ func (lobby *Lobby) roomFinish(room *Room) {
 	}()
 
 	go lobby.allRoomsRemove(room)
-	go lobby.sendRoomDelete(*room, All)
+	go lobby.sendRoomDelete(room, All)
 }
 
 // CloseRoom free room resources
@@ -45,8 +45,10 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 		return
 	}
 	lobby.wGroup.Add(1)
+	room.wGroup.Add(1)
 	defer func() {
 		lobby.wGroup.Done()
+		room.wGroup.Done()
 		utils.CatchPanic("lobby_room.go roomFinish()")
 	}()
 
@@ -55,7 +57,7 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 	lobby.freeRoomsRemove(room)
 	lobby.allRoomsRemove(room)
 	fmt.Println("sendRoomDelete")
-	go lobby.sendRoomDelete(*room, All)
+	lobby.sendRoomDelete(room, All)
 }
 
 // CreateAndAddToRoom create room and add player to it
@@ -135,6 +137,6 @@ func (lobby *Lobby) addRoom(room *Room) (err error) {
 		return err
 	}
 
-	lobby.sendRoomCreate(*room, All) // inform all about new room
+	lobby.sendRoomCreate(room, All) // inform all about new room
 	return
 }

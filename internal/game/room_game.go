@@ -95,7 +95,7 @@ func (room *Room) Kill(conn *Connection, action int) {
 
 	fmt.Println("Status", room.Status)
 	// cause all in pointers
-	if room.Status < StatusFlagPlacing && room.Status > StatusRunning {
+	if room.Status() < StatusFlagPlacing && room.Status() > StatusRunning {
 		return
 	}
 
@@ -180,7 +180,7 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 	}()
 
 	// if user try set flag after game launch
-	if room.Status != StatusFlagPlacing {
+	if room.Status() != StatusFlagPlacing {
 		response := models.FailFlagSet(cell, re.ErrorBattleAlreadyBegan())
 		conn.SendInformation(response)
 		return false

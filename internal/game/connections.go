@@ -32,12 +32,12 @@ func (conns *Connections) Free() {
 	if conns == nil {
 		return
 	}
-	conns.getM.Lock()
-	for _, conn := range conns._get {
-		conn.Free()
-	}
-	conns._get = nil
-	conns.getM.Unlock()
+	//conns.getM.Lock()
+	// for _, conn := range conns._get {
+	// 	conn.Free()
+	// }
+	//conns._get = nil
+	//conns.getM.Unlock()
 
 	conns.capacityM.Lock()
 	conns._capacity = 0
@@ -57,7 +57,7 @@ func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
 func (conns *Connections) Remove(conn *Connection) bool {
 	if conn == nil {
 		//panic("123123123")
-		return true
+		return false
 	}
 	conn, i := conns.SearchByID(conn.ID())
 	fmt.Println("remove conn", i)

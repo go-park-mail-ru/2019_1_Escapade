@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
@@ -59,7 +61,7 @@ func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
 	lobby.sendToAll(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomCreate(room Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -76,7 +78,7 @@ func (lobby *Lobby) sendRoomCreate(room Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -93,7 +95,7 @@ func (lobby *Lobby) sendRoomUpdate(room Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomDelete(room *Room, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -103,9 +105,17 @@ func (lobby *Lobby) sendRoomDelete(room Room, predicate SendPredicate) {
 		utils.CatchPanic("lobby sendRoomDelete")
 	}()
 
+	if room.done() {
+		panic("room.done()")
+		fmt.Println("room.done()")
+		return
+	}
+	room.wGroup.Add(1)
+	defer room.wGroup.Done()
+
 	response := models.Response{
 		Type:  "LobbyRoomDelete",
-		Value: room.ID,
+		Value: room.ID(),
 	}
 	lobby.send(response, predicate)
 }
@@ -127,7 +137,7 @@ func (lobby *Lobby) sendWaiterEnter(conn *Connection, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendWaiterExit(conn Connection, predicate SendPredicate) {
+func (lobby *Lobby) sendWaiterExit(conn *Connection, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -144,7 +154,7 @@ func (lobby *Lobby) sendWaiterExit(conn Connection, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendPlayerEnter(conn Connection, predicate SendPredicate) {
+func (lobby *Lobby) sendPlayerEnter(conn *Connection, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -161,7 +171,7 @@ func (lobby *Lobby) sendPlayerEnter(conn Connection, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendPlayerExit(conn Connection, predicate SendPredicate) {
+func (lobby *Lobby) sendPlayerExit(conn *Connection, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}

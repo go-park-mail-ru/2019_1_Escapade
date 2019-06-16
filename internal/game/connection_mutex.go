@@ -186,7 +186,7 @@ func (conn *Connection) wsWriteMessage(mt int, payload []byte, wsc config.WebSoc
 	conn.wsM.Lock()
 	defer conn.wsM.Unlock()
 	conn._ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
-	fmt.Println("wsWriteMessage: lock/unlock")
+	//fmt.Println("wsWriteMessage: lock/unlock")
 	return conn._ws.WriteMessage(mt, payload)
 }
 

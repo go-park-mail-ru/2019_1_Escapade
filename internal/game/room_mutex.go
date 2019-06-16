@@ -17,6 +17,45 @@ func (room *Room) done() bool {
 	return v
 }
 
+func (room *Room) Status() int {
+	room.statusM.RLock()
+	v := room._status
+	room.statusM.RUnlock()
+	return v
+}
+
+func (room *Room) Name() string {
+	room.nameM.RLock()
+	v := room._name
+	room.nameM.RUnlock()
+	return v
+}
+
+func (room *Room) ID() string {
+	room.idM.RLock()
+	v := room._id
+	room.idM.RUnlock()
+	return v
+}
+
+func (room *Room) setStatus(status int) {
+	room.statusM.Lock()
+	room._status = status
+	room.statusM.Unlock()
+}
+
+func (room *Room) setName(name string) {
+	room.nameM.Lock()
+	room._name = name
+	room.nameM.Unlock()
+}
+
+func (room *Room) setID(id string) {
+	room.idM.Lock()
+	room._id = id
+	room.idM.Unlock()
+}
+
 // done return '_killed' field
 func (room *Room) killed() int {
 	room.killedM.RLock()

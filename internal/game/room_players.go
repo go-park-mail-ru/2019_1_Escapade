@@ -16,7 +16,7 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 	// }
 
-	conn.debug("Room(" + room.ID + ") wanna connect you")
+	conn.debug("Room(" + room.ID() + ") wanna connect you")
 
 	// if room hasnt got places
 	if !room.Push(conn, isPlayer, needRecover) {
@@ -44,13 +44,13 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	go room.sendAction(*pa, room.AllExceptThat(conn))
 
 	if !needRecover {
-		room.lobby.sendRoomUpdate(*room, All)
+		room.lobby.sendRoomUpdate(room, All)
 
 		if !room.Players.EnoughPlace() {
 			room.chanStatus <- StatusFlagPlacing
 		}
 	} else {
-		room.sendStatusOne(*conn)
+		room.sendStatusOne(conn)
 	}
 
 	return true
@@ -81,7 +81,7 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 	}
 
 	room.greet(conn, isPlayer)
-	if room.Status != StatusPeopleFinding {
+	if room.Status() != StatusPeopleFinding {
 		room.lobby.waiterToPlayer(conn, room)
 	} else {
 		conn.setWaitingRoom(room)

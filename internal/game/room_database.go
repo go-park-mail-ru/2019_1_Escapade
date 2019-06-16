@@ -19,9 +19,9 @@ func (room *Room) Save() (err error) {
 
 	players := room.Players.RPlayers()
 	game := models.Game{
-		RoomID:        room.ID,
-		Name:          room.Name,
-		Status:        room.Status,
+		RoomID:        room.ID(),
+		Name:          room.Name(),
+		Status:        room.Status(),
 		Players:       len(players),
 		TimeToPrepare: room.Settings.TimeToPrepare,
 		TimeToPlay:    room.Settings.TimeToPlay,
@@ -118,9 +118,9 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	// main info
-	room.ID = info.Game.RoomID
-	room.Name = info.Game.Name
-	room.Status = info.Game.Status
+	room.setID(info.Game.RoomID)
+	room.setName(info.Game.Name)
+	room.setStatus(info.Game.Status)
 	room.setKilled(info.Game.Players)
 	room.Date = info.Game.Date
 
@@ -166,7 +166,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 
 	room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
 
-	room.Status = StatusHistory
+	room.setStatus(StatusHistory)
 
 	return
 }

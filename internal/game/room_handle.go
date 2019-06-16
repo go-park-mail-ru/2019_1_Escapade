@@ -21,7 +21,7 @@ func (room *Room) Enter(conn *Connection) bool {
 	var done bool
 
 	// if room is searching new players
-	if room.Status == StatusPeopleFinding {
+	if room.Status() == StatusPeopleFinding {
 		conn.debug("You will be player!")
 		if room.addConnection(conn, true, false) {
 			done = true
@@ -40,12 +40,13 @@ func (room *Room) Free() {
 	if room.done() {
 		return
 	}
+	fmt.Println("room.setDone()")
 	room.setDone()
 
 	room.wGroup.Wait()
 	room.chanStatus <- StatusAborted
 
-	room.Status = StatusFinished
+	room.setStatus(StatusFinished)
 	go room.historyFree()
 	go room.messagesFree()
 	go room.Players.Free()
@@ -76,7 +77,7 @@ func (room *Room) Close() bool {
 	room.lobby.CloseRoom(room)
 	room.LeaveAll()
 	fmt.Println("Prepare to free!")
-	go room.Free()
+	room.Free()
 	fmt.Println("We did it")
 	return true
 }
@@ -138,7 +139,12 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 
 	done := room.Players.Connections.Remove(conn)
 	if done {
-		room.GiveUp(conn)
+		if room.Status() == StatusPeopleFinding {
+			room.lobby.greet(conn)
+			room.lobby.sendRoomUpdate(room, All)
+		} else {
+			room.GiveUp(conn)
+		}
 	}
 	//fmt.Println("LeavePlayer", room.Empty(), len(room.Observers.RGet()))
 	if room.Empty() {
@@ -159,6 +165,12 @@ func (room *Room) LeaveObserver(conn *Connection) bool {
 	}()
 
 	done := room.Observers.Remove(conn)
+	if done {
+		if room.Status() == StatusPeopleFinding {
+			room.lobby.greet(conn)
+			room.lobby.sendRoomUpdate(room, All)
+		}
+	}
 	if room.Empty() {
 		room.Close()
 	}
@@ -177,7 +189,7 @@ func (room *Room) LeaveMeta(conn *Connection, action int) {
 
 	//conn.setDisconnected()
 	if room.lobby.Metrics() {
-		metrics.Players.WithLabelValues(room.ID, conn.User.Name).Dec()
+		metrics.Players.WithLabelValues(room.ID(), conn.User.Name).Dec()
 	}
 
 	//done = room.RemoveFromGame(conn, action == ActionDisconnect)
@@ -228,7 +240,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	}()
 
 	// if user try set open cell before game launch
-	if room.Status != StatusRunning {
+	if room.Status() != StatusRunning {
 		return
 	}
 
@@ -277,9 +289,10 @@ func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 	}()
 
 	fmt.Println("cellHandle")
-	if room.Status == StatusFlagPlacing {
+	status := room.Status()
+	if status == StatusFlagPlacing {
 		room.SetFlag(conn, cell)
-	} else if room.Status == StatusRunning {
+	} else if status == StatusRunning {
 		room.OpenCell(conn, cell)
 	}
 	return
@@ -294,7 +307,7 @@ func (room *Room) IsActive() bool {
 	defer func() {
 		room.wGroup.Done()
 	}()
-	return room.Status == StatusFlagPlacing || room.Status == StatusRunning
+	return room.Status() == StatusFlagPlacing || room.Status() == StatusRunning
 }
 
 // HandleRequest processes the equest came from the user
@@ -341,7 +354,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		}
 		Message(room.lobby, conn, rr.Message, room.appendMessage,
 			room.setMessage, room.removeMessage, room.findMessage,
-			room.send, room.All, true, room.ID)
+			room.send, room.All, true, room.ID())
 	}
 }
 
@@ -357,7 +370,7 @@ func (room *Room) StartFlagPlacing() {
 
 	room.FillField()
 
-	room.Status = StatusFlagPlacing
+	room.setStatus(StatusFlagPlacing)
 
 	playersIterator := NewConnectionsIterator(room.Players.Connections)
 	for playersIterator.Next() {
@@ -414,7 +427,7 @@ func (room *Room) StartGame() {
 
 	cells := room.Field.OpenSave(int(open))
 	room.sendNewCells(room.All, cells...)
-	room.Status = StatusRunning
+	room.setStatus(StatusRunning)
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	room.Date = time.Now().In(loc)
 	room.sendStatus(room.All)
@@ -432,14 +445,14 @@ func (room *Room) FinishGame(timer bool) {
 		room.wGroup.Done()
 	}()
 
-	if room.Status == StatusFinished {
+	if room.Status() == StatusFinished {
 		return
 	}
 	if !timer {
 		room.chanFinish <- struct{}{}
 	}
 
-	room.Status = StatusFinished
+	room.setStatus(StatusFinished)
 
 	room.sendStatus(room.All)
 	room.sendGameOver(timer, room.All)

@@ -29,7 +29,7 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 А зачем нам рум гарбаж коллекток, если можно ходить по слайсу playing?
 */
 func (lobby *Lobby) launchGarbageCollector(timeout float64) {
-	fmt.Println("lobby launchGarbageCollector")
+	//fmt.Println("lobby launchGarbageCollector")
 	if lobby.done() {
 		return
 	}
@@ -47,10 +47,10 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 		}
 		t := waiter.Time()
 		if time.Since(t).Seconds() > timeout {
-			fmt.Println(waiter.User.Name, " - bad")
+			//fmt.Println(waiter.User.Name, " - bad")
 			lobby.Leave(waiter, "")
 		} else {
-			fmt.Println(waiter.User.Name, " - good", waiter.Disconnected(), time.Since(t).Seconds())
+			//fmt.Println(waiter.User.Name, " - good", waiter.Disconnected(), time.Since(t).Seconds())
 		}
 		// if waiter.isClosed() {
 		// 	lobby.Leave(waiter, "")
@@ -90,6 +90,7 @@ func (lobby *Lobby) Run() {
 	timeout = 10
 
 	for {
+		//fmt.Println("---lobby start")
 		select {
 		case <-ticker.C:
 			go lobby.launchGarbageCollector(timeout)
@@ -100,6 +101,7 @@ func (lobby *Lobby) Run() {
 		case <-lobby.chanBreak:
 			return
 		}
+		//fmt.Println("---lobby finish")
 	}
 }
 
@@ -195,7 +197,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	fmt.Println("see disc -  #", conn.ID())
 	disconnected = lobby.Waiting.Remove(conn)
 	if disconnected {
-		go lobby.sendWaiterExit(*conn, All)
+		go lobby.sendWaiterExit(conn, All)
 	}
 
 	if disconnected {
@@ -218,12 +220,15 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
-		if room.Status != StatusPeopleFinding {
+		if room.Status() != StatusPeopleFinding {
 			lobby.PlayerToWaiter(conn)
+		} else {
+			conn.PushToLobby()
 		}
 	} else if room.Players.Connections.len() > 0 {
-		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
+		lobby.sendRoomUpdate(room, AllExceptThat(conn))
 	}
+	fmt.Println("room.Status:", room.Status)
 }
 
 // EnterRoom handle user join to room
@@ -242,7 +247,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	defer func() { <-conn.actionSem }()
 
 	if conn.WaitingRoom() != nil {
-		if conn.WaitingRoom().ID == rs.ID {
+		if conn.WaitingRoom().ID() == rs.ID {
 			return
 		}
 		conn.WaitingRoom().processActionBackToLobby(conn)

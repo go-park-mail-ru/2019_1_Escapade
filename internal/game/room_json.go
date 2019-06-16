@@ -27,9 +27,9 @@ type RoomJSON struct {
 // JSON convert Room to RoomJSON
 func (room *Room) JSON() RoomJSON {
 	return RoomJSON{
-		ID:        room.ID,
-		Name:      room.Name,
-		Status:    room.Status,
+		ID:        room.ID(),
+		Name:      room.Name(),
+		Status:    room.Status(),
 		Players:   room.Players,
 		Observers: room.Observers,
 		History:   room.history(),
@@ -52,8 +52,8 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &temp); err != nil {
 		return err
 	}
-	room.Name = temp.Name
-	room.Status = temp.Status
+	room.setName(temp.Name)
+	room.setStatus(temp.Status)
 	room.Players = temp.Players
 	room.Observers = temp.Observers
 	room._history = temp.History
