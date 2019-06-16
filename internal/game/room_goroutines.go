@@ -127,12 +127,13 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		}
 
 		i++
-		if player.Disconnected() && time.Since(player.time).Seconds() > timeoutPlayer {
+		t := player.Time()
+		if player.Disconnected() && time.Since(t).Seconds() > timeoutPlayer {
 			fmt.Println(player.User.Name, " - bad")
 			room.LeavePlayer(player)
 			//room.Leave(conn, ActionTimeOver)
 		} else {
-			fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(player.time).Seconds())
+			fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(t).Seconds())
 		}
 	}
 
@@ -144,7 +145,8 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		}
 
 		i++
-		if observer.Disconnected() && time.Since(observer.time).Seconds() > timeoutObserver {
+		t := observer.Time()
+		if observer.Disconnected() && time.Since(t).Seconds() > timeoutObserver {
 			//fmt.Println(conn.User.Name, " - bad")
 			room.LeaveObserver(observer)
 			//room.Leave(conn, ActionTimeOver)

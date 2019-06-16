@@ -16,6 +16,44 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Connection is a websocket of a player, that belongs to room
+type Connection struct {
+	wGroup *sync.WaitGroup
+
+	doneM *sync.RWMutex
+	_done bool
+
+	playingRoomM *sync.RWMutex
+	_playingRoom *Room
+
+	disconnectedM *sync.RWMutex
+	_disconnected bool
+
+	waitingRoomM *sync.RWMutex
+	_waitingRoom *Room
+
+	indexM *sync.RWMutex
+	_index int
+
+	timeM *sync.RWMutex
+	_time time.Time
+
+	UUID string
+	User *models.UserPublicInfo
+
+	wsM *sync.Mutex
+	_ws *websocket.Conn
+
+	lobby *Lobby
+
+	context context.Context
+	cancel  context.CancelFunc
+
+	actionSem chan struct{}
+
+	send chan []byte
+}
+
 // NewConnection creates a new connection
 func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
 	if ws == nil || user == nil || lobby == nil {
@@ -42,6 +80,7 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		indexM: &sync.RWMutex{},
 		_index: -1,
 
+		UUID: utils.RandomString(16),
 		User: user,
 
 		wsM: &sync.Mutex{},
@@ -52,7 +91,8 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		context: context,
 		cancel:  cancel,
 
-		time: time.Now(),
+		timeM: &sync.RWMutex{},
+		_time: time.Now(),
 
 		send:      make(chan []byte),
 		actionSem: make(chan struct{}, 1),
@@ -187,6 +227,8 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 		conn.lobby.EnterRoom(conn, rs)
 	}
 	all.Wait()
+
+	conn.setDisconnected()
 	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
 	conn.Free()
@@ -299,8 +341,10 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 	}
 }
 
+/*
 func (conn *Connection) isClosed() bool {
 	_, _, err := conn.wsReadMessage()
+	//conn._ws
 	return err != nil
 	// if ce, ok := err.(*websocket.CloseError); ok {
 	// 	switch ce.Code {
@@ -311,7 +355,7 @@ func (conn *Connection) isClosed() bool {
 	// 		return
 	// 	}
 	// }
-}
+}*/
 
 // SendInformation send info
 func (conn *Connection) SendInformation(value interface{}) {

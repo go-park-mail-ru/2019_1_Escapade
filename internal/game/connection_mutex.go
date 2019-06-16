@@ -47,28 +47,36 @@ func (conn *Connection) setDisconnected() {
 	conn.disconnectedM.Lock()
 	conn._disconnected = true
 	conn.disconnectedM.Unlock()
-	conn.time = time.Now()
+	//conn.time = time.Now()
 }
 
 // SetConnected set _disconnected false
 func (conn *Connection) SetConnected() {
-	if conn._disconnected && conn.InPlayingRoom() {
-		_, isPlayer := conn.PlayingRoom().Search(conn)
-		if isPlayer {
-			pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsPlayer)
-			conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
-			//conn.Room().sendPlayerEnter(*conn, conn.Room().All)
-		} else {
-			pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsObserver)
-			conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
-			//conn.Room().sendObserverEnter(*conn, conn.Room().All)
-		}
-	}
+	// if conn._disconnected && conn.InPlayingRoom() {
+	// 	_, isPlayer := conn.PlayingRoom().Search(conn)
+	// 	if isPlayer {
+	// 		pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsPlayer)
+	// 		conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
+	// 		//conn.Room().sendPlayerEnter(*conn, conn.Room().All)
+	// 	} else {
+	// 		pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsObserver)
+	// 		conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
+	// 		//conn.Room().sendObserverEnter(*conn, conn.Room().All)
+	// 	}
+	// }
 	conn.disconnectedM.Lock()
 	conn._disconnected = false
 	conn.disconnectedM.Unlock()
 	//fmt.Println("!!!!!!!!!!!!!!!!!!!1connected", time.Now())
-	conn.time = time.Now()
+	conn.timeM.Lock()
+	conn._time = time.Now()
+	conn.timeM.Unlock()
+}
+
+func (conn *Connection) Time() time.Time {
+	conn.timeM.RLock()
+	defer conn.timeM.RUnlock()
+	return conn._time
 }
 
 // Room return   '_room' field
@@ -168,8 +176,10 @@ func (conn *Connection) wsInit(wsc config.WebSocketSettings) {
 func (conn *Connection) wsReadMessage() (messageType int, p []byte, err error) {
 	//conn.wsM.Lock()
 	//defer conn.wsM.Unlock()
-	fmt.Println("wsReadMessage: lock/unlock")
-	return conn._ws.ReadMessage()
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!wsReadMessage: lock")
+	messageType, p, err = conn._ws.ReadMessage()
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!wsReadMessage: unlock")
+	return
 }
 
 func (conn *Connection) wsWriteMessage(mt int, payload []byte, wsc config.WebSocketSettings) error {

@@ -45,9 +45,16 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 		if waiter == nil {
 			panic("why nill")
 		}
-		if waiter.isClosed() {
+		t := waiter.Time()
+		if time.Since(t).Seconds() > timeout {
+			fmt.Println(waiter.User.Name, " - bad")
 			lobby.Leave(waiter, "")
+		} else {
+			fmt.Println(waiter.User.Name, " - good", waiter.Disconnected(), time.Since(t).Seconds())
 		}
+		// if waiter.isClosed() {
+		// 	lobby.Leave(waiter, "")
+		// }
 	}
 	/*
 		for _, conn := range lobby.Waiting.RGet() {
@@ -135,11 +142,11 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	// check
 	waiter, _ := lobby.Waiting.SearchByID(conn.ID())
 	if waiter != nil {
-		if !waiter.isClosed() {
+		if waiter.UUID != conn.UUID {
 			return
-		} else {
+		} /*else {
 			fmt.Println("waiter closed ws:", waiter.isClosed())
-		}
+		}*/
 		// err := waiter.ws.Close()
 		// if err != nil {
 		// 	fmt.Println("cant leave:", err.Error())
@@ -148,11 +155,15 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	} else {
 		player, _ := lobby.Playing.SearchByID(conn.ID())
 		if player != nil {
-			if !player.isClosed() {
+			if player.UUID != conn.UUID {
 				return
-			} else {
-				fmt.Println("player closed ws:", player.isClosed())
 			}
+			/*
+				if !player.IsConnected() {
+					return
+				} else {
+					fmt.Println("player closed ws:", player.isClosed())
+				}*/
 			// err := player.ws.Close()
 			// if err != nil {
 			// 	fmt.Println("cant leave:", err.Error())
