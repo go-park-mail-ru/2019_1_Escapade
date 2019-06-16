@@ -78,19 +78,24 @@ func (lobby *Lobby) restore(conn *Connection) bool {
 	var found = lobby.Playing.Restore(conn)
 	var room *Room
 
+	fmt.Println("restore try")
+
 	if found {
+		fmt.Println("found in game")
 		room = conn.PlayingRoom()
 	} else {
 		found = lobby.Waiting.Restore(conn)
 		if found {
+			fmt.Println("found in waiting room")
 			room = conn.WaitingRoom()
 		}
 	}
 
 	if room != nil {
+		fmt.Println("send ActionReconnect")
 		room.chanConnection <- ConnectionAction{
 			conn:   conn,
-			action: ActionReconnect, //bug::: не обрабатывается в руме, поправить
+			action: ActionReconnect,
 		}
 	}
 	return found

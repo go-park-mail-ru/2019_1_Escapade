@@ -221,6 +221,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
 		if room.Status() != StatusPeopleFinding {
+			fmt.Println("PlayerToWaiter")
 			lobby.PlayerToWaiter(conn)
 		} else {
 			conn.PushToLobby()

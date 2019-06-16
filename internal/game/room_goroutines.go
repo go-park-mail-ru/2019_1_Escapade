@@ -72,7 +72,7 @@ func (room *Room) runGame() {
 	}()
 
 	loc, _ := time.LoadLocation("Europe/Moscow")
-	room.Date = time.Now().In(loc)
+	room.setDate(time.Now().In(loc))
 
 	for {
 		select {
@@ -197,7 +197,9 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 	}()
 
 	//if room.Status != StatusPeopleFinding {
+	fmt.Println("LeavePlayer")
 	room.LeavePlayer(conn)
+	fmt.Println("LeaveObserver")
 	room.LeaveObserver(conn)
 	//}
 
@@ -218,7 +220,8 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
-	if conn == nil {
+	if conn.PlayingRoom() == nil {
+		room.processActionBackToLobby(conn)
 		return
 	}
 
@@ -226,8 +229,8 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 	if found == nil {
 		return
 	}
-	room.LeaveObserver(found)
-	room.LeavePlayer(found)
+	//room.LeaveObserver(found)
+	//room.LeavePlayer(found)
 
 	fmt.Println("Disconnected")
 	found.setDisconnected()
@@ -257,6 +260,7 @@ func (room *Room) processActionReconnect(conn *Connection) {
 	if found == nil {
 		return
 	}
+	fmt.Println("processActionReconnect")
 	room.addConnection(conn, isPlayer, true)
 }
 

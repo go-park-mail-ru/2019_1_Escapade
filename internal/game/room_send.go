@@ -172,11 +172,12 @@ func (room *Room) sendStatus(predicate SendPredicate) {
 
 	var leftTime int
 	status := room.Status()
+	since := int(time.Since(room.Date()).Seconds())
 	if status == StatusFlagPlacing {
-		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+		leftTime = room.Settings.TimeToPrepare - since
 	}
 	if status == StatusRunning {
-		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
+		leftTime = room.Settings.TimeToPlay - since
 	}
 	response := models.Response{
 		Type: "RoomStatus",
@@ -205,11 +206,12 @@ func (room *Room) sendStatusOne(conn *Connection) {
 
 	var leftTime int
 	status := room.Status()
+	since := int(time.Since(room.Date()).Seconds())
 	if status == StatusFlagPlacing {
-		leftTime = room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+		leftTime = room.Settings.TimeToPrepare - since
 	}
 	if status == StatusRunning {
-		leftTime = room.Settings.TimeToPlay - int(time.Since(room.Date).Seconds())
+		leftTime = room.Settings.TimeToPlay - since
 	}
 	response := models.Response{
 		Type: "RoomStatus",

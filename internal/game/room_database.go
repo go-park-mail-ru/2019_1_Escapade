@@ -25,7 +25,7 @@ func (room *Room) Save() (err error) {
 		Players:       len(players),
 		TimeToPrepare: room.Settings.TimeToPrepare,
 		TimeToPlay:    room.Settings.TimeToPlay,
-		Date:          room.Date,
+		Date:          room.Date(),
 	}
 
 	winners := room.Winners()
@@ -122,7 +122,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	room.setName(info.Game.Name)
 	room.setStatus(info.Game.Status)
 	room.setKilled(info.Game.Players)
-	room.Date = info.Game.Date
+	room.setDate(info.Game.Date)
 
 	// actions
 	for _, actionDB := range info.Actions {

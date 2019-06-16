@@ -380,7 +380,9 @@ func (conn *Connection) SendInformation(value interface{}) {
 		fmt.Println("cant send information", err.Error())
 	} else {
 		//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
-		conn.send <- bytes
+		if !conn.Disconnected() {
+			conn.send <- bytes
+		}
 		//fmt.Println("move!")
 	}
 	//}
@@ -410,11 +412,15 @@ func (conn *Connection) ID() int {
 	return conn.User.ID
 }
 
-func sendAccountTaken(conn Connection) {
+func sendAccountTaken(conn *Connection) {
 
 	response := models.Response{
 		Type: "AccountTaken",
 	}
+	if conn == nil {
+		panic("sendAccountTaken")
+	}
+	fmt.Println("send sendAccountTaken")
 	conn.SendInformation(response)
 }
 

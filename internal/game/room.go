@@ -60,7 +60,9 @@ type Room struct {
 	lobby *Lobby
 	Field *Field
 
-	Date       time.Time
+	dateM *sync.RWMutex
+	_date time.Time
+
 	chanFinish chan struct{}
 
 	chanStatus     chan int
@@ -110,6 +112,8 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.idM = &sync.RWMutex{}
 	room._id = id
 
+	room.dateM = &sync.RWMutex{}
+
 	room.Observers = NewConnections(room.Settings.Observers)
 
 	room.chanFinish = make(chan struct{})
@@ -148,13 +152,14 @@ func (room *Room) Restart() {
 	room._killed = 0
 	room.killedM.Unlock()
 
-	room._id = utils.RandomString(16)
-	room._status = StatusPeopleFinding
+	room.setID(utils.RandomString(16))
+	room.setStatus(StatusPeopleFinding)
 
 	room.Field = field
 
 	loc, _ := time.LoadLocation("Europe/Moscow")
-	room.Date = time.Now().In(loc)
+
+	room.setDate(time.Now().In(loc))
 
 	return
 }

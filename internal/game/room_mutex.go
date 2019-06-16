@@ -1,6 +1,10 @@
 package game
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+import (
+	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+)
 
 //setDone set done = true. It will finish all operaions on Room
 func (room *Room) setDone() {
@@ -38,6 +42,13 @@ func (room *Room) ID() string {
 	return v
 }
 
+func (room *Room) Date() time.Time {
+	room.dateM.RLock()
+	v := room._date
+	room.dateM.RUnlock()
+	return v
+}
+
 func (room *Room) setStatus(status int) {
 	room.statusM.Lock()
 	room._status = status
@@ -54,6 +65,12 @@ func (room *Room) setID(id string) {
 	room.idM.Lock()
 	room._id = id
 	room.idM.Unlock()
+}
+
+func (room *Room) setDate(date time.Time) {
+	room.dateM.Lock()
+	room._date = date
+	room.dateM.Unlock()
 }
 
 // done return '_killed' field

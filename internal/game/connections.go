@@ -71,11 +71,16 @@ func (conns *Connections) Remove(conn *Connection) bool {
 // Restore connection
 func (conns *Connections) Restore(conn *Connection) bool {
 	found, i := conns.SearchByID(conn.ID())
+	fmt.Println("found it", i)
 	if i != -1 {
+		fmt.Println("Restore")
 		conn.Restore(found)
-		sendAccountTaken(*found)
+		fmt.Println("sendAccountTaken")
+		sendAccountTaken(found)
+		fmt.Println("conns.set(i, conn)")
 		conns.set(i, conn)
 	}
+	fmt.Println("Restore done")
 	return i != -1
 }
 

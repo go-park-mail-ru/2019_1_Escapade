@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 // EnterPlayer handle player try to enter room
 func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover bool) bool {
 	//fmt.Println("addPlayer", recover)
@@ -15,6 +17,8 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	// if room.lobby.Metrics() {
 	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 	// }
+
+	fmt.Println("addConnection", conn.ID(), isPlayer, needRecover)
 
 	conn.debug("Room(" + room.ID() + ") wanna connect you")
 
@@ -45,13 +49,8 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 
 	if !needRecover {
 		room.lobby.sendRoomUpdate(room, All)
-
-		if !room.Players.EnoughPlace() {
-			room.chanStatus <- StatusFlagPlacing
-		}
-	} else {
-		room.sendStatusOne(conn)
 	}
+	room.sendStatusOne(conn)
 
 	return true
 }
@@ -65,16 +64,20 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		room.wGroup.Done()
 	}()
 
+	fmt.Println("Push", isPlayer, needRecover)
+
 	if isPlayer {
-		if !room.Players.EnoughPlace() {
+		if !needRecover && !room.Players.EnoughPlace() {
 			return false
 		}
 		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, needRecover)
-		if !room.Players.EnoughPlace() {
-			room.StartFlagPlacing()
+		if !needRecover && !room.Players.EnoughPlace() {
+			fmt.Println("want StartFlagPlacing")
+			//room.StartFlagPlacing()
+			room.chanStatus <- StatusFlagPlacing
 		}
 	} else {
-		if !room.Observers.EnoughPlace() {
+		if !needRecover && !room.Observers.EnoughPlace() {
 			return false
 		}
 		room.Observers.Add(conn)

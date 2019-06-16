@@ -40,10 +40,16 @@ func (room *Room) Free() {
 	if room.done() {
 		return
 	}
-	fmt.Println("room.setDone()")
+
+	//room.setDone()
+	room.wGroup.Wait()
+	if room.done() {
+		return
+	}
 	room.setDone()
 
-	room.wGroup.Wait()
+	fmt.Println("room.setDone()")
+
 	room.chanStatus <- StatusAborted
 
 	room.setStatus(StatusFinished)
@@ -75,9 +81,9 @@ func (room *Room) Close() bool {
 	}
 	fmt.Println("We closed room :С")
 	room.lobby.CloseRoom(room)
-	room.LeaveAll()
+	//room.LeaveAll()
 	fmt.Println("Prepare to free!")
-	room.Free()
+	go room.Free()
 	fmt.Println("We did it")
 	return true
 }
@@ -403,7 +409,7 @@ func (room *Room) StartFlagPlacing() {
 	go room.runGame()
 
 	loc, _ := time.LoadLocation("Europe/Moscow")
-	room.Date = time.Now().In(loc)
+	room.setDate(time.Now().In(loc))
 	room.sendStatus(room.All)
 	go room.sendField(room.All)
 	go room.sendMessage("Battle will be start soon! Set your flag!", room.All)
@@ -429,7 +435,7 @@ func (room *Room) StartGame() {
 	room.sendNewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
 	loc, _ := time.LoadLocation("Europe/Moscow")
-	room.Date = time.Now().In(loc)
+	room.setDate(time.Now().In(loc))
 	room.sendStatus(room.All)
 	room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }

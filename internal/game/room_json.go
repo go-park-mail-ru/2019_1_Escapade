@@ -35,7 +35,7 @@ func (room *Room) JSON() RoomJSON {
 		History:   room.history(),
 		Messages:  room._messages,
 		Field:     room.Field,
-		Date:      room.Date,
+		Date:      room.Date(),
 		Settings:  room.Settings,
 	}
 }
@@ -58,7 +58,7 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 	room.Observers = temp.Observers
 	room._history = temp.History
 	room._messages = temp.Messages
-	room.Date = temp.Date
+	room.setDate(temp.Date)
 	room.Settings = temp.Settings
 
 	return nil
