@@ -49,6 +49,13 @@ func (room *Room) Date() time.Time {
 	return v
 }
 
+func (room *Room) Next() *Room {
+	room.nextM.RLock()
+	v := room._next
+	room.nextM.RUnlock()
+	return v
+}
+
 func (room *Room) setStatus(status int) {
 	room.statusM.Lock()
 	room._status = status
@@ -71,6 +78,42 @@ func (room *Room) setDate(date time.Time) {
 	room.dateM.Lock()
 	room._date = date
 	room.dateM.Unlock()
+}
+
+func (room *Room) setNext(next *Room) {
+	room.nextM.Lock()
+	room._next = next
+	room.nextM.Unlock()
+}
+
+/////////////////////// history
+
+// history return '_history' field
+func (room *Room) history() []*PlayerAction {
+	room.historyM.RLock()
+	v := room._history
+	room.historyM.RUnlock()
+	return v
+}
+
+func (room *Room) setHistory(history []*PlayerAction) {
+	room.historyM.Lock()
+	room._history = history
+	room.historyM.Unlock()
+}
+
+// appendAction append action to action slice(history)
+func (room *Room) appendAction(action *PlayerAction) {
+	room.historyM.Lock()
+	defer room.historyM.Unlock()
+	room._history = append(room._history, action)
+}
+
+// historyFree free action slice
+func (room *Room) historyFree() {
+	room.historyM.Lock()
+	room._history = nil
+	room.historyM.Unlock()
 }
 
 // done return '_killed' field
@@ -116,20 +159,7 @@ func (room *Room) SetFinished(conn *Connection) {
 	room.killedM.Unlock()
 }
 
-// history return '_history' field
-func (room *Room) history() []*PlayerAction {
-	room.historyM.RLock()
-	v := room._history
-	room.historyM.RUnlock()
-	return v
-}
-
-// appendAction append action to action slice(history)
-func (room *Room) appendAction(action *PlayerAction) {
-	room.historyM.Lock()
-	defer room.historyM.Unlock()
-	room._history = append(room._history, action)
-}
+/////////////////////// messages
 
 // appendMessage append message to message slice
 func (room *Room) appendMessage(message *models.Message) {
@@ -182,18 +212,17 @@ func (room *Room) findMessage(search *models.Message) int {
 }
 
 // Messages return slice of messages
-func (room *Room) Messages() []*models.Message {
+func (room *Room) setMessages(messages []*models.Message) {
+	room.messagesM.Lock()
+	room._messages = messages
+	room.messagesM.Unlock()
+}
 
+// Messages return slice of messages
+func (room *Room) Messages() []*models.Message {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
 	return room._messages
-}
-
-// historyFree free action slice
-func (room *Room) historyFree() {
-	room.historyM.Lock()
-	room._history = nil
-	room.historyM.Unlock()
 }
 
 // messagesFree free message slice

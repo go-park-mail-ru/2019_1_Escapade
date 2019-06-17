@@ -76,7 +76,7 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 		room.addConnection(conn, true, false)
 	} else {
 		conn.debug("cant create. Why?" + err.Error())
-		//panic(":(")
+		panic(":(")
 	}
 	return
 }

@@ -72,9 +72,12 @@ func (conns *Connections) remove(i int) {
 	conns.getM.Lock()
 	defer conns.getM.Unlock()
 	size := len(conns._get)
+	if size == 0 {
+		return
+	}
 
 	conns._get[i], conns._get[size-1] = conns._get[size-1], conns._get[i]
-	conns._get[size-1] = nil // now not pointer
+	conns._get[size-1] = nil
 	conns._get = conns._get[:size-1]
 	return
 }

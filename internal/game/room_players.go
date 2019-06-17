@@ -64,16 +64,12 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("Push", isPlayer, needRecover)
-
 	if isPlayer {
 		if !needRecover && !room.Players.EnoughPlace() {
 			return false
 		}
 		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, needRecover)
 		if !needRecover && !room.Players.EnoughPlace() {
-			fmt.Println("want StartFlagPlacing")
-			//room.StartFlagPlacing()
 			room.chanStatus <- StatusFlagPlacing
 		}
 	} else {

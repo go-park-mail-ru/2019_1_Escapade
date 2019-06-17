@@ -57,6 +57,9 @@ type Room struct {
 	statusM *sync.RWMutex
 	_status int
 
+	nextM *sync.RWMutex
+	_next *Room
+
 	lobby *Lobby
 	Field *Field
 
@@ -112,6 +115,9 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.idM = &sync.RWMutex{}
 	room._id = id
 
+	room.nextM = &sync.RWMutex{}
+	room._next = nil
+
 	room.dateM = &sync.RWMutex{}
 
 	room.Observers = NewConnections(room.Settings.Observers)
@@ -120,38 +126,9 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.chanStatus = make(chan int)
 	room.chanConnection = make(chan ConnectionAction)
 
-	room.Restart()
-
-	go room.runRoom()
-
-	return
-}
-
-// Restart fill in the room fields with the original values
-func (room *Room) Restart() {
-
-	field := NewField(room.Settings)
-
-	// playersConns := room.Players.Connections.RGet()
-	// for _, conn := range playersConns {
-	// 	room.Observers.Add(conn)
-	// }
-	room.Players.Refresh(*field)
-
-	//room.Observers = NewConnections(room.Settings.Observers)
-
-	room.historyM.Lock()
-	room._history = make([]*PlayerAction, 0)
-	room.historyM.Unlock()
-
-	room.messagesM.Lock()
-	room._messages = make([]*models.Message, 0)
-	room.messagesM.Unlock()
-
-	room.killedM.Lock()
-	room._killed = 0
-	room.killedM.Unlock()
-
+	room.setHistory(make([]*PlayerAction, 0))
+	room.setMessages(make([]*models.Message, 0))
+	room.setKilled(0)
 	room.setID(utils.RandomString(16))
 	room.setStatus(StatusPeopleFinding)
 
@@ -161,6 +138,26 @@ func (room *Room) Restart() {
 
 	room.setDate(time.Now().In(loc))
 
+	go room.runRoom()
+
+	return
+}
+
+// Restart fill in the room fields with the original values
+
+func (room *Room) Restart(conn *Connection) {
+
+	if room.Next() == nil || room.Next().done() {
+		pa := *room.addAction(conn.ID(), ActionRestart)
+		room.sendAction(pa, room.All)
+		next, err := room.lobby.CreateAndAddToRoom(room.Settings, conn)
+		if err != nil {
+			panic("next")
+		}
+		room.setNext(next)
+	}
+	room.processActionBackToLobby(conn)
+	room.Next().Enter(conn)
 	return
 }
 

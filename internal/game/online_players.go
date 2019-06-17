@@ -6,26 +6,6 @@ type Rooms struct {
 	Get      []*Room `json:"get"`
 }
 
-// Refresh reset the players, their connections and flags(generate new)
-func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
-	size := onlinePlayers.Capacity()
-
-	players := make([]Player, size)
-	onlinePlayers.SetPlayers(players)
-
-	flags := field.RandomFlags(players)
-	onlinePlayers.SetFlags(flags)
-
-	onlinePlayers.flagsLeft = size
-	onlinePlayers.RefreshConnections()
-}
-
-// RefreshConnections reset connections
-func (onlinePlayers *OnlinePlayers) RefreshConnections() {
-	size := onlinePlayers.Capacity()
-	onlinePlayers.Connections = NewConnections(size)
-}
-
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
@@ -35,13 +15,12 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 			if room == nil {
 				continue
 			}
-			room.LeavePlayer(conn)
+			room.Leave(conn, true)
 			continue
 		}
 		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}
-	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
 	return
 }
@@ -103,7 +82,7 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, 
 	// if conn == nil {
 	// 	panic(1)
 	// }
-	i := onlinePlayers.Connections.Add(conn /*, false*/)
+	i := onlinePlayers.Connections.Add(conn)
 	if i < 0 {
 		return false
 	}

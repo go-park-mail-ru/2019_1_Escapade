@@ -130,11 +130,10 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		i++
 		t := player.Time()
 		if player.Disconnected() && time.Since(t).Seconds() > timeoutPlayer {
-			fmt.Println(player.User.Name, " - bad")
-			room.LeavePlayer(player)
-			//room.Leave(conn, ActionTimeOver)
+			//fmt.Println(player.User.Name, " - bad")
+			room.Leave(player, true)
 		} else {
-			fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(t).Seconds())
+			//fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(t).Seconds())
 		}
 	}
 
@@ -148,42 +147,11 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		i++
 		t := observer.Time()
 		if observer.Disconnected() && time.Since(t).Seconds() > timeoutObserver {
-			//fmt.Println(conn.User.Name, " - bad")
-			room.LeaveObserver(observer)
-			//room.Leave(conn, ActionTimeOver)
+			room.Leave(observer, false)
 		} else {
 			//fmt.Println(conn.User.Name, " - good", conn)
 		}
 	}
-
-	/*
-		for _, conn := range room.Players.Connections.RGet() {
-			if conn == nil {
-				continue
-			}
-			i++
-			if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutPlayer {
-				fmt.Println(conn.User.Name, " - bad")
-				room.LeavePlayer(conn)
-				//room.Leave(conn, ActionTimeOver)
-			} else {
-				fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
-			}
-		}
-		for _, conn := range room.Observers.RGet() {
-			if conn == nil {
-				continue
-			}
-			i++
-			if conn.Disconnected() && time.Since(conn.time).Seconds() > timeoutObserver {
-				//fmt.Println(conn.User.Name, " - bad")
-				room.LeaveObserver(conn)
-				//room.Leave(conn, ActionTimeOver)
-			} else {
-				//fmt.Println(conn.User.Name, " - good", conn)
-			}
-		}
-	*/
 }
 
 func (room *Room) processActionBackToLobby(conn *Connection) {
@@ -196,12 +164,7 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
-	//if room.Status != StatusPeopleFinding {
-	fmt.Println("LeavePlayer")
-	room.LeavePlayer(conn)
-	fmt.Println("LeaveObserver")
-	room.LeaveObserver(conn)
-	//}
+	room.Leave(conn, conn.Index() >= 0)
 
 	fmt.Println("LeaveRoom")
 	room.lobby.LeaveRoom(conn, ActionBackToLobby, room)
@@ -229,12 +192,8 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 	if found == nil {
 		return
 	}
-	//room.LeaveObserver(found)
-	//room.LeavePlayer(found)
 
-	fmt.Println("Disconnected")
 	found.setDisconnected()
-	fmt.Println("setDisconnected done")
 	pa := *room.addAction(found.ID(), ActionDisconnect)
 	room.sendAction(pa, room.All)
 
@@ -290,21 +249,12 @@ func (room *Room) processActionRestart(conn *Connection) {
 	}()
 
 	status := room.Status()
-	if status == StatusRunning || status == StatusFlagPlacing {
-		fmt.Println("room.Status == StatusRunning || room.Status == StatusFlagPlacing")
-		return
-	}
+	// if status == StatusRunning || status == StatusFlagPlacing {
+	// 	fmt.Println("room.Status == StatusRunning || room.Status == StatusFlagPlacing")
+	// 	return
+	// }
 	if status == StatusFinished {
-		pa := *room.addAction(conn.ID(), ActionRestart)
-		room.sendAction(pa, room.All)
-		room.Restart()
-		room.lobby.addRoom(room)
-	}
-	fmt.Println("conn.lobby.greet(conn)")
-	conn.lobby.greet(conn)
-	if status == StatusPeopleFinding {
-		room.LeaveObserver(conn)
-		room.addConnection(conn, true, false)
+		room.Restart(conn)
 	}
 }
 
@@ -322,17 +272,13 @@ func (room *Room) processConnectionAction(ca ConnectionAction) {
 
 	switch ca.action {
 	case ActionBackToLobby:
-		fmt.Println("processActionBackToLobby ------")
+		//fmt.Println("processActionBackToLobby ------")
 		room.processActionBackToLobby(ca.conn)
-		fmt.Println("processActionBackToLobby ")
+		//fmt.Println("processActionBackToLobby ")
 	case ActionDisconnect:
-		fmt.Println("processActionDisconnect ------")
+		//fmt.Println("processActionDisconnect ------")
 		room.processActionDisconnect(ca.conn)
-		fmt.Println("processActionDisconnect")
-	//case ActionConnect:
-	//fmt.Println("processActionConnect ------")
-	//room.processActionConnect(ca.conn)
-	//fmt.Println("processActionConnect ")
+		//fmt.Println("processActionDisconnect")
 	case ActionReconnect:
 		//fmt.Println("processActionConnect ------")
 		room.processActionReconnect(ca.conn)

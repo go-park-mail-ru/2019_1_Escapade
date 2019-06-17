@@ -45,7 +45,7 @@ func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 	lobby.Waiting.Remove(conn)
 	lobby.sendWaiterExit(conn, All)
 	conn.PushToRoom(room)
-	lobby.Playing.Add(conn /*, false */)
+	lobby.Playing.Add(conn)
 	lobby.sendPlayerEnter(conn, All)
 }
 

@@ -81,7 +81,6 @@ func (room *Room) Close() bool {
 	}
 	fmt.Println("We closed room :С")
 	room.lobby.CloseRoom(room)
-	//room.LeaveAll()
 	fmt.Println("Prepare to free!")
 	go room.Free()
 	fmt.Println("We did it")
@@ -101,23 +100,14 @@ func (room *Room) LeaveAll() {
 	playersIterator := NewConnectionsIterator(room.Players.Connections)
 	for playersIterator.Next() {
 		player := playersIterator.Value()
-		go room.LeavePlayer(player)
+		go room.Leave(player, true)
 	}
 
 	observersIterator := NewConnectionsIterator(room.Observers)
 	for observersIterator.Next() {
 		observer := observersIterator.Value()
-		go room.LeaveObserver(observer)
+		go room.Leave(observer, false)
 	}
-	/*
-		players := room.Players.Connections.RGet()
-		for _, conn := range players {
-			go room.LeavePlayer(conn)
-		}
-		observers := room.Observers.RGet()
-		for _, conn := range observers {
-			go room.LeaveObserver(conn)
-		}*/
 }
 
 // Empty check room has no people
@@ -134,7 +124,7 @@ func (room *Room) Empty() bool {
 }
 
 // LeavePlayer handle player going back to lobby
-func (room *Room) LeavePlayer(conn *Connection) bool {
+func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 	if room.done() {
 		return false
 	}
@@ -143,44 +133,27 @@ func (room *Room) LeavePlayer(conn *Connection) bool {
 		room.wGroup.Done()
 	}()
 
-	done := room.Players.Connections.Remove(conn)
-	if done {
-		if room.Status() == StatusPeopleFinding {
-			room.lobby.greet(conn)
-			room.lobby.sendRoomUpdate(room, All)
-		} else {
-			room.GiveUp(conn)
-		}
+	var done bool
+	if isPlayer {
+		done = room.Players.Connections.Remove(conn)
+	} else {
+		done = room.Observers.Remove(conn)
 	}
-	//fmt.Println("LeavePlayer", room.Empty(), len(room.Observers.RGet()))
-	if room.Empty() {
-		fmt.Println("room.Close()")
-		room.Close()
-	}
-	return done
-}
-
-// LeaveObserver handle observer leaves room
-func (room *Room) LeaveObserver(conn *Connection) bool {
-	if room.done() {
+	if !done {
 		return false
 	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
 
-	done := room.Observers.Remove(conn)
-	if done {
-		if room.Status() == StatusPeopleFinding {
-			room.lobby.greet(conn)
-			room.lobby.sendRoomUpdate(room, All)
-		}
+	if room.Status() == StatusPeopleFinding {
+		room.lobby.greet(conn)
+		room.lobby.sendRoomUpdate(room, All)
+	} else if isPlayer {
+		room.GiveUp(conn)
 	}
+
 	if room.Empty() {
 		room.Close()
 	}
-	return done
+	return true
 }
 
 // LeaveMeta update metainformation about user leaving room
@@ -193,12 +166,9 @@ func (room *Room) LeaveMeta(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
-	//conn.setDisconnected()
 	if room.lobby.Metrics() {
 		metrics.Players.WithLabelValues(room.ID(), conn.User.Name).Dec()
 	}
-
-	//done = room.RemoveFromGame(conn, action == ActionDisconnect)
 
 	pa := *room.addAction(conn.ID(), action)
 	if room.Empty() {
@@ -391,18 +361,6 @@ func (room *Room) StartFlagPlacing() {
 		room.greet(observer, true)
 		room.lobby.waiterToPlayer(observer, room)
 	}
-	/*
-		players := room.Players.Connections.RGet()
-		for _, conn := range players {
-			room.greet(conn, true)
-			room.lobby.waiterToPlayer(conn, room)
-		}
-		observers := room.Observers.RGet()
-		for _, conn := range observers {
-			room.greet(conn, false)
-			room.lobby.waiterToPlayer(conn, room)
-		}
-	*/
 	room.Players.Init(room.Field)
 
 	room.lobby.RoomStart(room)
@@ -468,13 +426,8 @@ func (room *Room) FinishGame(timer bool) {
 	playersIterator := NewConnectionsIterator(room.Players.Connections)
 	for playersIterator.Next() {
 		player := playersIterator.Value()
-		room.Observers.Add(player /*, false*/)
+		room.Observers.Add(player)
 	}
-	/*
-		playersConns := room.Players.Connections.RGet()
-		for _, conn := range playersConns {
-			room.Observers.Add(conn)
-		}*/
-	room.Players.RefreshConnections()
+	room.Players = newOnlinePlayers(room.Settings.Players, *room.Field)
 	room.lobby.roomFinish(room)
 }

@@ -86,7 +86,7 @@ func (conns *Connections) Restore(conn *Connection) bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection /*, copy bool*/) int {
+func (conns *Connections) Add(conn *Connection) int {
 	_, i := conns.SearchByID(conn.ID())
 	if i >= 0 {
 		conns.set(i, conn)
