@@ -142,7 +142,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	var disconnected bool
 
 	// check
-	waiter, _ := lobby.Waiting.SearchByID(conn.ID())
+	_, waiter := lobby.Waiting.SearchByID(conn.ID())
 	if waiter != nil {
 		if waiter.UUID != conn.UUID {
 			return
@@ -155,7 +155,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		// 	return
 		// }
 	} else {
-		player, _ := lobby.Playing.SearchByID(conn.ID())
+		_, player := lobby.Playing.SearchByID(conn.ID())
 		if player != nil {
 			if player.UUID != conn.UUID {
 				return
@@ -261,7 +261,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		return
 	}
 
-	if _, room := lobby.allRoomsSearch(rs.ID); room != nil {
+	if _, room := lobby.allRooms.Search(rs.ID); room != nil {
 		conn.debug("lobby found required room")
 		room.Enter(conn)
 	}
@@ -285,14 +285,14 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 		lobby.wGroup.Done()
 	}()
 
-	// lets find room for user
-	FreeRooms := lobby.freeRooms()
-	for _, room = range FreeRooms {
-		//if room.SameAs()
-		if room.addConnection(conn, true, false) { //room.addPlayer(conn, false) {
+	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
+	for freeRoomsIterator.Next() {
+		freeRoom := freeRoomsIterator.Value()
+		if freeRoom.addConnection(conn, true, false) { //room.addPlayer(conn, false) {
 			return
 		}
 	}
+
 	// oh we cant find room, so lets create one
 	lobby.CreateAndAddToRoom(rs, conn)
 	return

@@ -1,38 +1,41 @@
 package game
 
 // RGet return connections slice only for Read!
-// func (conns *Connections) RGet() []*Connection {
-
-// 	conns.getM.RLock()
-// 	defer conns.getM.RUnlock()
-// 	return conns._get
-// }
-
-func (conns *Connections) NEWRGet() []*Connection {
+func (conns *Connections) RGet() []*Connection {
 
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
 	return conns._get
 }
 
-// func (conns *Connections) Get(i int) *Connection {
-
-// 	conns.getM.Lock()
-// 	defer conns.getM.Unlock()
-// 	return conns._get[i]
-// }
-
-func (ci *ConnectionsIterator) Value() *Connection {
-	return ci.conns._get[ci.current]
+func (iter *ConnectionsIterator) Value() *Connection {
+	iter.conns.getM.Lock()
+	defer iter.conns.getM.Unlock()
+	return iter.conns._get[iter.current]
 }
-func (ci *ConnectionsIterator) Next() bool {
-	ci.current++
-	ci.conns.getM.Lock()
-	defer ci.conns.getM.Unlock()
-	if ci.current >= len(ci.conns._get) {
+func (iter *ConnectionsIterator) Next() bool {
+	iter.current++
+	iter.conns.getM.Lock()
+	defer iter.conns.getM.Unlock()
+	if iter.current >= len(iter.conns._get) {
 		return false
 	}
 	return true
+}
+
+// Add try add element if its possible. Return bool result
+// if element not exists it will be create, otherwise it will change its value
+func (conns *Connections) Add(conn *Connection) int {
+	i, _ := conns.SearchByID(conn.ID())
+	if i >= 0 {
+		conns.set(i, conn)
+	} else if conns.EnoughPlace() {
+		i = conns.len()
+		conns.append(conn)
+	} else {
+		return -1
+	}
+	return i
 }
 
 // Capacity return the capacity of the stored slice
@@ -129,12 +132,12 @@ func (conns *Connections) EnoughPlace() bool {
 // SearchByID find connection by connection ID
 // return this connection and its index if success
 // otherwise nil and -1
-func (conns *Connections) SearchByID(connectionID int) (connection *Connection, index int) {
+func (conns *Connections) SearchByID(connectionID int) (index int, connection *Connection) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
 	index = -1
 	for i, c := range conns._get {
-		if conns._get[i].ID() == connectionID {
+		if c.ID() == connectionID {
 			connection = c
 			index = i
 			return
@@ -149,8 +152,8 @@ func (conns *Connections) SearchByID(connectionID int) (connection *Connection, 
 func (conns Connections) SearchByIndex(index int) (connection *Connection) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
-	for i, c := range conns._get {
-		if conns._get[i].Index() == index {
+	for _, c := range conns._get {
+		if c.Index() == index {
 			connection = c
 			return
 		}

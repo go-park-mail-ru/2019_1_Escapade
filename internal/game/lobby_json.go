@@ -8,8 +8,8 @@ import (
 
 // LobbyJSON is a wrapper for sending Lobby by JSON
 type LobbyJSON struct {
-	AllRooms  Rooms             `json:"allRooms"`
-	FreeRooms Rooms             `json:"freeRooms"`
+	AllRooms  RoomsJSON         `json:"allRooms"`
+	FreeRooms RoomsJSON         `json:"freeRooms"`
 	Waiting   ConnectionsJSON   `json:"waiting"`
 	Playing   ConnectionsJSON   `json:"playing"`
 	Messages  []*models.Message `json:"messages"`
@@ -18,8 +18,8 @@ type LobbyJSON struct {
 // JSON convert Lobby to LobbyJSON
 func (lobby *Lobby) JSON() LobbyJSON {
 	return LobbyJSON{
-		AllRooms:  *lobby._allRooms,
-		FreeRooms: *lobby._freeRooms,
+		AllRooms:  lobby.allRooms.JSON(),
+		FreeRooms: lobby.freeRooms.JSON(),
 		Waiting:   lobby.Waiting.JSON(),
 		Playing:   lobby.Playing.JSON(),
 		Messages:  lobby._messages,
@@ -38,12 +38,18 @@ func (lobby *Lobby) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &temp); err != nil {
 		return err
 	}
-	lobby._allRooms = &temp.AllRooms
-	lobby._freeRooms = &temp.FreeRooms
-	lobby.Waiting._get = temp.Waiting.Get
-	lobby.Waiting._capacity = temp.Waiting.Capacity
-	lobby.Playing._get = temp.Playing.Get
-	lobby.Playing._capacity = temp.Playing.Capacity
+	lobby.allRooms.Set(temp.AllRooms.Get)
+	lobby.allRooms.SetCapacity(temp.AllRooms.Capacity)
+
+	lobby.freeRooms.Set(temp.FreeRooms.Get)
+	lobby.freeRooms.SetCapacity(temp.FreeRooms.Capacity)
+
+	lobby.Waiting.Set(temp.Waiting.Get)
+	lobby.Waiting.SetCapacity(temp.Waiting.Capacity)
+
+	lobby.Playing.Set(temp.Playing.Get)
+	lobby.Playing.SetCapacity(temp.Playing.Capacity)
+
 	lobby._messages = temp.Messages
 
 	return nil

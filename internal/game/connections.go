@@ -59,7 +59,7 @@ func (conns *Connections) Remove(conn *Connection) bool {
 		//panic("123123123")
 		return false
 	}
-	conn, i := conns.SearchByID(conn.ID())
+	i, conn := conns.SearchByID(conn.ID())
 	fmt.Println("remove conn", i)
 	if i < 0 {
 		return false
@@ -70,7 +70,7 @@ func (conns *Connections) Remove(conn *Connection) bool {
 
 // Restore connection
 func (conns *Connections) Restore(conn *Connection) bool {
-	found, i := conns.SearchByID(conn.ID())
+	i, found := conns.SearchByID(conn.ID())
 	fmt.Println("found it", i)
 	if i != -1 {
 		fmt.Println("Restore")
@@ -84,21 +84,6 @@ func (conns *Connections) Restore(conn *Connection) bool {
 	return i != -1
 }
 
-// Add try add element if its possible. Return bool result
-// if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection) int {
-	_, i := conns.SearchByID(conn.ID())
-	if i >= 0 {
-		conns.set(i, conn)
-	} else if conns.EnoughPlace() {
-		i = conns.len()
-		conns.append(conn)
-	} else {
-		return -1
-	}
-	return i
-}
-
 // ConnectionsJSON is a wrapper for sending Connections by JSON
 type ConnectionsJSON struct {
 	Capacity int           `json:"capacity"`
@@ -109,7 +94,7 @@ type ConnectionsJSON struct {
 func (conns *Connections) JSON() ConnectionsJSON {
 	return ConnectionsJSON{
 		Capacity: conns.Capacity(),
-		Get:      conns.NEWRGet(),
+		Get:      conns.RGet(),
 	}
 }
 

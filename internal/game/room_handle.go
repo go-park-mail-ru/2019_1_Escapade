@@ -110,19 +110,6 @@ func (room *Room) LeaveAll() {
 	}
 }
 
-// Empty check room has no people
-func (room *Room) Empty() bool {
-	if room.done() {
-		return true
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	return room.Players.Connections.len()+room.Observers.len() == 0
-}
-
 // LeavePlayer handle player going back to lobby
 func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 	if room.done() {
@@ -274,18 +261,6 @@ func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 	return
 }
 
-// IsActive check if game is started and results not known
-func (room *Room) IsActive() bool {
-	if room.done() {
-		return false
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-	return room.Status() == StatusFlagPlacing || room.Status() == StatusRunning
-}
-
 // HandleRequest processes the equest came from the user
 func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 	if room.done() {
@@ -355,9 +330,9 @@ func (room *Room) StartFlagPlacing() {
 		room.lobby.waiterToPlayer(player, room)
 	}
 
-	obsrversIterator := NewConnectionsIterator(room.Observers)
+	observersIterator := NewConnectionsIterator(room.Observers)
 	for playersIterator.Next() {
-		observer := obsrversIterator.Value()
+		observer := observersIterator.Value()
 		room.greet(observer, true)
 		room.lobby.waiterToPlayer(observer, room)
 	}
@@ -389,7 +364,7 @@ func (room *Room) StartGame() {
 	open := float64(room.Settings.Mines) / float64(room.Settings.Width*room.Settings.Height) * float64(100)
 	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
 
-	cells := room.Field.OpenSave(int(open))
+	cells := room.Field.OpenZero() //room.Field.OpenSave(int(open))
 	room.sendNewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
 	loc, _ := time.LoadLocation("Europe/Moscow")
@@ -400,6 +375,9 @@ func (room *Room) StartGame() {
 
 // FinishGame finish game
 func (room *Room) FinishGame(timer bool) {
+	if room == nil {
+		panic("room nil")
+	}
 	if room.done() {
 		fmt.Println("room.done()!")
 		return
@@ -412,10 +390,10 @@ func (room *Room) FinishGame(timer bool) {
 	if room.Status() == StatusFinished {
 		return
 	}
-	if !timer {
+
+	if !timer && room.Status() != StatusPeopleFinding {
 		room.chanFinish <- struct{}{}
 	}
-
 	room.setStatus(StatusFinished)
 
 	room.sendStatus(room.All)

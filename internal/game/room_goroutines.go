@@ -71,12 +71,14 @@ func (room *Room) runGame() {
 		fmt.Println("Room: Game is over!")
 	}()
 
+	fmt.Println("room.runGame")
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	room.setDate(time.Now().In(loc))
 
 	for {
 		select {
 		case <-room.chanFinish:
+			fmt.Println("room.chanFinish")
 			return
 		case <-room.prepare.C:
 			room.chanStatus <- StatusRunning

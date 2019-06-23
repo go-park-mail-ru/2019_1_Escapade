@@ -159,6 +159,7 @@ func TestCreateRoom(t *testing.T) {
 	})
 }
 
+/*
 func TestLobby(t *testing.T) {
 
 	metrics.InitRoomMetric("game")
@@ -206,6 +207,7 @@ func TestLobby(t *testing.T) {
 
 	})
 }
+*/
 
 func CatchPanic(place string) {
 	// panic doesnt recover

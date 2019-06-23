@@ -213,6 +213,31 @@ func (room *Room) debug() {
 
 }
 
+// Empty check room has no people
+func (room *Room) Empty() bool {
+	if room.done() {
+		return true
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
+	return room.Players.Connections.len()+room.Observers.len() == 0
+}
+
+// IsActive check if game is started and results not known
+func (room *Room) IsActive() bool {
+	if room.done() {
+		return false
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+	return room.Status() == StatusFlagPlacing || room.Status() == StatusRunning
+}
+
 // SameAs compare  one room with another
 func (room *Room) SameAs(another *Room) bool {
 	return room.Field.SameAs(another.Field)

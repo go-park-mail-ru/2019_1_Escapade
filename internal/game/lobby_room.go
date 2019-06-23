@@ -20,7 +20,7 @@ func (lobby *Lobby) RoomStart(room *Room) {
 		utils.CatchPanic("lobby_room.go RoomStart()")
 	}()
 
-	go lobby.freeRoomsRemove(room)
+	go lobby.freeRooms.Remove(room)
 	go lobby.sendRoomUpdate(room, All)
 }
 
@@ -35,7 +35,7 @@ func (lobby *Lobby) roomFinish(room *Room) {
 		utils.CatchPanic("lobby_room.go roomFinish()")
 	}()
 
-	go lobby.allRoomsRemove(room)
+	go lobby.allRooms.Remove(room)
 	go lobby.sendRoomDelete(room, All)
 }
 
@@ -54,8 +54,8 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 
 	// if not in freeRooms nothing bad will happen
 	// there is check inside, it will just return without errors
-	lobby.freeRoomsRemove(room)
-	lobby.allRoomsRemove(room)
+	lobby.freeRooms.Remove(room)
+	lobby.allRooms.Remove(room)
 	fmt.Println("sendRoomDelete")
 	lobby.sendRoomDelete(room, All)
 }
@@ -125,13 +125,13 @@ func (lobby *Lobby) addRoom(room *Room) (err error) {
 		metrics.FreeRooms.Add(1)
 	}
 
-	if !lobby.allRoomsAdd(room) {
+	if !lobby.allRooms.Add(room) {
 		err = re.ErrorLobbyCantCreateRoom()
 		fmt.Println("cant add to all")
 		return err
 	}
 
-	if !lobby.freeRoomsAdd(room) {
+	if !lobby.freeRooms.Add(room) {
 		err = re.ErrorLobbyCantCreateRoom()
 		fmt.Println("cant add to free")
 		return err

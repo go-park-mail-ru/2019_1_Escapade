@@ -26,11 +26,11 @@ type Lobby struct {
 	doneM *sync.RWMutex
 	_done bool
 
-	allRoomsM *sync.RWMutex
-	_allRooms *Rooms
+	//allRoomsM *sync.RWMutex
+	allRooms *Rooms
 
-	freeRoomsM *sync.RWMutex
-	_freeRooms *Rooms
+	//freeRoomsM *sync.RWMutex
+	freeRooms *Rooms
 
 	//waitingM *sync.RWMutex
 	Waiting *Connections
@@ -87,11 +87,11 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		doneM: &sync.RWMutex{},
 		_done: false,
 
-		allRoomsM: &sync.RWMutex{},
-		_allRooms: NewRooms(roomsCapacity),
+		//allRoomsM: &sync.RWMutex{},
+		allRooms: NewRooms(roomsCapacity),
 
-		freeRoomsM: &sync.RWMutex{},
-		_freeRooms: NewRooms(roomsCapacity),
+		//freeRoomsM: &sync.RWMutex{},
+		freeRooms: NewRooms(roomsCapacity),
 
 		//waitingM: &sync.RWMutex{},
 		Waiting: NewConnections(connectionsCapacity),
@@ -131,8 +131,8 @@ func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool, si SetIm
 	if LOBBY == nil {
 		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
 			db, gc.CanClose, metrics, si)
-
 		go LOBBY.Run()
+		//LOBBY.stress(10)
 	}
 }
 
@@ -169,8 +169,8 @@ func (lobby *Lobby) Free() {
 
 	fmt.Println("All resources clear!")
 
-	go lobby.allRoomsFree()
-	go lobby.freeRoomsFree()
+	go lobby.allRooms.Free()
+	go lobby.freeRooms.Free()
 	go lobby.Waiting.Free()
 	go lobby.Playing.Free()
 

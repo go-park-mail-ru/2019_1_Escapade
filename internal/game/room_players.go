@@ -93,11 +93,11 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 // Search search connection in players and observers of room
 // return connection and flag isPlayer
 func (room *Room) Search(find *Connection) (*Connection, bool) {
-	found, i := room.Players.SearchConnection(find)
+	i, found := room.Players.SearchConnection(find)
 	if i >= 0 {
 		return found, true
 	}
-	found, i = room.Observers.SearchByID(find.ID())
+	i, found = room.Observers.SearchByID(find.ID())
 	if i >= 0 {
 		return found, false
 	}

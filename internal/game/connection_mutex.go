@@ -160,7 +160,6 @@ func (conn *Connection) setWaitingRoom(room *Room) {
 
 func (conn *Connection) wsInit(wsc config.WebSocketSettings) {
 	conn.wsM.Lock()
-	fmt.Println("lock: wsInit")
 	conn._ws.SetReadLimit(wsc.MaxMessageSize)
 	conn._ws.SetReadDeadline(time.Now().Add(wsc.PongWait))
 	conn._ws.SetPongHandler(
@@ -170,15 +169,12 @@ func (conn *Connection) wsInit(wsc config.WebSocketSettings) {
 			return nil
 		})
 	conn.wsM.Unlock()
-	fmt.Println("unlock: wsInit")
 }
 
 func (conn *Connection) wsReadMessage() (messageType int, p []byte, err error) {
 	//conn.wsM.Lock()
 	//defer conn.wsM.Unlock()
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!wsReadMessage: lock")
 	messageType, p, err = conn._ws.ReadMessage()
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!wsReadMessage: unlock")
 	return
 }
 
@@ -193,17 +189,14 @@ func (conn *Connection) wsWriteMessage(mt int, payload []byte, wsc config.WebSoc
 func (conn *Connection) wsClose() error {
 	conn.wsM.Lock()
 	defer conn.wsM.Unlock()
-	fmt.Println("wsClose: lock/unlock")
 	return conn._ws.Close()
 }
 
 func (conn *Connection) wsWriteInWriter(message []byte, wsc config.WebSocketSettings) error {
 	conn.wsM.Lock()
-	fmt.Println("lock: wsWriteInWriter")
 	conn._ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
 	w, err := conn._ws.NextWriter(websocket.TextMessage)
 	conn.wsM.Unlock()
-	fmt.Println("unlock: wsWriteInWriter")
 	if err != nil {
 		return err
 	}

@@ -70,7 +70,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 
 	room.Players.IncreasePlayerPoints(founder.Index(), 300)
 
-	killConn, index := room.Players.Connections.SearchByID(which)
+	index, killConn := room.Players.Connections.SearchByID(which)
 	fmt.Println(killConn.User.Name, "was found by", founder.User.Name)
 	if index >= 0 {
 		room.Kill(killConn, ActionFlagLost)
@@ -236,8 +236,8 @@ func (room *Room) FillField() {
 
 	room.Field.Zero()
 	room.setFlags()
-	room.Field.SetMines()
-
+	room.Field.SetMines(room.Players.Flags())
+	room.Field.SetMinesLabels()
 }
 
 // addAction creates an action and passes it on appendAction()
