@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 )
 
 // Capacity return '_capacity' field
@@ -105,8 +106,13 @@ func (onlinePlayers *OnlinePlayers) Flags() []Flag {
 }
 
 // Finish set flag finish true to all players
-func (onlinePlayers *OnlinePlayers) Finish() {
+func (onlinePlayers *OnlinePlayers) Finish(wg *sync.WaitGroup) {
 
+	defer func() {
+		if wg != nil {
+			wg.Done()
+		}
+	}()
 	// all players 'Finished' set true
 	onlinePlayers.playersM.Lock()
 	for _, player := range onlinePlayers._players {

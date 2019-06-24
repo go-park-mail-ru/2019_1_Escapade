@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -69,7 +70,7 @@ type Room struct {
 	chanFinish chan struct{}
 
 	chanStatus     chan int
-	chanConnection chan ConnectionAction
+	chanConnection chan *ConnectionAction
 
 	play    *time.Timer
 	prepare *time.Timer
@@ -78,22 +79,23 @@ type Room struct {
 }
 
 // NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
+func NewRoom(config *config.FieldConfig, lobby *Lobby, rs *models.RoomSettings, id string) (*Room, error) {
 	if !rs.AreCorrect() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
 	var room = &Room{}
 
-	room.Init(rs, id, lobby)
+	room.Init(config, lobby, rs, id)
 	return room, nil
 }
 
 // Init init instance of room
-func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
+func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
+	rs *models.RoomSettings, id string) {
 
 	room.wGroup = &sync.WaitGroup{}
 
-	field := NewField(rs)
+	field := NewField(rs, config)
 	room._done = false
 	room.doneM = &sync.RWMutex{}
 
@@ -124,7 +126,7 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 
 	room.chanFinish = make(chan struct{})
 	room.chanStatus = make(chan int)
-	room.chanConnection = make(chan ConnectionAction)
+	room.chanConnection = make(chan *ConnectionAction)
 
 	room.setHistory(make([]*PlayerAction, 0))
 	room.setMessages(make([]*models.Message, 0))
@@ -134,7 +136,7 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 
 	room.Field = field
 
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
 
 	room.setDate(time.Now().In(loc))
 

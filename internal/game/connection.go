@@ -302,33 +302,12 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 			return
 		case message, ok := <-conn.send:
 
-			//fmt.Println("saw!")
-			//fmt.Println("server wrote:", string(message))
 			if !ok {
-				//fmt.Println("errrrrr!")
 				conn.wsWriteMessage(websocket.CloseMessage, []byte{}, wsc)
 				return
 			}
 
-			str := string(message)
-			var start, end, counter int
-			for i, s := range str {
-				if s == '"' {
-					counter++
-					if counter == 3 {
-						start = i + 1
-					} else if counter == 4 {
-						end = i
-					} else if counter > 4 {
-						break
-					}
-				}
-			}
-			if start != end {
-				print := str[start:end]
-				//print = str
-				fmt.Println("#", conn.ID(), " get that:", print)
-			}
+			utils.ShowWebsocketMessage(message, conn.ID())
 
 			if err := conn.wsWriteInWriter(message, wsc); err != nil {
 				return
@@ -342,22 +321,6 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 	}
 }
 
-/*
-func (conn *Connection) isClosed() bool {
-	_, _, err := conn.wsReadMessage()
-	//conn._ws
-	return err != nil
-	// if ce, ok := err.(*websocket.CloseError); ok {
-	// 	switch ce.Code {
-	// 	case websocket.CloseNormalClosure,
-	// 		websocket.CloseGoingAway,
-	// 		websocket.CloseNoStatusReceived:
-	// 		s.env.Statusf("Web socket closed by client: %s", err)
-	// 		return
-	// 	}
-	// }
-}*/
-
 // SendInformation send info
 func (conn *Connection) SendInformation(value interface{}) {
 	if conn.done() {
@@ -368,7 +331,10 @@ func (conn *Connection) SendInformation(value interface{}) {
 		conn.wGroup.Done()
 	}()
 
-	//if !conn.Disconnected() {
+	if conn.Disconnected() {
+		return
+	}
+
 	var (
 		bytes []byte
 		err   error
@@ -377,15 +343,10 @@ func (conn *Connection) SendInformation(value interface{}) {
 	bytes, err = json.Marshal(value)
 
 	if err != nil {
-		fmt.Println("cant send information", err.Error())
+		utils.Debug(true, "cant send information")
 	} else {
-		//fmt.Println("server wrote to", conn.ID(), ":", string(bytes))
-		if !conn.Disconnected() {
-			conn.send <- bytes
-		}
-		//fmt.Println("move!")
+		conn.send <- bytes
 	}
-	//}
 }
 
 // sendGroupInformation send info with WaitGroup
@@ -422,10 +383,4 @@ func sendAccountTaken(conn *Connection) {
 	}
 	fmt.Println("send sendAccountTaken")
 	conn.SendInformation(response)
-}
-
-// debug print debug information to console and websocket
-func (conn *Connection) debug(message string) {
-	fmt.Println("Connection #", conn.ID(), "-", message)
-	//conn.SendInformation(message)
 }

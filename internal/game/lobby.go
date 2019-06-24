@@ -26,16 +26,10 @@ type Lobby struct {
 	doneM *sync.RWMutex
 	_done bool
 
-	//allRoomsM *sync.RWMutex
-	allRooms *Rooms
-
-	//freeRoomsM *sync.RWMutex
+	allRooms  *Rooms
 	freeRooms *Rooms
 
-	//waitingM *sync.RWMutex
 	Waiting *Connections
-
-	//playingM *sync.RWMutex
 	Playing *Connections
 
 	messagesM *sync.Mutex
@@ -54,16 +48,15 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
-	db            *database.DataBase
-	canCloseRooms bool
-	metrics       bool
+	db *database.DataBase
+
+	config *config.GameConfig
 
 	SetImage SetImage
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(connectionsCapacity, roomsCapacity int,
-	db *database.DataBase, canCloseRooms bool, metrics bool,
+func NewLobby(config *config.GameConfig, db *database.DataBase,
 	SetImage SetImage) *Lobby {
 
 	var (
@@ -87,17 +80,13 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		doneM: &sync.RWMutex{},
 		_done: false,
 
-		//allRoomsM: &sync.RWMutex{},
-		allRooms: NewRooms(roomsCapacity),
+		config: config,
 
-		//freeRoomsM: &sync.RWMutex{},
-		freeRooms: NewRooms(roomsCapacity),
+		allRooms:  NewRooms(config.RoomsCapacity),
+		freeRooms: NewRooms(config.RoomsCapacity),
 
-		//waitingM: &sync.RWMutex{},
-		Waiting: NewConnections(connectionsCapacity),
-
-		//playingM: &sync.RWMutex{},
-		Playing: NewConnections(connectionsCapacity),
+		Waiting: NewConnections(config.ConnectionCapacity),
+		Playing: NewConnections(config.ConnectionCapacity),
 
 		messagesM: &sync.Mutex{},
 		_messages: messages,
@@ -112,10 +101,8 @@ func NewLobby(connectionsCapacity, roomsCapacity int,
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
 
-		db:            db,
-		canCloseRooms: canCloseRooms,
-		metrics:       metrics,
-		SetImage:      SetImage,
+		db:       db,
+		SetImage: SetImage,
 	}
 	return lobby
 }
@@ -126,11 +113,10 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool, si SetImage) {
+func Launch(gc *config.GameConfig, db *database.DataBase, si SetImage) {
 
 	if LOBBY == nil {
-		LOBBY = NewLobby(gc.ConnectionCapacity, gc.RoomsCapacity,
-			db, gc.CanClose, metrics, si)
+		LOBBY = NewLobby(gc, db, si)
 		go LOBBY.Run()
 		//LOBBY.stress(10)
 	}
@@ -139,11 +125,6 @@ func Launch(gc *config.GameConfig, db *database.DataBase, metrics bool, si SetIm
 // GetLobby create lobby if it is nil and get it
 func GetLobby() *Lobby {
 	return LOBBY
-}
-
-// Metrics return metrics flag
-func (lobby *Lobby) Metrics() bool {
-	return lobby.metrics
 }
 
 // Stop lobby goroutine

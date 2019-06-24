@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 )
 
@@ -33,21 +32,6 @@ type RoomsIterator struct {
 
 func NewRoomsIterator(rooms *Rooms) *RoomsIterator {
 	return &RoomsIterator{rooms: rooms, current: -1}
-}
-
-// Remove -> FastRemove
-func (rooms *Rooms) Remove(room *Room) bool {
-	if room == nil {
-		//panic("123123123")
-		return false
-	}
-	i, room := rooms.Search(room.ID())
-	fmt.Println("remove conn", i)
-	if i < 0 {
-		return false
-	}
-	rooms.remove(i)
-	return true
 }
 
 type RoomsJSON struct {

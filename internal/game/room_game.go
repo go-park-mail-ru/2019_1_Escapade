@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Winners determine who won the game
@@ -102,17 +103,19 @@ func (room *Room) Kill(conn *Connection, action int) {
 	if room.isAlive(conn) {
 		room.SetFinished(conn)
 
-		cell := room.Players.Flag(conn.Index())
-		//room.Field.SetCellFlagTaken(&cell.Cell)
+		if room.Settings.Deathmatch {
 
-		cells := make([]Cell, 0)
-		room.Field.saveCell(&cell.Cell, &cells)
+			cell := room.Players.Flag(conn.Index())
+			//room.Field.SetCellFlagTaken(&cell.Cell)
 
-		room.sendNewCells(room.All, cell.Cell)
+			cells := make([]Cell, 0)
+			room.Field.saveCell(&cell.Cell, &cells)
+
+			room.sendNewCells(room.All, cell.Cell)
+		}
 
 		if room.Players.Capacity() <= room.killed()+1 {
 			room.chanStatus <- StatusFinished
-			//room.FinishGame(false)
 		}
 		pa := *room.addAction(conn.ID(), action)
 		go room.sendAction(pa, room.All)
@@ -235,8 +238,11 @@ func (room *Room) FillField() {
 	}()
 
 	room.Field.Zero()
-	room.setFlags()
-	room.Field.SetMines(room.Players.Flags())
+	if room.Settings.Deathmatch {
+		utils.Debug(false, "FillField")
+		room.setFlags()
+	}
+	room.Field.SetMines(room.Players.Flags(), room.Settings.Deathmatch)
 	room.Field.SetMinesLabels()
 }
 

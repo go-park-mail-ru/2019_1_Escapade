@@ -4,14 +4,14 @@ package game
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections._get {
-		if i > onlinePlayers.Capacity() {
-			room := conn.PlayingRoom()
-			if room == nil {
-				continue
-			}
-			room.Leave(conn, true)
-			continue
-		}
+		// if i > onlinePlayers.Capacity() {
+		// 	room := conn.PlayingRoom()
+		// 	if room == nil {
+		// 		continue
+		// 	}
+		// 	room.Leave(conn, true)
+		// 	continue
+		// }
 		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}

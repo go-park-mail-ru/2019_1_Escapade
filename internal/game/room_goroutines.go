@@ -72,7 +72,7 @@ func (room *Room) runGame() {
 	}()
 
 	fmt.Println("room.runGame")
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
 	room.setDate(time.Now().In(loc))
 
 	for {
@@ -93,8 +93,12 @@ func (room *Room) runGame() {
 
 // initTimers launch game timers. Call it when flag placement starts
 func (room *Room) initTimers() {
-	room.prepare = time.NewTimer(time.Second *
-		time.Duration(room.Settings.TimeToPrepare))
+	if room.Settings.Deathmatch {
+		room.prepare = time.NewTimer(time.Second *
+			time.Duration(room.Settings.TimeToPrepare))
+	} else {
+		room.prepare = time.NewTimer(time.Millisecond)
+	}
 	room.play = time.NewTimer(time.Second *
 		time.Duration(room.Settings.TimeToPlay))
 	return
@@ -133,6 +137,7 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 		t := player.Time()
 		if player.Disconnected() && time.Since(t).Seconds() > timeoutPlayer {
 			//fmt.Println(player.User.Name, " - bad")
+			room.Kill(player, ActionTimeout)
 			room.Leave(player, true)
 		} else {
 			//fmt.Println(player.User.Name, " - good", player.Disconnected(), time.Since(t).Seconds())
@@ -167,6 +172,9 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 	}()
 
 	room.Leave(conn, conn.Index() >= 0)
+	if conn.Index() >= 0 {
+		room.Kill(conn, ActionBackToLobby)
+	}
 
 	fmt.Println("LeaveRoom")
 	room.lobby.LeaveRoom(conn, ActionBackToLobby, room)
@@ -260,7 +268,7 @@ func (room *Room) processActionRestart(conn *Connection) {
 	}
 }
 
-func (room *Room) processConnectionAction(ca ConnectionAction) {
+func (room *Room) processConnectionAction(ca *ConnectionAction) {
 	if room.done() {
 		return
 	}

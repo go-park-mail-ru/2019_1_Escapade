@@ -1,6 +1,8 @@
 package game
 
-import "fmt"
+import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+)
 
 // EnterPlayer handle player try to enter room
 func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover bool) bool {
@@ -18,9 +20,7 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 	// }
 
-	fmt.Println("addConnection", conn.ID(), isPlayer, needRecover)
-
-	conn.debug("Room(" + room.ID() + ") wanna connect you")
+	utils.Debug(false, "Room("+room.ID()+") wanna connect you mr ", conn.ID())
 
 	// if room hasnt got places
 	if !room.Push(conn, isPlayer, needRecover) {
@@ -43,7 +43,7 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 		}
 		pa = room.addAction(conn.ID(), ActionConnectAsObserver)
 		// maybe delete it?
-		//go room.sendObserverEnter(*conn, room.AllExceptThat(conn))
+		go room.sendObserverEnter(conn, room.AllExceptThat(conn))
 	}
 	go room.sendAction(*pa, room.AllExceptThat(conn))
 

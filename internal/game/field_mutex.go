@@ -45,7 +45,7 @@ func (field *Field) getMatrixValue(x, y int) int {
 }
 
 // setMatrixValue set a value to matrix
-func (field *Field) setToHistory(cell Cell) {
+func (field *Field) setToHistory(cell *Cell) {
 	field.historyM.Lock()
 	defer field.historyM.Unlock()
 	field.History = append(field.History, cell)

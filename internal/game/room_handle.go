@@ -1,8 +1,11 @@
 package game
 
 import (
+	"sync"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"fmt"
 	"time"
@@ -11,6 +14,7 @@ import (
 // Enter handle user joining as player or observer
 func (room *Room) Enter(conn *Connection) bool {
 	if room.done() {
+		utils.Debug(true, "room is done")
 		return false
 	}
 	room.wGroup.Add(1)
@@ -22,12 +26,12 @@ func (room *Room) Enter(conn *Connection) bool {
 
 	// if room is searching new players
 	if room.Status() == StatusPeopleFinding {
-		conn.debug("You will be player!")
 		if room.addConnection(conn, true, false) {
+			utils.Debug(false, "You will be player!")
 			done = true
 		}
 	} else if room.addConnection(conn, false, false) {
-		conn.debug("You will be observer!")
+		utils.Debug(false, "You will be observer!")
 		done = true
 	}
 	return done
@@ -75,15 +79,15 @@ func (room *Room) Close() bool {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("Can close?", room.lobby.canCloseRooms)
-	if !room.lobby.canCloseRooms {
+	utils.Debug(false, "Can close?", room.lobby.config.CanClose)
+	if !room.lobby.config.CanClose {
 		return false
 	}
-	fmt.Println("We closed room :С")
+	utils.Debug(false, "We closed room :С")
 	room.lobby.CloseRoom(room)
-	fmt.Println("Prepare to free!")
+	utils.Debug(false, "Prepare to free!")
 	go room.Free()
-	fmt.Println("We did it")
+	utils.Debug(false, "We did it")
 	return true
 }
 
@@ -122,11 +126,15 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 
 	var done bool
 	if isPlayer {
-		done = room.Players.Connections.Remove(conn)
+		//done = room.Players.Connections.Remove(conn)
+		utils.Debug(false, "isPlayer delete")
 	} else {
 		done = room.Observers.Remove(conn)
+		utils.Debug(false, "notPlayer delete")
 	}
+	utils.Debug(false, "done", done)
 	if !done {
+		utils.Debug(false, "not found", conn.ID())
 		return false
 	}
 
@@ -137,6 +145,7 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		room.GiveUp(conn)
 	}
 
+	utils.Debug(false, "letsCheckIfNil", room.Players.Connections.len(), room.Observers.len())
 	if room.Empty() {
 		room.Close()
 	}
@@ -153,13 +162,13 @@ func (room *Room) LeaveMeta(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
-	if room.lobby.Metrics() {
+	if room.lobby.config.Metrics {
 		metrics.Players.WithLabelValues(room.ID(), conn.User.Name).Dec()
 	}
 
 	pa := *room.addAction(conn.ID(), action)
 	if room.Empty() {
-		if room.lobby.Metrics() {
+		if room.lobby.config.Metrics {
 			metrics.Rooms.Dec()
 		}
 	} else {
@@ -251,7 +260,7 @@ func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("cellHandle")
+	utils.Debug(false, "cellHandle")
 	status := room.Status()
 	if status == StatusFlagPlacing {
 		room.SetFlag(conn, cell)
@@ -275,10 +284,10 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		return
 	}
 
-	fmt.Println("room handle conn", room.Status, conn.Index(), conn.Disconnected())
+	utils.Debug(false, "room handle conn", room.Status, conn.Index(), conn.Disconnected())
 	found, _ := room.Search(conn)
 	if found != nil {
-		fmt.Println("room handle found", room.isAlive(found), found.Index(), found.Disconnected())
+		utils.Debug(false, "room handle found", room.isAlive(found), found.Index(), found.Disconnected())
 	}
 	if rr.IsGet() {
 		//go room.greet(conn)
@@ -291,8 +300,8 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 				go room.CellHandle(conn, rr.Send.Cell)
 			}
 		case rr.Send.Action != nil:
-			fmt.Println("rr.Send.Action != nil ")
-			room.chanConnection <- ConnectionAction{
+			utils.Debug(false, "rr.Send.Action != nil ")
+			room.chanConnection <- &ConnectionAction{
 				conn:   conn,
 				action: *rr.Send.Action,
 			}
@@ -341,9 +350,9 @@ func (room *Room) StartFlagPlacing() {
 	room.lobby.RoomStart(room)
 	go room.runGame()
 
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
 	room.setDate(time.Now().In(loc))
-	room.sendStatus(room.All)
+	go room.sendStatus(room.All, nil)
 	go room.sendField(room.All)
 	go room.sendMessage("Battle will be start soon! Set your flag!", room.All)
 }
@@ -357,29 +366,29 @@ func (room *Room) StartGame() {
 	defer func() {
 		room.wGroup.Done()
 	}()
-	fmt.Println("StartGame")
+	utils.Debug(false, "StartGame")
 
 	room.FillField()
 
 	open := float64(room.Settings.Mines) / float64(room.Settings.Width*room.Settings.Height) * float64(100)
-	fmt.Println("opennn", open, room.Settings.Width*room.Settings.Height)
+	utils.Debug(false, "opennn", open, room.Settings.Width*room.Settings.Height)
 
 	cells := room.Field.OpenZero() //room.Field.OpenSave(int(open))
-	room.sendNewCells(room.All, cells...)
+	go room.sendNewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
 	room.setDate(time.Now().In(loc))
-	room.sendStatus(room.All)
-	room.sendMessage("Battle began! Destroy your enemy!", room.All)
+	go room.sendStatus(room.All, nil)
+	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
 // FinishGame finish game
 func (room *Room) FinishGame(timer bool) {
 	if room == nil {
-		panic("room nil")
+		utils.Debug(true, "room nil")
 	}
 	if room.done() {
-		fmt.Println("room.done()!")
+		utils.Debug(true, "room.done()!")
 		return
 	}
 	room.wGroup.Add(1)
@@ -396,16 +405,27 @@ func (room *Room) FinishGame(timer bool) {
 	}
 	room.setStatus(StatusFinished)
 
-	room.sendStatus(room.All)
-	room.sendGameOver(timer, room.All)
-	room.Save()
-	room.Players.Finish()
+	// save Group
+	saveAndSendGroup := &sync.WaitGroup{}
 
-	playersIterator := NewConnectionsIterator(room.Players.Connections)
-	for playersIterator.Next() {
-		player := playersIterator.Value()
-		room.Observers.Add(player)
-	}
-	room.Players = newOnlinePlayers(room.Settings.Players, *room.Field)
+	cells := make([]Cell, 0)
+	room.Field.OpenEverything(&cells)
+
+	saveAndSendGroup.Add(4)
+	go room.sendStatus(room.All, saveAndSendGroup)
+	go room.sendGameOver(timer, room.All, cells, saveAndSendGroup)
+	go room.Save(saveAndSendGroup)
+	go room.Players.Finish(saveAndSendGroup)
+
+	saveAndSendGroup.Wait()
+	/*
+		playersIterator := NewConnectionsIterator(room.Players.Connections)
+		for playersIterator.Next() {
+			player := playersIterator.Value()
+			player.SetIndex(-1)
+			room.Observers.Add(player)
+		}
+		room.Players = newOnlinePlayers(room.Settings.Players, *room.Field)
+	*/
 	room.lobby.roomFinish(room)
 }

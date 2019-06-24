@@ -21,7 +21,6 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
 	}()
-	fmt.Println("call me")
 	lobby.chanJoin <- conn
 }
 
@@ -118,14 +117,16 @@ func (lobby *Lobby) Join(conn *Connection) {
 
 	// try restore user
 	if lobby.restore(conn) {
-		fmt.Println("lobby.restore", conn.ID(), conn.PlayingRoom(), conn.WaitingRoom(), conn.Index())
-		lobby.greet(conn)
+		utils.Debug(false, "lobby.restore", conn.ID(), conn.PlayingRoom(), conn.WaitingRoom(), conn.Index())
+		if conn.PlayingRoom() == nil {
+			lobby.greet(conn)
+		}
 		return
 	}
 
 	lobby.addWaiter(conn)
 
-	conn.debug("new waiter")
+	utils.Debug(false, "new waiter")
 }
 
 // Leave handle user leave lobby
@@ -146,38 +147,18 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 	if waiter != nil {
 		if waiter.UUID != conn.UUID {
 			return
-		} /*else {
-			fmt.Println("waiter closed ws:", waiter.isClosed())
-		}*/
-		// err := waiter.ws.Close()
-		// if err != nil {
-		// 	fmt.Println("cant leave:", err.Error())
-		// 	return
-		// }
+		}
 	} else {
 		_, player := lobby.Playing.SearchByID(conn.ID())
 		if player != nil {
 			if player.UUID != conn.UUID {
 				return
 			}
-			/*
-				if !player.IsConnected() {
-					return
-				} else {
-					fmt.Println("player closed ws:", player.isClosed())
-				}*/
-			// err := player.ws.Close()
-			// if err != nil {
-			// 	fmt.Println("cant leave:", err.Error())
-			// 	return
-			// }
 		}
 	}
-	//
-
 	if conn.PlayingRoom() != nil {
 		if !conn.PlayingRoom().done() {
-			conn.PlayingRoom().chanConnection <- ConnectionAction{
+			conn.PlayingRoom().chanConnection <- &ConnectionAction{
 				conn:   conn,
 				action: ActionDisconnect,
 			}
@@ -186,7 +167,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		return
 	} else if conn.WaitingRoom() != nil {
 		if !conn.WaitingRoom().done() {
-			conn.WaitingRoom().chanConnection <- ConnectionAction{
+			conn.WaitingRoom().chanConnection <- &ConnectionAction{
 				conn:   conn,
 				action: ActionDisconnect,
 			}
@@ -255,22 +236,15 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	}
 
 	if rs.ID == "create" {
-		fmt.Println("you wanna crete room", rs)
-		conn.debug("see you wanna create room?")
+		utils.Debug(false, "see you wanna create room?", rs)
 		lobby.CreateAndAddToRoom(rs, conn)
 		return
 	}
 
-	if _, room := lobby.allRooms.Search(rs.ID); room != nil {
-		conn.debug("lobby found required room")
+	if room := lobby.allRooms.Search(rs.ID); room != nil {
+		utils.Debug(false, "lobby found required room")
 		room.Enter(conn)
 	}
-
-	// panic there sometimes... rarely
-	// } else {
-	// 	conn.debug("lobby search room for you")
-	// 	lobby.PickUpRoom(conn, rs)
-	// }
 }
 
 // PickUpRoom find room for player
@@ -379,7 +353,7 @@ func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 
 	inv.From = conn.User
 	inv.Message.User = conn.User
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(lobby.config.Location)
 	inv.Message.Time = time.Now().In(loc)
 	if inv.All {
 		lobby.sendInvitation(inv, All)

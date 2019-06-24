@@ -55,9 +55,7 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 			Convey("All pointers fields should be not nil", func() {
 				So(conn.wGroup, ShouldNotBeNil)
 				So(conn.doneM, ShouldNotBeNil)
-				So(conn.roomM, ShouldNotBeNil)
 				So(conn.disconnectedM, ShouldNotBeNil)
-				So(conn.bothM, ShouldNotBeNil)
 				So(conn.indexM, ShouldNotBeNil)
 				So(conn.context, ShouldNotBeNil)
 				So(conn.cancel, ShouldNotBeNil)
@@ -66,11 +64,9 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 			})
 			Convey("All not pointers fields should be default", func() {
 				So(conn.done(), ShouldBeFalse)
-				So(conn.Room(), ShouldBeNil)
+				So(conn.PlayingRoom(), ShouldBeNil)
 				So(conn.Disconnected(), ShouldBeFalse)
-				So(conn.Both(), ShouldBeFalse)
 				So(conn.Index(), ShouldEqual, -1)
-				So(conn.ws, ShouldEqual, ws)
 			})
 		})
 	})
@@ -155,7 +151,7 @@ func TestPushToRoom(t *testing.T) {
 			conn.PushToRoom(room)
 
 			Convey("connection's room should be the room", func() {
-				So(conn.Room(), ShouldEqual, room)
+				So(conn.PlayingRoom(), ShouldEqual, room)
 			})
 		})
 
@@ -165,7 +161,7 @@ func TestPushToRoom(t *testing.T) {
 			conn.PushToRoom(room)
 
 			Convey("connection's room should be nil", func() {
-				So(conn.Room(), ShouldBeNil)
+				So(conn.PlayingRoom(), ShouldBeNil)
 			})
 		})
 	})
@@ -204,14 +200,14 @@ func TestPushToLobby(t *testing.T) {
 			conn.PushToRoom(room)
 
 			Convey("connection's room should be the room", func() {
-				So(conn.Room(), ShouldEqual, room)
+				So(conn.PlayingRoom(), ShouldEqual, room)
 			})
 		})
 		Convey("When push to lobby", func() {
 			conn.PushToLobby()
 
 			Convey("connection's room should be nil", func() {
-				So(conn.Room(), ShouldBeNil)
+				So(conn.PlayingRoom(), ShouldBeNil)
 			})
 		})
 
@@ -219,7 +215,7 @@ func TestPushToLobby(t *testing.T) {
 			conn.PushToRoom(room)
 
 			Convey("connection's room should be room", func() {
-				So(conn.Room(), ShouldEqual, room)
+				So(conn.PlayingRoom(), ShouldEqual, room)
 			})
 		})
 	})
@@ -313,22 +309,6 @@ func TestDirty(t *testing.T) {
 		Convey("the id should be equal id", func() {
 			So(conn.User.ID, ShouldEqual, id)
 		})
-		Convey("When is made dirty", func() {
-			conn.Dirty()
-
-			Convey("the id should be -1", func() {
-				So(conn.User.ID, ShouldEqual, -1)
-			})
-		})
-		Convey("When done and disconnected", func() {
-			conn.User.ID = id
-			conn.setDone()
-			conn.Dirty()
-
-			Convey("the id should be id", func() {
-				So(conn.User.ID, ShouldEqual, id)
-			})
-		})
 	})
 }
 
@@ -362,13 +342,10 @@ func TestKill(t *testing.T) {
 			TestConnection.PushToRoom(room)
 
 			Convey("connection's room should be the room", func() {
-				So(TestConnection.Room(), ShouldEqual, room)
+				So(TestConnection.PlayingRoom(), ShouldEqual, room)
 			})
 		})
 		Convey("When connection is killed without dirty", func() {
-			fmt.Println("kill start")
-			TestConnection.Kill(utils.RandomString(16), false)
-			fmt.Println("kill finish")
 			Convey("the disconnected should be true and id not -1", func() {
 				So(TestConnection.Disconnected(), ShouldBeTrue)
 				So(TestConnection.User.ID, ShouldEqual, id)
@@ -396,8 +373,6 @@ func TestAll(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		<-ready
 
-		// connection.go
-		TestConnection.InRoom()
 		// connection_json.go
 		TestConnection.JSON()
 		TestConnection.MarshalJSON()
@@ -407,12 +382,8 @@ func TestAll(t *testing.T) {
 		TestConnection.done()
 		TestConnection.Disconnected()
 		TestConnection.setDisconnected()
-		TestConnection.Room()
-		TestConnection.Both()
 		TestConnection.Index()
 		TestConnection.SetIndex(1)
-		TestConnection.setRoom(nil)
-		TestConnection.setBoth(true)
 
 	})
 }

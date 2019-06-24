@@ -12,6 +12,8 @@ type RoomSettings struct {
 	TimeToPrepare int    `json:"prepare"`
 	TimeToPlay    int    `json:"play"`
 	Mines         int    `json:"mines"`
+	NoAnonymous   bool   `json:"noAnonymous"`
+	Deathmatch    bool   `json:"deathmatch"`
 }
 
 // AreCorrect check are roomSettings parameters correct

@@ -739,6 +739,6 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, h.Game, h.Setfiles)
+	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, &h.Game, h.Setfiles)
 	return
 }

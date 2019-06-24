@@ -67,7 +67,7 @@ type AwsPublicConfig struct {
 	Endpoint  string      `json:"endpoint"`
 }
 
-// AwsPrivateConfig private  aws information. Need another json.
+// AwsPrivateConfig private aws information. Need another json.
 type AwsPrivateConfig struct {
 	AccessURL string `json:"accessUrl"`
 	AccessKey string `json:"accessKey"`
@@ -75,14 +75,24 @@ type AwsPrivateConfig struct {
 	SecretKey string `json:"secretKey"`
 }
 
+type FieldConfig struct {
+	MinAreaSize    int `json:"minAreaSize"`
+	MaxAreaSize    int `json:"maxAreaSize"`
+	MinProbability int `json:"minProbability"`
+	MaxProbability int `json:"maxProbability"`
+}
+
 // GameConfig set, how much rooms server can create and
-// how mich connections can join and execute together
+// how much connections can join. Also there are flags:
+// can server close rooms or not(for history mode),
+// metrics should be recorded or not
 type GameConfig struct {
-	RoomsCapacity      int  `json:"roomsCapacity"`
-	ConnectionCapacity int  `json:"connectionCapacity"`
-	LobbyJoin          int  `json:"lobbyJoin"`
-	LobbyRequest       int  `json:"lobbyRequest"`
-	CanClose           bool `json:"closeRoom"`
+	RoomsCapacity      int          `json:"roomsCapacity"`
+	ConnectionCapacity int          `json:"connectionCapacity"`
+	Location           string       `json:"location"`
+	CanClose           bool         `json:"closeRoom"`
+	Metrics            bool         `json:"metrics"`
+	Field              *FieldConfig `json:"field"`
 }
 
 // AuthClient client of auth microservice

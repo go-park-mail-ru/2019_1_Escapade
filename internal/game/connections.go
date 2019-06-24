@@ -2,8 +2,9 @@ package game
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Connections - slice of connections with capacity
@@ -56,11 +57,11 @@ func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
 // Remove -> FastRemove
 func (conns *Connections) Remove(conn *Connection) bool {
 	if conn == nil {
-		//panic("123123123")
+		utils.Debug(true, "no conn")
 		return false
 	}
 	i, conn := conns.SearchByID(conn.ID())
-	fmt.Println("remove conn", i)
+	utils.Debug(false, "remove conn", i)
 	if i < 0 {
 		return false
 	}
@@ -71,16 +72,11 @@ func (conns *Connections) Remove(conn *Connection) bool {
 // Restore connection
 func (conns *Connections) Restore(conn *Connection) bool {
 	i, found := conns.SearchByID(conn.ID())
-	fmt.Println("found it", i)
 	if i != -1 {
-		fmt.Println("Restore")
 		conn.Restore(found)
-		fmt.Println("sendAccountTaken")
 		sendAccountTaken(found)
-		fmt.Println("conns.set(i, conn)")
 		conns.set(i, conn)
 	}
-	fmt.Println("Restore done")
 	return i != -1
 }
 

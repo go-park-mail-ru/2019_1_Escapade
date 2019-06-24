@@ -5,8 +5,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"fmt"
 )
 
 // RoomStart - room remove from free
@@ -20,7 +18,7 @@ func (lobby *Lobby) RoomStart(room *Room) {
 		utils.CatchPanic("lobby_room.go RoomStart()")
 	}()
 
-	go lobby.freeRooms.Remove(room)
+	go lobby.freeRooms.Remove(room.ID())
 	go lobby.sendRoomUpdate(room, All)
 }
 
@@ -35,7 +33,7 @@ func (lobby *Lobby) roomFinish(room *Room) {
 		utils.CatchPanic("lobby_room.go roomFinish()")
 	}()
 
-	go lobby.allRooms.Remove(room)
+	go lobby.allRooms.Remove(room.ID())
 	go lobby.sendRoomDelete(room, All)
 }
 
@@ -54,9 +52,9 @@ func (lobby *Lobby) CloseRoom(room *Room) {
 
 	// if not in freeRooms nothing bad will happen
 	// there is check inside, it will just return without errors
-	lobby.freeRooms.Remove(room)
-	lobby.allRooms.Remove(room)
-	fmt.Println("sendRoomDelete")
+	lobby.freeRooms.Remove(room.ID())
+	lobby.allRooms.Remove(room.ID())
+	utils.Debug(false, "sendRoomDelete")
 	lobby.sendRoomDelete(room, All)
 }
 
@@ -72,11 +70,10 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 	}()
 
 	if room, err = lobby.createRoom(rs); err == nil {
-		conn.debug("We create your own room, cool!")
+		utils.Debug(false, "We create your own room, cool!", conn.ID())
 		room.addConnection(conn, true, false)
 	} else {
-		conn.debug("cant create. Why?" + err.Error())
-		panic(":(")
+		utils.Debug(true, "cant create. Why?", conn.ID(), err.Error())
 	}
 	return
 }
@@ -86,7 +83,7 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) (room *Room, err error) {
 
 	id := utils.RandomString(16) // вынести в кофиг
-	if room, err = NewRoom(rs, id, lobby); err != nil {
+	if room, err = NewRoom(lobby.config.Field, lobby, rs, id); err != nil {
 		return
 	}
 	if err = lobby.addRoom(room); err != nil {
@@ -120,20 +117,20 @@ func (lobby *Lobby) LoadRooms(URLs []string) error {
 }
 
 func (lobby *Lobby) addRoom(room *Room) (err error) {
-	if lobby.metrics {
+	if lobby.config.Metrics {
 		metrics.Rooms.Add(1)
 		metrics.FreeRooms.Add(1)
 	}
 
 	if !lobby.allRooms.Add(room) {
 		err = re.ErrorLobbyCantCreateRoom()
-		fmt.Println("cant add to all")
+		utils.Debug(false, "cant add to all rooms")
 		return err
 	}
 
 	if !lobby.freeRooms.Add(room) {
 		err = re.ErrorLobbyCantCreateRoom()
-		fmt.Println("cant add to free")
+		utils.Debug(false, "cant add to free rooms")
 		return err
 	}
 

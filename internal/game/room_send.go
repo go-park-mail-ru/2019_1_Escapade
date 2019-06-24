@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -48,7 +49,13 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
+func (room *Room) sendGameOver(timer bool, predicate SendPredicate,
+	cells []Cell, wg *sync.WaitGroup) {
+	defer func() {
+		if wg != nil {
+			wg.Done()
+		}
+	}()
 	if room.done() {
 		return
 	}
@@ -58,8 +65,6 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate) {
 		utils.CatchPanic("room_send.go sendGameOver()")
 	}()
 
-	cells := make([]Cell, 0)
-	room.Field.OpenEverything(&cells)
 	response := models.Response{
 		Type: "RoomGameOver",
 		Value: struct {
@@ -160,7 +165,12 @@ func (room *Room) sendObserverExit(conn *Connection, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendStatus(predicate SendPredicate) {
+func (room *Room) sendStatus(predicate SendPredicate, wg *sync.WaitGroup) {
+	defer func() {
+		if wg != nil {
+			wg.Done()
+		}
+	}()
 	if room.done() {
 		return
 	}
@@ -293,14 +303,21 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 		room.wGroup.Done()
 		utils.CatchPanic("room_send.go greet()")
 	}()
+	if conn.done() {
+		return
+	}
+	conn.wGroup.Add(1)
+	defer conn.wGroup.Done()
 
 	var flag Flag
-	index := conn.Index()
-	if index >= 0 {
-		flag = room.Players.Flag(index)
+	if room.Settings.Deathmatch {
+		index := conn.Index()
+		if index >= 0 {
+			flag = room.Players.Flag(index)
+		}
+	} else {
+		flag = Flag{Cell: *NewCell(-1, -1, 0, 0)}
 	}
-
-	copy := *conn
 
 	//leftTime := room.Settings.TimeToPlay + room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
 
@@ -314,7 +331,7 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 			IsPlayer bool `json:"isPlayer"`
 		}{
 			Room: room,
-			You:  *copy.User,
+			You:  *conn.User,
 			Flag: flag,
 			//Time:     leftTime,
 			IsPlayer: isPlayer,

@@ -30,7 +30,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	roomID string) (err error) {
 	message.User = conn.User
 
-	loc, _ := time.LoadLocation("Europe/Moscow")
+	loc, _ := time.LoadLocation(lobby.config.Location)
 	message.Time = time.Now().In(loc)
 
 	// ignore models.StartWrite, models.FinishWrite

@@ -52,9 +52,15 @@
 	"game": {
 		"roomsCapacity": 500,
 		"connectionCapacity": 1000,
-		"lobbyJoin": 1,
-		"lobbyRequest": 1,
-		"closeRoom": true
+		"location": "Europe/Moscow",
+		"closeRoom": true,
+		"metrics": false,
+		"field": {
+			"minAreaSize": 1,
+			"maxAreaSize": 5,
+			"minProbability": 20,
+			"maxProbability": 80
+		}
 	},
 	"websocket": {
 		"writeWait": 60,

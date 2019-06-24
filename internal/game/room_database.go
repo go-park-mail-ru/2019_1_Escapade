@@ -2,13 +2,19 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
 // Save save room information to database
-func (room *Room) Save() (err error) {
+func (room *Room) Save(wg *sync.WaitGroup) (err error) {
+	defer func() {
+		if wg != nil {
+			wg.Done()
+		}
+	}()
 	if room.done() {
 		return re.ErrorRoomDone()
 	}
@@ -113,7 +119,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		TimeToPlay:    info.Game.TimeToPlay,
 	}
 
-	if room, err = NewRoom(settings, id, lobby); err != nil {
+	if room, err = NewRoom(lobby.config.Field, lobby, settings, id); err != nil {
 		return
 	}
 
@@ -141,9 +147,9 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	room.Field.Mines = info.Field.Mines
 
 	// cells
-	room.Field.History = make([]Cell, 0)
+	room.Field.History = make([]*Cell, 0)
 	for _, cellDB := range info.Cells {
-		cell := Cell{
+		cell := &Cell{
 			X:        cellDB.X,
 			Y:        cellDB.Y,
 			Value:    cellDB.Value,

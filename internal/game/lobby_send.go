@@ -38,7 +38,7 @@ func (lobby *Lobby) greet(conn *Connection) {
 		}{
 			Lobby: *lobby,
 			You:   *conn.User,
-			Room:  conn.WaitingRoom(), //maybe...
+			Room:  conn.WaitingRoom(),
 		},
 	}
 	conn.SendInformation(response)

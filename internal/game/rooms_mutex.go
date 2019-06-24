@@ -26,10 +26,7 @@ func (iter *RoomsIterator) Next() bool {
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
 func (rooms *Rooms) Add(room *Room) bool {
-	i, _ := rooms.Search(room.ID())
-	if i >= 0 {
-		rooms.set(i, room)
-	} else if rooms.EnoughPlace() {
+	if rooms.EnoughPlace() {
 		rooms.append(room)
 	} else {
 		return false
@@ -66,22 +63,6 @@ func (rooms *Rooms) len() int {
 	rooms.getM.Lock()
 	defer rooms.getM.Unlock()
 	return len(rooms._get)
-}
-
-// remove connection with index 'i' from connection slice
-func (rooms *Rooms) remove(i int) {
-
-	rooms.getM.Lock()
-	defer rooms.getM.Unlock()
-	size := len(rooms._get)
-	if size == 0 {
-		return
-	}
-
-	rooms._get[i], rooms._get[size-1] = rooms._get[size-1], rooms._get[i]
-	rooms._get[size-1] = nil
-	rooms._get = rooms._get[:size-1]
-	return
 }
 
 // append new connection to connection slice
@@ -148,16 +129,44 @@ func (rooms *Rooms) Free() {
 // SearchByID find connection by connection ID
 // return this connection and its index if success
 // otherwise nil and -1
-func (rooms *Rooms) Search(roomID string) (index int, room *Room) {
-	rooms.getM.RLock()
-	defer rooms.getM.RUnlock()
-	index = -1
-	for i, foundRoom := range rooms._get {
+func (rooms *Rooms) Search(roomID string) (room *Room) {
+	it := NewRoomsIterator(rooms)
+
+	for it.Next() {
+		foundRoom := it.Value()
 		if foundRoom.ID() == roomID {
 			room = foundRoom
-			index = i
 			return
 		}
 	}
 	return
+}
+
+func (rooms *Rooms) Remove(roomID string) bool {
+	rooms.getM.Lock()
+	defer rooms.getM.Unlock()
+
+	size := len(rooms._get)
+	if size == 0 {
+		return false
+	}
+
+	index := -1
+
+	for i, foundRoom := range rooms._get {
+		if foundRoom.ID() == roomID {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		return false
+	}
+
+	rooms._get[index], rooms._get[size-1] = rooms._get[size-1], rooms._get[index]
+	rooms._get[size-1] = nil
+	rooms._get = rooms._get[:size-1]
+
+	return true
 }

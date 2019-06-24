@@ -9,7 +9,7 @@ import (
 
 // addWaiter add connection to waiters slice and send to the connection LobbyJSON
 func (lobby *Lobby) addWaiter(newConn *Connection) {
-	if lobby.metrics {
+	if lobby.config.Metrics {
 		metrics.WaitingPlayers.Add(1)
 	}
 	fmt.Println("addWaiter called")
@@ -93,7 +93,7 @@ func (lobby *Lobby) restore(conn *Connection) bool {
 
 	if room != nil {
 		fmt.Println("send ActionReconnect")
-		room.chanConnection <- ConnectionAction{
+		room.chanConnection <- &ConnectionAction{
 			conn:   conn,
 			action: ActionReconnect,
 		}
