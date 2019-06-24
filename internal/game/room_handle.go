@@ -124,9 +124,14 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		room.wGroup.Done()
 	}()
 
-	var done bool
+	var (
+		done   bool
+		status = room.Status()
+	)
 	if isPlayer {
-		//done = room.Players.Connections.Remove(conn)
+		if status == StatusPeopleFinding || status == StatusFinished {
+			done = room.Players.Connections.Remove(conn)
+		}
 		utils.Debug(false, "isPlayer delete")
 	} else {
 		done = room.Observers.Remove(conn)
@@ -138,7 +143,7 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		return false
 	}
 
-	if room.Status() == StatusPeopleFinding {
+	if status == StatusPeopleFinding {
 		room.lobby.greet(conn)
 		room.lobby.sendRoomUpdate(room, All)
 	} else if isPlayer {
@@ -388,7 +393,6 @@ func (room *Room) FinishGame(timer bool) {
 		utils.Debug(true, "room nil")
 	}
 	if room.done() {
-		utils.Debug(true, "room.done()!")
 		return
 	}
 	room.wGroup.Add(1)
@@ -396,7 +400,7 @@ func (room *Room) FinishGame(timer bool) {
 		room.wGroup.Done()
 	}()
 
-	if room.Status() == StatusFinished {
+	if room.Status() == StatusFinished || room.Status() == StatusPeopleFinding {
 		return
 	}
 

@@ -225,6 +225,11 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		lobby.wGroup.Done()
 	}()
 
+	if !rs.AnonymousCheck(conn.ID() < 0) {
+		utils.Debug(false, "anonymous check fault")
+		return
+	}
+
 	conn.actionSem <- struct{}{}
 	defer func() { <-conn.actionSem }()
 
@@ -237,13 +242,16 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	if rs.ID == "create" {
 		utils.Debug(false, "see you wanna create room?", rs)
-		lobby.CreateAndAddToRoom(rs, conn)
+		lobby.PickUpRoom(conn, rs)
+		//lobby.CreateAndAddToRoom(rs, conn)
 		return
 	}
 
 	if room := lobby.allRooms.Search(rs.ID); room != nil {
 		utils.Debug(false, "lobby found required room")
 		room.Enter(conn)
+	} else {
+		lobby.PickUpRoom(conn, rs)
 	}
 }
 
@@ -262,7 +270,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
 	for freeRoomsIterator.Next() {
 		freeRoom := freeRoomsIterator.Value()
-		if freeRoom.addConnection(conn, true, false) { //room.addPlayer(conn, false) {
+		if freeRoom.Settings.Similar(rs) && freeRoom.addConnection(conn, true, false) {
 			return
 		}
 	}
