@@ -20,7 +20,8 @@
 			"http://localhost:3001",
 			"http://localhost:3002",
 			"http://localhost:3004",
-			"https://escapade-frontend.herokuapp.com"
+			"https://escapade-frontend.herokuapp.com",
+			"https://explosion.team"
 		],
 		"headers": [
 			"Content-type"
@@ -52,9 +53,9 @@
 	"game": {
 		"roomsCapacity": 500,
 		"connectionCapacity": 1,
-		"lobbyJoin": 1,
-		"lobbyRequest": 1,
-		"closeRoom": false
+		"location": "Europe/Moscow",
+		"closeRoom": false,
+		"metrics": false
 	},
 	"websocket": {
 		"writeWait": 60,

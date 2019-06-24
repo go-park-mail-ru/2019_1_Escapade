@@ -14,20 +14,11 @@ import (
 func (h *Handler) register(ctx context.Context,
 	user models.UserPrivateInfo) (userID int, sessionID string, err error) {
 
-	if h == nil {
-		fmt.Println("No handler")
-		return
-	}
-	if h.DB.Db == nil {
-		fmt.Println("No db")
-		return
-	}
 	sessionID = utils.RandomString(16)
 	if userID, err = h.DB.Register(&user, sessionID); err != nil {
 		return
 	}
 
-	fmt.Println("send to save", userID, user.Name)
 	/*sessID, err := h.Clients.Session.Create(ctx,
 		&session.Session{
 			UserID: int32(userID),
@@ -66,12 +57,11 @@ func (h *Handler) RandomUsers(limit int) {
 		user := models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		userID, sessID, err := h.register(context.Background(), user)
+		userID, _, err := h.register(context.Background(), user)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("some error is here", err)
 			return
 		}
-		fmt.Println("sessID:", sessID)
 
 		for j := 0; j < 4; j++ {
 			record := &models.Record{

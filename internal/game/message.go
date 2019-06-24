@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -28,7 +29,9 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	find FindMessage, send Sender, predicate SendPredicate, inRoom bool,
 	roomID string) (err error) {
 	message.User = conn.User
-	message.Time = time.Now()
+
+	loc, _ := time.LoadLocation(lobby.config.Location)
+	message.Time = time.Now().In(loc)
 
 	// ignore models.StartWrite, models.FinishWrite
 	switch message.Action {
@@ -52,14 +55,14 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		return err
 	}
 
-	if message.Action != models.Delete && message.Action != models.Update {
-		response := models.Response{
-			Type:  "GameMessage",
-			Value: message,
-		}
-
-		send(response, predicate)
+	response := models.Response{
+		Type:  "GameMessage",
+		Value: message,
 	}
+
+	fmt.Println("response")
+
+	send(response, predicate)
 	return err
 
 }
@@ -67,6 +70,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 // Messages processes the receipt of an object Messages from the user
 func Messages(conn *Connection, messages *models.Messages,
 	messageSlice []*models.Message) {
+
 	size := len(messageSlice)
 	if messages.Offset < 0 || messages.Offset >= size {
 		messages.Offset = 0

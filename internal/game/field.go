@@ -3,9 +3,10 @@ package game
 import (
 	"sync"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -23,17 +24,21 @@ type Field struct {
 	Matrix  [][]int `json:"-"`
 
 	historyM *sync.Mutex
-	History  []Cell `json:"history"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
+	History  []*Cell `json:"history"`
+	Width    int     `json:"width"`
+	Height   int     `json:"height"`
 
 	cellsLeftM *sync.RWMutex
 	CellsLeft  int `json:"-"`
-	Mines      int `json:"mines"`
+
+	config *config.FieldConfig
+
+	Mines     int     `json:"mines"`
+	Difficult float64 `json:"difficult"`
 }
 
 // NewField create new instance of field
-func NewField(rs *models.RoomSettings) *Field {
+func NewField(rs *models.RoomSettings, config *config.FieldConfig) *Field {
 	matrix := generate(rs)
 	field := &Field{
 		wGroup: &sync.WaitGroup{},
@@ -45,14 +50,17 @@ func NewField(rs *models.RoomSettings) *Field {
 		Matrix:  matrix,
 
 		historyM: &sync.Mutex{},
-		History:  make([]Cell, 0, rs.Width*rs.Height),
+		History:  make([]*Cell, 0, rs.Width*rs.Height),
 		Width:    rs.Width,
 		Height:   rs.Height,
 		Mines:    rs.Mines,
 
+		config: config,
+
 		cellsLeftM: &sync.RWMutex{},
 		CellsLeft:  rs.Width*rs.Height - rs.Mines - rs.Players,
 	}
+	field.Difficult = float64(field.Mines) / float64(field.CellsLeft)
 	return field
 }
 
@@ -94,16 +102,27 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
+	var flagsFound int
+
 	for i := 0; i < field.Height; i++ {
 		for j := 0; j < field.Width; j++ {
 			v := field.getMatrixValue(i, j)
-			if v != CellOpened {
+			//fmt.Println("cell ", i, j, v)
+			if v > CellIncrement {
+				//fmt.Println("flag!!!!", i, j, v)
+				flagsFound++
+			}
+			//if v == CellFlagTaken {
+			//	fmt.Println("CellFlagTaken!!!!", i, j, v)
+			//}
+			if v != CellOpened && v != CellFlagTaken {
 				cell := NewCell(i, j, v, 0)
 				field.saveCell(cell, cells)
-				field.setCellOpen(i, j)
+				field.setCellOpen(i, j, v)
 			}
 		}
 	}
+	//fmt.Println("flagsFound", flagsFound)
 }
 
 // openCellArea open cell area, if there is no mines around
@@ -116,7 +135,6 @@ func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
 			cell := NewCell(x, y, v, ID)
 			field.saveCell(cell, cells)
 			field.decrementCellsLeft()
-			field.setCellOpen(x, y)
 		}
 		if v == 0 {
 			field.openCellArea(x-1, y-1, ID, cells)
@@ -147,10 +165,11 @@ func (field *Field) IsCleared() bool {
 func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
 		cell.Time = time.Now()
-		field.setToHistory(*cell)
+		field.setToHistory(cell)
+		*cells = append(*cells, *cell)
+		field.setCellOpen(cell.X, cell.Y, cell.Value)
 	}
-	*cells = append(*cells, *cell)
-	fmt.Printf("save openCellArea Cell(%d/%d)=%d\n", cell.X, cell.Y, cell.Value)
+	//fmt.Printf("save openCellArea Cell(%d/%d)=%d\n", cell.X, cell.Y, cell.Value)
 }
 
 // OpenCell open cell and return slice of opened cells
@@ -162,13 +181,13 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	defer field.wGroup.Done()
 
 	cell.Value = field.getMatrixValue(cell.X, cell.Y)
-	fmt.Printf("Cell(%d/%d)=%d", cell.X, cell.Y, cell.Value)
+	//fmt.Printf("Cell(%d/%d)=%d", cell.X, cell.Y, cell.Value)
 
 	cells = make([]Cell, 0)
 	if cell.Value < CellMine {
 		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
 	} else {
-		if cell.Value != FlagID(cell.PlayerID) && cell.Value != CellOpened {
+		if cell.Value != FlagID(cell.PlayerID) {
 			field.saveCell(cell, &cells)
 		}
 	}
@@ -227,6 +246,20 @@ func (field *Field) OpenSave(n int) (cells []Cell) {
 	return
 }
 
+func (field *Field) OpenZero() (cells []Cell) {
+	cells = make([]Cell, 0)
+	//size := 0
+
+	for i := 0; i < field.Width; i++ {
+		for j := 0; j < field.Height; j++ {
+			if field.getMatrixValue(i, j) == 0 {
+				cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
+			}
+		}
+	}
+	return
+}
+
 // Zero clears the entire matrix of values
 func (field *Field) Zero() {
 	for i := 0; i < field.Width; i++ {
@@ -237,24 +270,80 @@ func (field *Field) Zero() {
 }
 
 // SetMines fill matrix with mines
-func (field *Field) SetMines() {
+func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 	if field.getDone() {
 		return
 	}
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
-	width := field.Width
-	height := field.Height
-	mines := field.Mines
+	var (
+		width  = field.Width
+		height = field.Height
+		mines  = field.Mines
+	)
 
+	if deathmatch {
+		var (
+			gip      = float64(field.Width*field.Width) + float64(field.Height*field.Height)
+			areaSize = gip / field.Difficult / 2000.0
+
+			minAreaSize = float64(field.config.MinAreaSize)
+			maxAreaSize = float64(field.config.MaxAreaSize)
+		)
+
+		if areaSize < minAreaSize {
+			areaSize = minAreaSize
+		} else if areaSize > maxAreaSize {
+			areaSize = maxAreaSize
+		}
+		var (
+			areaSizeINT    = int(areaSize)
+			probability    = 5 * int(areaSize*areaSize)
+			minProbability = field.config.MinProbability
+			maxProbability = field.config.MaxProbability
+		)
+		if probability > maxProbability {
+			probability = maxProbability
+		} else if probability < minProbability {
+			probability = minProbability
+		}
+		utils.Debug(false, "we have %d flags, area size %f; probability %d;;;;%f\n", len(flags), gip/field.Difficult/2000.0, probability, field.Difficult)
+
+		for _, flag := range flags {
+			x := flag.Cell.X
+			y := flag.Cell.Y
+			utils.Debug(false, "flag[%d, %d] - %d\n", x, y, flag.Cell.PlayerID)
+			for i := x - areaSizeINT; i <= x+areaSizeINT; i++ {
+				if i >= 0 && i < width {
+					for j := y - areaSizeINT; j <= y+areaSizeINT; j++ {
+						if j >= 0 && j < height {
+							if field.getMatrixValue(i, j) != CellMine && !(x == i && y == j) {
+								rand.Seed(time.Now().UnixNano())
+								procent := rand.Intn(100)
+								utils.Debug(false, "[%d, %d] - %d\n", i, j, procent)
+								if procent > probability {
+									field.setMatrixValue(i, j, CellMine)
+									mines--
+									if mines == 0 {
+										return
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	for mines > 0 {
+
 		rand.Seed(time.Now().UnixNano())
 		someX := rand.Intn(width)
 		someY := rand.Intn(height)
 
 		if field.lessThenMine(someX, someY) {
-			field.setMine(someX, someY)
+			field.setMatrixValue(someX, someY, CellMine)
 			mines--
 		}
 	}
@@ -284,6 +373,9 @@ func (field Field) IsInside(cell *Cell) bool {
 
 // FlagID convert player ID to Flag ID
 func FlagID(connID int) int {
+	// if connID == 0 {
+	// 	panic("connID")
+	// }
 	return int(math.Abs(float64(connID))) + CellIncrement
 }
 
@@ -301,7 +393,7 @@ func (field *Field) SetFlag(cell *Cell) {
 	// add CellIncrement to id, because if id = 3 we can think that there are 3 mines around
 	// we cant use -id, becase in future there will be a lot of conditions with
 	// something < 9 (to find not mine places)
-	fmt.Println("setFlag", cell.X, cell.Y, cell.PlayerID, CellIncrement)
+	utils.Debug(false, "setFlag", cell.X, cell.Y, cell.PlayerID, CellIncrement)
 
 	field.setMatrixValue(cell.X, cell.Y, FlagID(cell.PlayerID))
 }
@@ -316,29 +408,42 @@ func (field *Field) SetCellFlagTaken(cell *Cell) {
 
 	field.setMatrixValue(cell.X, cell.Y, CellFlagTaken)
 
-	fmt.Println("flag found!", cell.Value)
+	utils.Debug(false, "flag found!", cell.Value)
 }
 
 // setCellOpen set cell opened
-func (field *Field) setCellOpen(x, y int) {
-	field.setMatrixValue(x, y, CellOpened)
+func (field *Field) setCellOpen(x, y, v int) {
+	if v < CellMine {
+		field.setMatrixValue(x, y, CellOpened)
+	} else {
+		field.setMatrixValue(x, y, CellFlagTaken)
+	}
 }
 
-// setMine add mine to matrix and increase dangerous value in cells near mine
-func (field *Field) setMine(x, y int) {
+func (field *Field) SetMinesLabels() {
 
 	width := field.Width
 	height := field.Height
-	field.setMatrixValue(x, y, CellMine)
-	for i := x - 1; i <= x+1; i++ {
-		if i >= 0 && i < width {
-			for j := y - 1; j <= y+1; j++ {
-				if j >= 0 && j < height {
-					if field.lessThenMine(i, j) {
-						field.incrementMatrixValue(i, j)
+
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			if field.Matrix[x][y] != 0 {
+				continue
+			}
+			value := 0
+
+			for i := x - 1; i <= x+1; i++ {
+				if i >= 0 && i < width {
+					for j := y - 1; j <= y+1; j++ {
+						if j >= 0 && j < height {
+							if field.Matrix[i][j] == CellMine {
+								value++
+							}
+						}
 					}
 				}
 			}
+			field.Matrix[x][y] = value
 		}
 	}
 }

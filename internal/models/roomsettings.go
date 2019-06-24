@@ -12,11 +12,24 @@ type RoomSettings struct {
 	TimeToPrepare int    `json:"prepare"`
 	TimeToPlay    int    `json:"play"`
 	Mines         int    `json:"mines"`
+	NoAnonymous   bool   `json:"noAnonymous"`
+	Deathmatch    bool   `json:"deathmatch"`
 }
 
-// AreCorrect check are roomSettings parameters correct
-func (rs *RoomSettings) AreCorrect() bool {
+func (rs *RoomSettings) FieldCheck() bool {
 	return rs.Players > 1 && rs.Width*rs.Height-rs.Players-rs.Mines > 0
+}
+
+func (rs *RoomSettings) AnonymousCheck(isAnonymous bool) bool {
+	return !rs.NoAnonymous || !isAnonymous
+}
+
+func (origin *RoomSettings) Similar(another *RoomSettings) bool {
+	return origin.Width == another.Width && origin.Height == another.Height &&
+		origin.TimeToPlay == another.TimeToPlay && origin.Mines == another.Mines &&
+		origin.TimeToPrepare == another.TimeToPrepare && origin.Players == another.Players &&
+		origin.Observers == another.Observers && origin.NoAnonymous == another.NoAnonymous &&
+		origin.Deathmatch == another.Deathmatch
 }
 
 // NewSmallRoom create small room

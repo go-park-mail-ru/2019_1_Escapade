@@ -40,7 +40,7 @@ func TestFieldAll(t *testing.T) {
 		//field2.SetMines()
 		field2.SetFlag(cell)
 		field2.SetCellFlagTaken(cell)
-		field2.setCellOpen(1, 2)
+		field2.setCellOpen(1, 2, 3)
 
 		field.SetMines()
 		field.OpenEverything(&cells)

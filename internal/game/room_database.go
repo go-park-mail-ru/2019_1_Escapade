@@ -2,13 +2,19 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
 
 // Save save room information to database
-func (room *Room) Save() (err error) {
+func (room *Room) Save(wg *sync.WaitGroup) (err error) {
+	defer func() {
+		if wg != nil {
+			wg.Done()
+		}
+	}()
 	if room.done() {
 		return re.ErrorRoomDone()
 	}
@@ -19,23 +25,23 @@ func (room *Room) Save() (err error) {
 
 	players := room.Players.RPlayers()
 	game := models.Game{
-		RoomID:        room.ID,
-		Name:          room.Name,
-		Status:        room.Status,
+		RoomID:        room.ID(),
+		Name:          room.Name(),
+		Status:        room.Status(),
 		Players:       len(players),
 		TimeToPrepare: room.Settings.TimeToPrepare,
 		TimeToPlay:    room.Settings.TimeToPlay,
-		Date:          room.Date,
+		Date:          room.Date(),
 	}
 
-	idWin := room.Winner()
+	winners := room.Winners()
 	gamers := make([]models.Gamer, 0)
 	for id, player := range players {
 		gamer := models.Gamer{
 			ID:        player.ID,
 			Score:     player.Points,
 			Explosion: player.Died,
-			Won:       idWin == id,
+			Won:       room.Winner(winners, id),
 		}
 		gamers = append(gamers, gamer)
 	}
@@ -113,16 +119,16 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		TimeToPlay:    info.Game.TimeToPlay,
 	}
 
-	if room, err = NewRoom(settings, id, lobby); err != nil {
+	if room, err = NewRoom(lobby.config.Field, lobby, settings, id); err != nil {
 		return
 	}
 
 	// main info
-	room.ID = info.Game.RoomID
-	room.Name = info.Game.Name
-	room.Status = info.Game.Status
+	room.setID(info.Game.RoomID)
+	room.setName(info.Game.Name)
+	room.setStatus(info.Game.Status)
 	room.setKilled(info.Game.Players)
-	room.Date = info.Game.Date
+	room.setDate(info.Game.Date)
 
 	// actions
 	for _, actionDB := range info.Actions {
@@ -141,9 +147,9 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	room.Field.Mines = info.Field.Mines
 
 	// cells
-	room.Field.History = make([]Cell, 0)
+	room.Field.History = make([]*Cell, 0)
 	for _, cellDB := range info.Cells {
-		cell := Cell{
+		cell := &Cell{
 			X:        cellDB.X,
 			Y:        cellDB.Y,
 			Value:    cellDB.Value,
@@ -165,6 +171,8 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+
+	room.setStatus(StatusHistory)
 
 	return
 }

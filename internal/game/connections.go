@@ -2,8 +2,9 @@ package game
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Connections - slice of connections with capacity
@@ -32,58 +33,51 @@ func (conns *Connections) Free() {
 	if conns == nil {
 		return
 	}
-	conns.getM.Lock()
-	for _, conn := range conns._get {
-		conn.Free()
-	}
-	conns._get = nil
-	conns.getM.Unlock()
+	//conns.getM.Lock()
+	// for _, conn := range conns._get {
+	// 	conn.Free()
+	// }
+	//conns._get = nil
+	//conns.getM.Unlock()
 
 	conns.capacityM.Lock()
 	conns._capacity = 0
 	conns.capacityM.Unlock()
 }
 
-// Remove delete element and decrement size if element
-// exists in map
-func (conns *Connections) Remove(conn *Connection, onlyIfDisconnected bool) bool {
-	fmt.Println("lets find")
-	conn, i := conns.SearchByID(conn.ID())
+type ConnectionsIterator struct {
+	current int
+	conns   *Connections
+}
+
+func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
+	return &ConnectionsIterator{conns: conns, current: -1}
+}
+
+// Remove -> FastRemove
+func (conns *Connections) Remove(conn *Connection) bool {
+	if conn == nil {
+		utils.Debug(true, "no conn")
+		return false
+	}
+	i, conn := conns.SearchByID(conn.ID())
+	utils.Debug(false, "remove conn", i)
 	if i < 0 {
 		return false
 	}
-	//fmt.Println("find, set disconnected", i)
-	//conn.setDisconnected()
-	if onlyIfDisconnected && !conns.RGet()[i].Disconnected() {
-		return false
-	}
 	conns.remove(i)
-	fmt.Println("delete о_О")
 	return true
-	//sendError(conn, "Remove", "You disconnected ")
 }
 
-// Add try add element if its possible. Return bool result
-// if element not exists it will be create, otherwise it will change its value
-func (conns *Connections) Add(conn *Connection, kill bool) (i int) {
-	_, i = conns.SearchByID(conn.ID())
-	if i >= 0 {
-		oldConn := conns.RGet()[i]
-		if kill && !oldConn.Disconnected() {
-			oldConn.Kill("Another connection found", true)
-		}
-		conn.setRoom(oldConn.Room())
-		conn.SetIndex(oldConn.Index())
-
+// Restore connection
+func (conns *Connections) Restore(conn *Connection) bool {
+	i, found := conns.SearchByID(conn.ID())
+	if i != -1 {
+		conn.Restore(found)
+		sendAccountTaken(found)
 		conns.set(i, conn)
-		i = oldConn.Index()
-	} else if conns.EnoughPlace() {
-		i = len(conns.RGet())
-		conns.append(conn)
-	} else {
-		return -1
 	}
-	return i
+	return i != -1
 }
 
 // ConnectionsJSON is a wrapper for sending Connections by JSON

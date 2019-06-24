@@ -14,7 +14,7 @@ import (
 // LaunchLobbyHistory launch local lobby with rooms from database
 func LaunchLobbyHistory(db *database.DataBase,
 	ws *websocket.Conn, user *models.UserPublicInfo,
-	WSsettings config.WebSocketSettings, gameSettings config.GameConfig,
+	WSsettings config.WebSocketSettings, gameSettings *config.GameConfig,
 	si SetImage) {
 
 	urls, err := db.GetGamesURL(user.ID)
@@ -24,8 +24,8 @@ func LaunchLobbyHistory(db *database.DataBase,
 		return
 	}
 
-	lobby := NewLobby(gameSettings.ConnectionCapacity, len(urls),
-		db, gameSettings.CanClose, false, si)
+	gameSettings.RoomsCapacity = len(urls) * 2
+	lobby := NewLobby(gameSettings, db, si)
 
 	go lobby.Run()
 	defer func() {

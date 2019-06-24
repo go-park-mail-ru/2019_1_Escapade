@@ -9,14 +9,14 @@ import (
 
 // addWaiter add connection to waiters slice and send to the connection LobbyJSON
 func (lobby *Lobby) addWaiter(newConn *Connection) {
-	if lobby.metrics {
+	if lobby.config.Metrics {
 		metrics.WaitingPlayers.Add(1)
 	}
 	fmt.Println("addWaiter called")
-	lobby.Waiting.Add(newConn, false)
-	if !newConn.Both() {
-		lobby.greet(newConn)
-	}
+
+	lobby.Waiting.Add(newConn /*, false*/)
+	lobby.greet(newConn)
+	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
 }
 
 // Anonymous return anonymous id
@@ -29,14 +29,8 @@ func (lobby *Lobby) Anonymous() int {
 	return id
 }
 
-// addPlayer add connection to players slice
-func (lobby *Lobby) addPlayer(newConn *Connection) {
-	fmt.Println("addPlayer called")
-	lobby.Playing.Add(newConn, false)
-}
-
 // waiterToPlayer turns the waiting into a player
-func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
+func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 	if lobby.done() {
 		return
 	}
@@ -46,10 +40,13 @@ func (lobby *Lobby) waiterToPlayer(newConn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("waiterToPlayer called")
-	lobby.Waiting.Remove(newConn, true)
-	//lobby.waitingRemove(newConn)
-	lobby.addPlayer(newConn)
+	fmt.Println("waiterToPlayer called for ", conn.ID())
+
+	lobby.Waiting.Remove(conn)
+	lobby.sendWaiterExit(conn, All)
+	conn.PushToRoom(room)
+	lobby.Playing.Add(conn)
+	lobby.sendPlayerEnter(conn, All)
 }
 
 // PlayerToWaiter turns the player into a waiting
@@ -63,36 +60,43 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("PlayerToWaiter called")
-	lobby.Playing.Remove(conn, true)
-	//lobby.playingRemove(conn)
-	lobby.addWaiter(conn)
+	fmt.Println("PlayerToWaiter called for ", conn.ID())
+
+	lobby.Playing.Remove(conn)
+	lobby.sendPlayerExit(conn, All)
 	conn.PushToLobby()
+	lobby.addWaiter(conn)
 }
 
-// recoverInRoom return true if can find Connection in any room
-// otherwise false
-func (lobby *Lobby) recoverInRoom(newConn *Connection, disconnect bool) bool {
-	// find such player
-	fmt.Println("somebody wants you to recover")
+// r
+// new!!!!
+// restore
+// call it before enter connection
+//
+func (lobby *Lobby) restore(conn *Connection) bool {
 
-	i, room := lobby.allRoomsSearchPlayer(newConn, disconnect)
+	var found = lobby.Playing.Restore(conn)
+	var room *Room
 
-	if i >= 0 {
-		fmt.Println("we found you in game!")
-		room.RecoverPlayer(newConn)
-		return true
-	}
+	fmt.Println("restore try")
 
-	// find such observer
-	old := lobby.allRoomsSearchObserver(newConn)
-	if old != nil {
-		room = old.Room()
-		if room == nil {
-			return false
+	if found {
+		fmt.Println("found in game")
+		room = conn.PlayingRoom()
+	} else {
+		found = lobby.Waiting.Restore(conn)
+		if found {
+			fmt.Println("found in waiting room")
+			room = conn.WaitingRoom()
 		}
-		room.RecoverObserver(old, newConn)
-		return true
 	}
-	return false
+
+	if room != nil {
+		fmt.Println("send ActionReconnect")
+		room.chanConnection <- &ConnectionAction{
+			conn:   conn,
+			action: ActionReconnect,
+		}
+	}
+	return found
 }

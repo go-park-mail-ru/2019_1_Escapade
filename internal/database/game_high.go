@@ -42,7 +42,7 @@ func (db *DataBase) SaveGame(
 	}
 
 	err = tx.Commit()
-	fmt.Println("success save")
+	fmt.Println("success save", info.Game.RoomID)
 	return
 }
 

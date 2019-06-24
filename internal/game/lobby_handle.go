@@ -21,50 +21,112 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
 	}()
-	fmt.Println("call me")
 	lobby.chanJoin <- conn
 }
 
-// Run the room in goroutine
+/*
+А зачем нам рум гарбаж коллекток, если можно ходить по слайсу playing?
+*/
+func (lobby *Lobby) launchGarbageCollector(timeout float64) {
+	//fmt.Println("lobby launchGarbageCollector")
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go Join()")
+		lobby.wGroup.Done()
+	}()
+
+	it := NewConnectionsIterator(lobby.Waiting)
+	for it.Next() {
+		waiter := it.Value()
+		if waiter == nil {
+			panic("why nill")
+		}
+		t := waiter.Time()
+		if time.Since(t).Seconds() > timeout {
+			//fmt.Println(waiter.User.Name, " - bad")
+			lobby.Leave(waiter, "")
+		} else {
+			//fmt.Println(waiter.User.Name, " - good", waiter.Disconnected(), time.Since(t).Seconds())
+		}
+		// if waiter.isClosed() {
+		// 	lobby.Leave(waiter, "")
+		// }
+	}
+	/*
+		for _, conn := range lobby.Waiting.RGet() {
+			if conn == nil {
+				continue
+			}
+			if conn.isClosed() {
+				lobby.Leave(conn, "")
+			}
+			// if time.Since(conn.time).Seconds() > timeout {
+			// 	fmt.Println(conn.User.Name, " - bad")
+			// 	lobby.Leave(conn, "")
+			// } else {
+			// 	fmt.Println(conn.User.Name, " - good", conn.Disconnected(), time.Since(conn.time).Seconds())
+			// }
+		}
+	*/
+}
+
+/*
+Run accepts connections and messages from them
+Goroutine. When it is finished, the lobby will be cleared
+*/
 func (lobby *Lobby) Run() {
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Run()")
 		lobby.Free()
 	}()
 
-	fmt.Println("Lobby run")
-	for {
-		select {
-		case connection := <-lobby.chanJoin:
-			go lobby.Join(connection, false)
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	var timeout float64
+	timeout = 10
 
+	for {
+		//fmt.Println("---lobby start")
+		select {
+		case <-ticker.C:
+			go lobby.launchGarbageCollector(timeout)
+		case connection := <-lobby.chanJoin:
+			go lobby.Join(connection)
 		case message := <-lobby.chanBroadcast:
-			go lobby.Analize(message)
+			lobby.Analize(message)
+		case <-lobby.chanBreak:
+			return
 		}
+		//fmt.Println("---lobby finish")
 	}
 }
 
 // Join handle user join to lobby
-func (lobby *Lobby) Join(newConn *Connection, disconnected bool) {
+func (lobby *Lobby) Join(conn *Connection) {
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
-	fmt.Println("join")
 	defer func() {
 		utils.CatchPanic("lobby_handle.go Join()")
 		lobby.wGroup.Done()
 	}()
 
-	lobby.addWaiter(newConn)
-
-	if lobby.recoverInRoom(newConn, disconnected) {
-		go lobby.sendPlayerEnter(*newConn, AllExceptThat(newConn))
+	// try restore user
+	if lobby.restore(conn) {
+		utils.Debug(false, "lobby.restore", conn.ID(), conn.PlayingRoom(), conn.WaitingRoom(), conn.Index())
+		if conn.PlayingRoom() == nil {
+			lobby.greet(conn)
+		}
 		return
 	}
-	go lobby.sendWaiterEnter(*newConn, AllExceptThat(newConn))
 
-	newConn.debug("new waiter")
+	lobby.addWaiter(conn)
+
+	utils.Debug(false, "new waiter")
 }
 
 // Leave handle user leave lobby
@@ -78,22 +140,45 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("LEAVE!")
-
 	var disconnected bool
 
-	if conn.Both() || conn.InRoom() {
-		fmt.Println("delete from room")
-		fmt.Println("both -  #", conn.ID())
-		disconnected = lobby.LeaveRoom(conn, conn.Room(), ActionDisconnect)
+	// check
+	_, waiter := lobby.Waiting.SearchByID(conn.ID())
+	if waiter != nil {
+		if waiter.UUID != conn.UUID {
+			return
+		}
+	} else {
+		_, player := lobby.Playing.SearchByID(conn.ID())
+		if player != nil {
+			if player.UUID != conn.UUID {
+				return
+			}
+		}
+	}
+	if conn.PlayingRoom() != nil {
+		if !conn.PlayingRoom().done() {
+			conn.PlayingRoom().chanConnection <- &ConnectionAction{
+				conn:   conn,
+				action: ActionDisconnect,
+			}
+		}
+		// dont delete from lobby, because player not in lobby
+		return
+	} else if conn.WaitingRoom() != nil {
+		if !conn.WaitingRoom().done() {
+			conn.WaitingRoom().chanConnection <- &ConnectionAction{
+				conn:   conn,
+				action: ActionDisconnect,
+			}
+		}
+		// continue, because player in lobby
 	}
 
-	if !conn.InRoom() {
-		fmt.Println("delete from lobby")
-		disconnected = lobby.Waiting.Remove(conn, true) //lobby.waitingRemove(conn)
-		if disconnected {
-			lobby.sendWaiterExit(*conn, AllExceptThat(conn))
-		}
+	fmt.Println("see disc -  #", conn.ID())
+	disconnected = lobby.Waiting.Remove(conn)
+	if disconnected {
+		go lobby.sendWaiterExit(conn, All)
 	}
 
 	if disconnected {
@@ -103,7 +188,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bool) {
+func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 
 	if lobby.done() {
 		return
@@ -116,23 +201,16 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, room *Room, action int) (done bo
 
 	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
-		lobby.PlayerToWaiter(conn)
-		done = room.Leave(conn, action) // exit to lobby
-	} else {
-		//go lobby.playingRemove(conn)
-		found := room.Search(conn)
-		if found != nil {
-			fmt.Println("found!", found.Disconnected())
-			found.setDisconnected()
-			found = room.Search(conn)
-			fmt.Println("found!", found.Disconnected())
+		if room.Status() != StatusPeopleFinding {
+			fmt.Println("PlayerToWaiter")
+			lobby.PlayerToWaiter(conn)
+		} else {
+			conn.PushToLobby()
 		}
-		go lobby.sendPlayerExit(*conn, AllExceptThat(conn))
+	} else if room.Players.Connections.len() > 0 {
+		lobby.sendRoomUpdate(room, AllExceptThat(conn))
 	}
-	if done && len(room.Players.Connections.RGet()) > 0 {
-		lobby.sendRoomUpdate(*room, AllExceptThat(conn))
-	}
-	return done
+	fmt.Println("room.Status:", room.Status)
 }
 
 // EnterRoom handle user join to room
@@ -147,38 +225,34 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("see block!")
-	conn.actionSem <- struct{}{}
-	defer func() { <-conn.actionSem }()
-
-	fmt.Println("EnterRoom", rs)
-	if conn.InRoom() {
-		fmt.Println("in room", rs)
-		fmt.Println("EnterRoom ID compare", conn.Room().ID, rs.ID, rs)
-		if conn.Room().ID == rs.ID {
-			return
-		}
-		lobby.LeaveRoom(conn, conn.Room(), ActionBackToLobby)
-		conn.debug("change room")
-	}
-
-	fmt.Println("not in room", rs.ID, rs.ID == "create", conn.ID())
-	conn.debug("enter room" + rs.ID)
-	if rs.ID == "create" {
-		fmt.Println("you wanna crete room", rs)
-		conn.debug("see you wanna create room?")
-		lobby.CreateAndAddToRoom(rs, conn)
+	if !rs.AnonymousCheck(conn.ID() < 0) {
+		utils.Debug(false, "anonymous check fault")
 		return
 	}
 
-	if _, room := lobby.allRoomsSearch(rs.ID); room != nil {
-		conn.debug("lobby found required room")
-		room.Enter(conn)
-	} else {
-		conn.debug("lobby search room for you")
-		lobby.PickUpRoom(conn, rs)
+	conn.actionSem <- struct{}{}
+	defer func() { <-conn.actionSem }()
+
+	if conn.WaitingRoom() != nil {
+		if conn.WaitingRoom().ID() == rs.ID {
+			return
+		}
+		conn.WaitingRoom().processActionBackToLobby(conn)
 	}
 
+	if rs.ID == "create" {
+		utils.Debug(false, "see you wanna create room?", rs)
+		lobby.PickUpRoom(conn, rs)
+		//lobby.CreateAndAddToRoom(rs, conn)
+		return
+	}
+
+	if room := lobby.allRooms.Search(rs.ID); room != nil {
+		utils.Debug(false, "lobby found required room")
+		room.Enter(conn)
+	} else {
+		lobby.PickUpRoom(conn, rs)
+	}
 }
 
 // PickUpRoom find room for player
@@ -193,14 +267,14 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 		lobby.wGroup.Done()
 	}()
 
-	// lets find room for user
-	FreeRooms := lobby.freeRooms()
-	for _, room = range FreeRooms {
-		//if room.SameAs()
-		if room.addPlayer(conn) {
+	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
+	for freeRoomsIterator.Next() {
+		freeRoom := freeRoomsIterator.Value()
+		if freeRoom.Settings.Similar(rs) && freeRoom.addConnection(conn, true, false) {
 			return
 		}
 	}
+
 	// oh we cant find room, so lets create one
 	lobby.CreateAndAddToRoom(rs, conn)
 	return
@@ -217,34 +291,31 @@ func (lobby *Lobby) Analize(req *Request) {
 		lobby.wGroup.Done()
 	}()
 
-	fmt.Println("analyze", req.Connection.Both(), req.Connection.InRoom())
-	if req.Connection.Both() || !req.Connection.InRoom() {
-		fmt.Println("lobby work")
-		var send *LobbyRequest
-		if err := json.Unmarshal(req.Message, &send); err != nil {
-			req.Connection.SendInformation(err)
+	if req.Connection.PlayingRoom() != nil {
+		var rsend *RoomRequest
+		if err := json.Unmarshal(req.Message, &rsend); err != nil {
+			fmt.Println("big json error")
 		} else {
-			go lobby.HandleRequest(req.Connection, send)
+			req.Connection.PlayingRoom().HandleRequest(req.Connection, rsend)
 		}
+		return
+		// not in lobby
+		return
+	} else if req.Connection.WaitingRoom() != nil {
+		var rsend *RoomRequest
+		if err := json.Unmarshal(req.Message, &rsend); err != nil {
+			fmt.Println("big json error")
+		} else {
+			req.Connection.WaitingRoom().HandleRequest(req.Connection, rsend)
+		}
+		// in lobby
 	}
-	if req.Connection.Both() || req.Connection.InRoom() {
-		fmt.Println("room work")
-		if req.Connection.Room() == nil {
-			fmt.Println("bot room")
-			return
-		}
-		var send *RoomRequest
-		if err := json.Unmarshal(req.Message, &send); err != nil {
-			req.Connection.SendInformation(err)
-		} else {
-			fmt.Println("room is here")
-			room := req.Connection.Room()
-			if room == nil {
-				fmt.Println("no room")
-				return
-			}
-			room.HandleRequest(req.Connection, send)
-		}
+
+	var send *LobbyRequest
+	if err := json.Unmarshal(req.Message, &send); err != nil {
+		req.Connection.SendInformation(err)
+	} else {
+		lobby.HandleRequest(req.Connection, send)
 	}
 }
 
@@ -266,7 +337,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		case lr.Send.Messages != nil:
 			Messages(conn, lr.Send.Messages, lobby.Messages())
 		case lr.Send.RoomSettings != nil:
-			lobby.EnterRoom(conn, lr.Send.RoomSettings)
+			go lobby.EnterRoom(conn, lr.Send.RoomSettings)
 		}
 	} else if lr.Message != nil {
 		Message(lobby, conn, lr.Message,
@@ -290,15 +361,18 @@ func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 
 	inv.From = conn.User
 	inv.Message.User = conn.User
-	inv.Message.Time = time.Now()
+	loc, _ := time.LoadLocation(lobby.config.Location)
+	inv.Message.Time = time.Now().In(loc)
 	if inv.All {
 		lobby.sendInvitation(inv, All)
 		lobby.sendInvitationCallback(conn, nil)
 	} else {
-		waiting := lobby.Waiting.RGet()
+
 		var find *Connection
-		for _, conn := range waiting {
-			if conn.User.Name == inv.To {
+		it := NewConnectionsIterator(lobby.Waiting)
+		for it.Next() {
+			waiter := it.Value()
+			if waiter.User.Name == inv.To {
 				find = conn
 				break
 			}

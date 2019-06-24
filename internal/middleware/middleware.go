@@ -33,13 +33,13 @@ func CORS(cc config.CORSConfig, preCORS bool) HandleDecorator {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, r *http.Request) {
 			origin := cors.GetOrigin(r)
-			fmt.Println("caaaatch", origin)
 			if !cors.IsAllowed(origin, cc.Origins) {
 				place := "middleware/CORS"
 				utils.PrintResult(re.ErrorCORS(origin), http.StatusForbidden, place)
 				rw.WriteHeader(http.StatusForbidden)
 				return
 			}
+			//
 			cors.SetCORS(rw, cc, origin)
 
 			if preCORS {

@@ -1,48 +1,10 @@
 package game
 
 import (
-	"context"
 	"encoding/json"
-	"sync"
-	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/gorilla/websocket"
 )
-
-// Connection is a websocket of a player, that belongs to room
-type Connection struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
-
-	roomM *sync.RWMutex
-	_room *Room
-
-	disconnectedM *sync.RWMutex
-	_disconnected bool
-
-	bothM *sync.RWMutex
-	_both bool
-
-	indexM *sync.RWMutex
-	_index int
-
-	User *models.UserPublicInfo
-
-	ws    *websocket.Conn
-	lobby *Lobby
-
-	context context.Context
-	cancel  context.CancelFunc
-
-	time time.Time
-
-	actionSem chan struct{}
-
-	send chan []byte
-}
 
 // ConnectionJSON is a wrapper for sending Connection by JSON
 type ConnectionJSON struct {

@@ -1,8 +1,6 @@
 package utils
 
-import (
-	//"fmt"
-)
+//"fmt"
 
 // CatchPanic stop pani to continue executing
 func CatchPanic(place string) {
@@ -11,5 +9,6 @@ func CatchPanic(place string) {
 		if r := recover(); r != nil {
 			fmt.Println("Panic recovered in", place)
 			fmt.Println("More", r)
-		}*/
+		}
+	*/
 }

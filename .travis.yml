@@ -1,8 +1,5 @@
 sudo: true
 services: docker
-language: go
-go:
-- 1.12
 addons:
   apt:
     packages:
@@ -12,12 +9,16 @@ env:
 install: true
 branches:
   only:
+  - master
   - develop
 script:
+- docker-compose stop
 - docker-compose up --build -d
+- docker image prune -f
 before_install:
 - openssl aes-256-cbc -K $encrypted_a9b69efaae82_key -iv $encrypted_a9b69efaae82_iv
-  -in escapade-compose.zip.enc -out ./escapade-compose.zip -d
+  -in secrets.tar.enc -out ./secrets.tar -d
+- tar xvf secrets.tar
 - base=https://github.com/docker/machine/releases/download/v0.16.0 && curl -L $base/docker-machine-$(uname
   -s)-$(uname -m) >/tmp/docker-machine && sudo install /tmp/docker-machine /usr/local/bin/docker-machine
 - npm install -g machine-share

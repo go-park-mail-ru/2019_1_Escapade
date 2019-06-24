@@ -2,10 +2,10 @@
 
 :heart_eyes: Top backend :heart_eyes:
 
-## Фронт
 - [Играть](https://explosion.team)
-- [Разрабатывать](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
-- [Рисовать](https://www.figma.com/file/WcFryEu51iySsuBd8F0CLi0S/explose)
+- [Резервный сайт](https://ser.ru.com/)
+- [Репозиторий фронтенда](https://github.com/frontend-park-mail-ru/2019_1_Escapade)
+- [Дизайн и концепты](https://www.figma.com/file/WcFryEu51iySsuBd8F0CLi0S/explose)
 
 ## Правила игры:
 Все знают, как играть в сапера, поэтому описывать singleplayer смысла нет, опишу особенности multiplayer.

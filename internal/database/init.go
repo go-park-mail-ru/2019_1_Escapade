@@ -130,9 +130,11 @@ func (db *DataBase) createTablePlayer(tx *sql.Tx) (err error) {
         password varchar(30) NOT NULL,
 		photo_title varchar(50) default '1.png',
         firstSeen   TIMESTAMPTZ,
-        lastSeen    TIMESTAMPTZ,
-        unique(name)
+        lastSeen    TIMESTAMPTZ
     );
+
+    CREATE UNIQUE INDEX idx_lower_unique 
+        ON Player (lower(name));
     `
 	_, err = tx.Exec(sqlStatement)
 	return err

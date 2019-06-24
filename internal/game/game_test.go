@@ -159,6 +159,7 @@ func TestCreateRoom(t *testing.T) {
 	})
 }
 
+/*
 func TestLobby(t *testing.T) {
 
 	metrics.InitRoomMetric("game")
@@ -206,6 +207,7 @@ func TestLobby(t *testing.T) {
 
 	})
 }
+*/
 
 func CatchPanic(place string) {
 	// panic doesnt recover
@@ -250,19 +252,18 @@ func TestRoom(t *testing.T) {
 		room.Players.Capacity()
 		room.Players.Player(0)
 		room.Players.RPlayers()
-		room.sendPlayerEnter(*connections[7], All)
-		room.Players.Flag(0)
-		room.sendField(All)
-		room.sendObserverEnter(*connections[7], All)
-		room.sendObserverExit(*connections[7], All)
-		room.sendPlayerExit(*connections[7], All)
-		room.Players.Finish()
-		room.sendStatus(All)
+		// room.sendPlayerEnter(*connections[7], All)
+		// room.sendField(All)
+		// room.sendObserverEnter(*connections[7], All)
+		// room.sendObserverExit(*connections[7], All)
+		// room.sendPlayerExit(*connections[7], All)
+		// room.Players.Finish()
+		// room.sendStatus(All)
 
-		room.RecoverPlayer(connections[7])
-		room.RecoverObserver(connections[6], connections[7])
-		room.RemoveFromGame(connections[7], true)
-		room.SetFinished(connections[7])
+		// room.RecoverPlayer(connections[7])
+		// room.RecoverObserver(connections[6])
+		// room.LeavePlayer(connections[7])
+		// room.SetFinished(connections[7])
 
 		//l.CreateAndAddToRoom(settings, connections[7])
 		//l.RoomStart(room)

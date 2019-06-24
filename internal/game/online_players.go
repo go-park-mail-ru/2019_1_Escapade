@@ -1,59 +1,31 @@
 package game
 
-import (
-	"fmt"
-)
-
-// Rooms - slice of rooms with capacity
-type Rooms struct {
-	Capacity int     `json:"capacity"`
-	Get      []*Room `json:"get"`
+type PlayersIterator struct {
+	current int
+	players *OnlinePlayers
 }
 
-// Refresh reset the players, their connections and flags(generate new)
-func (onlinePlayers *OnlinePlayers) Refresh(field Field) {
-	size := onlinePlayers.Capacity()
-
-	players := make([]Player, size)
-	onlinePlayers.SetPlayers(players)
-
-	flags := field.RandomFlags(players)
-	onlinePlayers.SetFlags(flags)
-
-	onlinePlayers.flagsLeft = size
-	onlinePlayers.RefreshConnections()
-}
-
-// RefreshConnections reset connections
-func (onlinePlayers *OnlinePlayers) RefreshConnections() {
-	size := onlinePlayers.Capacity()
-	onlinePlayers.Connections = *NewConnections(size)
+func NewPlayersIterator(op *OnlinePlayers) *PlayersIterator {
+	return &PlayersIterator{players: op, current: -1}
 }
 
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 
 	for i, conn := range onlinePlayers.Connections._get {
-		if i > onlinePlayers.Capacity() {
-			room := conn.Room()
-			if room == nil {
-				continue
-			}
-			go room.Leave(conn, ActionBackToLobby)
-			continue
-		}
+		// if i > onlinePlayers.Capacity() {
+		// 	room := conn.PlayingRoom()
+		// 	if room == nil {
+		// 		continue
+		// 	}
+		// 	room.Leave(conn, true)
+		// 	continue
+		// }
 		onlinePlayers.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}
-	//onlinePlayers.Flags = field.RandomFlags(onlinePlayers.Players)
 
 	return
-}
-
-// NewRooms create instance of Rooms
-func NewRooms(capacity int) *Rooms {
-	return &Rooms{capacity,
-		make([]*Room, 0, capacity)}
 }
 
 // search element in slice
@@ -74,26 +46,8 @@ func (onlinePlayers *OnlinePlayers) SearchIndexPlayer(conn *Connection) (i int) 
 }
 
 // SearchConnection search connection index in the slice of connections
-func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (*Connection, int) {
+func (onlinePlayers *OnlinePlayers) SearchConnection(conn *Connection) (int, *Connection) {
 	return onlinePlayers.Connections.SearchByID(conn.ID())
-}
-
-// Free free memory
-func (rooms *Rooms) Free() {
-	if rooms == nil {
-		return
-	}
-	for _, room := range rooms.Get {
-		room.Free()
-	}
-	rooms.Get = nil
-	rooms.Capacity = 0
-	rooms = nil
-}
-
-// Empty check rooms length is 0
-func (rooms *Rooms) Empty() bool {
-	return len(rooms.Get) == 0
 }
 
 // Empty check no connections connected
@@ -103,105 +57,32 @@ func (onlinePlayers *OnlinePlayers) Empty() bool {
 
 // Add try add element if its possible. Return bool result
 // if element not exists it will be create, otherwise it will change its value
-func (onlinePlayers *OnlinePlayers) Add(conn *Connection, kill bool) bool {
-	if conn == nil {
-		panic(1)
-	}
-	i := onlinePlayers.Connections.Add(conn, kill)
+func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, kill bool, recover bool) bool {
+	// if conn == nil {
+	// 	panic(1)
+	// }
+	i := onlinePlayers.Connections.Add(conn)
 	if i < 0 {
 		return false
 	}
 	onlinePlayers.SetPlayerID(i, conn.ID())
 	conn.SetIndex(i)
+
+	if !recover {
+
+		if !onlinePlayers._flags[i].Set {
+			onlinePlayers._flags[i] = Flag{
+				Cell: cell,
+				Set:  false,
+			}
+		}
+	}
+
 	//onlinePlayers.Connections.Get[i].SetIndex(i)
 	return true
-}
-
-// Remove delete element and decrement size if element
-// exists in map
-func (onlinePlayers *OnlinePlayers) Remove(conn *Connection, disconnect bool) bool {
-	return onlinePlayers.Connections.Remove(conn, disconnect)
 }
 
 // EnoughPlace check that you can add more elements
 func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
 	return onlinePlayers.Connections.EnoughPlace()
-}
-
-// enoughPlace check that you can add more elements
-func (rooms *Rooms) enoughPlace() bool {
-	return len(rooms.Get) < rooms.Capacity
-}
-
-// SearchRoom find room with selected name and return it if success
-// otherwise nil
-func (rooms *Rooms) SearchRoom(id string) (i int, room *Room) {
-	for i, room = range rooms.Get {
-		if room.ID == id {
-			return
-		}
-	}
-	i, room = -1, nil
-	return
-}
-
-// SearchPlayer find connection in rooms players and return it if success
-// otherwise nil
-func (rooms *Rooms) SearchPlayer(new *Connection, mustNotFinished bool) (int, *Room) {
-	for _, room := range rooms.Get {
-		i := room.Players.SearchIndexPlayer(new) //playersSearchIndexPlayer(new)
-		fmt.Println("room", room.ID, i)
-		// cant found
-		if i < 0 {
-			continue
-		}
-		if mustNotFinished && room.Players.Player(i).Finished {
-			fmt.Println("next!!!")
-			continue
-		}
-
-		fmt.Println("happy return")
-		return i, room
-	}
-	return -1, nil
-}
-
-// SearchObserver find connection in rooms obserers and return it if success
-// otherwise nil
-func (rooms *Rooms) SearchObserver(new *Connection) (old *Connection) {
-	for _, room := range rooms.Get {
-		old, i := room.Observers.SearchByID(new.ID())
-		if i < 0 {
-			continue
-		}
-
-		return old
-	}
-	return nil
-}
-
-// Add try add element if its possible. Return bool result
-// if element not exists it will be create, otherwise it will change its value
-func (rooms *Rooms) Add(room *Room) bool {
-	if i, _ := rooms.SearchRoom(room.ID); i >= 0 {
-		rooms.Get[i] = room
-	} else if rooms.enoughPlace() {
-		rooms.Get = append(rooms.Get, room)
-	} else {
-		return false
-	}
-	return true
-}
-
-// Remove delete element and decrement size if element
-// exists in map
-func (rooms *Rooms) Remove(room *Room) {
-	size := len(rooms.Get)
-	i, _ := rooms.SearchRoom(room.ID)
-	if i < 0 {
-		return
-	}
-	rooms.Get[i], rooms.Get[size-1] = rooms.Get[size-1], rooms.Get[i]
-	rooms.Get[size-1] = nil
-	rooms.Get = rooms.Get[:size-1]
 }

@@ -1,6 +1,10 @@
 package game
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+import (
+	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+)
 
 //setDone set done = true. It will finish all operaions on Room
 func (room *Room) setDone() {
@@ -15,6 +19,101 @@ func (room *Room) done() bool {
 	v := room._done
 	room.doneM.RUnlock()
 	return v
+}
+
+func (room *Room) Status() int {
+	room.statusM.RLock()
+	v := room._status
+	room.statusM.RUnlock()
+	return v
+}
+
+func (room *Room) Name() string {
+	room.nameM.RLock()
+	v := room._name
+	room.nameM.RUnlock()
+	return v
+}
+
+func (room *Room) ID() string {
+	room.idM.RLock()
+	v := room._id
+	room.idM.RUnlock()
+	return v
+}
+
+func (room *Room) Date() time.Time {
+	room.dateM.RLock()
+	v := room._date
+	room.dateM.RUnlock()
+	return v
+}
+
+func (room *Room) Next() *Room {
+	room.nextM.RLock()
+	v := room._next
+	room.nextM.RUnlock()
+	return v
+}
+
+func (room *Room) setStatus(status int) {
+	room.statusM.Lock()
+	room._status = status
+	room.statusM.Unlock()
+}
+
+func (room *Room) setName(name string) {
+	room.nameM.Lock()
+	room._name = name
+	room.nameM.Unlock()
+}
+
+func (room *Room) setID(id string) {
+	room.idM.Lock()
+	room._id = id
+	room.idM.Unlock()
+}
+
+func (room *Room) setDate(date time.Time) {
+	room.dateM.Lock()
+	room._date = date
+	room.dateM.Unlock()
+}
+
+func (room *Room) setNext(next *Room) {
+	room.nextM.Lock()
+	room._next = next
+	room.nextM.Unlock()
+}
+
+/////////////////////// history
+
+// history return '_history' field
+func (room *Room) history() []*PlayerAction {
+	room.historyM.RLock()
+	v := room._history
+	room.historyM.RUnlock()
+	return v
+}
+
+func (room *Room) setHistory(history []*PlayerAction) {
+	room.historyM.Lock()
+	room._history = history
+	room.historyM.Unlock()
+}
+
+// appendAction append action to action slice(history)
+func (room *Room) appendAction(action *PlayerAction) {
+	room.historyM.Lock()
+	defer room.historyM.Unlock()
+	room._history = append(room._history, action)
+}
+
+// historyFree free action slice
+func (room *Room) historyFree() {
+	room.historyM.Lock()
+	room._history = nil
+	room.historyM.Unlock()
 }
 
 // done return '_killed' field
@@ -60,20 +159,7 @@ func (room *Room) SetFinished(conn *Connection) {
 	room.killedM.Unlock()
 }
 
-// history return '_history' field
-func (room *Room) history() []*PlayerAction {
-	room.historyM.RLock()
-	v := room._history
-	room.historyM.RUnlock()
-	return v
-}
-
-// appendAction append action to action slice(history)
-func (room *Room) appendAction(action *PlayerAction) {
-	room.historyM.Lock()
-	defer room.historyM.Unlock()
-	room._history = append(room._history, action)
-}
+/////////////////////// messages
 
 // appendMessage append message to message slice
 func (room *Room) appendMessage(message *models.Message) {
@@ -86,6 +172,9 @@ func (room *Room) appendMessage(message *models.Message) {
 func (room *Room) removeMessage(i int) {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	size := len(room._messages)
 
 	room._messages[i], room._messages[size-1] = room._messages[size-1], room._messages[i]
@@ -99,6 +188,9 @@ func (room *Room) setMessage(i int, message *models.Message) {
 
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
+	if i < 0 {
+		return
+	}
 	room._messages[i] = message
 	room._messages[i].Edited = true
 	return
@@ -120,18 +212,17 @@ func (room *Room) findMessage(search *models.Message) int {
 }
 
 // Messages return slice of messages
-func (room *Room) Messages() []*models.Message {
+func (room *Room) setMessages(messages []*models.Message) {
+	room.messagesM.Lock()
+	room._messages = messages
+	room.messagesM.Unlock()
+}
 
+// Messages return slice of messages
+func (room *Room) Messages() []*models.Message {
 	room.messagesM.Lock()
 	defer room.messagesM.Unlock()
 	return room._messages
-}
-
-// historyFree free action slice
-func (room *Room) historyFree() {
-	room.historyM.Lock()
-	room._history = nil
-	room.historyM.Unlock()
 }
 
 // messagesFree free message slice

@@ -1,10 +1,10 @@
 package game
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -17,7 +17,14 @@ const (
 	StatusFlagPlacing   = 2
 	StatusRunning       = 3
 	StatusFinished      = 4
+	StatusHistory       = 5
 )
+
+// ConnectionAction is a bundle of Connection and action
+type ConnectionAction struct {
+	conn   *Connection
+	action int
+}
 
 // Room consist of players and observers, field and history
 type Room struct {
@@ -41,17 +48,28 @@ type Room struct {
 	killedM *sync.RWMutex
 	_killed int //amount of killed users
 
-	ID     string
-	Name   string
-	Status int
+	idM *sync.RWMutex
+	_id string
+
+	nameM *sync.RWMutex
+	_name string
+
+	statusM *sync.RWMutex
+	_status int
+
+	nextM *sync.RWMutex
+	_next *Room
 
 	lobby *Lobby
 	Field *Field
 
-	Date       time.Time
+	dateM *sync.RWMutex
+	_date time.Time
+
 	chanFinish chan struct{}
 
-	chanStatus chan int
+	chanStatus     chan int
+	chanConnection chan *ConnectionAction
 
 	play    *time.Timer
 	prepare *time.Timer
@@ -60,23 +78,23 @@ type Room struct {
 }
 
 // NewRoom return new instance of room
-func NewRoom(rs *models.RoomSettings, id string, lobby *Lobby) (*Room, error) {
-	fmt.Println("NewRoom rs = ", *rs)
-	if !rs.AreCorrect() {
+func NewRoom(config *config.FieldConfig, lobby *Lobby, rs *models.RoomSettings, id string) (*Room, error) {
+	if !rs.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
 	var room = &Room{}
 
-	room.Init(rs, id, lobby)
+	room.Init(config, lobby, rs, id)
 	return room, nil
 }
 
 // Init init instance of room
-func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
+func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
+	rs *models.RoomSettings, id string) {
 
 	room.wGroup = &sync.WaitGroup{}
 
-	field := NewField(rs)
+	field := NewField(rs, config)
 	room._done = false
 	room.doneM = &sync.RWMutex{}
 
@@ -86,102 +104,87 @@ func (room *Room) Init(rs *models.RoomSettings, id string, lobby *Lobby) {
 	room.messagesM = &sync.Mutex{}
 	room.killedM = &sync.RWMutex{}
 
-	room.Name = rs.Name
+	room.nameM = &sync.RWMutex{}
+	room._name = rs.Name
+
+	room.statusM = &sync.RWMutex{}
 
 	room.lobby = lobby
 
 	room.Settings = rs
 
-	room.ID = id
-	room.Restart()
+	room.idM = &sync.RWMutex{}
+	room._id = id
 
-	return
-}
+	room.nextM = &sync.RWMutex{}
+	room._next = nil
 
-// Restart fill in the room fields with the original values
-func (room *Room) Restart() {
-
-	field := NewField(room.Settings)
-	room.Players.Refresh(*field)
+	room.dateM = &sync.RWMutex{}
 
 	room.Observers = NewConnections(room.Settings.Observers)
 
-	room.historyM.Lock()
-	room._history = make([]*PlayerAction, 0)
-	room.historyM.Unlock()
+	room.chanFinish = make(chan struct{})
+	room.chanStatus = make(chan int)
+	room.chanConnection = make(chan *ConnectionAction)
 
-	room.messagesM.Lock()
-	room._messages = make([]*models.Message, 0)
-	room.messagesM.Unlock()
-
-	room.killedM.Lock()
-	room._killed = 0
-	room.killedM.Unlock()
-
-	room.ID = utils.RandomString(16)
-	room.Status = StatusPeopleFinding
+	room.setHistory(make([]*PlayerAction, 0))
+	room.setMessages(make([]*models.Message, 0))
+	room.setKilled(0)
+	room.setID(utils.RandomString(16))
+	room.setStatus(StatusPeopleFinding)
 
 	room.Field = field
 
-	room.Date = time.Now()
-	room.chanFinish = make(chan struct{})
-	room.chanStatus = make(chan int)
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
+
+	room.setDate(time.Now().In(loc))
 
 	go room.runRoom()
 
 	return
 }
 
-// debug print all room fields
-func (room *Room) debug() {
-	if room == nil {
-		fmt.Println("cant debug nil room")
-		return
-	}
-	fmt.Println("Room id    :", room.ID)
-	fmt.Println("Room name  :", room.Name)
-	fmt.Println("Room status:", room.Status)
-	fmt.Println("Room date  :", room.Date)
-	fmt.Println("Room killed:", room.killed())
-	players := room.Players.RPlayers()
-	if len(players) == 0 {
-		fmt.Println("cant debug nil players")
-		return
-	}
-	for _, player := range players {
-		fmt.Println("Player", player.ID)
-		fmt.Println("Player points 	:", player.Points)
-		fmt.Println("Player Finished:", player.Finished)
-	}
-	if room.Field == nil {
-		fmt.Println("cant debug nil field")
-		return
-	}
-	fmt.Println("Field width		:", room.Field.Width)
-	fmt.Println("Field height 	:", room.Field.Height)
-	fmt.Println("Field cellsleft:", room.Field.CellsLeft)
-	fmt.Println("Field mines		:", room.Field.Mines)
-	if room.Field.History == nil {
-		fmt.Println("no field history")
-	} else {
-		for _, cell := range room.Field.History {
-			fmt.Printf("Cell(%d,%d) with value %d", cell.X, cell.Y, cell.Value)
-			fmt.Println("Cell Owner	:", cell.PlayerID)
-			fmt.Println("Cell Time  :", cell.Time)
-		}
-	}
-	history := room.history()
-	if history == nil {
-		fmt.Println("no action history")
-	} else {
-		for i, action := range history {
-			fmt.Println("action", i)
-			fmt.Println("action value  :", action.Action)
-			fmt.Println("action Owner	:", action.Player)
-			fmt.Println("action Time  :", action.Time)
-		}
-	}
+// Restart fill in the room fields with the original values
 
+func (room *Room) Restart(conn *Connection) {
+
+	if room.Next() == nil || room.Next().done() {
+		pa := *room.addAction(conn.ID(), ActionRestart)
+		room.sendAction(pa, room.All)
+		next, err := room.lobby.CreateAndAddToRoom(room.Settings, conn)
+		if err != nil {
+			panic("next")
+		}
+		room.setNext(next)
+	}
+	room.processActionBackToLobby(conn)
+	room.Next().Enter(conn)
+	return
+}
+
+// Empty check room has no people
+func (room *Room) Empty() bool {
+	if room.done() {
+		return true
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
+	return room.Players.Connections.len()+room.Observers.len() == 0
+}
+
+// IsActive check if game is started and results not known
+func (room *Room) IsActive() bool {
+	if room.done() {
+		return false
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+	return room.Status() == StatusFlagPlacing || room.Status() == StatusRunning
 }
 
 // SameAs compare  one room with another

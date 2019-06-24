@@ -37,10 +37,10 @@ func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 	row := db.Db.QueryRow(sqlInsert, message.Text, message.ID)
 
 	if err = row.Scan(&id); err != nil {
-		fmt.Println("createMessage err:", err.Error())
+		fmt.Println("UpdateMessage err:", err.Error())
 		return
 	}
-	fmt.Println("createMessage success")
+	fmt.Println("UpdateMessage success")
 
 	return
 }
@@ -48,16 +48,16 @@ func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 // DeleteMessage delete message
 func (db *DataBase) DeleteMessage(message *models.Message) (id int, err error) {
 	sqlInsert := `
-	Delete GameChat where id = $1
+	Delete From GameChat where id = $1
 		RETURNING ID;
 		`
 	row := db.Db.QueryRow(sqlInsert, message.ID)
 
 	if err = row.Scan(&id); err != nil {
-		fmt.Println("createMessage err:", err.Error())
+		fmt.Println("DeleteMessage err:", err.Error())
 		return
 	}
-	fmt.Println("createMessage success")
+	fmt.Println("DeleteMessage success")
 
 	return
 }

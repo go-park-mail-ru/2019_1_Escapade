@@ -28,6 +28,5 @@ func ServiceConnectionsInit(conf config.AuthClient) (authConn *grpc.ClientConn, 
 	}
 
 	//Other micro services conns wiil be here
-
 	return
 }

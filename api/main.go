@@ -52,6 +52,7 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
+	//review: бесполезный комментарий
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 		if err != nil {
@@ -65,7 +66,7 @@ func main() {
 		utils.PrintResult(err, 0, "main")
 		return
 	}
-	API.RandomUsers(10) // create 10 users for tests
+	//API.RandomUsers(10) // create 10 users for tests
 	r := router.GetRouter(API, configuration)
 	port := router.GetPort(configuration)
 
