@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"net/http"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -11,8 +8,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"github.com/prometheus/client_golang/prometheus"
-	"go.uber.org/zap"
 )
 
 // ./swag init
@@ -33,21 +28,20 @@ func main() {
 	var (
 		configuration *config.Configuration
 		API           *api.Handler
+		err           error
 	)
 
-	metrics.InitHitsMetric("api")
+	metrics.InitApi()
 
-	prometheus.MustRegister(metrics.Hits)
-
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatal("Zap logger error:", err)
-		return
-	}
-	defer logger.Sync()
+	// logger, err := zap.NewProduction()
+	// if err != nil {
+	// 	log.Fatal("Zap logger error:", err)
+	// 	return
+	// }
+	// defer logger.Sync()
 
 	if configuration, err = config.InitPublic(confPath); err != nil {
-		fmt.Println("eeeer", err.Error())
+		utils.Debug(false, "cant init configuration in api service", err.Error())
 		return
 	}
 	config.InitPrivate(secretPath)

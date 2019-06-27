@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -59,7 +58,7 @@ func (h *Handler) RandomUsers(limit int) {
 			Password: utils.RandomString(n)}
 		userID, _, err := h.register(context.Background(), user)
 		if err != nil {
-			fmt.Println("some error is here", err)
+			utils.Debug(true, "cant register random")
 			return
 		}
 

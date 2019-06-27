@@ -3,18 +3,16 @@ package game
 import (
 	"fmt"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // addWaiter add connection to waiters slice and send to the connection LobbyJSON
 func (lobby *Lobby) addWaiter(newConn *Connection) {
-	if lobby.config.Metrics {
-		metrics.WaitingPlayers.Add(1)
-	}
-	fmt.Println("addWaiter called")
+	// if lobby.config.Metrics {
+	// 	metrics.WaitingPlayers.Add(1)
+	// }
 
-	lobby.Waiting.Add(newConn /*, false*/)
+	lobby.Waiting.Add(newConn)
 	lobby.greet(newConn)
 	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
 }
@@ -68,31 +66,23 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 	lobby.addWaiter(conn)
 }
 
-// r
-// new!!!!
 // restore
 // call it before enter connection
-//
 func (lobby *Lobby) restore(conn *Connection) bool {
 
 	var found = lobby.Playing.Restore(conn)
 	var room *Room
 
-	fmt.Println("restore try")
-
 	if found {
-		fmt.Println("found in game")
 		room = conn.PlayingRoom()
 	} else {
 		found = lobby.Waiting.Restore(conn)
 		if found {
-			fmt.Println("found in waiting room")
 			room = conn.WaitingRoom()
 		}
 	}
 
 	if room != nil {
-		fmt.Println("send ActionReconnect")
 		room.chanConnection <- &ConnectionAction{
 			conn:   conn,
 			action: ActionReconnect,

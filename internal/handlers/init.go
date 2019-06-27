@@ -4,7 +4,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 
-	"fmt"
 	"time"
 )
 
@@ -56,7 +55,6 @@ func GetGameHandler(conf *config.Configuration /*, authConn *grpc.ClientConn*/) 
 		return
 	}
 
-	fmt.Println("Database done")
 	H = Init(db, conf /*, authConn*/)
 	return
 }

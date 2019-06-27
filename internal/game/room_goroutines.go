@@ -1,57 +1,14 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"fmt"
 	"time"
 )
 
 func (room *Room) runRoom() {
-
-	// все в конфиг
-	ticker := time.NewTicker(time.Second * 10)
-	var timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64
-	timeoutPeopleFinding = 2
-	timeoutPlayer = 60
-	timeoutObserver = 5
-	timeoutFinished = 20
-
-	room.initTimers()
-
-	for {
-		select {
-		case <-ticker.C:
-			go room.launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished)
-		case conn := <-room.chanConnection:
-			go room.processConnectionAction(conn)
-		case newStatus := <-room.chanStatus:
-			if newStatus == room.Status() || newStatus > StatusFinished {
-				continue
-			}
-			switch newStatus {
-			// case StatusPeopleFinding:
-			// 	//
-			case StatusFlagPlacing:
-				room.StartFlagPlacing()
-			case StatusRunning:
-				room.prepare.Stop()
-				room.StartGame()
-			case StatusFinished:
-				ok := room.play.Stop()
-				ticker.Stop()
-				room.FinishGame(!ok)
-				//return
-			case StatusAborted:
-				ticker.Stop()
-				return
-			}
-		}
-	}
-}
-
-// run - room goroutine
-func (room *Room) runGame() {
 	if room.done() {
 		return
 	}
@@ -60,47 +17,103 @@ func (room *Room) runGame() {
 		utils.CatchPanic("room_handle.go run()")
 		room.wGroup.Done()
 	}()
+	// все в конфиг
+	ticker := time.NewTicker(time.Second * 10)
+	//var timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64
+	// timeoutPeopleFinding = 2
+	// timeoutPlayer = 60
+	// timeoutObserver = 5
+	// timeoutFinished = 20
 
-	ticker := time.NewTicker(time.Second * 4)
-
-	room.initTimers()
+	room.initTimers(true)
 	defer func() {
 		ticker.Stop()
 		room.prepare.Stop()
 		room.play.Stop()
-		fmt.Println("Room: Game is over!")
 	}()
 
-	fmt.Println("room.runGame")
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-	room.setDate(time.Now().In(loc))
+	beginGame := false
 
 	for {
 		select {
-		case <-room.chanFinish:
-			fmt.Println("room.chanFinish")
-			return
+		//go room.launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished)
 		case <-room.prepare.C:
-			room.chanStatus <- StatusRunning
+			fmt.Println("prepare!", beginGame)
+			if beginGame {
+				room.chanStatus <- StatusRunning
+			}
 		case <-room.play.C:
-			room.chanStatus <- StatusFinished
-			return
-		case clock := <-ticker.C:
-			go room.sendMessage(clock.String()+" passed", room.All)
+			fmt.Println("play!", beginGame)
+			if beginGame {
+				room.chanStatus <- StatusFinished
+			}
+		case conn := <-room.chanConnection:
+			fmt.Println("handle!")
+			go room.processConnectionAction(conn)
+		case newStatus, ok := <-room.chanStatus:
+			fmt.Println("chanStatus!")
+			oldStatus := room.Status()
+			if newStatus == 0 {
+				println("ok", ok)
+				panic("new 0")
+			}
+			if oldStatus == 4 && newStatus == 0 {
+				panic("0,4")
+			}
+			fmt.Println("Status!", oldStatus, newStatus)
+			if newStatus == oldStatus || newStatus > StatusFinished {
+				continue
+			}
+			if oldStatus == StatusRecruitment {
+				room.setRecruitmentTime()
+			} else if newStatus == StatusFinished {
+				room.setPlayingTime()
+			}
+			switch newStatus {
+			case StatusFlagPlacing:
+				fmt.Println("coooooool!", oldStatus, newStatus)
+				beginGame = true
+				room.initTimers(false)
+				room.StartFlagPlacing()
+			case StatusRunning:
+				fmt.Println("StatusRunning!")
+				room.prepare.Stop()
+				room.StartGame()
+				fmt.Println("StatusRunning! +")
+			case StatusFinished:
+				fmt.Println("StatusFinished!")
+				ok := room.play.Stop()
+				ticker.Stop()
+				if oldStatus == StatusRecruitment {
+					room.CancelGame()
+				} else {
+					room.FinishGame(!ok)
+				}
+				fmt.Println("StatusFinished +!")
+			//return
+			case StatusAborted:
+				ticker.Stop()
+				return
+			}
 		}
 	}
 }
 
 // initTimers launch game timers. Call it when flag placement starts
-func (room *Room) initTimers() {
-	if room.Settings.Deathmatch {
-		room.prepare = time.NewTimer(time.Second *
-			time.Duration(room.Settings.TimeToPrepare))
-	} else {
+func (room *Room) initTimers(first bool) {
+	if first {
 		room.prepare = time.NewTimer(time.Millisecond)
+		room.play = time.NewTimer(time.Millisecond)
+	} else {
+		if room.Settings.Deathmatch {
+			room.prepare.Reset(time.Second *
+				time.Duration(room.Settings.TimeToPrepare))
+		} else {
+			room.prepare.Reset(time.Millisecond)
+		}
+		room.play.Reset(time.Second *
+			time.Duration(room.Settings.TimeToPlay))
 	}
-	room.play = time.NewTimer(time.Second *
-		time.Duration(room.Settings.TimeToPlay))
 	return
 }
 
@@ -116,7 +129,7 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 	}()
 
 	status := room.Status()
-	if status == StatusPeopleFinding {
+	if status == StatusRecruitment {
 		timeoutPlayer = timeoutPeopleFinding
 		timeoutObserver = timeoutPeopleFinding
 	}
@@ -130,7 +143,7 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 	for playersIterator.Next() {
 		player := playersIterator.Value()
 		if player == nil {
-			panic("why nill player")
+			utils.Debug(true, "found nil player")
 		}
 
 		i++
@@ -148,7 +161,7 @@ func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, ti
 	for observerIterator.Next() {
 		observer := observerIterator.Value()
 		if observer == nil {
-			panic("why nill observer")
+			utils.Debug(true, "found nil observer")
 		}
 
 		i++
@@ -171,16 +184,16 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
+	fmt.Println("back!")
 	room.Leave(conn, conn.Index() >= 0)
 	if conn.Index() >= 0 {
 		room.Kill(conn, ActionBackToLobby)
 	}
 
-	fmt.Println("LeaveRoom")
-	room.lobby.LeaveRoom(conn, ActionBackToLobby, room)
-	fmt.Println("LeaveMeta")
+	room.wGroup.Add(1)
+	go room.lobby.LeaveRoom(conn, ActionBackToLobby, room, room.wGroup)
+
 	room.LeaveMeta(conn, ActionDisconnect)
-	//fmt.Println("went back", playerGone, observerGone)
 }
 
 func (room *Room) processActionDisconnect(conn *Connection) {
@@ -229,7 +242,6 @@ func (room *Room) processActionReconnect(conn *Connection) {
 	if found == nil {
 		return
 	}
-	fmt.Println("processActionReconnect")
 	room.addConnection(conn, isPlayer, true)
 }
 
@@ -278,32 +290,19 @@ func (room *Room) processConnectionAction(ca *ConnectionAction) {
 		room.wGroup.Done()
 	}()
 
-	//fmt.Println("processConnectionAction start ")
-
+	fmt.Println("action!")
 	switch ca.action {
 	case ActionBackToLobby:
-		//fmt.Println("processActionBackToLobby ------")
 		room.processActionBackToLobby(ca.conn)
-		//fmt.Println("processActionBackToLobby ")
 	case ActionDisconnect:
-		//fmt.Println("processActionDisconnect ------")
 		room.processActionDisconnect(ca.conn)
-		//fmt.Println("processActionDisconnect")
 	case ActionReconnect:
-		//fmt.Println("processActionConnect ------")
 		room.processActionReconnect(ca.conn)
-		//fmt.Println("processActionConnect ")
 	case ActionGiveUp:
-		//fmt.Println("processActionGiveUp ------")
 		room.processActionGiveUp(ca.conn)
-		//fmt.Println("processActionGiveUp")
 	case ActionRestart:
-		//fmt.Println("processActionRestart ------")
 		room.processActionRestart(ca.conn)
-		//fmt.Println("processActionRestart ")
 	}
-
-	//fmt.Println("processConnectionAction finish ")
 }
 
 /*

@@ -3,7 +3,6 @@ package game
 import (
 	"sync"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -25,7 +24,7 @@ func (room *Room) Enter(conn *Connection) bool {
 	var done bool
 
 	// if room is searching new players
-	if room.Status() == StatusPeopleFinding {
+	if room.Status() == StatusRecruitment {
 		if room.addConnection(conn, true, false) {
 			utils.Debug(false, "You will be player!")
 			done = true
@@ -63,7 +62,6 @@ func (room *Room) Free() {
 	go room.Observers.Free()
 	go room.Field.Free()
 
-	close(room.chanFinish)
 	close(room.chanStatus)
 	close(room.chanConnection)
 }
@@ -84,7 +82,10 @@ func (room *Room) Close() bool {
 		return false
 	}
 	utils.Debug(false, "We closed room :С")
-	room.lobby.CloseRoom(room)
+
+	room.wGroup.Add(1)
+	go room.lobby.CloseRoom(room, room.wGroup)
+
 	utils.Debug(false, "Prepare to free!")
 	go room.Free()
 	utils.Debug(false, "We did it")
@@ -129,7 +130,7 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		status = room.Status()
 	)
 	if isPlayer {
-		if status == StatusPeopleFinding || status == StatusFinished {
+		if status == StatusRecruitment || status == StatusFinished {
 			done = room.Players.Connections.Remove(conn)
 		}
 		utils.Debug(false, "isPlayer delete")
@@ -143,11 +144,13 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		return false
 	}
 
-	if status == StatusPeopleFinding {
+	if status == StatusRecruitment {
 		room.lobby.greet(conn)
-		room.lobby.sendRoomUpdate(room, All)
+
+		room.wGroup.Add(1)
+		go room.lobby.sendRoomUpdate(room, All, room.wGroup)
 	} else if isPlayer {
-		room.GiveUp(conn)
+		go room.GiveUp(conn)
 	}
 
 	utils.Debug(false, "letsCheckIfNil", room.Players.Connections.len(), room.Observers.len())
@@ -155,32 +158,6 @@ func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 		room.Close()
 	}
 	return true
-}
-
-// LeaveMeta update metainformation about user leaving room
-func (room *Room) LeaveMeta(conn *Connection, action int) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	if room.lobby.config.Metrics {
-		metrics.Players.WithLabelValues(room.ID(), conn.User.Name).Dec()
-	}
-
-	pa := *room.addAction(conn.ID(), action)
-	if room.Empty() {
-		if room.lobby.config.Metrics {
-			metrics.Rooms.Dec()
-		}
-	} else {
-		room.sendAction(pa, room.AllExceptThat(conn))
-	}
-
-	return
 }
 
 // applyAction applies the effects of opening a cell
@@ -250,7 +227,6 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	}
 	if room.Field.IsCleared() {
 		room.chanStatus <- StatusFinished
-		//go room.FinishGame(false)
 	}
 	return
 }
@@ -340,26 +316,23 @@ func (room *Room) StartFlagPlacing() {
 	playersIterator := NewConnectionsIterator(room.Players.Connections)
 	for playersIterator.Next() {
 		player := playersIterator.Value()
-		room.greet(player, true)
+		go room.greet(player, true)
 		room.lobby.waiterToPlayer(player, room)
 	}
 
 	observersIterator := NewConnectionsIterator(room.Observers)
 	for playersIterator.Next() {
 		observer := observersIterator.Value()
-		room.greet(observer, true)
+		go room.greet(observer, true)
 		room.lobby.waiterToPlayer(observer, room)
 	}
 	room.Players.Init(room.Field)
 
-	room.lobby.RoomStart(room)
-	go room.runGame()
+	room.wGroup.Add(1)
+	room.lobby.RoomStart(room, room.wGroup)
 
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-	room.setDate(time.Now().In(loc))
 	go room.sendStatus(room.All, nil)
 	go room.sendField(room.All)
-	go room.sendMessage("Battle will be start soon! Set your flag!", room.All)
 }
 
 // StartGame start game
@@ -400,13 +373,6 @@ func (room *Room) FinishGame(timer bool) {
 		room.wGroup.Done()
 	}()
 
-	if room.Status() == StatusFinished || room.Status() == StatusPeopleFinding {
-		return
-	}
-
-	if !timer && room.Status() != StatusPeopleFinding {
-		room.chanFinish <- struct{}{}
-	}
 	room.setStatus(StatusFinished)
 
 	// save Group
@@ -420,16 +386,23 @@ func (room *Room) FinishGame(timer bool) {
 	go room.sendGameOver(timer, room.All, cells, saveAndSendGroup)
 	go room.Save(saveAndSendGroup)
 	go room.Players.Finish(saveAndSendGroup)
-
 	saveAndSendGroup.Wait()
-	/*
-		playersIterator := NewConnectionsIterator(room.Players.Connections)
-		for playersIterator.Next() {
-			player := playersIterator.Value()
-			player.SetIndex(-1)
-			room.Observers.Add(player)
-		}
-		room.Players = newOnlinePlayers(room.Settings.Players, *room.Field)
-	*/
-	room.lobby.roomFinish(room)
+
+	room.wGroup.Add(1)
+	room.lobby.roomFinish(room, room.wGroup)
+}
+
+func (room *Room) CancelGame() {
+	if room == nil {
+		utils.Debug(true, "room nil")
+	}
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer func() {
+		room.wGroup.Done()
+	}()
+
+	// metrics here
 }

@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
 	"fmt"
@@ -61,6 +62,9 @@ func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) (err error) {
 		`
 
 	_, err = tx.Exec(sqlStatement, time.Now(), id)
+	if err != nil {
+		utils.Debug(true, "cant update players's last seen")
+	}
 	return
 }
 
@@ -77,9 +81,6 @@ func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int
 	user = &models.UserPublicInfo{}
 	err = row.Scan(&id, &user.Name, &user.BestScore,
 		&user.BestTime, &user.Difficult)
-	if err == nil {
-		fmt.Println("login:", id, user.Name)
-	}
 	return
 }
 
@@ -89,11 +90,13 @@ func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPriv
 		"FROM Player where id = $1"
 
 	row := tx.QueryRow(sqlStatement, userID)
-	fmt.Println("userID:", userID)
 
 	user = &models.UserPrivateInfo{}
 	user.ID = userID
 	err = row.Scan(&user.Name, &user.Password)
+	if err != nil {
+		utils.Debug(true, "cant get user's name and password")
+	}
 
 	return
 }
@@ -131,6 +134,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 		player := &models.UserPublicInfo{}
 		if err = rows.Scan(&player.ID, &player.FileKey, &player.Name, &player.BestScore,
 			&player.BestTime, &player.Difficult); err != nil {
+			utils.Debug(true, "catch wrong row about one of users")
 			break
 		}
 
@@ -140,8 +144,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 	return
 }
 
-// GetUsers returns information about users
-// for leaderboard
+// GetUser returns information about user
 func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *models.UserPublicInfo, err error) {
 
 	sqlStatement := `
@@ -158,9 +161,14 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *mode
 	row := tx.QueryRow(sqlStatement, userID, difficult)
 	err = row.Scan(&player.ID, &player.FileKey, &player.Name,
 		&player.BestScore, &player.BestTime, &player.Difficult)
+	if err != nil {
+		utils.Debug(true, "cant get user")
+	}
+
 	return
 }
 
+// deletePlayer delete all information about user
 func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2
@@ -171,6 +179,21 @@ func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error
 	fmt.Println("deletePlayer:", user.Name, user.Password)
 
 	err := row.Scan(&user.ID)
+	if err != nil {
+		utils.Debug(true, "cant delete player")
+	}
 
 	return err
+}
+
+// GetPlayerIDbyName get user's id by his name
+func (db *DataBase) GetPlayerIDbyName(username string) (id int, err error) {
+	sqlStatement := `SELECT id FROM Player WHERE name = $1`
+	row := db.Db.QueryRow(sqlStatement, username)
+
+	err = row.Scan(&id)
+	if err != nil {
+		utils.Debug(false, "cant get player's ID by his name")
+	}
+	return
 }

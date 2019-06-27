@@ -8,15 +8,6 @@ import (
 	"net/http"
 )
 
-// PrintResult log requests results
-func PrintResult(catched error, number int, place string) {
-	if catched != nil {
-		fmt.Println(place+" failed(code:", number, "). Error message:"+catched.Error())
-	} else {
-		fmt.Println(place+" success(code:", number, ")")
-	}
-}
-
 // SendErrorJSON send error json
 func SendErrorJSON(rw http.ResponseWriter, catched error, place string) {
 	result := models.Result{

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -688,7 +687,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 
 // GameHistory launch local lobby only for this connection
 func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
-	const place = "GameHistory"
+	const place = "GameHistory:"
 	var (
 		err    error
 		userID int
@@ -712,7 +711,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
-		fmt.Println("err689", err.Error())
+		utils.Debug(true, place, "can't upgrade the http connection to websockets")
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)
@@ -724,7 +723,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if user, err = h.DB.GetUser(userID, 0); err != nil {
-		fmt.Println("err700", err.Error())
+		utils.Debug(false, place, "cant get user from database")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -732,7 +731,7 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Setfiles(user); err != nil {
-		fmt.Println("err707", err.Error())
+		utils.Debug(false, place, "cant load images")
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, err, place)
 		utils.PrintResult(err, http.StatusNotFound, place)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// PrintResult log requests results
+// ShowWebsocketMessage record information transmitted over the websocket
 func ShowWebsocketMessage(message []byte, id int) {
 	str := string(message)
 	var start, end, counter int
@@ -22,11 +22,20 @@ func ShowWebsocketMessage(message []byte, id int) {
 	}
 	if start != end {
 		print := str[start:end]
-		//print = str
-		fmt.Println("#", id, " get that:", print)
+		Debug(false, "#", id, " get that:", print)
 	}
 }
 
+func PrintResult(catched error, number int, place string) {
+	if catched != nil {
+		Debug(false, "api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
+	} else {
+		Debug(false, "api/"+place+" success(code:", number, ")")
+	}
+}
+
+// Debug record information for logging
+// if 'needPanic' is true then panic(text) will be called
 func Debug(needPanic bool, text ...interface{}) {
 	if needPanic {
 		panic(text)

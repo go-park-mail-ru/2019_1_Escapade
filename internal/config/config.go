@@ -2,12 +2,12 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Configuration contains all types of configurations
@@ -135,7 +135,7 @@ func set(URL, value string) {
 	if URL != "" && os.Getenv(URL) == "" {
 		os.Setenv(URL, value)
 	}
-	fmt.Println("environment -", URL, " :", value)
+	utils.Debug(false, "environment -", URL, " :", value)
 }
 
 // InitEnvironment set environmental variables
@@ -165,15 +165,19 @@ func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 
 // InitPrivate load configuration file and set private environment
 func InitPrivate(privateConfigPath string) (err error) {
-	var data []byte
+	var (
+		data  []byte
+		place = "secret json -"
+	)
 
 	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
-		fmt.Println("no secret json found:", err.Error())
+
+		utils.Debug(false, place, "not found:", err.Error())
 		return
 	}
 	var apc = &AwsPrivateConfig{}
 	if err = json.Unmarshal(data, apc); err != nil {
-		fmt.Println("wrong secret json:", err.Error())
+		utils.Debug(false, place, "wrong:", err.Error())
 		return
 	}
 

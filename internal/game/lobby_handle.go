@@ -1,6 +1,7 @@
 package game
 
 import (
+	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -188,29 +189,28 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
+func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room, group *sync.WaitGroup) {
+	defer group.Done()
+	defer utils.CatchPanic("lobby_handle.go LeaveRoom()")
 
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
-	defer func() {
-		utils.CatchPanic("lobby_handle.go LeaveRoom()")
-		lobby.wGroup.Done()
-	}()
+	defer lobby.wGroup.Done()
 
-	fmt.Println("check", action, ActionDisconnect)
 	if action != ActionDisconnect {
-		if room.Status() != StatusPeopleFinding {
-			fmt.Println("PlayerToWaiter")
+		if room.Status() != StatusRecruitment {
+			utils.Debug(false, "PlayerToWaiter")
 			lobby.PlayerToWaiter(conn)
 		} else {
 			conn.PushToLobby()
 		}
 	} else if room.Players.Connections.len() > 0 {
-		lobby.sendRoomUpdate(room, AllExceptThat(conn))
+		group.Add(1)
+		go lobby.sendRoomUpdate(room, AllExceptThat(conn), group)
 	}
-	fmt.Println("room.Status:", room.Status)
+	utils.Debug(false, "room.Status:", room.Status)
 }
 
 // EnterRoom handle user join to room

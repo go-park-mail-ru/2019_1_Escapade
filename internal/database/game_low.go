@@ -1,9 +1,8 @@
 package database
 
 import (
-	"fmt"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
 
@@ -256,7 +255,7 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 	var messages []*models.Message
 	messages, err = db.getMessages(tx, true, game.RoomID)
 	if err != nil {
-		fmt.Println("some eror with messages happened", err.Error())
+		utils.Debug(true, "cant get messages!", err.Error())
 	}
 
 	return models.GameInformation{
@@ -269,59 +268,3 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 	}, err
 
 }
-
-// GetFullGamesInformation returns games, played by player with some name
-/*
-func (db *DataBase) GetFullGamesInformation(tx *sql.Tx, UserID int,
-	page int) (games []*models.GameInformation, err error) {
-
-	size := db.PageGames
-	sqlStatement := `
-	SELECT 	GE.width, GE.height, GE.difficult, GE.players,
-	 GE.mines, GE.date, GR.score,
-		GR.time, GR.left_click, GR.right_click, GR.explosion,
-		GR.won
-	 FROM Gamer as GR
-	 join Game as GE
-		ON GR.id = $1 and GR.game_id = GE.id
-		OFFSET $2 Limit $3
-	`
-
-	games = make([]*models.GameInformation, 0, size)
-	rows, erro := tx.Query(sqlStatement, UserID, size*(page-1), size) // //, name)
-
-	if erro != nil {
-		err = erro
-
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		game := &models.GameInformation{}
-		game.Game = &models.Game{}
-		game.Gamers = make([]*models.Gamer, 1)
-		/*
-			ge.width, ge.height, ge.difficult,
-							ge.players, ge.mines, ge.date, ge.online,
-							gr.score, gr.time, gr.mines_open,
-							gr.left_click, gr.right_click,
-							gr.explosion, gr.won
-			 FROM Player as p */
-/*
-		if err = rows.Scan(&game.Game.Width,
-			&game.Game.Height,
-			&game.Game.Difficult, &game.Game.Players,
-			&game.Game.Mines, &game.Game.Date,
-			&game.Gamers[0].Score, &game.Gamers[0].Time,
-			&game.Gamers[0].LeftClick, &game.Gamers[0].RightClick,
-			&game.Gamers[0].Explosion, &game.Gamers[0].Won); err != nil {
-
-			break
-		}
-
-		games = append(games, game)
-	}
-
-	return
-}*/

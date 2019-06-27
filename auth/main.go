@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 
 	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"
@@ -28,6 +28,7 @@ func main() {
 		server    *grpc.Server
 		conf      *config.Configuration
 		err       error
+		place     = "auth service:"
 	)
 
 	if conf, err = config.InitPublic(confPath); err != nil {
@@ -35,12 +36,12 @@ func main() {
 	}
 
 	if lis, err = net.Listen("tcp", router.GetPort(conf)); err != nil {
-		fmt.Println("cant listen that address:", err.Error())
+		utils.Debug(false, place, "cant listen address", err.Error())
 		return
 	}
 
 	if redisConn, err = redis.DialURL(os.Getenv(conf.DataBase.URL)); err != nil {
-		fmt.Println("cant connect to redis", err.Error())
+		utils.Debug(false, place, "cant connect to redis", err.Error())
 		return
 	}
 	defer redisConn.Close()
@@ -48,11 +49,9 @@ func main() {
 	server = grpc.NewServer()
 	session.RegisterAuthCheckerServer(server, session.NewSessionManager(redisConn, conf.Session))
 
-	// curlog.Sugar.Infow("starting grpc server on "+conf.AC.Host+conf.AC.Port,
-	// 	"source", "main.go")
-	fmt.Println("Auth launched!")
+	utils.Debug(false, place, "success start!")
 
 	if err = server.Serve(lis); err != nil {
-		fmt.Println("Auth catched error")
+		utils.Debug(false, place, "finish with error!", err.Error())
 	}
 }

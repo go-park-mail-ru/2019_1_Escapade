@@ -1,7 +1,7 @@
 package game
 
 import (
-	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -61,15 +61,15 @@ func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
 	lobby.sendToAll(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
+	defer group.Done()
+	defer utils.CatchPanic("lobby_send.go sendRoomCreate")
+
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
-	defer func() {
-		lobby.wGroup.Done()
-		utils.CatchPanic("lobby sendRoomCreate")
-	}()
+	defer lobby.wGroup.Done()
 
 	response := models.Response{
 		Type:  "LobbyRoomCreate",
@@ -78,15 +78,16 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
+	defer group.Done()
+	defer utils.CatchPanic("lobby_send.go sendRoomUpdate")
+
 	if lobby.done() {
 		return
 	}
+
 	lobby.wGroup.Add(1)
-	defer func() {
-		lobby.wGroup.Done()
-		utils.CatchPanic("lobby sendRoomUpdate")
-	}()
+	defer lobby.wGroup.Done()
 
 	response := models.Response{
 		Type:  "LobbyRoomUpdate",
@@ -95,7 +96,7 @@ func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate) {
 	lobby.send(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomDelete(room *Room, predicate SendPredicate) {
+func (lobby *Lobby) sendRoomDelete(roomID string, predicate SendPredicate) {
 	if lobby.done() {
 		return
 	}
@@ -105,17 +106,9 @@ func (lobby *Lobby) sendRoomDelete(room *Room, predicate SendPredicate) {
 		utils.CatchPanic("lobby sendRoomDelete")
 	}()
 
-	if room.done() {
-		panic("room.done()")
-		fmt.Println("room.done()")
-		return
-	}
-	room.wGroup.Add(1)
-	defer room.wGroup.Done()
-
 	response := models.Response{
 		Type:  "LobbyRoomDelete",
-		Value: room.ID(),
+		Value: roomID,
 	}
 	lobby.send(response, predicate)
 }

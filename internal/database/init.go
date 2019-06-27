@@ -2,9 +2,9 @@ package database
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
-	"fmt"
 	"os"
 
 	//
@@ -16,9 +16,12 @@ import (
 // if failed - return error
 func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 
-	var database *sql.DB
+	var (
+		database *sql.DB
+		place    = "database Init() -"
+	)
 	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
-		fmt.Println("database/Init cant open:" + err.Error())
+		utils.Debug(true, place, "cant open: -", err.Error())
 		return
 	}
 
@@ -30,10 +33,10 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 	db.Db.SetMaxOpenConns(CDB.MaxOpenConns)
 
 	if err = db.Db.Ping(); err != nil {
-		fmt.Println("database/Init cant access:" + err.Error())
+		utils.Debug(true, place, "cant access: -", err.Error())
 		return
 	}
-	fmt.Println("database/Init open")
+	utils.Debug(false, place, "success!")
 
 	return
 }
@@ -266,14 +269,6 @@ func (db *DataBase) createTableAction(tx *sql.Tx) (err error) {
 	_, err = tx.Exec(sqlStatement)
 	return err
 }
-
-/*
-difficult int default 0,
-        width   int NOT NULL,
-        height   int NOT NULL,
-        players   int NOT NULL,
-        mines   int NOT NULL,
-*/
 
 func (db *DataBase) createTableGamer(tx *sql.Tx) (err error) {
 	sqlStatement := `

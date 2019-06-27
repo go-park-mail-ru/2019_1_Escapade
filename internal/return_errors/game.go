@@ -26,6 +26,10 @@ func ErrorLobbyDone() error {
 	return errors.New("Lobby is turned off")
 }
 
+func ErrorRoomOrLobbyDone() error {
+	return errors.New("Lobby or room is turned off")
+}
+
 func ErrorConnectionDone() error {
 	return errors.New("Connection died")
 }

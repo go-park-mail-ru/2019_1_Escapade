@@ -111,7 +111,7 @@ func (room *Room) Kill(conn *Connection, action int) {
 			cells := make([]Cell, 0)
 			room.Field.saveCell(&cell.Cell, &cells)
 
-			room.sendNewCells(room.All, cell.Cell)
+			go room.sendNewCells(room.All, cell.Cell)
 		}
 
 		if room.Players.Capacity() <= room.killed()+1 {

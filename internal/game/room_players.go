@@ -4,29 +4,35 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-// EnterPlayer handle player try to enter room
+/*
+addConnection add player to room and to metrics, notify other players, that new one connected
+ and provide the connection(client) with the necessary json
+*/
 func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover bool) bool {
-	//fmt.Println("addPlayer", recover)
-	if room.done() {
+	if room.done() || conn.done() {
 		return false
 	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
 
+	room.wGroup.Add(1)
+	defer room.wGroup.Done()
+
+	conn.wGroup.Add(1)
+	defer conn.wGroup.Done()
+
+	utils.Debug(false, "Room("+room.ID()+") wanna connect you mr ", conn.ID())
+
+	// primary: add player to room
+	if !room.Push(conn, isPlayer, needRecover) {
+		return false
+	}
+
+	// secondary: add player to metrics
 	// later return back!!!!!
 	// if room.lobby.Metrics() {
 	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
 	// }
 
-	utils.Debug(false, "Room("+room.ID()+") wanna connect you mr ", conn.ID())
-
-	// if room hasnt got places
-	if !room.Push(conn, isPlayer, needRecover) {
-		return false
-	}
-
+	// secondary: notify other players, that new connected
 	var pa *PlayerAction
 	if needRecover {
 		pa = room.addAction(conn.ID(), ActionReconnect)
@@ -47,22 +53,35 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	}
 	go room.sendAction(*pa, room.AllExceptThat(conn))
 
+	// primary: provide the connection(client) with the necessary json
 	if !needRecover {
-		room.lobby.sendRoomUpdate(room, All)
+		room.wGroup.Add(1)
+		room.lobby.sendRoomUpdate(room, All, room.wGroup)
 	}
 	room.sendStatusOne(conn)
+	room.greet(conn, isPlayer)
 
 	return true
 }
 
+// Push add the connection to the room.
+// isPlayer - if true, the connection will add as player, otherwise as observer
+// needRecover - if true, then the connection has already added to the room and
+// 	it must be restored
+// Returns true if added, otherwise false
+// If the game has already started, then the connection from waiter slice goes
+// to player slice. Otherwise if the game is looking for people then
+// the connection remains the waiter, but gets waiting room - this one
 func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
-	if room.done() {
+	if room.done() || conn.done() {
 		return false
 	}
+
 	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
+	defer room.wGroup.Done()
+
+	conn.wGroup.Add(1)
+	defer conn.wGroup.Done()
 
 	if isPlayer {
 		if !needRecover && !room.Players.EnoughPlace() {
@@ -79,8 +98,7 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		room.Observers.Add(conn)
 	}
 
-	room.greet(conn, isPlayer)
-	if room.Status() != StatusPeopleFinding {
+	if room.Status() != StatusRecruitment {
 		room.lobby.waiterToPlayer(conn, room)
 	} else {
 		conn.setWaitingRoom(room)
@@ -90,7 +108,7 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 
 }
 
-// Search search connection in players and observers of room
+// Search search the connection in players slice and observers slice of room
 // return connection and flag isPlayer
 func (room *Room) Search(find *Connection) (*Connection, bool) {
 	i, found := room.Players.SearchConnection(find)

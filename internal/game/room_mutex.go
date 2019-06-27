@@ -13,7 +13,7 @@ func (room *Room) setDone() {
 	room.doneM.Unlock()
 }
 
-// done return '_done' field
+// done return room readiness flag to free up resources
 func (room *Room) done() bool {
 	room.doneM.RLock()
 	v := room._done
@@ -21,6 +21,7 @@ func (room *Room) done() bool {
 	return v
 }
 
+// Status return room's current status
 func (room *Room) Status() int {
 	room.statusM.RLock()
 	v := room._status
@@ -28,6 +29,7 @@ func (room *Room) Status() int {
 	return v
 }
 
+// Name return the name of room given by its creator
 func (room *Room) Name() string {
 	room.nameM.RLock()
 	v := room._name
@@ -35,6 +37,7 @@ func (room *Room) Name() string {
 	return v
 }
 
+// ID return room's unique identificator
 func (room *Room) ID() string {
 	room.idM.RLock()
 	v := room._id
@@ -42,6 +45,7 @@ func (room *Room) ID() string {
 	return v
 }
 
+// Date return date, when room was created
 func (room *Room) Date() time.Time {
 	room.dateM.RLock()
 	v := room._date
@@ -49,6 +53,56 @@ func (room *Room) Date() time.Time {
 	return v
 }
 
+func (room *Room) recruitmentTime() time.Duration {
+	room.recruitmentTimeM.RLock()
+	v := room._recruitmentTime
+	room.recruitmentTimeM.RUnlock()
+	return v
+}
+
+func (room *Room) setRecruitmentTime() {
+	room.dateM.RLock()
+	v := room._date
+	room.dateM.RUnlock()
+
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
+	t := time.Now().In(loc)
+
+	room.recruitmentTimeM.Lock()
+	room._recruitmentTime = v.Sub(t)
+	room.recruitmentTimeM.Unlock()
+
+	room.dateM.RLock()
+	room._date = t
+	room.dateM.RUnlock()
+}
+
+func (room *Room) playingTime() time.Duration {
+	room.playingTimeM.RLock()
+	v := room._playingTime
+	room.playingTimeM.RUnlock()
+	return v
+}
+
+func (room *Room) setPlayingTime() {
+	room.dateM.RLock()
+	v := room._date
+	room.dateM.RUnlock()
+
+	loc, _ := time.LoadLocation(room.lobby.config.Location)
+	t := time.Now().In(loc)
+
+	room.playingTimeM.Lock()
+	room._playingTime = v.Sub(t)
+	room.playingTimeM.Unlock()
+
+	room.dateM.RLock()
+	room._date = t
+	room.dateM.RUnlock()
+}
+
+// Next return next room to whick players from this room will be
+// sent in case of pressing the restart button
 func (room *Room) Next() *Room {
 	room.nextM.RLock()
 	v := room._next
@@ -85,8 +139,6 @@ func (room *Room) setNext(next *Room) {
 	room._next = next
 	room.nextM.Unlock()
 }
-
-/////////////////////// history
 
 // history return '_history' field
 func (room *Room) history() []*PlayerAction {

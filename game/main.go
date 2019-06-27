@@ -13,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -40,10 +39,7 @@ func main() {
 	}
 	config.InitPrivate(secretPath)
 
-	metrics.InitRoomMetric("game")
-	metrics.InitPlayersMetric("game")
-
-	prometheus.MustRegister(metrics.Rooms, metrics.Players, metrics.FreeRooms, metrics.WaitingPlayers)
+	metrics.InitGame()
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 		if err != nil {
@@ -61,6 +57,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/game/ws", handler.GameOnline)
 
+	//r.Handle("/metrics", promhttp.Handler())
 	r.Handle("/game/metrics", promhttp.Handler())
 
 	game.Launch(&configuration.Game, &handler.DB, handler.Setfiles)

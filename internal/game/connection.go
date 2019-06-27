@@ -99,7 +99,6 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 	}
 }
 
-// new!!!
 // Restore
 // it calls in lobby restore
 func (conn *Connection) Restore(copy *Connection) {
@@ -115,6 +114,11 @@ func (conn *Connection) Restore(copy *Connection) {
 	conn.setPlayingRoom(copy.PlayingRoom())
 	conn.setWaitingRoom(copy.WaitingRoom())
 	conn.SetIndex(copy.Index())
+}
+
+// IsAnonymous return true if user not registered
+func (conn *Connection) IsAnonymous() bool {
+	return conn.ID() < 0
 }
 
 // PushToRoom set field 'room' to real room

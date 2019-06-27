@@ -12,12 +12,12 @@ import (
 
 // Game status
 const (
-	StatusPeopleFinding = 0
-	StatusAborted       = 1 // in case of error
-	StatusFlagPlacing   = 2
-	StatusRunning       = 3
-	StatusFinished      = 4
-	StatusHistory       = 5
+	StatusRecruitment = 0
+	StatusAborted     = 1 // in case of error
+	StatusFlagPlacing = 2
+	StatusRunning     = 3
+	StatusFinished    = 4
+	StatusHistory     = 5
 )
 
 // ConnectionAction is a bundle of Connection and action
@@ -61,18 +61,23 @@ type Room struct {
 	_next *Room
 
 	lobby *Lobby
+
 	Field *Field
 
 	dateM *sync.RWMutex
 	_date time.Time
 
-	chanFinish chan struct{}
+	recruitmentTimeM *sync.RWMutex
+	_recruitmentTime time.Duration
 
-	chanStatus     chan int
-	chanConnection chan *ConnectionAction
+	playingTimeM *sync.RWMutex
+	_playingTime time.Duration
 
 	play    *time.Timer
 	prepare *time.Timer
+
+	chanStatus     chan int
+	chanConnection chan *ConnectionAction
 
 	Settings *models.RoomSettings
 }
@@ -119,19 +124,23 @@ func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
 	room.nextM = &sync.RWMutex{}
 	room._next = nil
 
+	room.recruitmentTimeM = &sync.RWMutex{}
+
+	room.playingTimeM = &sync.RWMutex{}
+
 	room.dateM = &sync.RWMutex{}
+	room._date = time.Now()
 
 	room.Observers = NewConnections(room.Settings.Observers)
 
-	room.chanFinish = make(chan struct{})
-	room.chanStatus = make(chan int)
+	room.chanStatus = make(chan int, 10)
 	room.chanConnection = make(chan *ConnectionAction)
 
 	room.setHistory(make([]*PlayerAction, 0))
 	room.setMessages(make([]*models.Message, 0))
 	room.setKilled(0)
 	room.setID(utils.RandomString(16))
-	room.setStatus(StatusPeopleFinding)
+	room.setStatus(StatusRecruitment)
 
 	room.Field = field
 

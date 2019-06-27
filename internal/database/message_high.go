@@ -4,8 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-
-	"fmt"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // CreateMessage create message
@@ -20,10 +19,9 @@ func (db *DataBase) CreateMessage(message *models.Message,
 		gameID, message.Text, message.Time)
 
 	if err = row.Scan(&id); err != nil {
-		fmt.Println("createMessage err:", err.Error())
+		utils.Debug(true, "cant create message", err.Error())
 		return
 	}
-	fmt.Println("createMessage success", inRoom, gameID)
 
 	return
 }
@@ -37,10 +35,9 @@ func (db *DataBase) UpdateMessage(message *models.Message) (id int, err error) {
 	row := db.Db.QueryRow(sqlInsert, message.Text, message.ID)
 
 	if err = row.Scan(&id); err != nil {
-		fmt.Println("UpdateMessage err:", err.Error())
+		utils.Debug(true, "cant update message", err.Error())
 		return
 	}
-	fmt.Println("UpdateMessage success")
 
 	return
 }
@@ -54,10 +51,9 @@ func (db *DataBase) DeleteMessage(message *models.Message) (id int, err error) {
 	row := db.Db.QueryRow(sqlInsert, message.ID)
 
 	if err = row.Scan(&id); err != nil {
-		fmt.Println("DeleteMessage err:", err.Error())
+		utils.Debug(true, "cant delete message", err.Error())
 		return
 	}
-	fmt.Println("DeleteMessage success")
 
 	return
 }
@@ -75,10 +71,9 @@ func (db *DataBase) LoadMessages(inRoom bool, gameID string) (messages []*models
 	defer tx.Rollback()
 
 	if messages, err = db.getMessages(tx, inRoom, gameID); err != nil {
+		utils.Debug(true, "cant load messages", err.Error())
 		return
 	}
-
-	fmt.Println("database/GetMessages +")
 
 	err = tx.Commit()
 	return

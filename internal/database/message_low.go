@@ -4,8 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-
-	"fmt"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // GetUsers returns information about users
@@ -13,7 +12,8 @@ import (
 func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (messages []*models.Message, err error) {
 
 	var (
-		rows *sql.Rows
+		rows  *sql.Rows
+		place = "getMessages -"
 	)
 	sqlStatement := `
 	select GC.id, GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time, GC.edited 
@@ -28,7 +28,7 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 		rows, err = tx.Query(sqlStatement)
 	}
 	if err != nil {
-		fmt.Println("database/getMessages cant access to database:", err.Error())
+		utils.Debug(true, place, "cant access to database:", err.Error())
 		return
 	}
 
@@ -58,16 +58,12 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 			user.FileKey = photoURL.(string)
 		}
 
-		fmt.Println("load message:", user.Name, user.PhotoURL)
-
 		messages = append(messages, message)
 	}
 	if err != nil {
-		fmt.Println("database/GetUsers wrong row catched:", err.Error())
+		utils.Debug(true, place, "wrong row catched:", err.Error())
 		return
 	}
-
-	fmt.Println("database/getMessages +")
 
 	return
 }
