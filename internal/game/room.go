@@ -133,7 +133,7 @@ func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
 
 	room.Observers = NewConnections(room.Settings.Observers)
 
-	room.chanStatus = make(chan int, 10)
+	room.chanStatus = make(chan int)
 	room.chanConnection = make(chan *ConnectionAction)
 
 	room.setHistory(make([]*PlayerAction, 0))
@@ -154,7 +154,6 @@ func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
 }
 
 // Restart fill in the room fields with the original values
-
 func (room *Room) Restart(conn *Connection) {
 
 	if room.Next() == nil || room.Next().done() {

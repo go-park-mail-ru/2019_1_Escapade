@@ -3,7 +3,6 @@ package game
 import (
 	"sync"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -129,22 +128,15 @@ func (lobby *Lobby) LoadRooms(URLs []string) error {
 	return nil
 }
 
+// addRoom add room to slice of all and free lobby rooms
 func (lobby *Lobby) addRoom(room *Room) (err error) {
 
-	if !lobby.allRooms.Add(room) {
-		err = re.ErrorLobbyCantCreateRoom()
-		utils.Debug(false, "cant add to all rooms")
-		return err
+	if err = lobby.addToAllRooms(room); err != nil {
+		return
 	}
 
-	if !lobby.freeRooms.Add(room) {
-		err = re.ErrorLobbyCantCreateRoom()
-		utils.Debug(false, "cant add to free rooms")
-		return err
-	}
-
-	if lobby.config.Metrics {
-		metrics.ActiveRooms.Add(1)
+	if err = lobby.addToFreeRooms(room); err != nil {
+		return
 	}
 
 	room.wGroup.Add(1)

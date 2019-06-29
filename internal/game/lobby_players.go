@@ -6,17 +6,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-// addWaiter add connection to waiters slice and send to the connection LobbyJSON
-func (lobby *Lobby) addWaiter(newConn *Connection) {
-	// if lobby.config.Metrics {
-	// 	metrics.WaitingPlayers.Add(1)
-	// }
-
-	lobby.Waiting.Add(newConn)
-	lobby.greet(newConn)
-	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
-}
-
 // Anonymous return anonymous id
 func (lobby *Lobby) Anonymous() int {
 	var id int
@@ -40,11 +29,9 @@ func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 
 	fmt.Println("waiterToPlayer called for ", conn.ID())
 
-	lobby.Waiting.Remove(conn)
-	lobby.sendWaiterExit(conn, All)
+	lobby.removeWaiter(conn)
 	conn.PushToRoom(room)
-	lobby.Playing.Add(conn)
-	lobby.sendPlayerEnter(conn, All)
+	lobby.addPlayer(conn)
 }
 
 // PlayerToWaiter turns the player into a waiting
@@ -60,8 +47,7 @@ func (lobby *Lobby) PlayerToWaiter(conn *Connection) {
 
 	fmt.Println("PlayerToWaiter called for ", conn.ID())
 
-	lobby.Playing.Remove(conn)
-	lobby.sendPlayerExit(conn, All)
+	lobby.removePlayer(conn)
 	conn.PushToLobby()
 	lobby.addWaiter(conn)
 }

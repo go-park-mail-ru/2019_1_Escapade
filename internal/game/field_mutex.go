@@ -1,82 +1,111 @@
 package game
 
-// setMatrixValue set a value to matrix
+// sets the value in the min matrix
 func (field *Field) setMatrixValue(x, y, v int) {
 	field.matrixM.Lock()
-	field.Matrix[x][y] = v
+	field._matrix[x][y] = v
 	field.matrixM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
+// incrementMatrixValue increments the counter of mines in
+// the neighborhood
 func (field *Field) incrementMatrixValue(x, y int) {
 	field.matrixM.Lock()
-	field.Matrix[x][y]++
+	field._matrix[x][y]++
 	field.matrixM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
+// matrixFree free the memory allocated for the matrix
 func (field *Field) matrixFree() {
 	field.matrixM.Lock()
-	field.Matrix = nil
+	for i := 0; i < len(field._matrix); i++ {
+		field._matrix[i] = nil
+	}
+	field._matrix = nil
 	field.matrixM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
-func (field *Field) historyFree() {
+// History get slice of opened cells
+func (field *Field) History() []*Cell {
 	field.historyM.Lock()
-	field.History = nil
+	v := field._history
+	field.historyM.Unlock()
+	return v
+}
+
+// setHistory set new slice of opened cells
+func (field *Field) setHistory(history []*Cell) {
+	field.historyM.Lock()
+	field._history = history
 	field.historyM.Unlock()
 }
 
-// setMatrixValue set a value to matrix
+// historyFree free the memory allocated for the slice
+// of opened cells
+func (field *Field) historyFree() {
+	field.historyM.Lock()
+	field._history = nil
+	field.historyM.Unlock()
+}
+
+// lessThenMine returns true if there is a min counter
+// in the cell located in the coordinates 'x','y'
 func (field *Field) lessThenMine(x, y int) bool {
 	field.matrixM.RLock()
-	v := field.Matrix[x][y] < CellMine
+	v := field._matrix[x][y] < CellMine
 	field.matrixM.RUnlock()
 	return v
 }
 
-// getMatrixValue get a value from matrix
-func (field *Field) getMatrixValue(x, y int) int {
+// matrixValue get the value from the min matrix
+func (field *Field) matrixValue(x, y int) int {
 	field.matrixM.RLock()
-	v := field.Matrix[x][y]
+	v := field._matrix[x][y]
 	field.matrixM.RUnlock()
 	return v
 }
 
-// setMatrixValue set a value to matrix
+// setToHistory set the cell to the slice of opened cells
 func (field *Field) setToHistory(cell *Cell) {
 	field.historyM.Lock()
 	defer field.historyM.Unlock()
-	field.History = append(field.History, cell)
+	field._history = append(field._history, cell)
 }
 
-// setMatrixValue set a value to matrix
+// decrementCellsLeft decrements the number of remaining cells
 func (field *Field) decrementCellsLeft() {
 	field.cellsLeftM.Lock()
-	field.CellsLeft--
+	field._cellsLeft--
 	field.cellsLeftM.Unlock()
 }
 
-// getMatrixValue get a value from matrix
-func (field *Field) getCellsLeft() int {
+// cellsLeft get the number of remaining cells
+func (field *Field) cellsLeft() int {
 	field.cellsLeftM.RLock()
-	v := field.CellsLeft
+	v := field._cellsLeft
 	field.cellsLeftM.RUnlock()
 	return v
 }
 
-// setMatrixValue set a value to matrix
+// setCellsLeft set new number of remaining cells
+func (field *Field) setCellsLeft(cellsLeft int) {
+	field.cellsLeftM.Lock()
+	field._cellsLeft = cellsLeft
+	field.cellsLeftM.Unlock()
+}
+
+// setDone sets the done flag to true, thus indicating that
+// field is preparing to free memory
 func (field *Field) setDone() {
 	field.doneM.Lock()
-	field.done = true
+	field._done = true
 	field.doneM.Unlock()
 }
 
-// getMatrixValue get a value from matrix
-func (field *Field) getDone() bool {
+// Done returns true if the field is preparing to free memory
+func (field *Field) Done() bool {
 	field.doneM.RLock()
-	v := field.done
+	v := field._done
 	field.doneM.RUnlock()
 	return v
 }

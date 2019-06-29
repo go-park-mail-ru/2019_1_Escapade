@@ -13,17 +13,15 @@ var (
 	// RecruitmentRooms - rooms, that are recruiting
 	RecruitmentRooms prometheus.Gauge
 
-	FinishedRoomPlayers             prometheus.Histogram
-	FinishedRoomDifficult           prometheus.Histogram
-	FinishedRoomSize                prometheus.Histogram
-	FinishedRoomTime                prometheus.Histogram
-	FinishedRoomOpenProcent         prometheus.Histogram
-	FinishedRoomMode                prometheus.Histogram
-	FinishedRoomAnonymous           prometheus.Histogram
-	FinishedRoomTimeSearchingPeople prometheus.Histogram
-	FinishedRoomTimePlaying         prometheus.Histogram
-
-	AbortedRoomTimeSearchingPeople prometheus.Histogram
+	RoomPlayers             *prometheus.HistogramVec
+	RoomDifficult           *prometheus.HistogramVec
+	RoomSize                *prometheus.HistogramVec
+	RoomTime                *prometheus.HistogramVec
+	RoomOpenProcent         *prometheus.HistogramVec
+	RoomMode                *prometheus.HistogramVec
+	RoomAnonymous           *prometheus.HistogramVec
+	RoomTimeSearchingPeople *prometheus.HistogramVec
+	RoomTimePlaying         *prometheus.HistogramVec
 
 	Online          prometheus.Gauge
 	AnonymousOnline prometheus.Gauge
@@ -64,11 +62,12 @@ func InitGame() {
 	var (
 		subsystem      = "game"
 		nFinishedGames = "finished_games"
-		nAbortedGames  = "aborted_games"
 		nAllRooms      = "all_games"
 		nLobby         = "lobby"
 		nUsers         = "users"
 	)
+
+	// все числа в конфиг
 
 	// Lobby characteristics
 	FinishedRooms = prometheus.NewCounter(prometheus.CounterOpts{
@@ -118,68 +117,66 @@ func InitGame() {
 	})
 
 	// Finished rooms characteristics
-	FinishedRoomPlayers = prometheus.NewHistogram(prometheus.HistogramOpts{
+	RoomPlayers = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Players",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
+		Buckets:   []float64{2, 3, 4, 6, 8, 10, 20, 50, 100},
 		Help:      "Number of players who played the game",
-	})
-	FinishedRoomDifficult = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomDifficult = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Difficult",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
+		Buckets:   prometheus.LinearBuckets(0, 0.1, 10),
 		Help:      "Complexity of the game",
-	})
-	FinishedRoomSize = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Size",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
+		Buckets:   []float64{14, 20, 25, 30},
 		Help:      "Size of the game",
-	})
-	FinishedRoomTime = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Time",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
 		Help:      "The most time allotted for the game",
-	})
-	FinishedRoomOpenProcent = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomOpenProcent = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Procent",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
+		Buckets:   prometheus.LinearBuckets(0, 0.05, 20),
 		Help:      "The percentage opening of the field",
-	})
-	FinishedRoomMode = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomMode = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Mode",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
+		Buckets:   []float64{0, 1},
 		Help:      "Deathmatch or not",
-	})
-	FinishedRoomAnonymous = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomAnonymous = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "Anonymous",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
-		Help:      "Anonymous disable[AD]/anonymous enable(and they are in game)[AEY]//anonymous enable(but they are not in game)[AEN]",
-	})
-	FinishedRoomTimeSearchingPeople = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Buckets:   []float64{0, 1, 2},
+		Help:      "Anonymous disable[1]/anonymous enable(and they are in game)[2]//anonymous enable(but they are not in game)[3]",
+	}, []string{"room_type"})
+	RoomTimeSearchingPeople = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "TimeSearchingPeople",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
 		Help:      "Time spent recruiting people",
-	})
-	FinishedRoomTimePlaying = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"room_type"})
+	RoomTimePlaying = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "TimePlaying",
 		Namespace: nFinishedGames,
 		Subsystem: subsystem,
 		Help:      "Time spent playing",
-	})
-
-	// Aborted rooms characteristics
-	AbortedRoomTimeSearchingPeople = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:      "TimePlaying",
-		Namespace: nAbortedGames,
-		Subsystem: subsystem,
-		Help:      "Time spent recruiting people",
-	})
+	}, []string{"room_type"})
 
 	// Users
 	Online = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -214,10 +211,8 @@ func InitGame() {
 	})
 
 	prometheus.MustRegister(FinishedRooms, AbortedRooms, ActiveRooms,
-		FinishedRoomPlayers, FinishedRoomDifficult, FinishedRoomSize,
-		FinishedRoomTime, FinishedRoomOpenProcent, FinishedRoomMode,
-		FinishedRoomAnonymous, FinishedRoomTimeSearchingPeople,
-		FinishedRoomTimePlaying, AbortedRoomTimeSearchingPeople,
+		RoomPlayers, RoomDifficult, RoomSize, RoomTime, RoomOpenProcent,
+		RoomMode, RoomAnonymous, RoomTimeSearchingPeople, RoomTimePlaying,
 		Online, AnonymousOnline, Visits, InLobby, InGame, LobbyMessages,
 		RoomsMessages, RoomsReconnections)
 }

@@ -1,14 +1,5 @@
 package game
 
-type PlayersIterator struct {
-	current int
-	players *OnlinePlayers
-}
-
-func NewPlayersIterator(op *OnlinePlayers) *PlayersIterator {
-	return &PlayersIterator{players: op, current: -1}
-}
-
 // Init create players and flags
 func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 

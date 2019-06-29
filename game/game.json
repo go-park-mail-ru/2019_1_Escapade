@@ -55,7 +55,7 @@
 		"connectionCapacity": 1000,
 		"location": "Europe/Moscow",
 		"closeRoom": true,
-		"metrics": false,
+		"metrics": true,
 		"field": {
 			"minAreaSize": 1,
 			"maxAreaSize": 5,

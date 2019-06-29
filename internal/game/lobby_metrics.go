@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -40,8 +41,7 @@ func (lobby *Lobby) removeFromAllRooms(roomID string, group *sync.WaitGroup) {
 	}
 }
 
-func (lobby *Lobby) addToFreeRooms(room *Room, group *sync.WaitGroup) error {
-	defer group.Done()
+func (lobby *Lobby) addToFreeRooms(room *Room) error {
 	defer utils.CatchPanic("lobby_metrics.go removeFromAllRooms")
 
 	if lobby.done() || room.done() {
@@ -64,8 +64,7 @@ func (lobby *Lobby) addToFreeRooms(room *Room, group *sync.WaitGroup) error {
 	return nil
 }
 
-func (lobby *Lobby) addToAllRooms(room *Room, group *sync.WaitGroup) error {
-	defer group.Done()
+func (lobby *Lobby) addToAllRooms(room *Room) error {
 	defer utils.CatchPanic("lobby_metrics.go removeFromAllRooms")
 
 	if lobby.done() || room.done() {
@@ -86,4 +85,63 @@ func (lobby *Lobby) addToAllRooms(room *Room, group *sync.WaitGroup) error {
 		return re.ErrorLobbyCantCreateRoom()
 	}
 	return nil
+}
+
+// m mean metrics
+
+func (lobby *Lobby) mUserWelcome(isAnonymous bool) {
+	fmt.Println("mUserWelcome", lobby.config.Metrics)
+	if lobby.config.Metrics {
+		metrics.Online.Inc()
+		fmt.Println("1231231231")
+		if isAnonymous {
+			metrics.AnonymousOnline.Inc()
+		}
+	}
+}
+
+func (lobby *Lobby) mUserBye(isAnonymous bool) {
+	if lobby.config.Metrics {
+		metrics.Online.Dec()
+		metrics.InLobby.Dec()
+		if isAnonymous {
+			metrics.AnonymousOnline.Dec()
+		}
+	}
+}
+
+func (lobby *Lobby) removeWaiter(conn *Connection) {
+	lobby.Waiting.Remove(conn)
+	if lobby.config.Metrics {
+		metrics.InLobby.Dec()
+	}
+	go lobby.sendWaiterExit(conn, All)
+}
+
+func (lobby *Lobby) addPlayer(conn *Connection) {
+	lobby.Playing.Add(conn)
+	if lobby.config.Metrics {
+		metrics.InGame.Inc()
+	}
+	go lobby.sendPlayerEnter(conn, All)
+}
+
+func (lobby *Lobby) removePlayer(conn *Connection) {
+	lobby.Playing.Remove(conn)
+	if lobby.config.Metrics {
+		metrics.InGame.Dec()
+	}
+	go lobby.sendPlayerExit(conn, All)
+}
+
+// addWaiter add connection to waiters slice and send to the connection LobbyJSON
+func (lobby *Lobby) addWaiter(newConn *Connection) {
+
+	lobby.Waiting.Add(newConn)
+	if lobby.config.Metrics {
+		metrics.InLobby.Inc()
+	}
+
+	go lobby.greet(newConn)
+	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
 }

@@ -165,7 +165,7 @@ func (room *Room) sendObserverExit(conn *Connection, predicate SendPredicate) {
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *Room) sendStatus(predicate SendPredicate, wg *sync.WaitGroup) {
+func (room *Room) sendStatus(predicate SendPredicate, status int, wg *sync.WaitGroup) {
 	defer func() {
 		if wg != nil {
 			wg.Done()
@@ -181,7 +181,6 @@ func (room *Room) sendStatus(predicate SendPredicate, wg *sync.WaitGroup) {
 	}()
 
 	var leftTime int
-	status := room.Status()
 	since := int(time.Since(room.Date()).Seconds())
 	if status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - since
@@ -201,6 +200,7 @@ func (room *Room) sendStatus(predicate SendPredicate, wg *sync.WaitGroup) {
 			Time:   leftTime,
 		},
 	}
+	fmt.Println("!!!!!!!leftTime ", leftTime)
 	room.send(response, predicate)
 }
 
@@ -235,6 +235,7 @@ func (room *Room) sendStatusOne(conn *Connection) {
 			Time:   leftTime,
 		},
 	}
+	fmt.Println("leftTime ", leftTime)
 	fmt.Println("status send to ", conn.ID())
 	conn.SendInformation(response)
 }

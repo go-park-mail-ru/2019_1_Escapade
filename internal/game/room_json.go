@@ -19,7 +19,7 @@ type RoomJSON struct {
 	History   []*PlayerAction   `json:"history,omitempty"`
 	Messages  []*models.Message `json:"messages"`
 
-	Field    *Field               `json:"field,omitempty"`
+	Field    FieldJSON            `json:"field,omitempty"`
 	Date     time.Time            `json:"date,omitempty"`
 	Settings *models.RoomSettings `json:"settings"`
 }
@@ -34,7 +34,7 @@ func (room *Room) JSON() RoomJSON {
 		Observers: room.Observers,
 		History:   room.history(),
 		Messages:  room._messages,
-		Field:     room.Field,
+		Field:     room.Field.JSON(),
 		Date:      room.Date(),
 		Settings:  room.Settings,
 	}

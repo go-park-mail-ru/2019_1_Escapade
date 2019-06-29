@@ -79,13 +79,17 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate, group *s
 }
 
 func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
+
+	utils.Debug(false, "here")
 	defer group.Done()
+	utils.Debug(false, "we")
 	defer utils.CatchPanic("lobby_send.go sendRoomUpdate")
 
 	if lobby.done() {
+		utils.Debug(false, "aaaaaa")
 		return
 	}
-
+	utils.Debug(false, "wtf")
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
@@ -93,6 +97,7 @@ func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *s
 		Type:  "LobbyRoomUpdate",
 		Value: room.JSON(),
 	}
+	utils.Debug(false, "why")
 	lobby.send(response, predicate)
 }
 

@@ -45,16 +45,18 @@ func (conns *Connections) Free() {
 	conns.capacityM.Unlock()
 }
 
+// ConnectionsIterator is the iterator for the slice of connections
 type ConnectionsIterator struct {
 	current int
 	conns   *Connections
 }
 
+// NewConnectionsIterator create new instance of ConnectionsIterator
 func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
 	return &ConnectionsIterator{conns: conns, current: -1}
 }
 
-// Remove -> FastRemove
+// Remove remove connecrion from the slice of connections
 func (conns *Connections) Remove(conn *Connection) bool {
 	if conn == nil {
 		utils.Debug(true, "no conn")

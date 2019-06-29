@@ -74,13 +74,13 @@ func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int) {
 }
 
 // SetFlag set flag which connection is conn
-func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
+func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell, prepareOver func()) {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()
 	index := conn.Index()
 	if index < 0 {
-		return false
+		return
 	}
 
 	fmt.Println("somebody set flag", index, cell.X, cell.Y, FlagID(conn.ID()))
@@ -92,8 +92,10 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell) bool {
 	if !onlinePlayers._flags[conn.Index()].Set {
 		onlinePlayers._flags[conn.Index()].Set = true
 		onlinePlayers.flagsLeft--
+		if onlinePlayers.flagsLeft == 0 {
+			prepareOver()
+		}
 	}
-	return onlinePlayers.flagsLeft == 0
 }
 
 // Flags return '_flags' field

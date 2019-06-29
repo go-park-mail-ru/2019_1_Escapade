@@ -3,6 +3,7 @@ package game
 import (
 	"sync"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -115,7 +116,7 @@ func (room *Room) LeaveAll() {
 	}
 }
 
-// LeavePlayer handle player going back to lobby
+// Leave handle player going back to lobby
 func (room *Room) Leave(conn *Connection, isPlayer bool) bool {
 	if room.done() {
 		return false
@@ -184,14 +185,8 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 }
 
 // OpenCell open cell
-func (room *Room) OpenCell(conn *Connection, cell *Cell) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
+func (room *Room) OpenCell(conn *Connection, cell *Cell, group *sync.WaitGroup) {
+	defer group.Done()
 
 	// if user try set open cell before game launch
 	if room.Status() != StatusRunning {
@@ -207,7 +202,6 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	if !room.isAlive(conn) {
 		return
 	}
-	//index := conn.Index()
 
 	// set who try open cell(for history)
 	cell.PlayerID = conn.ID()
@@ -222,11 +216,11 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell) {
 	}
 
 	if len(cells) > 0 {
-		room.sendPlayerPoints(room.Players.Player(conn.Index()), room.All)
+		go room.sendPlayerPoints(room.Players.Player(conn.Index()), room.All)
 		go room.sendNewCells(room.All, cells...)
 	}
 	if room.Field.IsCleared() {
-		room.chanStatus <- StatusFinished
+		room.updateStatus(StatusFinished)
 	}
 	return
 }
@@ -244,9 +238,11 @@ func (room *Room) CellHandle(conn *Connection, cell *Cell) {
 	utils.Debug(false, "cellHandle")
 	status := room.Status()
 	if status == StatusFlagPlacing {
-		room.SetFlag(conn, cell)
+		room.wGroup.Add(1)
+		room.SetFlag(conn, cell, room.wGroup)
 	} else if status == StatusRunning {
-		room.OpenCell(conn, cell)
+		room.wGroup.Add(1)
+		room.OpenCell(conn, cell, room.wGroup)
 	}
 	return
 }
@@ -331,7 +327,7 @@ func (room *Room) StartFlagPlacing() {
 	room.wGroup.Add(1)
 	room.lobby.RoomStart(room, room.wGroup)
 
-	go room.sendStatus(room.All, nil)
+	//go room.sendStatus(room.All, nil)
 	go room.sendField(room.All)
 }
 
@@ -356,7 +352,6 @@ func (room *Room) StartGame() {
 	room.setStatus(StatusRunning)
 	loc, _ := time.LoadLocation(room.lobby.config.Location)
 	room.setDate(time.Now().In(loc))
-	go room.sendStatus(room.All, nil)
 	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
@@ -381,15 +376,55 @@ func (room *Room) FinishGame(timer bool) {
 	cells := make([]Cell, 0)
 	room.Field.OpenEverything(&cells)
 
-	saveAndSendGroup.Add(4)
-	go room.sendStatus(room.All, saveAndSendGroup)
+	saveAndSendGroup.Add(1)
 	go room.sendGameOver(timer, room.All, cells, saveAndSendGroup)
+
+	saveAndSendGroup.Add(1)
 	go room.Save(saveAndSendGroup)
+
+	saveAndSendGroup.Add(1)
 	go room.Players.Finish(saveAndSendGroup)
 	saveAndSendGroup.Wait()
 
+	go room.metricsRoom(room.lobby.config.Metrics, false)
+
 	room.wGroup.Add(1)
 	room.lobby.roomFinish(room, room.wGroup)
+}
+
+func (room *Room) metricsRoom(needMetrics bool, cancel bool) {
+	if !needMetrics {
+		return
+	}
+	var (
+		roomType        string
+		anonymous, mode int
+	)
+	if cancel {
+		roomType = "aborted"
+		metrics.AbortedRooms.Inc()
+	} else {
+		roomType = "finished"
+		metrics.FinishedRooms.Inc()
+	}
+	if !room.Settings.NoAnonymous {
+		anonymous = 1
+	}
+	if room.Settings.Deathmatch {
+		mode = 1
+	}
+
+	size := float64(room.Settings.Width * room.Settings.Height)
+	openProcent := 1 - float64(float64(room.Field.cellsLeft())/size)
+	metrics.RoomPlayers.WithLabelValues(roomType).Observe(float64(room.Settings.Players))
+	metrics.RoomDifficult.WithLabelValues(roomType).Observe(float64(room.Field.Difficult))
+	metrics.RoomSize.WithLabelValues(roomType).Observe(size)
+	metrics.RoomTime.WithLabelValues(roomType).Observe(float64(room.Settings.TimeToPlay))
+	metrics.RoomOpenProcent.WithLabelValues(roomType).Observe(openProcent)
+	metrics.RoomMode.WithLabelValues(roomType).Observe(float64(mode))
+	metrics.RoomAnonymous.WithLabelValues(roomType).Observe(float64(anonymous))
+	metrics.RoomTimeSearchingPeople.WithLabelValues(roomType).Observe(room.recruitmentTime().Seconds())
+	metrics.RoomTimePlaying.WithLabelValues(roomType).Observe(room.playingTime().Seconds())
 }
 
 func (room *Room) CancelGame() {
@@ -404,5 +439,12 @@ func (room *Room) CancelGame() {
 		room.wGroup.Done()
 	}()
 
-	// metrics here
+	room.setRecruitmentTime()
+
+	room.setStatus(StatusFinished)
+
+	go room.metricsRoom(room.lobby.config.Metrics, true)
+
+	room.wGroup.Add(1)
+	room.lobby.roomFinish(room, room.wGroup)
 }

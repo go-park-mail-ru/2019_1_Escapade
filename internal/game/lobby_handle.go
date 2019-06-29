@@ -23,6 +23,8 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 		lobby.wGroup.Done()
 	}()
 	lobby.chanJoin <- conn
+
+	go lobby.mUserWelcome(conn.IsAnonymous())
 }
 
 /*
@@ -141,8 +143,6 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		lobby.wGroup.Done()
 	}()
 
-	var disconnected bool
-
 	// check
 	_, waiter := lobby.Waiting.SearchByID(conn.ID())
 	if waiter != nil {
@@ -176,15 +176,14 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		// continue, because player in lobby
 	}
 
-	fmt.Println("see disc -  #", conn.ID())
-	disconnected = lobby.Waiting.Remove(conn)
+	utils.Debug(false, "see disc -  #", conn.ID())
+	disconnected := lobby.Waiting.Remove(conn)
 	if disconnected {
 		go lobby.sendWaiterExit(conn, All)
+		go lobby.mUserBye(conn.IsAnonymous())
+		utils.Debug(false, "disconnected -  #", conn.ID())
 	}
 
-	if disconnected {
-		fmt.Println("disconnected -  #", conn.ID())
-	}
 	return
 }
 

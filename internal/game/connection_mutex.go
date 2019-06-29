@@ -50,36 +50,26 @@ func (conn *Connection) setDisconnected() {
 	//conn.time = time.Now()
 }
 
-// SetConnected set _disconnected false
+// SetConnected set_disconnected false and update last connection time
 func (conn *Connection) SetConnected() {
-	// if conn._disconnected && conn.InPlayingRoom() {
-	// 	_, isPlayer := conn.PlayingRoom().Search(conn)
-	// 	if isPlayer {
-	// 		pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsPlayer)
-	// 		conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
-	// 		//conn.Room().sendPlayerEnter(*conn, conn.Room().All)
-	// 	} else {
-	// 		pa := *conn.PlayingRoom().addAction(conn.ID(), ActionConnectAsObserver)
-	// 		conn.PlayingRoom().sendAction(pa, conn.PlayingRoom().All)
-	// 		//conn.Room().sendObserverEnter(*conn, conn.Room().All)
-	// 	}
-	// }
 	conn.disconnectedM.Lock()
 	conn._disconnected = false
 	conn.disconnectedM.Unlock()
-	//fmt.Println("!!!!!!!!!!!!!!!!!!!1connected", time.Now())
+
 	conn.timeM.Lock()
 	conn._time = time.Now()
 	conn.timeM.Unlock()
 }
 
+// Time return the last time the connection sent a 'pong' message
 func (conn *Connection) Time() time.Time {
 	conn.timeM.RLock()
 	defer conn.timeM.RUnlock()
 	return conn._time
 }
 
-// Room return   '_room' field
+// PlayingRoom return the pointer to the room in which the
+// connection is playing
 func (conn *Connection) PlayingRoom() *Room {
 	if conn.done() {
 		return conn._playingRoom
@@ -95,7 +85,8 @@ func (conn *Connection) PlayingRoom() *Room {
 	return v
 }
 
-// Both return   '_both' field
+// WaitingRoom return the pointer to the room in which the
+// connection is waiting other players to connect
 func (conn *Connection) WaitingRoom() *Room {
 	if conn.done() {
 		return conn._playingRoom

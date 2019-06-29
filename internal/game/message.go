@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
@@ -38,6 +39,13 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	case models.Write:
 		append(message)
 		message.ID, err = lobby.db.CreateMessage(message, inRoom, roomID)
+		if lobby.config.Metrics {
+			if inRoom {
+				metrics.RoomsMessages.Inc()
+			} else {
+				metrics.LobbyMessages.Inc()
+			}
+		}
 	case models.Update:
 		if message.ID <= 0 {
 			return re.ErrorMessageInvalidID()
@@ -50,6 +58,13 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		}
 		delete(find(message))
 		_, err = lobby.db.DeleteMessage(message)
+		if lobby.config.Metrics {
+			if inRoom {
+				metrics.RoomsMessages.Dec()
+			} else {
+				metrics.LobbyMessages.Dec()
+			}
+		}
 	}
 	if err != nil {
 		return err

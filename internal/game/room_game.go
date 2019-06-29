@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -94,8 +95,6 @@ func (room *Room) Kill(conn *Connection, action int) {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("Status", room.Status)
-	// cause all in pointers
 	if room.Status() < StatusFlagPlacing && room.Status() > StatusRunning {
 		return
 	}
@@ -106,7 +105,6 @@ func (room *Room) Kill(conn *Connection, action int) {
 		if room.Settings.Deathmatch {
 
 			cell := room.Players.Flag(conn.Index())
-			//room.Field.SetCellFlagTaken(&cell.Cell)
 
 			cells := make([]Cell, 0)
 			room.Field.saveCell(&cell.Cell, &cells)
@@ -115,7 +113,7 @@ func (room *Room) Kill(conn *Connection, action int) {
 		}
 
 		if room.Players.Capacity() <= room.killed()+1 {
-			room.chanStatus <- StatusFinished
+			room.playingOver()
 		}
 		pa := *room.addAction(conn.ID(), action)
 		go room.sendAction(pa, room.All)
@@ -149,14 +147,8 @@ func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Con
 }
 
 // SetAndSendNewCell set and send cell to conn
-func (room *Room) SetAndSendNewCell(conn Connection) {
-	if room.done() {
-		return
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
+func (room *Room) SetAndSendNewCell(conn Connection, group *sync.WaitGroup) {
+	defer group.Done()
 
 	found := true
 	// create until it become unique
@@ -165,22 +157,54 @@ func (room *Room) SetAndSendNewCell(conn Connection) {
 		cell = room.Field.CreateRandomFlag(conn.ID())
 		found, _ = room.flagExists(cell, nil)
 	}
-	if room.Players.SetFlag(conn, cell) {
-		room.chanStatus <- StatusRunning
-	}
+	room.Players.SetFlag(conn, cell, room.prepareOver)
+
 	response := models.RandomFlagSet(cell)
 	conn.SendInformation(response)
 }
 
-// SetFlag handle user want set flag
-func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
-	if room.done() {
-		return false
+// dont call as goroutines!!!
+
+func (room *Room) recruitingOver() {
+	fmt.Println("!!!recruitingOver")
+	room.initTimers(false)
+	if room.updateStatus(StatusFlagPlacing) {
+		if room.Settings.Deathmatch {
+			go room.sendStatus(room.All, StatusFlagPlacing, nil)
+		}
 	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
+}
+
+func (room *Room) prepareOver() {
+	fmt.Println("!!!prepareOver")
+	room.prepare.Stop()
+	if room.updateStatus(StatusRunning) {
+		go room.sendStatus(room.All, StatusRunning, nil)
+	}
+}
+
+func (room *Room) playingOver() {
+	fmt.Println("!!!playingOver")
+	room.play.Stop()
+	if room.updateStatus(StatusFinished) {
+		go room.sendStatus(room.All, StatusFinished, nil)
+	}
+}
+
+func (room *Room) updateStatus(newStatus int) bool {
+	utils.Debug(false, "!!!!updateStatus", room.Status(), newStatus)
+	if room.Status() != newStatus {
+		utils.Debug(false, "lock")
+		go func() { room.chanStatus <- newStatus }()
+		utils.Debug(false, "unlock")
+		return true
+	}
+	return false
+}
+
+// SetFlag handle user want set flag
+func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) bool {
+	defer group.Done()
 
 	// if user try set flag after game launch
 	if room.Status() != StatusFlagPlacing {
@@ -203,18 +227,20 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell) bool {
 
 	if found, prevConn := room.flagExists(*cell, conn); found {
 		pa := *room.addAction(conn.ID(), ActionFlagСonflict)
-		room.sendAction(pa, room.All)
-		go room.SetAndSendNewCell(*conn)
-		go room.SetAndSendNewCell(*prevConn)
+		go room.sendAction(pa, room.All)
+
+		room.wGroup.Add(1)
+		go room.SetAndSendNewCell(*conn, room.wGroup)
+
+		room.wGroup.Add(1)
+		go room.SetAndSendNewCell(*prevConn, room.wGroup)
 		return true
 	}
 
-	pa := *room.addAction(conn.ID(), ActionFlagSet)
-	room.sendAction(pa, room.All)
+	room.Players.SetFlag(*conn, *cell, room.prepareOver)
 
-	if room.Players.SetFlag(*conn, *cell) {
-		room.chanStatus <- StatusRunning
-	}
+	pa := *room.addAction(conn.ID(), ActionFlagSet)
+	go room.sendAction(pa, room.All)
 	return true
 }
 
@@ -243,7 +269,7 @@ func (room *Room) FillField() {
 		room.setFlags()
 	}
 	room.Field.SetMines(room.Players.Flags(), room.Settings.Deathmatch)
-	room.Field.SetMinesLabels()
+	room.Field.SetMinesCounters()
 }
 
 // addAction creates an action and passes it on appendAction()

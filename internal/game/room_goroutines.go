@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"time"
@@ -32,34 +33,30 @@ func (room *Room) runRoom() {
 		room.play.Stop()
 	}()
 
-	beginGame := false
+	var beginGame, timeOut bool
 
 	for {
+		fmt.Println("new wait!")
 		select {
 		//go room.launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished)
 		case <-room.prepare.C:
 			fmt.Println("prepare!", beginGame)
 			if beginGame {
-				room.chanStatus <- StatusRunning
+				room.prepareOver()
 			}
 		case <-room.play.C:
 			fmt.Println("play!", beginGame)
 			if beginGame {
-				room.chanStatus <- StatusFinished
+				timeOut = true
+				room.playingOver()
 			}
 		case conn := <-room.chanConnection:
 			fmt.Println("handle!")
 			go room.processConnectionAction(conn)
-		case newStatus, ok := <-room.chanStatus:
-			fmt.Println("chanStatus!")
+		case newStatus := <-room.chanStatus:
+			fmt.Println("chanStatus!", newStatus)
 			oldStatus := room.Status()
-			if newStatus == 0 {
-				println("ok", ok)
-				panic("new 0")
-			}
-			if oldStatus == 4 && newStatus == 0 {
-				panic("0,4")
-			}
+
 			fmt.Println("Status!", oldStatus, newStatus)
 			if newStatus == oldStatus || newStatus > StatusFinished {
 				continue
@@ -73,21 +70,17 @@ func (room *Room) runRoom() {
 			case StatusFlagPlacing:
 				fmt.Println("coooooool!", oldStatus, newStatus)
 				beginGame = true
-				room.initTimers(false)
 				room.StartFlagPlacing()
 			case StatusRunning:
 				fmt.Println("StatusRunning!")
-				room.prepare.Stop()
 				room.StartGame()
 				fmt.Println("StatusRunning! +")
 			case StatusFinished:
 				fmt.Println("StatusFinished!")
-				ok := room.play.Stop()
-				ticker.Stop()
 				if oldStatus == StatusRecruitment {
 					room.CancelGame()
 				} else {
-					room.FinishGame(!ok)
+					room.FinishGame(timeOut)
 				}
 				fmt.Println("StatusFinished +!")
 			//return
@@ -95,6 +88,7 @@ func (room *Room) runRoom() {
 				ticker.Stop()
 				return
 			}
+			fmt.Println("chanStatus finish +!")
 		}
 	}
 }
@@ -229,6 +223,10 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 }
 
 func (room *Room) processActionReconnect(conn *Connection) {
+	if room.lobby.config.Metrics {
+		metrics.RoomsReconnections.Inc()
+	}
+
 	if room.done() {
 		return
 	}

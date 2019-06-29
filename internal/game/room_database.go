@@ -49,13 +49,13 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 	field := models.Field{
 		Width:     room.Field.Width,
 		Height:    room.Field.Height,
-		CellsLeft: room.Field.CellsLeft,
+		CellsLeft: room.Field._cellsLeft,
 		Difficult: 0,
 		Mines:     room.Field.Mines,
 	}
 
 	cells := make([]models.Cell, 0)
-	for _, cellHistory := range room.Field.History {
+	for _, cellHistory := range room.Field.History() {
 		cell := models.Cell{
 			PlayerID: cellHistory.PlayerID,
 			X:        cellHistory.X,
@@ -143,11 +143,11 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	// field
 	room.Field.Width = info.Field.Width
 	room.Field.Height = info.Field.Height
-	room.Field.CellsLeft = info.Field.CellsLeft
+	room.Field.setCellsLeft(info.Field.CellsLeft)
 	room.Field.Mines = info.Field.Mines
 
 	// cells
-	room.Field.History = make([]*Cell, 0)
+	room.Field.setHistory(make([]*Cell, 0))
 	for _, cellDB := range info.Cells {
 		cell := &Cell{
 			X:        cellDB.X,
@@ -156,7 +156,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 			PlayerID: cellDB.PlayerID,
 			Time:     cellDB.Date,
 		}
-		room.Field.History = append(room.Field.History, cell)
+		room.Field.setToHistory(cell)
 	}
 
 	// players

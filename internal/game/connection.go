@@ -99,8 +99,9 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 	}
 }
 
-// Restore
-// it calls in lobby restore
+// Restore set restored playing and waiting rooms, conn's index
+// in Players slice
+// It calls in lobby restore
 func (conn *Connection) Restore(copy *Connection) {
 	if conn.done() {
 		return
@@ -110,7 +111,6 @@ func (conn *Connection) Restore(copy *Connection) {
 		conn.wGroup.Done()
 	}()
 
-	//fmt.Println("copy info", copy.PlayingRoom(), copy.Both(), copy.Index())
 	conn.setPlayingRoom(copy.PlayingRoom())
 	conn.setWaitingRoom(copy.WaitingRoom())
 	conn.SetIndex(copy.Index())
@@ -193,7 +193,7 @@ func (conn *Connection) Free() {
 	//fmt.Println("conn free memory")
 }
 
-// InRoom check is player in room
+// InPlayingRoom check is player in playing room
 func (conn *Connection) InPlayingRoom() bool {
 	if conn.done() {
 		return false
@@ -257,22 +257,22 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSet
 	for {
 		select {
 		case <-parent.Done():
-			fmt.Println("ReadConn done catched")
+			utils.Debug(false, "ReadConn done catched")
 			return
 		default:
 			_, message, err := conn.wsReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-					fmt.Println("IsUnexpectedCloseError:" + err.Error())
+					utils.Debug(false, "IsUnexpectedCloseError:"+err.Error())
 				} else {
-					fmt.Println("expected error:" + err.Error())
+					utils.Debug(false, "expected error:"+err.Error())
 				}
 				if conn.lobby != nil {
 					conn.lobby.Leave(conn, "err.Error()")
 				}
 				return
 			}
-			fmt.Println("#", conn.ID(), "read from conn:", string(message))
+			utils.Debug(false, "#", conn.ID(), "read from conn:", string(message))
 			conn.SetConnected()
 			conn.lobby.chanBroadcast <- &Request{
 				Connection: conn,
@@ -302,7 +302,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 	for {
 		select {
 		case <-parent.Done():
-			fmt.Println("WriteConn done catched")
+			utils.Debug(false, "WriteConn done catched")
 			return
 		case message, ok := <-conn.send:
 
@@ -362,7 +362,7 @@ func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGro
 	conn.SendInformation(value)
 }
 
-// ID return players id
+// ID return player's id
 func (conn *Connection) ID() int {
 	if conn.done() {
 		return conn.User.ID
@@ -377,6 +377,7 @@ func (conn *Connection) ID() int {
 	return conn.User.ID
 }
 
+// sendAccountTaken send the message 'AccountTaken' to the connection
 func sendAccountTaken(conn *Connection) {
 
 	response := models.Response{
@@ -385,6 +386,6 @@ func sendAccountTaken(conn *Connection) {
 	if conn == nil {
 		panic("sendAccountTaken")
 	}
-	fmt.Println("send sendAccountTaken")
+	utils.Debug(false, "send sendAccountTaken")
 	conn.SendInformation(response)
 }

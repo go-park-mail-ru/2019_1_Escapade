@@ -25,15 +25,18 @@ func NewRooms(capacity int) *Rooms {
 	}
 }
 
+// RoomsIterator is the iterator for the slice of rooms
 type RoomsIterator struct {
 	current int
 	rooms   *Rooms
 }
 
+// NewRoomsIterator create new instance of RoomsIterator
 func NewRoomsIterator(rooms *Rooms) *RoomsIterator {
 	return &RoomsIterator{rooms: rooms, current: -1}
 }
 
+// RoomsJSON is a wrapper for sending Rooms by JSON
 type RoomsJSON struct {
 	Capacity int     `json:"capacity"`
 	Get      []*Room `json:"get"`

@@ -8,11 +8,14 @@ func (conns *Connections) RGet() []*Connection {
 	return conns._get
 }
 
+// Value get the current value of connection slice
 func (iter *ConnectionsIterator) Value() *Connection {
 	iter.conns.getM.Lock()
 	defer iter.conns.getM.Unlock()
 	return iter.conns._get[iter.current]
 }
+
+// Next increases the 'current' index to move through the slice
 func (iter *ConnectionsIterator) Next() bool {
 	iter.current++
 	iter.conns.getM.Lock()
@@ -62,6 +65,7 @@ func (conns *Connections) SetCapacity(size int) {
 	conns._capacity = size
 }
 
+// len return length of the slice of connections
 func (conns *Connections) len() int {
 
 	conns.getM.Lock()

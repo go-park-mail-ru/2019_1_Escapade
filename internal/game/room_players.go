@@ -26,12 +26,6 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 		return false
 	}
 
-	// secondary: add player to metrics
-	// later return back!!!!!
-	// if room.lobby.Metrics() {
-	// 	metrics.Players.WithLabelValues(room.ID, conn.User.Name).Inc()
-	// }
-
 	// secondary: notify other players, that new connected
 	var pa *PlayerAction
 	if needRecover {
@@ -52,14 +46,21 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 		go room.sendObserverEnter(conn, room.AllExceptThat(conn))
 	}
 	go room.sendAction(*pa, room.AllExceptThat(conn))
-
+	utils.Debug(false, "wooow")
 	// primary: provide the connection(client) with the necessary json
 	if !needRecover {
 		room.wGroup.Add(1)
+		utils.Debug(false, "lol?")
 		room.lobby.sendRoomUpdate(room, All, room.wGroup)
+		utils.Debug(false, "lol!")
 	}
+	utils.Debug(false, "wooow1")
 	room.sendStatusOne(conn)
+	utils.Debug(false, "wooow2")
 	room.greet(conn, isPlayer)
+	utils.Debug(false, "wooow3")
+
+	utils.Debug(false, "user in room")
 
 	return true
 }
@@ -89,7 +90,7 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		}
 		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, needRecover)
 		if !needRecover && !room.Players.EnoughPlace() {
-			room.chanStatus <- StatusFlagPlacing
+			room.recruitingOver()
 		}
 	} else {
 		if !needRecover && !room.Observers.EnoughPlace() {
