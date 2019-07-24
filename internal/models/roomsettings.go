@@ -2,34 +2,38 @@ package models
 
 // RoomSettings a set of parameters, that set the size,  of room
 // and field, the duration of game etc
+//easyjson:json
 type RoomSettings struct {
 	ID            string `json:"id"`
-	Name          string `json:"name"`
-	Width         int    `json:"width"`
-	Height        int    `json:"height"`
-	Players       int    `json:"players"`
-	Observers     int    `json:"observers"`
-	TimeToPrepare int    `json:"prepare"`
-	TimeToPlay    int    `json:"play"`
+	Name          string `json:"name" minLength:"1" maxLength:"30"`
+	Width         int    `json:"width" minimum:"5" maximum:"100"`
+	Height        int    `json:"height" minimum:"5" maximum:"100"`
+	Players       int    `json:"players" minimum:"2" maximum:"100"`
+	Observers     int    `json:"observers"  maximum:"100"`
+	TimeToPrepare int    `json:"prepare" maximum:"60"`
+	TimeToPlay    int    `json:"play" maximum:"7200"`
 	Mines         int    `json:"mines"`
 	NoAnonymous   bool   `json:"noAnonymous"`
 	Deathmatch    bool   `json:"deathmatch"`
 }
 
+// FieldCheck check room's field is valid
 func (rs *RoomSettings) FieldCheck() bool {
 	return rs.Players > 1 && rs.Width*rs.Height-rs.Players-rs.Mines > 0
 }
 
+// AnonymousCheck check that anonymous cant join to non anonymous game
 func (rs *RoomSettings) AnonymousCheck(isAnonymous bool) bool {
 	return !rs.NoAnonymous || !isAnonymous
 }
 
-func (origin *RoomSettings) Similar(another *RoomSettings) bool {
-	return origin.Width == another.Width && origin.Height == another.Height &&
-		origin.TimeToPlay == another.TimeToPlay && origin.Mines == another.Mines &&
-		origin.TimeToPrepare == another.TimeToPrepare && origin.Players == another.Players &&
-		origin.Observers == another.Observers && origin.NoAnonymous == another.NoAnonymous &&
-		origin.Deathmatch == another.Deathmatch
+// Similar compare two Rooms settings
+func (rs *RoomSettings) Similar(another *RoomSettings) bool {
+	return rs.Width == another.Width && rs.Height == another.Height &&
+		rs.TimeToPlay == another.TimeToPlay && rs.Mines == another.Mines &&
+		rs.TimeToPrepare == another.TimeToPrepare && rs.Players == another.Players &&
+		rs.Observers == another.Observers && rs.NoAnonymous == another.NoAnonymous &&
+		rs.Deathmatch == another.Deathmatch
 }
 
 // NewSmallRoom create small room

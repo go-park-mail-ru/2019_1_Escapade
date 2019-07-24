@@ -111,7 +111,9 @@ func (lobby *Lobby) mUserBye(isAnonymous bool) {
 }
 
 func (lobby *Lobby) removeWaiter(conn *Connection) {
-	lobby.Waiting.Remove(conn)
+	if !lobby.Waiting.Remove(conn) {
+		return
+	}
 	if lobby.config.Metrics {
 		metrics.InLobby.Dec()
 	}
@@ -127,7 +129,9 @@ func (lobby *Lobby) addPlayer(conn *Connection) {
 }
 
 func (lobby *Lobby) removePlayer(conn *Connection) {
-	lobby.Playing.Remove(conn)
+	if !lobby.Playing.Remove(conn) {
+		return
+	}
 	if lobby.config.Metrics {
 		metrics.InGame.Dec()
 	}

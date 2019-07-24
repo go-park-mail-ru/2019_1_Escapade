@@ -415,16 +415,27 @@ func (room *Room) metricsRoom(needMetrics bool, cancel bool) {
 	}
 
 	size := float64(room.Settings.Width * room.Settings.Height)
-	openProcent := 1 - float64(float64(room.Field.cellsLeft())/size)
+
+	utils.Debug(false, "metrics RoomPlayers", room.Settings.Players)
 	metrics.RoomPlayers.WithLabelValues(roomType).Observe(float64(room.Settings.Players))
+	utils.Debug(false, "metrics difficult", room.Field.Difficult)
 	metrics.RoomDifficult.WithLabelValues(roomType).Observe(float64(room.Field.Difficult))
+	utils.Debug(false, "metrics size", size)
 	metrics.RoomSize.WithLabelValues(roomType).Observe(size)
+	utils.Debug(false, "metrics TimeToPlay", room.Settings.TimeToPlay)
 	metrics.RoomTime.WithLabelValues(roomType).Observe(float64(room.Settings.TimeToPlay))
-	metrics.RoomOpenProcent.WithLabelValues(roomType).Observe(openProcent)
-	metrics.RoomMode.WithLabelValues(roomType).Observe(float64(mode))
-	metrics.RoomAnonymous.WithLabelValues(roomType).Observe(float64(anonymous))
+	if !cancel {
+		openProcent := 1 - float64(float64(room.Field.cellsLeft())/size)
+		utils.Debug(false, "metrics openProcent", openProcent)
+		metrics.RoomOpenProcent.Observe(openProcent)
+
+		utils.Debug(false, "metrics playing time", room.playingTime().Seconds())
+		metrics.RoomTimePlaying.Observe(room.playingTime().Seconds())
+	}
+	metrics.RoomMode.WithLabelValues(roomType, utils.String(mode)).Inc()
+	metrics.RoomAnonymous.WithLabelValues(roomType, utils.String(anonymous)).Inc()
+	utils.Debug(false, "metrics recruitmentTime", room.recruitmentTime().Seconds())
 	metrics.RoomTimeSearchingPeople.WithLabelValues(roomType).Observe(room.recruitmentTime().Seconds())
-	metrics.RoomTimePlaying.WithLabelValues(roomType).Observe(room.playingTime().Seconds())
 }
 
 func (room *Room) CancelGame() {
@@ -438,8 +449,6 @@ func (room *Room) CancelGame() {
 	defer func() {
 		room.wGroup.Done()
 	}()
-
-	room.setRecruitmentTime()
 
 	room.setStatus(StatusFinished)
 

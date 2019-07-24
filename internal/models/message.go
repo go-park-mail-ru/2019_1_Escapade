@@ -2,12 +2,14 @@ package models
 
 import "time"
 
+// Status, who sent message
 const (
 	StatusLobby = iota
 	StatusPlayer
 	StatusObserver
 )
 
+// Action associated with the message
 const (
 	Write = iota
 	Update
@@ -17,6 +19,7 @@ const (
 )
 
 // Message is the message struct
+//easyjson:json
 type Message struct {
 	ID     int             `json:"id"`
 	User   *UserPublicInfo `json:"user"`
@@ -27,6 +30,8 @@ type Message struct {
 	Edited bool            `json:"edited"`
 }
 
+// Messages slice of the messages
+//easyjson:json
 type Messages struct {
 	Messages []*Message `json:"Messages"`
 	Limit    int        `json:"limit"`

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/json"
 	"sync"
 )
 
@@ -37,6 +36,7 @@ func NewRoomsIterator(rooms *Rooms) *RoomsIterator {
 }
 
 // RoomsJSON is a wrapper for sending Rooms by JSON
+//easyjson:json
 type RoomsJSON struct {
 	Capacity int     `json:"capacity"`
 	Get      []*Room `json:"get"`
@@ -52,14 +52,14 @@ func (rooms *Rooms) JSON() RoomsJSON {
 
 // MarshalJSON - overriding the standard method json.Marshal
 func (rooms *Rooms) MarshalJSON() ([]byte, error) {
-	return json.Marshal(rooms.JSON())
+	return rooms.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
 func (rooms *Rooms) UnmarshalJSON(b []byte) error {
 	temp := &RoomsJSON{}
 
-	if err := json.Unmarshal(b, &temp); err != nil {
+	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
 

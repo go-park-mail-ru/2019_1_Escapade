@@ -1,20 +1,5 @@
-basePath: /api/v1
+basePath: /api
 definitions:
-  models.Game:
-    properties:
-      exploded:
-        type: boolean
-      fieldHeight:
-        type: integer
-      fieldWidth:
-        type: integer
-      finihsed:
-        type: boolean
-      minsFound:
-        type: integer
-      minsTotal:
-        type: integer
-    type: object
   models.Pages:
     properties:
       amount:
@@ -35,17 +20,21 @@ definitions:
         type: string
       bestTime:
         type: string
-      email:
-        type: string
+      difficult:
+        type: integer
+      id:
+        type: integer
       name:
         type: string
+      photo:
+        type: string
     type: object
-host: https://escapade-backend.herokuapp.com
+host: https://explosion.team
 info:
   contact: {}
-  description: Documentation
+  description: API documentation
   license: {}
-  title: Escapade API
+  title: Escapade Explosion API
   version: "1.0"
 paths:
   /avatar:
@@ -57,17 +46,14 @@ paths:
           description: Avatar found successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Get user avatar
     post:
       description: Create user avatar
@@ -77,17 +63,14 @@ paths:
           description: Avatar created successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Create user avatar
   /session:
     delete:
@@ -98,25 +81,15 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Require authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: logout
-    options:
-      description: catch CORS preflight
-      operationId: OK1222
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
     post:
       description: login
       operationId: Login
@@ -125,17 +98,14 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
-            type: object
         "400":
-          description: invalid name/email or password
+          description: invalid name or password
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: login
   /user:
     delete:
@@ -146,52 +116,55 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: invalid input
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: delete account
     get:
-      description: get public user information
+      description: get public information about that user
       operationId: GetMyProfile
+      responses:
+        "201":
+          description: Create user successfully
+          headers:
+            Token:
+              description: qwerty
+              type: string
+          schema:
+            $ref: '#/definitions/models.Result'
+        "400":
+          description: Invalid information
+          schema:
+            $ref: '#/definitions/models.Result'
+      summary: get public information about that user
+    options:
+      description: catch CORS preflight
+      operationId: OK1
       responses:
         "200":
           description: successfully
-          schema:
-            $ref: '#/definitions/models.UserPublicInfo'
-            type: object
-        "401":
-          description: Required authorization
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: server error
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: get user
+      summary: catch CORS preflight
     post:
       description: create new user
       operationId: Register
       responses:
         "201":
           description: Create user successfully
+          headers:
+            Token:
+              description: qwerty
+              type: string
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: create new user
     put:
       description: update public info
@@ -201,87 +174,43 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: invalid info
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: need authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: update user information
-  /user/Avatar:
-    options:
-      description: catch CORS preflight
-      operationId: OK4
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
-  /user/logout:
-    options:
-      description: catch CORS preflight
-      operationId: OK3
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
-  /users/{name}/games/{page}:
-    get:
-      description: Get amount of users list page
-      operationId: GetPlayerGames
-      responses:
-        "200":
-          description: Get successfully
-          schema:
-            items:
-              $ref: '#/definitions/models.Game'
-            type: array
-        "400":
-          description: invalid username or page
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "404":
-          description: games not found
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: Databse error
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
-      summary: get users game
   /users/{name}/profile:
     get:
-      description: return public information, such as name or best_score
+      consumes:
+      - application/json
+      description: get user's best score and best time for a given difficulty, user's
+        id, name and photo
       operationId: GetProfile
       parameters:
       - description: User name
         in: path
         name: name
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: Profile found successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
-            type: object
         "400":
           description: Invalid username
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
-      summary: Get some of user fields
+      summary: Get public user inforamtion
   /users/{page}:
     get:
       description: Get page of user list
@@ -297,17 +226,14 @@ paths:
           description: Invalid pade
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: Users not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Get users list
   /users/pages_amount:
     get:
@@ -318,11 +244,9 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Pages'
-            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: amount of users list page
 swagger: "2.0"

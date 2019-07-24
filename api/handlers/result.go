@@ -2,8 +2,8 @@ package api
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"encoding/json"
 	"net/http"
 )
 
@@ -14,10 +14,12 @@ func sendErrorJSON(rw http.ResponseWriter, catched error, place string) {
 		Message: catched.Error(),
 	}
 
-	json.NewEncoder(rw).Encode(result)
+	if b, err := result.MarshalJSON(); err == nil {
+		rw.Write(b)
+	}
 }
 
-func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
+func sendSuccessJSON(rw http.ResponseWriter, result utils.JSONtype, place string) {
 	if result == nil {
 		result = models.Result{
 			Place:   place,
@@ -25,5 +27,7 @@ func sendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 			Message: "no error",
 		}
 	}
-	json.NewEncoder(rw).Encode(result)
+	if b, err := result.MarshalJSON(); err == nil {
+		rw.Write(b)
+	}
 }

@@ -11,7 +11,7 @@ import (
 )
 
 // SetImage function to set image
-type SetImage func(users ...*models.UserPublicInfo) (err error)
+type SetImage func(users ...*models.UserPublicInfo)
 
 // Request connect Connection and his message
 type Request struct {

@@ -1,8 +1,6 @@
 package game
 
 import (
-	"encoding/json"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -326,7 +324,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 }
 
 // SendInformation send info
-func (conn *Connection) SendInformation(value interface{}) {
+func (conn *Connection) SendInformation(value utils.JSONtype) {
 	if conn.done() {
 		return
 	}
@@ -344,7 +342,7 @@ func (conn *Connection) SendInformation(value interface{}) {
 		err   error
 	)
 
-	bytes, err = json.Marshal(value)
+	bytes, err = value.MarshalJSON()
 
 	if err != nil {
 		utils.Debug(true, "cant send information")
@@ -354,7 +352,7 @@ func (conn *Connection) SendInformation(value interface{}) {
 }
 
 // sendGroupInformation send info with WaitGroup
-func (conn *Connection) sendGroupInformation(value interface{}, wg *sync.WaitGroup) {
+func (conn *Connection) sendGroupInformation(value utils.JSONtype, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 		utils.CatchPanic("connection.go sendGroupInformation()")

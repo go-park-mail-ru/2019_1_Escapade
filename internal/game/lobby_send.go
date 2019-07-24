@@ -11,11 +11,11 @@ import (
 // also all thay should be launched in goroutines and
 // recover panic
 
-func (lobby *Lobby) send(info interface{}, predicate SendPredicate) {
+func (lobby *Lobby) send(info utils.JSONtype, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting)
 }
 
-func (lobby *Lobby) sendToAll(info interface{}, predicate SendPredicate) {
+func (lobby *Lobby) sendToAll(info utils.JSONtype, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting, lobby.Playing)
 }
 

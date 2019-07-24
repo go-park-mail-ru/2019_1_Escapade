@@ -6,6 +6,7 @@ import (
 
 // LobbyRequest - client send it by websocket to
 // send/get information from Lobby
+//easyjson:json
 type LobbyRequest struct {
 	Send    *LobbySend      `json:"send"`
 	Message *models.Message `json:"message"`
@@ -13,6 +14,7 @@ type LobbyRequest struct {
 }
 
 // Invitation - client can invite everybody to room
+//easyjson:json
 type Invitation struct {
 	From    *models.UserPublicInfo `json:"from"`
 	Room    *Room                  `json:"room"`
@@ -47,6 +49,7 @@ type LobbySend struct {
 }
 
 // LobbyGet - Information, that client can get from lobby
+//easyjson:json
 type LobbyGet struct {
 	AllRooms  bool `json:"allRooms"`
 	FreeRooms bool `json:"freeRooms"`

@@ -3,8 +3,6 @@ package utils
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
-	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -16,11 +14,18 @@ func SendErrorJSON(rw http.ResponseWriter, catched error, place string) {
 		Message: catched.Error(),
 	}
 
-	json.NewEncoder(rw).Encode(result)
+	if b, err := result.MarshalJSON(); err == nil {
+		rw.Write(b)
+	}
+}
+
+// JSONtype is interface to be sent by json
+type JSONtype interface {
+	MarshalJSON() ([]byte, error)
 }
 
 // SendSuccessJSON send object json
-func SendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
+func SendSuccessJSON(rw http.ResponseWriter, result JSONtype, place string) {
 	if result == nil {
 		result = models.Result{
 			Place:   place,
@@ -28,6 +33,7 @@ func SendSuccessJSON(rw http.ResponseWriter, result interface{}, place string) {
 			Message: "no error",
 		}
 	}
-	fmt.Println("result:", result)
-	json.NewEncoder(rw).Encode(result)
+	if b, err := result.MarshalJSON(); err == nil {
+		rw.Write(b)
+	}
 }

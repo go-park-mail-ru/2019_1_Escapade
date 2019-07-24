@@ -1,12 +1,11 @@
 package game
 
 import (
-	"encoding/json"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // FieldJSON is a wrapper for sending Field by JSON
+//easyjson:json
 type FieldJSON struct {
 	History   []*Cell `json:"history"`
 	CellsLeft int     `json:"cellsLeft"`
@@ -32,14 +31,14 @@ func (field *Field) JSON() FieldJSON {
 
 // MarshalJSON - overriding the standard method json.Marshal
 func (field *Field) MarshalJSON() ([]byte, error) {
-	return json.Marshal(field.JSON())
+	return field.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
 func (field *Field) UnmarshalJSON(b []byte) error {
 	temp := &FieldJSON{}
 
-	if err := json.Unmarshal(b, &temp); err != nil {
+	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
 	field.setHistory(temp.History)

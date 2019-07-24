@@ -27,6 +27,7 @@ const (
 )
 
 // PlayerAction combine player and his action
+//easyjson:json
 type PlayerAction struct {
 	Player int       `json:"player"`
 	Action int       `json:"action"`

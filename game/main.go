@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 
 	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"

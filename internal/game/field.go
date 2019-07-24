@@ -58,8 +58,14 @@ func NewField(rs *models.RoomSettings, config *config.FieldConfig) *Field {
 		config: config,
 
 		cellsLeftM: &sync.RWMutex{},
-		_cellsLeft: rs.Width*rs.Height - rs.Mines - rs.Players,
 	}
+	var cellsleft int
+	if rs.Deathmatch {
+		cellsleft = rs.Width*rs.Height - rs.Mines - rs.Players
+	} else {
+		cellsleft = rs.Width*rs.Height - rs.Mines
+	}
+	field.setCellsLeft(cellsleft)
 	field.Difficult = float64(field.Mines) / float64(field._cellsLeft)
 	return field
 }

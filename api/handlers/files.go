@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func (h *Handler) Setfiles(users ...*models.UserPublicInfo) (err error) {
+func (h *Handler) Setfiles(users ...*models.UserPublicInfo) {
 
 	for _, user := range users {
 		if user == nil {
@@ -20,14 +20,12 @@ func (h *Handler) Setfiles(users ...*models.UserPublicInfo) (err error) {
 		}
 		if user.FileKey == "" {
 			continue
-			//return re.ErrorAvatarNotFound()
 		}
+		var err error
 		if user.PhotoURL, err = h.getURLToAvatar(user.FileKey); err != nil {
 			continue
-			//return re.ErrorAvatarNotFound()
 		}
 	}
-	return nil
 }
 
 func (h *Handler) saveFile(key string, file multipart.File) (err error) {

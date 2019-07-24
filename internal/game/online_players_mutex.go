@@ -150,6 +150,15 @@ func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
 }
 
 // RPlayers return slice of players only for read
+func (onlinePlayers *OnlinePlayers) CopyPlayers() []Player {
+
+	onlinePlayers.playersM.Lock()
+	defer onlinePlayers.playersM.Unlock()
+	copySlice := append([]Player(nil), onlinePlayers._players...)
+	return copySlice
+}
+
+// RPlayers return slice of players only for read
 func (onlinePlayers *OnlinePlayers) RPlayers() []Player {
 
 	onlinePlayers.playersM.Lock()

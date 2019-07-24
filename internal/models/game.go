@@ -4,6 +4,7 @@ import "time"
 
 // Game show all info about game room.
 // There is no any personal info about gamer
+//easyjson:json
 type Game struct {
 	RoomID        string    `json:"roomID"`
 	Name          string    `json:"name"`
@@ -15,6 +16,7 @@ type Game struct {
 }
 
 // Gamer show all personal info(gamers results) about game
+//easyjson:json
 type Gamer struct {
 	ID         int     `json:"-"`
 	Score      float64 `json:"score"`
@@ -26,6 +28,7 @@ type Gamer struct {
 }
 
 // Action is the database model of game.Action
+//easyjson:json
 type Action struct {
 	PlayerID int       `json:"playerID"`
 	ActionID int       `json:"actionID"`
@@ -33,6 +36,7 @@ type Action struct {
 }
 
 // Cell is the database model of game.Cell
+//easyjson:json
 type Cell struct {
 	PlayerID int       `json:"playerID"`
 	X        int       `json:"x"`
@@ -42,6 +46,7 @@ type Cell struct {
 }
 
 // Field is the database model of game.Field
+//easyjson:json
 type Field struct {
 	Width     int `json:"width"`
 	Height    int `json:"height"`
@@ -51,6 +56,7 @@ type Field struct {
 }
 
 // GameInformation show everything about game and his gamer
+//easyjson:json
 type GameInformation struct {
 	Game     Game       `json:"game"`
 	Field    Field      `json:"field"`

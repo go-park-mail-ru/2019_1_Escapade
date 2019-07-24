@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/json"
 	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -83,6 +82,7 @@ func (conns *Connections) Restore(conn *Connection) bool {
 }
 
 // ConnectionsJSON is a wrapper for sending Connections by JSON
+//easyjson:json
 type ConnectionsJSON struct {
 	Capacity int           `json:"capacity"`
 	Get      []*Connection `json:"get"`
@@ -98,14 +98,14 @@ func (conns *Connections) JSON() ConnectionsJSON {
 
 // MarshalJSON - overriding the standard method json.Marshal
 func (conns *Connections) MarshalJSON() ([]byte, error) {
-	return json.Marshal(conns.JSON())
+	return conns.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
 func (conns *Connections) UnmarshalJSON(b []byte) error {
 	temp := &ConnectionsJSON{}
 
-	if err := json.Unmarshal(b, &temp); err != nil {
+	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
 

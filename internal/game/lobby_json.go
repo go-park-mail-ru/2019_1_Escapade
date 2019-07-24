@@ -1,12 +1,11 @@
 package game
 
 import (
-	"encoding/json"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // LobbyJSON is a wrapper for sending Lobby by JSON
+//easyjson:json
 type LobbyJSON struct {
 	AllRooms  RoomsJSON         `json:"allRooms"`
 	FreeRooms RoomsJSON         `json:"freeRooms"`
@@ -22,20 +21,20 @@ func (lobby *Lobby) JSON() LobbyJSON {
 		FreeRooms: lobby.freeRooms.JSON(),
 		Waiting:   lobby.Waiting.JSON(),
 		Playing:   lobby.Playing.JSON(),
-		Messages:  lobby._messages,
+		Messages:  lobby.Messages(),
 	}
 }
 
 // MarshalJSON - overriding the standard method json.Marshal
 func (lobby Lobby) MarshalJSON() ([]byte, error) {
-	return json.Marshal(lobby.JSON())
+	return lobby.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
 func (lobby *Lobby) UnmarshalJSON(b []byte) error {
 	temp := &LobbyJSON{}
 
-	if err := json.Unmarshal(b, &temp); err != nil {
+	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
 	lobby.allRooms.Set(temp.AllRooms.Get)

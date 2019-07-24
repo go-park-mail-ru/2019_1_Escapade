@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"time"
@@ -11,6 +10,7 @@ import (
 )
 
 // Configuration contains all types of configurations
+//easyjson:json
 type Configuration struct {
 	Server     ServerConfig      `json:"server"`
 	Cors       CORSConfig        `json:"cors"`
@@ -24,6 +24,7 @@ type Configuration struct {
 }
 
 // ServerConfig set host, post and buffers sizes
+//easyjson:json
 type ServerConfig struct {
 	Host      string `json:"host"`
 	PortURL   string `json:"portUrl"`
@@ -31,6 +32,7 @@ type ServerConfig struct {
 }
 
 // CORSConfig set allowable origins, headers and methods
+//easyjson:json
 type CORSConfig struct {
 	Origins     []string `json:"origins"`
 	Headers     []string `json:"headers"`
@@ -42,6 +44,7 @@ type CORSConfig struct {
 //   the url of connection string, max amount of
 //   connections, tables, sizes of page  of gamers
 //   and users
+//easyjson:json
 type DatabaseConfig struct {
 	DriverName       string `json:"driverName"`
 	URL              string `json:"url"`
@@ -53,6 +56,7 @@ type DatabaseConfig struct {
 
 // FileStorageConfig set, where avatars store and
 //    what mode set to files/directories
+//easyjson:json
 type FileStorageConfig struct {
 	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
 	DefaultAvatar         string `json:"defaultAvatar"`
@@ -61,6 +65,7 @@ type FileStorageConfig struct {
 }
 
 // AwsPublicConfig public aws information as region and endpoint
+//easyjson:json
 type AwsPublicConfig struct {
 	AwsConfig *aws.Config `json:"-"`
 	Region    string      `json:"region"`
@@ -68,6 +73,7 @@ type AwsPublicConfig struct {
 }
 
 // AwsPrivateConfig private aws information. Need another json.
+//easyjson:json
 type AwsPrivateConfig struct {
 	AccessURL string `json:"accessUrl"`
 	AccessKey string `json:"accessKey"`
@@ -75,6 +81,7 @@ type AwsPrivateConfig struct {
 	SecretKey string `json:"secretKey"`
 }
 
+//easyjson:json
 type FieldConfig struct {
 	MinAreaSize    int `json:"minAreaSize"`
 	MaxAreaSize    int `json:"maxAreaSize"`
@@ -86,6 +93,7 @@ type FieldConfig struct {
 // how much connections can join. Also there are flags:
 // can server close rooms or not(for history mode),
 // metrics should be recorded or not
+//easyjson:json
 type GameConfig struct {
 	RoomsCapacity      int          `json:"roomsCapacity"`
 	ConnectionCapacity int          `json:"connectionCapacity"`
@@ -96,6 +104,7 @@ type GameConfig struct {
 }
 
 // AuthClient client of auth microservice
+//easyjson:json
 type AuthClient struct {
 	URL     string `json:"url"`
 	Address string `json:"address"`
@@ -103,6 +112,7 @@ type AuthClient struct {
 
 // SessionConfig set cookie name, path, length, expiration time
 // and HTTPonly flag
+//easyjson:json
 type SessionConfig struct {
 	Name            string `json:"name"`
 	Path            string `json:"path"`
@@ -112,6 +122,7 @@ type SessionConfig struct {
 }
 
 // WebSocketConfig set timeouts
+//easyjson:json
 type WebSocketConfig struct {
 	WriteWait       int   `json:"writeWait"`
 	PongWait        int   `json:"pongWait"`
@@ -122,6 +133,7 @@ type WebSocketConfig struct {
 }
 
 // WebSocketSettings set timeouts
+//easyjson:json
 type WebSocketSettings struct {
 	WriteWait       time.Duration `json:"writeWait"`
 	PongWait        time.Duration `json:"pongWait"`
@@ -153,7 +165,7 @@ func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
 	if data, err = ioutil.ReadFile(publicConfigPath); err != nil {
 		return
 	}
-	if err = json.Unmarshal(data, conf); err != nil {
+	if err = conf.UnmarshalJSON(data); err != nil {
 		return
 	}
 	conf.AWS.AwsConfig = &aws.Config{
@@ -176,7 +188,7 @@ func InitPrivate(privateConfigPath string) (err error) {
 		return
 	}
 	var apc = &AwsPrivateConfig{}
-	if err = json.Unmarshal(data, apc); err != nil {
+	if err = apc.UnmarshalJSON(data); err != nil {
 		utils.Debug(false, place, "wrong:", err.Error())
 		return
 	}

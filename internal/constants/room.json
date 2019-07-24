@@ -1,0 +1,11 @@
+{
+	"NameMin": "1",
+	"NameMax": "30",
+	"TimeToPrepareMin": "0",
+    "TimeToPrepareMax": "60",
+    "TimeToPlayMin": "0",
+    "TimeToPlayMax": "7200",
+    "PlayersMin": "2",
+    "PlayersMax": "100",
+    "ObserversMax": "100"
+}

@@ -46,19 +46,13 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 		go room.sendObserverEnter(conn, room.AllExceptThat(conn))
 	}
 	go room.sendAction(*pa, room.AllExceptThat(conn))
-	utils.Debug(false, "wooow")
 	// primary: provide the connection(client) with the necessary json
 	if !needRecover {
 		room.wGroup.Add(1)
-		utils.Debug(false, "lol?")
 		room.lobby.sendRoomUpdate(room, All, room.wGroup)
-		utils.Debug(false, "lol!")
 	}
-	utils.Debug(false, "wooow1")
 	room.sendStatusOne(conn)
-	utils.Debug(false, "wooow2")
 	room.greet(conn, isPlayer)
-	utils.Debug(false, "wooow3")
 
 	utils.Debug(false, "user in room")
 

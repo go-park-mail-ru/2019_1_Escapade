@@ -1,11 +1,11 @@
 package game
 
 import (
-	"encoding/json"
 	"sync"
 )
 
 // Flag contaion Cell and flag, that it was set by User
+//easyjson:json
 type Flag struct {
 	Cell Cell `json:"cell"`
 	Set  bool `json:"set"`
@@ -26,6 +26,7 @@ type OnlinePlayers struct {
 }
 
 // OnlinePlayersJSON is a wrapper for sending OnlinePlayers by JSON
+//easyjson:json
 type OnlinePlayersJSON struct {
 	Capacity    int             `json:"capacity"`
 	Players     []Player        `json:"players"`
@@ -37,7 +38,7 @@ type OnlinePlayersJSON struct {
 func (op *OnlinePlayers) JSON() OnlinePlayersJSON {
 	return OnlinePlayersJSON{
 		Capacity:    op.Capacity(),
-		Players:     op.RPlayers(),
+		Players:     op.CopyPlayers(),
 		Connections: op.Connections.JSON(),
 		Flags:       op.Flags(),
 	}
@@ -45,14 +46,14 @@ func (op *OnlinePlayers) JSON() OnlinePlayersJSON {
 
 // MarshalJSON - overriding the standard method json.Marshal
 func (op *OnlinePlayers) MarshalJSON() ([]byte, error) {
-	return json.Marshal(op.JSON())
+	return op.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
 func (op *OnlinePlayers) UnmarshalJSON(b []byte) error {
 	temp := &OnlinePlayersJSON{}
 
-	if err := json.Unmarshal(b, &temp); err != nil {
+	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
 

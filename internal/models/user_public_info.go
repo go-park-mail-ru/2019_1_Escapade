@@ -2,29 +2,37 @@ package models
 
 import (
 	"database/sql"
-	"encoding/json"
 )
 
 // UserPublicInfo information about person
 // available for unauthorized users
+//easyjson:json
 type UserPublicInfo struct {
 	ID        int            `json:"id"`
-	Name      string         `json:"name"`
-	PhotoURL  string         `json:"photo,omitempty"`
+	Name      string         `json:"name" minLength:"3" maxLength:"30"`
+	PhotoURL  string         `json:"photo,omitempty"  maxLength:"50"`
 	FileKey   string         `json:"-"`
 	BestScore sql.NullString `json:"bestScore"`
 	BestTime  sql.NullString `json:"bestTime"`
 	Difficult int            `json:"difficult"`
 }
 
+// UsersPublicInfo is the slice of UserPublicInfo
+//easyjson:json
+type UsersPublicInfo struct {
+	Users []*UserPublicInfo `json:"users"`
+}
+
+// UserPublicInfoSQL wrapper of UserPublicInfo
+// Required to obtain data from the database
 type UserPublicInfoSQL struct {
-	ID        sql.NullInt64  `json:"id"`
-	Name      sql.NullString `json:"name"`
-	PhotoURL  sql.NullString `json:"photo,omitempty"`
-	FileKey   sql.NullString `json:"-"`
-	BestScore sql.NullString `json:"bestScore"`
-	BestTime  sql.NullString `json:"bestTime"`
-	Difficult sql.NullInt64  `json:"difficult"`
+	ID        sql.NullInt64
+	Name      sql.NullString
+	PhotoURL  sql.NullString
+	FileKey   sql.NullString
+	BestScore sql.NullString
+	BestTime  sql.NullString
+	Difficult sql.NullInt64
 }
 
 // Compare compare two users
@@ -39,10 +47,10 @@ func ComparePublicUsers(a, b string) bool {
 		userA UserPublicInfo
 		userB UserPublicInfo
 	)
-	if err = json.Unmarshal([]byte(a), &userA); err != nil {
+	if err = userA.UnmarshalJSON([]byte(a)); err != nil {
 		return false
 	}
-	if err = json.Unmarshal([]byte(b), &userB); err != nil {
+	if err = userB.UnmarshalJSON([]byte(b)); err != nil {
 		return false
 	}
 

@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 
 	"time"
@@ -26,6 +27,8 @@ func Init(DB *database.DataBase, c *config.Configuration /*, authConn *grpc.Clie
 		WebSocket: ws,
 		//Clients:   clients.Init(authConn),
 	}
+	constants.InitField()
+	constants.InitRoom()
 	return
 }
 
@@ -41,6 +44,8 @@ func GetAPIHandler(C *config.Configuration /*, authConn *grpc.ClientConn*/) (H *
 	}
 
 	H = Init(db, C /*authConn*/)
+	constants.InitField()
+	constants.InitRoom()
 	return
 }
 

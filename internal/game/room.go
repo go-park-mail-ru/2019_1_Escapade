@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -82,9 +84,40 @@ type Room struct {
 	Settings *models.RoomSettings
 }
 
+// CharacteristicsCheck check room's characteristics are valid
+func CharacteristicsCheck(rs *models.RoomSettings) bool {
+	if constants.ROOM.Set {
+		namelen := len(rs.Name)
+		if namelen < constants.ROOM.NameMin || namelen > constants.ROOM.NameMax {
+			return false
+		}
+		if rs.Width < constants.FIELD.WidthMin || rs.Width > constants.FIELD.WidthMax {
+			return false
+		}
+		if rs.Height < constants.FIELD.HeightMin || rs.Height > constants.FIELD.HeightMax {
+			return false
+		}
+		if rs.Players < constants.ROOM.PlayersMin || rs.Players > constants.ROOM.PlayersMax {
+			return false
+		}
+		if rs.Observers > constants.ROOM.ObserversMax {
+			return false
+		}
+		if rs.TimeToPrepare < constants.ROOM.TimeToPrepareMin || rs.TimeToPrepare > constants.ROOM.TimeToPrepareMax {
+			return false
+		}
+		if rs.TimeToPlay < constants.ROOM.TimeToPlayMin || rs.TimeToPlay > constants.ROOM.TimeToPlayMax {
+			return false
+		}
+	} else {
+		panic(3)
+	}
+	return true
+}
+
 // NewRoom return new instance of room
 func NewRoom(config *config.FieldConfig, lobby *Lobby, rs *models.RoomSettings, id string) (*Room, error) {
-	if !rs.FieldCheck() {
+	if !CharacteristicsCheck(rs) || !rs.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
 	var room = &Room{}
@@ -235,6 +268,7 @@ get lobby all info
 */
 
 // RoomRequest is request from client to room
+//easyjson:json
 type RoomRequest struct {
 	Send    *RoomSend       `json:"send"`
 	Message *models.Message `json:"message"`
@@ -252,6 +286,7 @@ func (rr *RoomRequest) IsSend() bool {
 }
 
 // RoomSend is struct of information, that client can send to room
+//easyjson:json
 type RoomSend struct {
 	Cell     *Cell            `json:"cell,omitempty"`
 	Action   *int             `json:"action,omitempty"`
@@ -259,6 +294,7 @@ type RoomSend struct {
 }
 
 // RoomGet is struct of flags, that client can get from room
+//easyjson:json
 type RoomGet struct {
 	Players   bool `json:"players"`
 	Observers bool `json:"observers"`

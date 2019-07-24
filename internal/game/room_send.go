@@ -11,7 +11,7 @@ import (
 
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
-func (room *Room) send(info interface{}, predicate SendPredicate) {
+func (room *Room) send(info utils.JSONtype, predicate SendPredicate) {
 	players := room.Players.Connections
 	observers := room.Observers
 	SendToConnections(info, predicate, players, observers)
@@ -27,7 +27,8 @@ func (room *Room) sendMessage(text string, predicate SendPredicate) {
 		utils.CatchPanic("room_send.go sendMessage()")
 	}()
 
-	room.send("Room("+room.ID()+"):"+text, predicate)
+	room.send(models.Result{
+		Message: "Room(" + room.ID() + "):" + text}, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room

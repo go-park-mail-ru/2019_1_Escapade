@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -68,13 +69,15 @@ func (room *Room) setRecruitmentTime() {
 	loc, _ := time.LoadLocation(room.lobby.config.Location)
 	t := time.Now().In(loc)
 
+	fmt.Println("compare these:", t, v)
+
 	room.recruitmentTimeM.Lock()
-	room._recruitmentTime = v.Sub(t)
+	room._recruitmentTime = t.Sub(v)
 	room.recruitmentTimeM.Unlock()
 
-	room.dateM.RLock()
+	room.dateM.Lock()
 	room._date = t
-	room.dateM.RUnlock()
+	room.dateM.Unlock()
 }
 
 func (room *Room) playingTime() time.Duration {
@@ -93,12 +96,12 @@ func (room *Room) setPlayingTime() {
 	t := time.Now().In(loc)
 
 	room.playingTimeM.Lock()
-	room._playingTime = v.Sub(t)
+	room._playingTime = t.Sub(v)
 	room.playingTimeM.Unlock()
 
-	room.dateM.RLock()
+	room.dateM.Lock()
 	room._date = t
-	room.dateM.RUnlock()
+	room.dateM.Unlock()
 }
 
 // Next return next room to whick players from this room will be

@@ -2,11 +2,6 @@ package api
 
 import (
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	cook "github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"context"
 	"fmt"
@@ -15,6 +10,12 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	cook "github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	//c "github.com/smartystreets/goconvey/convey"
 	"testing"

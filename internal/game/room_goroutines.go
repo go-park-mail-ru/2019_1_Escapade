@@ -178,14 +178,14 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 		room.wGroup.Done()
 	}()
 
+	room.wGroup.Add(1)
+	go room.lobby.LeaveRoom(conn, ActionBackToLobby, room, room.wGroup)
+
 	fmt.Println("back!")
 	room.Leave(conn, conn.Index() >= 0)
 	if conn.Index() >= 0 {
 		room.Kill(conn, ActionBackToLobby)
 	}
-
-	room.wGroup.Add(1)
-	go room.lobby.LeaveRoom(conn, ActionBackToLobby, room, room.wGroup)
 
 	room.LeaveMeta(conn, ActionDisconnect)
 }

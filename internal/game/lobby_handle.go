@@ -7,9 +7,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"encoding/json"
-	"fmt"
 )
 
 // JoinConn is the wrapper in order to put the connection in the channel chanJoin
@@ -31,7 +28,6 @@ func (lobby *Lobby) JoinConn(conn *Connection, d int) {
 А зачем нам рум гарбаж коллекток, если можно ходить по слайсу playing?
 */
 func (lobby *Lobby) launchGarbageCollector(timeout float64) {
-	//fmt.Println("lobby launchGarbageCollector")
 	if lobby.done() {
 		return
 	}
@@ -45,7 +41,7 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 	for it.Next() {
 		waiter := it.Value()
 		if waiter == nil {
-			panic("why nill")
+			utils.Debug(true, "nil waiter")
 		}
 		t := waiter.Time()
 		if time.Since(t).Seconds() > timeout {
@@ -92,7 +88,6 @@ func (lobby *Lobby) Run() {
 	timeout = 10
 
 	for {
-		//fmt.Println("---lobby start")
 		select {
 		case <-ticker.C:
 			go lobby.launchGarbageCollector(timeout)
@@ -103,7 +98,6 @@ func (lobby *Lobby) Run() {
 		case <-lobby.chanBreak:
 			return
 		}
-		//fmt.Println("---lobby finish")
 	}
 }
 
@@ -199,8 +193,7 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room, group *s
 	defer lobby.wGroup.Done()
 
 	if action != ActionDisconnect {
-		if room.Status() != StatusRecruitment {
-			utils.Debug(false, "PlayerToWaiter")
+		if conn.PlayingRoom() != nil {
 			lobby.PlayerToWaiter(conn)
 		} else {
 			conn.PushToLobby()
@@ -209,7 +202,6 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room, group *s
 		group.Add(1)
 		go lobby.sendRoomUpdate(room, AllExceptThat(conn), group)
 	}
-	utils.Debug(false, "room.Status:", room.Status)
 }
 
 // EnterRoom handle user join to room
@@ -292,18 +284,17 @@ func (lobby *Lobby) Analize(req *Request) {
 
 	if req.Connection.PlayingRoom() != nil {
 		var rsend *RoomRequest
-		if err := json.Unmarshal(req.Message, &rsend); err != nil {
-			fmt.Println("big json error")
+		if err := rsend.UnmarshalJSON(req.Message); err != nil {
+			utils.Debug(true, "json error")
 		} else {
 			req.Connection.PlayingRoom().HandleRequest(req.Connection, rsend)
 		}
-		return
 		// not in lobby
 		return
 	} else if req.Connection.WaitingRoom() != nil {
 		var rsend *RoomRequest
-		if err := json.Unmarshal(req.Message, &rsend); err != nil {
-			fmt.Println("big json error")
+		if err := rsend.UnmarshalJSON(req.Message); err != nil {
+			utils.Debug(true, "json error")
 		} else {
 			req.Connection.WaitingRoom().HandleRequest(req.Connection, rsend)
 		}
@@ -311,8 +302,11 @@ func (lobby *Lobby) Analize(req *Request) {
 	}
 
 	var send *LobbyRequest
-	if err := json.Unmarshal(req.Message, &send); err != nil {
-		req.Connection.SendInformation(err)
+	if err := send.UnmarshalJSON(req.Message); err != nil {
+		req.Connection.SendInformation(models.Result{
+			Success: false,
+			Message: err.Error(),
+		})
 	} else {
 		lobby.HandleRequest(req.Connection, send)
 	}

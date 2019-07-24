@@ -38,7 +38,7 @@ type Handler struct {
 // Ok catch CORS preflight
 // @Summary catch CORS preflight
 // @Description catch CORS preflight
-// @ID OK1
+// @ID OK
 // @Success 200 "successfully"
 // @Router /user [OPTIONS]
 func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
@@ -49,13 +49,20 @@ func (h *Handler) Ok(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetMyProfile get public user information
-// @Summary get user
-// @Description get public user information
+// GetMyProfile godoc
+// @Summary get public information about that user
+// @Description get public information about that user
 // @ID GetMyProfile
-// @Success 200 {object} models.UserPublicInfo "successfully"
-// @Failure 401 {object} models.Result "Required authorization"
-// @Failure 500 {object} models.Result "server error"
+// @Produce  json
+// @Param enumstring query string false "string enums" Enums(A, B, C)
+// @Param enumint query int false "int enums" Enums(1, 2, 3)
+// @Param enumnumber query number false "int enums" Enums(1.1, 1.2, 1.3)
+// @Param string query string false "string valid" minlength(5) maxlength(10)
+// @Param int query int false "int valid" mininum(1) maxinum(10)
+// @Param default query string false "string default" default(A)
+// @Success 201 {object} models.Result "Create user successfully"
+// @Header 201 {string} Token "qwerty"
+// @Failure 401 {object} models.Result "Invalid information"
 // @Router /user [GET]
 func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 
@@ -77,11 +84,12 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// CreateUser create new user
+// CreateUser godoc
 // @Summary create new user
 // @Description create new user
 // @ID Register
 // @Success 201 {object} models.Result "Create user successfully"
+// @Header 201 {string} Token "qwerty"
 // @Failure 400 {object} models.Result "Invalid information"
 // @Router /user [POST]
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
@@ -119,7 +127,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// UpdateProfile updates profile
+// UpdateProfile godoc
 // @Summary update user information
 // @Description update public info
 // @ID UpdateProfile
@@ -357,14 +365,9 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Setfiles(users...); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
+	h.Setfiles(users...)
 
-	utils.SendSuccessJSON(rw, users, place)
+	utils.SendSuccessJSON(rw, models.UsersPublicInfo{users}, place)
 	utils.PrintResult(err, http.StatusOK, place)
 }
 
@@ -385,7 +388,6 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		url     models.Avatar
 	)
 
-	//
 	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
@@ -490,10 +492,12 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	utils.PrintResult(err, http.StatusCreated, place)
 }
 
-// GetProfile returns model UserPublicInfo
-// @Summary Get some of user fields
-// @Description return public information, such as name or best_score
+// GetProfile godoc
+// @Summary Get public user inforamtion
+// @Description get user's best score and best time for a given difficulty, user's id, name and photo
 // @ID GetProfile
+// @Accept  json
+// @Produce  json
 // @Param name path string false "User name"
 // @Success 200 {object} models.UserPublicInfo "Profile found successfully"
 // @Failure 400 {object} models.Result "Invalid username"
@@ -594,12 +598,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	if err = h.Setfiles(user); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
+	h.Setfiles(user)
 
 	utils.SendSuccessJSON(rw, user, place)
 
@@ -670,12 +669,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err = h.Setfiles(user); err != nil {
-			rw.WriteHeader(http.StatusNotFound)
-			utils.SendErrorJSON(rw, err, place)
-			utils.PrintResult(err, http.StatusNotFound, place)
-			return
-		}
+		h.Setfiles(user)
 	}
 
 	conn := game.NewConnection(ws, user, lobby)
@@ -730,14 +724,10 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Setfiles(user); err != nil {
-		utils.Debug(false, place, "cant load images")
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
-	}
+	h.Setfiles(user)
 
 	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, &h.Game, h.Setfiles)
 	return
 }
+
+// 767 - 1 51
