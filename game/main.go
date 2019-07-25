@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	api "github.com/go-park-mail-ru/2019_1_Escapade/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 
 	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
@@ -56,8 +56,6 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/game/ws", handler.GameOnline)
-
-	//r.Handle("/metrics", promhttp.Handler())
 	r.Handle("/game/metrics", promhttp.Handler())
 
 	game.Launch(&configuration.Game, &handler.DB, handler.Setfiles)

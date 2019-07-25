@@ -1,7 +1,9 @@
+#!/bin/sh
 echo "  -----------------"
-echo "  ---[E]easyjson---"
+echo "  ---[E]Easyjson---"
 echo "  -----------------"
 echo ""
+#chmod +x easyjson.sh && ./easyjson.sh
 
 # set GOPATH and PATH
 #export GOPATH=$HOME/go

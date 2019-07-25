@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS Session cascade;
+DROP TABLE IF EXISTS Cell cascade;
+DROP TABLE IF EXISTS Action cascade;
+DROP TABLE IF EXISTS Field cascade;
+DROP TABLE IF EXISTS Game cascade;
+DROP TABLE IF EXISTS GameChat cascade;
+DROP TABLE IF EXISTS Player cascade;
+DROP TABLE IF EXISTS Gamer cascade;
+DROP TABLE IF EXISTS Record cascade;

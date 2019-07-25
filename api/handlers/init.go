@@ -42,10 +42,9 @@ func GetAPIHandler(C *config.Configuration /*, authConn *grpc.ClientConn*/) (H *
 	if db, err = database.InitWithRebuild(C.DataBase); err != nil {
 		return
 	}
+	//r.Handle("/metrics", promhttp.Handler())
 
 	H = Init(db, C /*authConn*/)
-	constants.InitField()
-	constants.InitRoom()
 	return
 }
 
