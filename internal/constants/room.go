@@ -23,13 +23,11 @@ type roomConfiguration struct {
 var ROOM = roomConfiguration{}
 
 // InitRoom initializes ROOM
-func InitRoom() error {
+func InitRoom(path string) error {
 	var (
 		data []byte
 		err  error
 	)
-
-	path := "room.json"
 
 	if data, err = ioutil.ReadFile(path); err != nil {
 		return err

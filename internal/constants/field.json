@@ -1,6 +1,6 @@
 {
-	"widthMin": "5",
-	"WidthMax": "100",
-	"HeightMin": "5",
-	"HeightMax": "100"
+	"widthMin": 5,
+	"widthMax": 100,
+	"heightMin": 5,
+	"heightMax": 100
 }

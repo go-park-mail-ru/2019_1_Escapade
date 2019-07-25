@@ -18,13 +18,11 @@ type fieldConfiguration struct {
 var FIELD = fieldConfiguration{}
 
 // InitField initializes FIELD
-func InitField() error {
+func InitField(path string) error {
 	var (
 		data []byte
 		err  error
 	)
-
-	path := "field.json"
 
 	if data, err = ioutil.ReadFile(path); err != nil {
 		return err

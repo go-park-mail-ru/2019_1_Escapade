@@ -1,6 +1,17 @@
 package api
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
+	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+
 	"context"
 	"log"
 	"math/rand"
@@ -9,17 +20,6 @@ import (
 	"strconv"
 
 	"github.com/gorilla/websocket"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-
-	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -363,7 +363,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Setfiles(users...)
+	photo.GetImages(users...)
 
 	utils.SendSuccessJSON(rw, models.UsersPublicInfo{users}, place)
 	utils.PrintResult(err, http.StatusOK, place)
@@ -400,7 +400,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url.URL, err = h.getURLToAvatar(fileKey)
+	url.URL, err = photo.GetImage(fileKey)
 	if err != nil {
 		log.Println("Failed to sign request", err)
 		rw.WriteHeader(http.StatusNotFound)
@@ -454,9 +454,9 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "image/jpeg":
-		err = h.saveFile(fileKey.String(), input)
+		err = photo.SaveImage(fileKey.String(), input)
 	case "image/png":
-		err = h.saveFile(fileKey.String(), input)
+		err = photo.SaveImage(fileKey.String(), input)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		utils.SendErrorJSON(rw, re.ErrorInvalidFileFormat(), place)
@@ -472,14 +472,14 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.DB.PostImage(fileKey.String(), userID); err != nil {
-		h.deleteAvatar(fileKey.String())
+		photo.DeleteImage(fileKey.String())
 		rw.WriteHeader(http.StatusInternalServerError)
 		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
 		utils.PrintResult(err, http.StatusInternalServerError, place)
 		return
 	}
 
-	if url.URL, err = h.getURLToAvatar(fileKey.String()); err != nil {
+	if url.URL, err = photo.GetImage(fileKey.String()); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)
@@ -596,7 +596,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
-	h.Setfiles(user)
+	photo.GetImages(user)
 
 	utils.SendSuccessJSON(rw, user, place)
 
@@ -658,7 +658,6 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 			ID:      userID,
 			FileKey: "anonymous.jpg",
 		}
-		h.Setfiles(user)
 	} else {
 		if user, err = h.DB.GetUser(userID, 0); err != nil {
 			rw.WriteHeader(http.StatusNotFound)
@@ -666,9 +665,8 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 			utils.PrintResult(err, http.StatusNotFound, place)
 			return
 		}
-
-		h.Setfiles(user)
 	}
+	photo.GetImages(user)
 
 	conn := game.NewConnection(ws, user, lobby)
 	conn.Launch(h.WebSocket, roomID)
@@ -721,10 +719,9 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusNotFound, place)
 		return
 	}
+	photo.GetImages(user)
 
-	h.Setfiles(user)
-
-	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, &h.Game, h.Setfiles)
+	game.LaunchLobbyHistory(&h.DB, ws, user, h.WebSocket, &h.Game, photo.GetImages)
 	return
 }
 

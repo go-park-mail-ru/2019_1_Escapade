@@ -220,7 +220,7 @@ func TestAll(t *testing.T) {
 		configuration *config.Configuration
 		err           error
 	)
-	if configuration, err = config.InitPublic(confPath); err != nil {
+	if configuration, err = config.Init(confPath); err != nil {
 		t.Error("eeeer", err.Error())
 		return
 	}

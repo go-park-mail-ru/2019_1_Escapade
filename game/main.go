@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-
+	api "github.com/go-park-mail-ru/2019_1_Escapade/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -12,33 +11,70 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
+	"net/http"
+
+	"os"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-	// conf := config.Configure(confPath)
-	// curlog := lg.Construct(logPath, logFile)
-	// db := database.New(curlog)
-
-	const (
-		place      = "main"
-		confPath   = "game/game.json"
-		secretPath = "secret.json"
-	)
-
 	var (
 		configuration *config.Configuration
 		handler       *api.Handler
+		db            *database.DataBase
 		err           error
 	)
 
-	if configuration, err = config.Init(confPath); err != nil {
-		fmt.Println("eeeer", err.Error())
+	if len(os.Args) < 6 {
+		utils.Debug(false, "Game service need 5 command line arguments. But only",
+		len(os.Args), "get.")
 		return
 	}
-	config.Init(secretPath)
-	photo.Init(confPath, secretPath)
+
+	var (
+		configurationPath = os.Args[1]
+		photoPublicPath   = os.Args[2]
+		photoPrivatePath  = os.Args[3]
+		fieldPath         = os.Args[4]
+		roomPath          = os.Args[5]
+	)
+
+	if configuration, err = config.Init(configurationPath); err != nil {
+		utils.Debug(false, "Configuration error:", err.Error())
+		return
+	}
+	configuration, err = config.Init(configurationPath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with main configuration:", err.Error())
+		return
+	}
+	
+	err = photo.Init(photoPublicPath, photoPrivatePath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with photo configuration:", err.Error())
+		return
+	}
+	
+	err = constants.InitField(fieldPath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with field constants:", err.Error())
+		return
+	}
+	
+	err = constants.InitRoom(roomPath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with room constants:", err.Error())
+		return
+	}
+	
+	db, err = database.Init(configuration.DataBase)
+	if err != nil {
+		utils.Debug(false, "Initialization error with database:", err.Error())
+		return
+	}
+	
 	metrics.InitGame()
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
@@ -48,13 +84,8 @@ func main() {
 		defer authConn.Close()
 	*/
 
-	var (
-		db *database.DataBase
-	)
+	handler = api.Init(db, configuration)
 
-	if db, err = database.Init(configuration.DataBase); err != nil {
-		return
-	}
 	r := mux.NewRouter()
 	r.HandleFunc("/game/ws", handler.GameOnline)
 	r.Handle("/game/metrics", promhttp.Handler())
@@ -62,17 +93,8 @@ func main() {
 	game.Launch(&configuration.Game, db, photo.GetImages)
 	defer game.GetLobby().Stop()
 
-	// c := make(chan os.Signal)
-	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	// go func() {
-	// 	<-c
-	// 	game.GetLobby().Stop()
-	// 	game.GetLobby().Free()
-	// 	os.Exit(1)
-	// }()
-
 	port := router.GetPort(configuration)
 	if err = http.ListenAndServe(port, r); err != nil {
-		utils.PrintResult(err, 0, "main")
+		utils.Debug(false, "Serving error:", err.Error())
 	}
 }
