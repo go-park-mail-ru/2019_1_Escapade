@@ -1,13 +1,14 @@
 #!/bin/sh
-echo "  -----------------"
-echo "  ---[E]Easyjson---"
-echo "  -----------------"
+echo ""
+echo "  --------------------------"
+echo "  -----Easyjson generate----"
+echo "  --------------------------"
 echo ""
 #chmod +x easyjson.sh && ./easyjson.sh
 
 # set GOPATH and PATH
-#export GOPATH=$HOME/go
-#export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 # install easyjson
 #go get -u github.com/mailru/easyjson/...
@@ -46,7 +47,14 @@ cd $CONSTANTSPATH
 easyjson .
 cp $CONSTANTSPATH/constants_easyjson.go $THISDIR/../internal/constants
 
+echo "  2.5 Apply easyjson to photo"
+export PHOTOPATH=$GPROJECTDIR/internal/photo
+cd $PHOTOPATH
+easyjson .
+cp $PHOTOPATH/photo_easyjson.go $THISDIR/../internal/photo
 
 echo "  3. Remove project from GOPATH"
 rm -R $GPROJECTDIR
 cd $THISDIR
+
+echo "  ----------Done!-----------"

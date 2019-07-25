@@ -5,22 +5,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Configuration contains all types of configurations
 //easyjson:json
 type Configuration struct {
-	Server     ServerConfig      `json:"server"`
-	Cors       CORSConfig        `json:"cors"`
-	DataBase   DatabaseConfig    `json:"dataBase"`
-	Storage    FileStorageConfig `json:"storage"`
-	AWS        AwsPublicConfig   `json:"aws"`
-	Game       GameConfig        `json:"game"`
-	Session    SessionConfig     `json:"session"`
-	WebSocket  WebSocketConfig   `json:"websocket"`
-	AuthClient AuthClient        `json:"authClient"`
+	Server     ServerConfig    `json:"server"`
+	Cors       CORSConfig      `json:"cors"`
+	DataBase   DatabaseConfig  `json:"dataBase"`
+	Game       GameConfig      `json:"game"`
+	Session    SessionConfig   `json:"session"`
+	WebSocket  WebSocketConfig `json:"websocket"`
+	AuthClient AuthClient      `json:"authClient"`
 }
 
 // ServerConfig set host, post and buffers sizes
@@ -52,33 +49,6 @@ type DatabaseConfig struct {
 	MaxOpenConns     int    `json:"maxOpenConns"`
 	PageGames        int    `json:"pageGames"`
 	PageUsers        int    `json:"pageUsers"`
-}
-
-// FileStorageConfig set, where avatars store and
-//    what mode set to files/directories
-//easyjson:json
-type FileStorageConfig struct {
-	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
-	DefaultAvatar         string `json:"defaultAvatar"`
-	Region                string `json:"region"`
-	Endpoint              string `json:"endpoint"`
-}
-
-// AwsPublicConfig public aws information as region and endpoint
-//easyjson:json
-type AwsPublicConfig struct {
-	AwsConfig *aws.Config `json:"-"`
-	Region    string      `json:"region"`
-	Endpoint  string      `json:"endpoint"`
-}
-
-// AwsPrivateConfig private aws information. Need another json.
-//easyjson:json
-type AwsPrivateConfig struct {
-	AccessURL string `json:"accessUrl"`
-	AccessKey string `json:"accessKey"`
-	SecretURL string `json:"secretUrl"`
-	SecretKey string `json:"secretKey"`
 }
 
 //easyjson:json
@@ -158,42 +128,16 @@ func InitEnvironment(c *Configuration) {
 	set(c.AuthClient.URL, c.AuthClient.Address)
 }
 
-// InitPublic load configuration file
-func InitPublic(publicConfigPath string) (conf *Configuration, err error) {
+// Init load configuration file and put part of parameters to Environment
+func Init(path string) (conf *Configuration, err error) {
 	conf = &Configuration{}
 	var data []byte
-	if data, err = ioutil.ReadFile(publicConfigPath); err != nil {
+	if data, err = ioutil.ReadFile(path); err != nil {
 		return
 	}
 	if err = conf.UnmarshalJSON(data); err != nil {
 		return
 	}
-	conf.AWS.AwsConfig = &aws.Config{
-		Region:   aws.String(conf.AWS.Region),
-		Endpoint: aws.String(conf.AWS.Endpoint)}
 	InitEnvironment(conf)
-	return
-}
-
-// InitPrivate load configuration file and set private environment
-func InitPrivate(privateConfigPath string) (err error) {
-	var (
-		data  []byte
-		place = "secret json -"
-	)
-
-	if data, err = ioutil.ReadFile(privateConfigPath); err != nil {
-
-		utils.Debug(false, place, "not found:", err.Error())
-		return
-	}
-	var apc = &AwsPrivateConfig{}
-	if err = apc.UnmarshalJSON(data); err != nil {
-		utils.Debug(false, place, "wrong:", err.Error())
-		return
-	}
-
-	os.Setenv(apc.AccessURL, apc.AccessKey)
-	os.Setenv(apc.SecretURL, apc.SecretKey)
 	return
 }

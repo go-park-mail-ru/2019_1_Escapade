@@ -38,14 +38,6 @@
 			"OPTIONS"
 		]
 	},
-	"storage": {
-		"playersAvatarsStorage": "escapade",
-		"defaultAvatar": "1.png"
-	},
-	"aws": {
-		"region": "ru-msk",
-		"endpoint": "https://hb.bizmrg.com"
-	},
 	"session": {
 		"name": "sessionid",
 		"path": "/",

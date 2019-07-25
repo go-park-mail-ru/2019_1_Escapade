@@ -27,11 +27,9 @@ import (
 // Handler is struct
 type Handler struct {
 	DB        database.DataBase
-	Storage   config.FileStorageConfig
 	Session   config.SessionConfig
 	WebSocket config.WebSocketSettings
 	Game      config.GameConfig
-	AWS       config.AwsPublicConfig
 	Clients   *clients.Clients
 }
 

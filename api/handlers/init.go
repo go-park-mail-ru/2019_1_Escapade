@@ -20,9 +20,7 @@ func Init(DB *database.DataBase, c *config.Configuration /*, authConn *grpc.Clie
 	}
 	handler = &Handler{
 		DB:        *DB,
-		Storage:   c.Storage,
 		Session:   c.Session,
-		AWS:       c.AWS,
 		Game:      c.Game,
 		WebSocket: ws,
 		//Clients:   clients.Init(authConn),
@@ -32,33 +30,17 @@ func Init(DB *database.DataBase, c *config.Configuration /*, authConn *grpc.Clie
 	return
 }
 
-// GetAPIHandler init handler and configuration for api service
-func GetAPIHandler(C *config.Configuration /*, authConn *grpc.ClientConn*/) (H *Handler, err error) {
+// GetHandler init handler and configuration for api service
+func GetHandler(C *config.Configuration /*, authConn *grpc.ClientConn*/) (H *Handler, err error) {
 
 	var (
 		db *database.DataBase
 	)
 
-	if db, err = database.InitWithRebuild(C.DataBase); err != nil {
+	if db, err = database.Init(C.DataBase); err != nil {
 		return
 	}
-	//r.Handle("/metrics", promhttp.Handler())
 
 	H = Init(db, C /*authConn*/)
-	return
-}
-
-// GetGameHandler init handler and configuration for game service
-func GetGameHandler(conf *config.Configuration /*, authConn *grpc.ClientConn*/) (H *Handler, err error) {
-
-	var (
-		db *database.DataBase
-	)
-
-	if db, err = database.Init(conf.DataBase); err != nil {
-		return
-	}
-
-	H = Init(db, conf /*, authConn*/)
 	return
 }

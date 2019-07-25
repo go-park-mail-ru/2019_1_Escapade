@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/go-park-mail-ru/2019_1_Escapade/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
-
-	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -33,12 +33,12 @@ func main() {
 		err           error
 	)
 
-	if configuration, err = config.InitPublic(confPath); err != nil {
+	if configuration, err = config.Init(confPath); err != nil {
 		fmt.Println("eeeer", err.Error())
 		return
 	}
-	config.InitPrivate(secretPath)
-
+	config.Init(secretPath)
+	photo.Init(confPath, secretPath)
 	metrics.InitGame()
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
@@ -48,17 +48,18 @@ func main() {
 		defer authConn.Close()
 	*/
 
-	handler, err = api.GetGameHandler(configuration /*, authConn*/) // init.go
-	if err != nil {
-		fmt.Println("eeeer", err.Error())
+	var (
+		db *database.DataBase
+	)
+
+	if db, err = database.Init(configuration.DataBase); err != nil {
 		return
 	}
-
 	r := mux.NewRouter()
 	r.HandleFunc("/game/ws", handler.GameOnline)
 	r.Handle("/game/metrics", promhttp.Handler())
 
-	game.Launch(&configuration.Game, &handler.DB, handler.Setfiles)
+	game.Launch(&configuration.Game, db, photo.GetImages)
 	defer game.GetLobby().Stop()
 
 	// c := make(chan os.Signal)

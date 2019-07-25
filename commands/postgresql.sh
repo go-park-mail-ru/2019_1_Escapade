@@ -1,8 +1,8 @@
 #!/bin/sh
 echo ""
-echo "  -------------------------"
-echo "  ----[E]PostgreSQL set----"
-echo "  -------------------------"
+echo "  --------------------------"
+echo "  ------PostgreSQL set------"
+echo "  --------------------------"
 echo ""
 #chmod +x postgresql.sh && ./postgresql.sh
 
