@@ -9,7 +9,7 @@ echo ""
 echo "  1. Build app"
 go build -o game ../game/main.go
 
-echo "  1. Run app"
+echo "  2. Run app"
 # 1 parameter - path to main configuration json file
 # 2 parameter - path to public photo configuration
 # 3 parameter - path to private photo configuration
