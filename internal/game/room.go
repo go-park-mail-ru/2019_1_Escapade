@@ -89,24 +89,32 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 	if constants.ROOM.Set {
 		namelen := len(rs.Name)
 		if namelen < constants.ROOM.NameMin || namelen > constants.ROOM.NameMax {
+			utils.Debug(false, "Name length is invalid:", namelen, ". Need more then",
+				constants.ROOM.NameMin, " and less then", constants.ROOM.NameMax)
 			return false
 		}
 		if rs.Width < constants.FIELD.WidthMin || rs.Width > constants.FIELD.WidthMax {
+			utils.Debug(false, "Width is invalid:", rs.Width)
 			return false
 		}
 		if rs.Height < constants.FIELD.HeightMin || rs.Height > constants.FIELD.HeightMax {
+			utils.Debug(false, "Height is invalid:", rs.Height)
 			return false
 		}
 		if rs.Players < constants.ROOM.PlayersMin || rs.Players > constants.ROOM.PlayersMax {
+			utils.Debug(false, "Amount of players is invalid:", rs.Players)
 			return false
 		}
 		if rs.Observers > constants.ROOM.ObserversMax {
+			utils.Debug(false, "Amount of observers is invalid:", rs.Observers)
 			return false
 		}
 		if rs.TimeToPrepare < constants.ROOM.TimeToPrepareMin || rs.TimeToPrepare > constants.ROOM.TimeToPrepareMax {
+			utils.Debug(false, "Time to prepare is invalid:", rs.TimeToPrepare)
 			return false
 		}
 		if rs.TimeToPlay < constants.ROOM.TimeToPlayMin || rs.TimeToPlay > constants.ROOM.TimeToPlayMax {
+			utils.Debug(false, "Time to play is invalid:", rs.TimeToPlay)
 			return false
 		}
 	} else {

@@ -205,3 +205,7 @@ func initPrivate(path string) error {
 	os.Setenv(privateAWS.SecretURL, privateAWS.SecretKey)
 	return err
 }
+
+func GetDefaultAvatar() string {
+	return _AWS.public.DefaultAvatar
+}

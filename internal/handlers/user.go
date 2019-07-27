@@ -1,7 +1,10 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
@@ -175,6 +178,63 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// GetProfile godoc
+// @Summary Get public user inforamtion
+// @Description get user's best score and best time for a given difficulty, user's id, name and photo
+// @ID GetProfile
+// @Accept  json
+// @Produce  json
+// @Param name path string false "User name"
+// @Success 200 {object} models.UserPublicInfo "Profile found successfully"
+// @Failure 400 {object} models.Result "Invalid username"
+// @Failure 404 {object} models.Result "User not found"
+// @Router /users/{name}/profile [GET]
+func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
+	const place = "GetProfile"
+
+	var (
+		err    error
+		userID int
+	)
+
+	if userID, err = h.getUserID(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, err, place)
+		utils.PrintResult(err, http.StatusBadRequest, place)
+		return
+	}
+
+	h.getUser(rw, r, userID)
+	return
+}
+
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+	const place = "GetProfile"
+
+	var (
+		err       error
+		difficult int
+		user      *models.UserPublicInfo
+	)
+
+	difficult = h.getDifficult(r)
+
+	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
+		return
+	}
+	photo.GetImages(user)
+
+	utils.SendSuccessJSON(rw, user, place)
+
+	rw.WriteHeader(http.StatusOK)
+	utils.PrintResult(err, http.StatusOK, place)
+	return
+}
+
 func (h *Handler) createUserInDB(ctx context.Context,
 	user models.UserPrivateInfo) (userID int, sessionID string, err error) {
 
@@ -240,4 +300,18 @@ func (h *Handler) RandomUsers(limit int) {
 		}
 
 	}
+}
+
+func validateUser(user *models.UserPrivateInfo) error {
+	name := strings.TrimSpace(user.Name)
+	if name == "" || len(name) < 3 {
+		return re.ErrorInvalidName()
+	}
+	user.Name = name
+
+	password := strings.TrimSpace(user.Password)
+	if len(password) < 3 {
+		return re.ErrorInvalidPassword()
+	}
+	return nil
 }

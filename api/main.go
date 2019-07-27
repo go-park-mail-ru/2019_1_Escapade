@@ -5,12 +5,11 @@ import (
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 
-	"net/http"
 	"os"
 )
 
@@ -71,11 +70,17 @@ func main() {
 
 	//API.RandomUsers(10) // create 10 users for tests
 	var (
-		r    = router.APIRouter(API, configuration.Cors, configuration.Session)
-		port = router.Port(configuration)
+		r    = server.APIRouter(API, configuration.Cors, configuration.Session)
+		port = server.Port(configuration)
+		srv  = server.Server(r, configuration.Server, port)
 	)
 
-	if err = http.ListenAndServe(port, r); err != nil {
-		utils.PrintResult(err, 0, "main")
-	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			utils.Debug(false, "Serving error:", err.Error())
+		}
+	}()
+
+	server.InterruptHandlet(srv, configuration.Server)
+	os.Exit(0)
 }

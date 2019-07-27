@@ -6,7 +6,7 @@ import (
 
 	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/gomodule/redigo/redis"

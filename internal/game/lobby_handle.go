@@ -283,32 +283,32 @@ func (lobby *Lobby) Analize(req *Request) {
 	}()
 
 	if req.Connection.PlayingRoom() != nil {
-		var rsend *RoomRequest
+		var rsend RoomRequest
 		if err := rsend.UnmarshalJSON(req.Message); err != nil {
 			utils.Debug(true, "json error")
 		} else {
-			req.Connection.PlayingRoom().HandleRequest(req.Connection, rsend)
+			req.Connection.PlayingRoom().HandleRequest(req.Connection, &rsend)
 		}
 		// not in lobby
 		return
 	} else if req.Connection.WaitingRoom() != nil {
-		var rsend *RoomRequest
+		var rsend RoomRequest
 		if err := rsend.UnmarshalJSON(req.Message); err != nil {
 			utils.Debug(true, "json error")
 		} else {
-			req.Connection.WaitingRoom().HandleRequest(req.Connection, rsend)
+			req.Connection.WaitingRoom().HandleRequest(req.Connection, &rsend)
 		}
 		// in lobby
 	}
 
-	var send *LobbyRequest
+	var send LobbyRequest
 	if err := send.UnmarshalJSON(req.Message); err != nil {
 		req.Connection.SendInformation(models.Result{
 			Success: false,
 			Message: err.Error(),
 		})
 	} else {
-		lobby.HandleRequest(req.Connection, send)
+		lobby.HandleRequest(req.Connection, &send)
 	}
 }
 

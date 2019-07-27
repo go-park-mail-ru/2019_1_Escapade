@@ -37,8 +37,8 @@ func PrintResult(catched error, number int, place string) {
 // Debug record information for logging
 // if 'needPanic' is true then panic(text) will be called
 func Debug(needPanic bool, text ...interface{}) {
+	fmt.Println(text...)
 	if needPanic {
 		panic(text)
 	}
-	fmt.Println(text...)
 }

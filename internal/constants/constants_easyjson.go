@@ -38,9 +38,9 @@ func easyjson8a25db09DecodeGithubComGoParkMailRu20191EscapadeInternalConstants(i
 		switch key {
 		case "Set":
 			out.Set = bool(in.Bool())
-		case "nameMinLength":
+		case "nameMin":
 			out.NameMin = int(in.Int())
-		case "nameMaxLength":
+		case "nameMax":
 			out.NameMax = int(in.Int())
 		case "timeToPrepareMin":
 			out.TimeToPrepareMin = int(in.Int())
@@ -76,12 +76,12 @@ func easyjson8a25db09EncodeGithubComGoParkMailRu20191EscapadeInternalConstants(o
 		out.Bool(bool(in.Set))
 	}
 	{
-		const prefix string = ",\"nameMinLength\":"
+		const prefix string = ",\"nameMin\":"
 		out.RawString(prefix)
 		out.Int(int(in.NameMin))
 	}
 	{
-		const prefix string = ",\"nameMaxLength\":"
+		const prefix string = ",\"nameMax\":"
 		out.RawString(prefix)
 		out.Int(int(in.NameMax))
 	}

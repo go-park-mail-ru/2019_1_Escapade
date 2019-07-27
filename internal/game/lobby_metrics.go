@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -90,10 +89,8 @@ func (lobby *Lobby) addToAllRooms(room *Room) error {
 // m mean metrics
 
 func (lobby *Lobby) mUserWelcome(isAnonymous bool) {
-	fmt.Println("mUserWelcome", lobby.config.Metrics)
 	if lobby.config.Metrics {
 		metrics.Online.Inc()
-		fmt.Println("1231231231")
 		if isAnonymous {
 			metrics.AnonymousOnline.Inc()
 		}

@@ -2,7 +2,12 @@
 	"server": {
 		"host": "http://localhost",
 		"portUrl": "PORT_GAME_URL",
-		"portValue": ":3002"
+		"portValue": ":3002",
+		"readTimeoutS":10,
+		"writeTimeoutS":15,
+		"idleTimeoutS":5,
+		"waitTimeoutS":5,
+		"execTimeoutS":0
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",

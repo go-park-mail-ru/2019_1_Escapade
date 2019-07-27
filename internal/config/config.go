@@ -26,6 +26,12 @@ type ServerConfig struct {
 	Host      string `json:"host"`
 	PortURL   string `json:"portUrl"`
 	PortValue string `json:"portValue"`
+	// timeouts in seconds
+	ReadTimeoutS  int `json:"readTimeoutS"`
+	WriteTimeoutS int `json:"writeTimeoutS"`
+	IdleTimeoutS  int `json:"idleTimeoutS"`
+	WaitTimeoutS  int `json:"waitTimeoutS"`
+	ExecTimeoutS  int `json:"execTimeoutS"`
 }
 
 // CORSConfig set allowable origins, headers and methods

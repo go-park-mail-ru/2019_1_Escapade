@@ -207,50 +207,6 @@ func getUserDeleteCases() []TestCase {
 
 // }
 
-func TestAll(t *testing.T) {
-
-	const (
-		place      = "main"
-		confPath   = "../../conf.json"
-		secretPath = "../../secret.json"
-	)
-
-	var (
-		H             *Handler
-		configuration *config.Configuration
-		err           error
-	)
-	if configuration, err = config.Init(confPath); err != nil {
-		t.Error("eeeer", err.Error())
-		return
-	}
-
-	// fmt.Println("launchTests")
-	// authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-	// if err != nil {
-	// 	t.Error("serviceConnectionsInit error:", err)
-	// }
-	// defer authConn.Close()
-
-	H, err = GetAPIHandler(configuration) // init.go
-	if err != nil {
-		t.Error("serviceConnectionsInit error:", err)
-	}
-	if H == nil {
-		fmt.Println("launchTests failes")
-	}
-
-	TCreateUser(t, H)
-	TDeleteUser(t, H)
-	TUpdateProfile(t, H)
-	TGetMyProfile(t, H)
-	TGetProfile(t, H)
-	TLogin(t, H)
-	TLogout(t, H)
-	t.Error("serviceConnectionsInit error:")
-	// delete everything in database after tests
-}
-
 func TCreateUser(t *testing.T, H *Handler) {
 
 	url := "/user"

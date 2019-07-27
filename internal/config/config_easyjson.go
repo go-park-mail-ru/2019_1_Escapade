@@ -896,6 +896,16 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig8(in 
 			out.PortURL = string(in.String())
 		case "portValue":
 			out.PortValue = string(in.String())
+		case "readTimeoutS":
+			out.ReadTimeoutS = int(in.Int())
+		case "writeTimeoutS":
+			out.WriteTimeoutS = int(in.Int())
+		case "idleTimeoutS":
+			out.IdleTimeoutS = int(in.Int())
+		case "waitTimeoutS":
+			out.WaitTimeoutS = int(in.Int())
+		case "execTimeoutS":
+			out.ExecTimeoutS = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -924,6 +934,31 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig8(out
 		const prefix string = ",\"portValue\":"
 		out.RawString(prefix)
 		out.String(string(in.PortValue))
+	}
+	{
+		const prefix string = ",\"readTimeoutS\":"
+		out.RawString(prefix)
+		out.Int(int(in.ReadTimeoutS))
+	}
+	{
+		const prefix string = ",\"writeTimeoutS\":"
+		out.RawString(prefix)
+		out.Int(int(in.WriteTimeoutS))
+	}
+	{
+		const prefix string = ",\"idleTimeoutS\":"
+		out.RawString(prefix)
+		out.Int(int(in.IdleTimeoutS))
+	}
+	{
+		const prefix string = ",\"waitTimeoutS\":"
+		out.RawString(prefix)
+		out.Int(int(in.WaitTimeoutS))
+	}
+	{
+		const prefix string = ",\"execTimeoutS\":"
+		out.RawString(prefix)
+		out.Int(int(in.ExecTimeoutS))
 	}
 	out.RawByte('}')
 }

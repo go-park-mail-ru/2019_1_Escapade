@@ -8,8 +8,8 @@ import (
 //easyjson:json
 type roomConfiguration struct {
 	Set              bool
-	NameMin          int `json:"nameMinLength"`
-	NameMax          int `json:"nameMaxLength"`
+	NameMin          int `json:"nameMin"`
+	NameMax          int `json:"nameMax"`
 	TimeToPrepareMin int `json:"timeToPrepareMin"`
 	TimeToPrepareMax int `json:"timeToPrepareMax"`
 	TimeToPlayMin    int `json:"timeToPlayMin"`
