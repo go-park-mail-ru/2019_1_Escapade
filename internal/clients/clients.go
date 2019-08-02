@@ -3,26 +3,60 @@ package clients
 import (
 	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"os"
+	"sync"
 
 	"google.golang.org/grpc"
 )
 
 type Clients struct {
 	Session session.AuthCheckerClient
-	Chat    pChat.ChatServiceClient
+
+	chatM *sync.RWMutex
+	_chat pChat.ChatServiceClient
 }
 
 var ALL Clients
 
-func Init(authConn *grpc.ClientConn) *Clients {
-	return &Clients{Session: session.NewAuthCheckerClient(authConn)}
+func (clients *Clients) Init(ready chan error, finish chan interface{}, configClients ...config.Client) {
+	clients.chatM = &sync.RWMutex{}
+	utils.Debug(false, "init", len(configClients))
+	for _, client := range configClients {
+		utils.Debug(false, "client name ", client.Name)
+		if client.Name == "chat" {
+			go clients.InitChat(client.Address, ready, finish)
+			<-ready
+		}
+	}
 }
 
-func (clients *Clients) InitChat(conn *grpc.ClientConn) {
-	clients.Chat = pChat.NewChatServiceClient(conn)
+func (clients *Clients) InitChat(address string, ready chan error, finish chan interface{}) {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		utils.Debug(false, "Cant connect to chat service. Retry? ", err.Error())
+		ready <- err
+		return
+	}
+	defer conn.Close()
+	clients.setChat(conn)
+	ready <- err
+	<-finish
+}
+
+func (clients *Clients) setChat(conn *grpc.ClientConn) {
+	clients.chatM.Lock()
+	clients._chat = pChat.NewChatServiceClient(conn)
+	clients.chatM.Unlock()
+}
+
+func (clients *Clients) Chat() pChat.ChatServiceClient {
+	clients.chatM.RLock()
+	v := clients._chat
+	clients.chatM.RUnlock()
+	return v
 }
 
 func ServiceConnectionsInit(conf config.AuthClient) (authConn *grpc.ClientConn, err error) {

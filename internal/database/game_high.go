@@ -30,7 +30,7 @@ func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
 		TypeId: roomID,
 	}
 
-	pbChatID, err = clients.ALL.Chat.CreateChat(context.Background(), newChat)
+	pbChatID, err = clients.ALL.Chat().CreateChat(context.Background(), newChat)
 	if err != nil {
 		return 0, 0, err
 	}

@@ -29,7 +29,7 @@ mkdir -p $GPROJECTDIR && \
 #cp -r $PWD/.. $GPROJECTDIR && \
 cp -r $PWD/../internal $GPROJECTDIR && \
 cp -r $PWD/../auth $GPROJECTDIR && \
-cp -r $PWD/../chat_service $GPROJECTDIR && \
+cp -r $PWD/../chat $GPROJECTDIR && \
 #cp -r $PWD/../go.mod $GPROJECTDIR && \
 #cp -r $PWD/../go.sum $GPROJECTDIR && \
 cp -r $PWD/../vendor $GPROJECTDIR && \

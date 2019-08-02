@@ -39,13 +39,13 @@ func GetChatIDAndMessages(loc *time.Location, chatType сhat.ChatType, typeID in
 		err       error
 	)
 
-	chatID, err = clients.ALL.Chat.GetChat(context.Background(), newChat)
+	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
 
 	if err != nil {
 		utils.Debug(true, "cant access to chat service", err.Error())
 		return 0, nil, err
 	}
-	pMessages, err = clients.ALL.Chat.GetChatMessages(context.Background(), chatID)
+	pMessages, err = clients.ALL.Chat().GetChatMessages(context.Background(), chatID)
 	if err != nil {
 		utils.Debug(true, "cant get messages!", err.Error())
 		return 0, nil, err
@@ -74,7 +74,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		msg := сhat.MessageToProto(message)
 		utils.Debug(false, "newtime", msg.Time)
 		msg.ChatId = chatID
-		msgID, err := clients.ALL.Chat.AppendMessage(context.Background(), msg)
+		msgID, err := clients.ALL.Chat().AppendMessage(context.Background(), msg)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		update(find(message), message)
 
 		msg := сhat.MessageToProto(message)
-		_, err := clients.ALL.Chat.UpdateMessage(context.Background(), msg)
+		_, err := clients.ALL.Chat().UpdateMessage(context.Background(), msg)
 		if err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		delete(find(message))
 
 		msg := сhat.MessageToProto(message)
-		_, err := clients.ALL.Chat.DeleteMessage(context.Background(), msg)
+		_, err := clients.ALL.Chat().DeleteMessage(context.Background(), msg)
 		if err != nil {
 			return err
 		}

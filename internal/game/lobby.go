@@ -6,10 +6,10 @@ import (
 	"time"
 
 	сhat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	models "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	utils "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // SetImage function to set image

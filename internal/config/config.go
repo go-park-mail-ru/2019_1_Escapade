@@ -11,13 +11,13 @@ import (
 // Configuration contains all types of configurations
 //easyjson:json
 type Configuration struct {
-	Server     ServerConfig    `json:"server"`
-	Cors       CORSConfig      `json:"cors"`
-	DataBase   DatabaseConfig  `json:"dataBase"`
-	Game       GameConfig      `json:"game"`
-	Session    SessionConfig   `json:"session"`
-	WebSocket  WebSocketConfig `json:"websocket"`
-	AuthClient AuthClient      `json:"authClient"`
+	Server    ServerConfig    `json:"server"`
+	Cors      CORSConfig      `json:"cors"`
+	DataBase  DatabaseConfig  `json:"dataBase"`
+	Game      GameConfig      `json:"game"`
+	Session   SessionConfig   `json:"session"`
+	WebSocket WebSocketConfig `json:"websocket"`
+	Services  []Client        `json:"services"`
 }
 
 // ServerConfig set host, post and buffers sizes
@@ -86,6 +86,11 @@ type AuthClient struct {
 	Address string `json:"address"`
 }
 
+type Client struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
+}
+
 // SessionConfig set cookie name, path, length, expiration time
 // and HTTPonly flag
 //easyjson:json
@@ -131,7 +136,6 @@ func InitEnvironment(c *Configuration) {
 
 	set(c.DataBase.URL, c.DataBase.ConnectionString)
 	set(c.Server.PortURL, c.Server.PortValue)
-	set(c.AuthClient.URL, c.AuthClient.Address)
 }
 
 // Init load configuration file and put part of parameters to Environment

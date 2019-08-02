@@ -56,6 +56,8 @@ func main() {
 
 	chat.RegisterChatServiceServer(s, service)
 
-	server.LaunchGRPC(s, lis)
+	server.LaunchGRPC(s, lis, func() {
+		service.DB.Close()
+	})
 	os.Exit(0)
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"google.golang.org/grpc"
 
 	"os"
 )
@@ -71,25 +70,14 @@ func main() {
 	metrics.InitApi()
 	metrics.InitGame()
 
-	conn, err := grpc.Dial(":3005", grpc.WithInsecure())
-	if err != nil {
-		utils.Debug(false, "Cant connect to chat service. Retry? ", err.Error())
-	}
-	defer conn.Close()
-	clients.ALL.InitChat(conn)
+	readyChan := make(chan error)
+	finishChan := make(chan interface{})
 
-	/*
-		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-		if err != nil {
-			log.Fatal("serviceConnectionsInit error:", err)
-		}
-		defer authConn.Close()
-	*/
+	clients.ALL.Init(readyChan, finishChan, configuration.Services...)
 
 	handler = api.Init(db, configuration)
 
 	game.Launch(&configuration.Game, db, photo.GetImages)
-	defer game.GetLobby().Stop()
 
 	var (
 		r    = server.GameRouter(handler, configuration.Cors)
@@ -97,12 +85,10 @@ func main() {
 		srv  = server.Server(r, configuration.Server, port)
 	)
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			utils.Debug(false, "Serving error:", err.Error())
-		}
-	}()
-
-	server.InterruptHandler(srv, configuration.Server)
+	server.LaunchHTTP(srv, configuration.Server, func() {
+		finishChan <- nil
+		game.GetLobby().Stop()
+		db.Db.Close()
+	})
 	os.Exit(0)
 }

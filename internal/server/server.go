@@ -41,44 +41,69 @@ func Server(r *mux.Router, serverConfig config.ServerConfig, port string) *http.
 	return srv
 }
 
-func InterruptHandler(server *http.Server, serverConfig config.ServerConfig) {
+func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc func()) {
+	errChan := make(chan error)
+	stopChan := make(chan os.Signal)
+
+	signal.Notify(stopChan, os.Interrupt)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			errChan <- err
+			utils.Debug(false, "Serving error:", err.Error())
+		}
+	}()
+
+	defer func() {
+		close(errChan)
+		close(stopChan)
+		lastFunc()
+	}()
+
 	waitTimeout := time.Duration(serverConfig.WaitTimeoutS) * time.Second
-
-	c := make(chan os.Signal, 1)
-
-	signal.Notify(c, os.Interrupt)
-
-	<-c
-
 	ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
+
+	select {
+	case err := <-errChan:
+		utils.Debug(false, "Fatal error: ", err.Error())
+		return
+	case <-stopChan:
+		err := server.Shutdown(ctx)
+		if err != nil {
+			utils.Debug(false, "Shutdown error:", err.Error())
+		}
+	}
+
 	defer cancel()
+	<-ctx.Done()
+
 	go func() {
 		err := server.Shutdown(ctx)
 		if err != nil {
 			utils.Debug(false, "Shutdown error:", err.Error())
 		}
+		lastFunc()
 	}()
-	<-ctx.Done()
-	utils.Debug(false, "shutting down")
 }
 
-func LaunchGRPC(grpcServer *grpc.Server, lis net.Listener) {
+func LaunchGRPC(grpcServer *grpc.Server, lis net.Listener, lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 
-	// bind OS events to the signal channel
 	signal.Notify(stopChan, os.Interrupt)
 
-	// run blocking call in a separate goroutine, report errors via channel
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
 			errChan <- err
+			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
 
-	// terminate your environment gracefully before leaving main function
 	defer func() {
 		grpcServer.GracefulStop()
+		close(errChan)
+		close(stopChan)
+		lastFunc()
 	}()
 
 	// block until either OS signal, or server fatal error

@@ -1031,9 +1031,28 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig9(in 
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.WebSocket).UnmarshalJSON(data))
 			}
-		case "authClient":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.AuthClient).UnmarshalJSON(data))
+		case "services":
+			if in.IsNull() {
+				in.Skip()
+				out.Services = nil
+			} else {
+				in.Delim('[')
+				if out.Services == nil {
+					if !in.IsDelim(']') {
+						out.Services = make([]Client, 0, 2)
+					} else {
+						out.Services = []Client{}
+					}
+				} else {
+					out.Services = (out.Services)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v10 Client
+					easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig10(in, &v10)
+					out.Services = append(out.Services, v10)
+					in.WantComma()
+				}
+				in.Delim(']')
 			}
 		default:
 			in.SkipRecursive()
@@ -1080,9 +1099,20 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig9(out
 		out.Raw((in.WebSocket).MarshalJSON())
 	}
 	{
-		const prefix string = ",\"authClient\":"
+		const prefix string = ",\"services\":"
 		out.RawString(prefix)
-		out.Raw((in.AuthClient).MarshalJSON())
+		if in.Services == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v11, v12 := range in.Services {
+				if v11 > 0 {
+					out.RawByte(',')
+				}
+				easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig10(out, v12)
+			}
+			out.RawByte(']')
+		}
 	}
 	out.RawByte('}')
 }
@@ -1109,4 +1139,53 @@ func (v *Configuration) UnmarshalJSON(data []byte) error {
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Configuration) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig9(l, v)
+}
+func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig10(in *jlexer.Lexer, out *Client) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "name":
+			out.Name = string(in.String())
+		case "address":
+			out.Address = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig10(out *jwriter.Writer, in Client) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"name\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.Name))
+	}
+	{
+		const prefix string = ",\"address\":"
+		out.RawString(prefix)
+		out.String(string(in.Address))
+	}
+	out.RawByte('}')
 }

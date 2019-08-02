@@ -67,5 +67,11 @@
 		"maxMessageSize": 4096,
 		"readBufferSize": 1024,
 		"writeBufferSize": 1024
-	}
+	},
+	"services": [
+		{
+			"name":"chat",
+			"address":":3005"
+		}
+	]
 }
