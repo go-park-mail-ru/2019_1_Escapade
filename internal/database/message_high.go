@@ -1,5 +1,5 @@
 package database
-
+/*
 import (
 	"database/sql"
 
@@ -78,3 +78,4 @@ func (db *DataBase) LoadMessages(inRoom bool, gameID string) (messages []*models
 	err = tx.Commit()
 	return
 }
+*/

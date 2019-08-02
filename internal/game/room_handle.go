@@ -78,8 +78,8 @@ func (room *Room) Close() bool {
 		room.wGroup.Done()
 	}()
 
-	utils.Debug(false, "Can close?", room.lobby.config.CanClose)
-	if !room.lobby.config.CanClose {
+	utils.Debug(false, "Can close?", room.lobby.config().CanClose)
+	if !room.lobby.config().CanClose {
 		return false
 	}
 	utils.Debug(false, "We closed room :С")
@@ -291,7 +291,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		}
 		Message(room.lobby, conn, rr.Message, room.appendMessage,
 			room.setMessage, room.removeMessage, room.findMessage,
-			room.send, room.All, true, room.ID())
+			room.send, room.All, true, room.dbChatID)
 	}
 }
 
@@ -350,8 +350,7 @@ func (room *Room) StartGame() {
 	cells := room.Field.OpenZero() //room.Field.OpenSave(int(open))
 	go room.sendNewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-	room.setDate(time.Now().In(loc))
+	room.setDate(time.Now().In(room.lobby.location()))
 	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 
@@ -386,7 +385,7 @@ func (room *Room) FinishGame(timer bool) {
 	go room.Players.Finish(saveAndSendGroup)
 	saveAndSendGroup.Wait()
 
-	go room.metricsRoom(room.lobby.config.Metrics, false)
+	go room.metricsRoom(room.lobby.config().Metrics, false)
 
 	room.wGroup.Add(1)
 	room.lobby.roomFinish(room, room.wGroup)
@@ -452,7 +451,7 @@ func (room *Room) CancelGame() {
 
 	room.setStatus(StatusFinished)
 
-	go room.metricsRoom(room.lobby.config.Metrics, true)
+	go room.metricsRoom(room.lobby.config().Metrics, true)
 
 	room.wGroup.Add(1)
 	room.lobby.roomFinish(room, room.wGroup)

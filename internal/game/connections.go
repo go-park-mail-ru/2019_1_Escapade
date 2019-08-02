@@ -9,14 +9,14 @@ import (
 // Connections - slice of connections with capacity
 type Connections struct {
 	capacityM *sync.RWMutex
-	_capacity int
+	_capacity int32
 
 	getM *sync.RWMutex
 	_get []*Connection
 }
 
 // NewConnections create instance of Connections
-func NewConnections(capacity int) (conns *Connections) {
+func NewConnections(capacity int32) (conns *Connections) {
 	conns = &Connections{
 		capacityM: &sync.RWMutex{},
 		_capacity: capacity,
@@ -84,7 +84,7 @@ func (conns *Connections) Restore(conn *Connection) bool {
 // ConnectionsJSON is a wrapper for sending Connections by JSON
 //easyjson:json
 type ConnectionsJSON struct {
-	Capacity int           `json:"capacity"`
+	Capacity int32         `json:"capacity"`
 	Get      []*Connection `json:"get"`
 }
 

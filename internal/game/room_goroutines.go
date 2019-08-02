@@ -223,7 +223,7 @@ func (room *Room) processActionDisconnect(conn *Connection) {
 }
 
 func (room *Room) processActionReconnect(conn *Connection) {
-	if room.lobby.config.Metrics {
+	if room.lobby.config().Metrics {
 		metrics.RoomsReconnections.Inc()
 	}
 

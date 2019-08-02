@@ -71,8 +71,8 @@ type FieldConfig struct {
 // metrics should be recorded or not
 //easyjson:json
 type GameConfig struct {
-	RoomsCapacity      int          `json:"roomsCapacity"`
-	ConnectionCapacity int          `json:"connectionCapacity"`
+	RoomsCapacity      int32        `json:"roomsCapacity"`
+	ConnectionCapacity int32        `json:"connectionCapacity"`
 	Location           string       `json:"location"`
 	CanClose           bool         `json:"closeRoom"`
 	Metrics            bool         `json:"metrics"`

@@ -42,7 +42,7 @@ func (conns *Connections) Add(conn *Connection) int {
 }
 
 // Capacity return the capacity of the stored slice
-func (conns *Connections) Capacity() int {
+func (conns *Connections) Capacity() int32 {
 
 	conns.capacityM.RLock()
 	defer conns.capacityM.RUnlock()
@@ -58,7 +58,7 @@ func (conns *Connections) Set(slice []*Connection) {
 }
 
 // SetCapacity set the capacity of slice
-func (conns *Connections) SetCapacity(size int) {
+func (conns *Connections) SetCapacity(size int32) {
 
 	conns.capacityM.Lock()
 	defer conns.capacityM.Unlock()
@@ -130,13 +130,13 @@ func (conns *Connections) EnoughPlace() bool {
 	conns.capacityM.RLock()
 	cap := conns._capacity
 	conns.capacityM.RUnlock()
-	return size < cap
+	return int32(size) < cap
 }
 
 // SearchByID find connection by connection ID
 // return this connection and its index if success
 // otherwise nil and -1
-func (conns *Connections) SearchByID(connectionID int) (index int, connection *Connection) {
+func (conns *Connections) SearchByID(connectionID int32) (index int, connection *Connection) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
 	index = -1

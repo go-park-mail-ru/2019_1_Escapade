@@ -8,15 +8,15 @@ import (
 //easyjson:json
 type roomConfiguration struct {
 	Set              bool
-	NameMin          int `json:"nameMin"`
-	NameMax          int `json:"nameMax"`
-	TimeToPrepareMin int `json:"timeToPrepareMin"`
-	TimeToPrepareMax int `json:"timeToPrepareMax"`
-	TimeToPlayMin    int `json:"timeToPlayMin"`
-	TimeToPlayMax    int `json:"timeToPlayMax"`
-	PlayersMin       int `json:"playersMin"`
-	PlayersMax       int `json:"playersMax"`
-	ObserversMax     int `json:"observersMax"`
+	NameMin          int32 `json:"nameMin"`
+	NameMax          int32 `json:"nameMax"`
+	TimeToPrepareMin int32 `json:"timeToPrepareMin"`
+	TimeToPrepareMax int32 `json:"timeToPrepareMax"`
+	TimeToPlayMin    int32 `json:"timeToPlayMin"`
+	TimeToPlayMax    int32 `json:"timeToPlayMax"`
+	PlayersMin       int32 `json:"playersMin"`
+	PlayersMax       int32 `json:"playersMax"`
+	ObserversMax     int32 `json:"observersMax"`
 }
 
 // ROOM - singleton of room constants

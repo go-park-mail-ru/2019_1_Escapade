@@ -407,9 +407,9 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig4(in 
 		}
 		switch key {
 		case "roomsCapacity":
-			out.RoomsCapacity = int(in.Int())
+			out.RoomsCapacity = int32(in.Int32())
 		case "connectionCapacity":
-			out.ConnectionCapacity = int(in.Int())
+			out.ConnectionCapacity = int32(in.Int32())
 		case "location":
 			out.Location = string(in.String())
 		case "closeRoom":
@@ -424,7 +424,9 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig4(in 
 				if out.Field == nil {
 					out.Field = new(FieldConfig)
 				}
-				(*out.Field).UnmarshalEasyJSON(in)
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.Field).UnmarshalJSON(data))
+				}
 			}
 		default:
 			in.SkipRecursive()
@@ -443,12 +445,12 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig4(out
 	{
 		const prefix string = ",\"roomsCapacity\":"
 		out.RawString(prefix[1:])
-		out.Int(int(in.RoomsCapacity))
+		out.Int32(int32(in.RoomsCapacity))
 	}
 	{
 		const prefix string = ",\"connectionCapacity\":"
 		out.RawString(prefix)
-		out.Int(int(in.ConnectionCapacity))
+		out.Int32(int32(in.ConnectionCapacity))
 	}
 	{
 		const prefix string = ",\"location\":"
@@ -471,7 +473,7 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig4(out
 		if in.Field == nil {
 			out.RawString("null")
 		} else {
-			(*in.Field).MarshalEasyJSON(out)
+			out.Raw((*in.Field).MarshalJSON())
 		}
 	}
 	out.RawByte('}')
@@ -1006,19 +1008,33 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig9(in 
 		}
 		switch key {
 		case "server":
-			(out.Server).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Server).UnmarshalJSON(data))
+			}
 		case "cors":
-			(out.Cors).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Cors).UnmarshalJSON(data))
+			}
 		case "dataBase":
-			(out.DataBase).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.DataBase).UnmarshalJSON(data))
+			}
 		case "game":
-			(out.Game).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Game).UnmarshalJSON(data))
+			}
 		case "session":
-			(out.Session).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Session).UnmarshalJSON(data))
+			}
 		case "websocket":
-			(out.WebSocket).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.WebSocket).UnmarshalJSON(data))
+			}
 		case "authClient":
-			(out.AuthClient).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.AuthClient).UnmarshalJSON(data))
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -1036,37 +1052,37 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig9(out
 	{
 		const prefix string = ",\"server\":"
 		out.RawString(prefix[1:])
-		(in.Server).MarshalEasyJSON(out)
+		out.Raw((in.Server).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"cors\":"
 		out.RawString(prefix)
-		(in.Cors).MarshalEasyJSON(out)
+		out.Raw((in.Cors).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"dataBase\":"
 		out.RawString(prefix)
-		(in.DataBase).MarshalEasyJSON(out)
+		out.Raw((in.DataBase).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"game\":"
 		out.RawString(prefix)
-		(in.Game).MarshalEasyJSON(out)
+		out.Raw((in.Game).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"session\":"
 		out.RawString(prefix)
-		(in.Session).MarshalEasyJSON(out)
+		out.Raw((in.Session).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"websocket\":"
 		out.RawString(prefix)
-		(in.WebSocket).MarshalEasyJSON(out)
+		out.Raw((in.WebSocket).MarshalJSON())
 	}
 	{
 		const prefix string = ",\"authClient\":"
 		out.RawString(prefix)
-		(in.AuthClient).MarshalEasyJSON(out)
+		out.Raw((in.AuthClient).MarshalJSON())
 	}
 	out.RawByte('}')
 }

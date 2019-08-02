@@ -14,21 +14,21 @@ type Flag struct {
 // OnlinePlayers online players
 type OnlinePlayers struct {
 	capacityM *sync.RWMutex
-	_capacity int
+	_capacity int32
 
 	playersM *sync.RWMutex
 	_players []Player
 
 	flagsM      *sync.RWMutex
 	_flags      []Flag
-	flagsLeft   int
+	flagsLeft   int32
 	Connections *Connections
 }
 
 // OnlinePlayersJSON is a wrapper for sending OnlinePlayers by JSON
 //easyjson:json
 type OnlinePlayersJSON struct {
-	Capacity    int             `json:"capacity"`
+	Capacity    int32           `json:"capacity"`
 	Players     []Player        `json:"players"`
 	Connections ConnectionsJSON `json:"connections"`
 	Flags       []Flag          `json:"flags"`
@@ -65,7 +65,7 @@ func (op *OnlinePlayers) UnmarshalJSON(b []byte) error {
 }
 
 // NewConnections create instance of Connections
-func newOnlinePlayers(size int, field Field) *OnlinePlayers {
+func newOnlinePlayers(size int32, field Field) *OnlinePlayers {
 	players := make([]Player, size)
 	flags := make([]Flag, size)
 	return &OnlinePlayers{

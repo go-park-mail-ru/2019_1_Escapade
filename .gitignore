@@ -12,5 +12,6 @@
 *.out
 *.html
 
+/vendor
 secret.json
 .vscode

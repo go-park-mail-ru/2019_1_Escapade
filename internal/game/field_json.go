@@ -8,11 +8,11 @@ import (
 //easyjson:json
 type FieldJSON struct {
 	History   []*Cell `json:"history"`
-	CellsLeft int     `json:"cellsLeft"`
+	CellsLeft int32   `json:"cellsLeft"`
 
-	Width     int     `json:"width"`
-	Height    int     `json:"height"`
-	Mines     int     `json:"mines"`
+	Width     int32   `json:"width"`
+	Height    int32   `json:"height"`
+	Mines     int32   `json:"mines"`
 	Difficult float64 `json:"difficult"`
 }
 

@@ -7,14 +7,14 @@ import (
 // Rooms - slice of rooms with capacity
 type Rooms struct {
 	capacityM *sync.RWMutex
-	_capacity int
+	_capacity int32
 
 	getM *sync.RWMutex
 	_get []*Room
 }
 
 // NewRooms create instance of Rooms
-func NewRooms(capacity int) *Rooms {
+func NewRooms(capacity int32) *Rooms {
 	return &Rooms{
 		capacityM: &sync.RWMutex{},
 		_capacity: capacity,
@@ -38,7 +38,7 @@ func NewRoomsIterator(rooms *Rooms) *RoomsIterator {
 // RoomsJSON is a wrapper for sending Rooms by JSON
 //easyjson:json
 type RoomsJSON struct {
-	Capacity int     `json:"capacity"`
+	Capacity int32   `json:"capacity"`
 	Get      []*Room `json:"get"`
 }
 

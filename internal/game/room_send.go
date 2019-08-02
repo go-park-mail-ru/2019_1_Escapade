@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -181,8 +180,8 @@ func (room *Room) sendStatus(predicate SendPredicate, status int, wg *sync.WaitG
 		utils.CatchPanic("room_send.go RoomStatus()")
 	}()
 
-	var leftTime int
-	since := int(time.Since(room.Date()).Seconds())
+	var leftTime int32
+	since := int32(time.Since(room.Date()).Seconds())
 	if status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - since
 	}
@@ -194,14 +193,13 @@ func (room *Room) sendStatus(predicate SendPredicate, status int, wg *sync.WaitG
 		Value: struct {
 			ID     string `json:"id"`
 			Status int    `json:"status"`
-			Time   int    `json:"time"`
+			Time   int32  `json:"time"`
 		}{
 			ID:     room.ID(),
 			Status: status,
 			Time:   leftTime,
 		},
 	}
-	fmt.Println("!!!!!!!leftTime ", leftTime)
 	room.send(response, predicate)
 }
 
@@ -215,9 +213,9 @@ func (room *Room) sendStatusOne(conn *Connection) {
 		utils.CatchPanic("room_send.go RoomStatus()")
 	}()
 
-	var leftTime int
+	var leftTime int32
 	status := room.Status()
-	since := int(time.Since(room.Date()).Seconds())
+	since := int32(time.Since(room.Date()).Seconds())
 	if status == StatusFlagPlacing {
 		leftTime = room.Settings.TimeToPrepare - since
 	}
@@ -229,15 +227,13 @@ func (room *Room) sendStatusOne(conn *Connection) {
 		Value: struct {
 			ID     string `json:"id"`
 			Status int    `json:"status"`
-			Time   int    `json:"time"`
+			Time   int32  `json:"time"`
 		}{
 			ID:     room.ID(),
 			Status: status,
 			Time:   leftTime,
 		},
 	}
-	fmt.Println("leftTime ", leftTime)
-	fmt.Println("status send to ", conn.ID())
 	conn.SendInformation(response)
 }
 
@@ -339,6 +335,5 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 			IsPlayer: isPlayer,
 		},
 	}
-	fmt.Println("room send to ", conn.ID())
 	conn.SendInformation(response)
 }

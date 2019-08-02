@@ -4,15 +4,15 @@ import "time"
 
 // Cell send to user one cell
 type Cell struct {
-	X        int       `json:"x"`
-	Y        int       `json:"y"`
-	Value    int       `json:"value"`
-	PlayerID int       `json:"playerID"`
+	X        int32     `json:"x"`
+	Y        int32     `json:"y"`
+	Value    int32     `json:"value"`
+	PlayerID int32     `json:"playerID"`
 	Time     time.Time `json:"-"`
 }
 
 // NewCell create new instance of cell
-func NewCell(x int, y int, v int, ID int) *Cell {
+func NewCell(x int32, y int32, v int32, ID int32) *Cell {
 	cell := &Cell{
 		X:        x,
 		Y:        y,

@@ -8,10 +8,10 @@ import (
 //easyjson:json
 type fieldConfiguration struct {
 	Set       bool
-	WidthMin  int `json:"widthMin"`
-	WidthMax  int `json:"widthMax"`
-	HeightMin int `json:"heightMin"`
-	HeightMax int `json:"heightMax"`
+	WidthMin  int32 `json:"widthMin"`
+	WidthMax  int32 `json:"widthMax"`
+	HeightMin int32 `json:"heightMin"`
+	HeightMax int32 `json:"heightMax"`
 }
 
 // FIELD - singleton of field constants

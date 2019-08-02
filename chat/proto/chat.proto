@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+import "github.com/golang/protobuf/ptypes/timestamp/timestamp.proto";
+
+package chat;
+
+// no check can this user append messages to this chat or delete and etc
+service ChatService {
+  rpc CreateChat(ChatWithUsers) returns (ChatID) {}
+  rpc GetChat(Chat) returns (ChatID) {}
+  rpc InviteToChat(UserInGroup) returns (Result) {}
+  rpc LeaveChat(UserInGroup) returns (Result) {}
+
+  rpc AppendMessage(Message) returns (MessageID) {}
+  rpc AppendMessages(Messages) returns (MessagesID) {}
+  rpc UpdateMessage(Message) returns (Result) {}
+	rpc DeleteMessage(Message) returns (Result) {}
+  //rpc GetUserMessages(User) returns (Messages) {}
+  rpc GetChatMessages(ChatID) returns (Messages) {}
+}
+
+message ChatID {
+ int32 value = 1;
+}
+
+
+message MessageID {
+ int32 value = 1;
+}
+
+message MessagesID {
+ repeated int32 values = 1;
+}
+
+message Result {
+ bool done = 1;
+}
+
+enum Status {
+    NO = 0;
+    OBSERVER = 1;
+    PLAYER = 2;
+    ADMIN = 3;
+  }
+
+message User {
+  int32 id = 1;
+  string name = 2;
+  string photo = 3;
+  Status status = 4;
+}
+
+message Message {
+  int32 id = 1;
+  Message answer = 2;
+  string text = 3;
+  User from = 4;
+  User to = 5;
+  int32 chat_id = 6;
+  google.protobuf.Timestamp time = 7;
+  bool edited = 8;
+}
+
+/*
+message NullInt32 {
+	int32 value = 1;
+	bool valid = 2;
+}
+
+message NullString {
+	string value = 1;
+	bool valid = 2;
+}
+
+message NullTimestamp {
+	google.protobuf.Timestamp value = 1;
+	bool valid = 2;
+}
+
+message NullUser {
+  NullInt32 id = 1;
+  NullString name = 2;
+  NullString photo = 3;
+  NullInt32 status = 4;
+}
+
+message NullMessage {
+  NullInt32 id = 1;
+  NullString text = 2;
+  NullUser from = 3;
+  NullUser to = 4;
+  NullInt32 chat_id = 5;
+  NullTimestamp time = 6;
+}
+*/
+
+message Messages {
+  repeated Message messages = 1;
+  int32 block_size = 2;
+  int32 block_amount = 3;
+  int32 block_number = 4;
+}
+
+enum ChatType {
+  LOBBY = 0;
+  ROOM = 1;
+  USER = 3;
+}
+
+message Chat {
+  int32 id = 1;
+  ChatType type = 2;
+  int32 type_id = 3;
+  repeated Messages messages = 4;
+}
+
+message ChatWithUsers {
+  ChatType type = 1;
+  int32 type_id = 2;
+  repeated User users = 3;
+}
+
+message UserInGroup {
+  User user = 1;
+  Chat chat = 2;
+}

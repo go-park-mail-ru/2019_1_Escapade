@@ -29,13 +29,13 @@ const (
 // PlayerAction combine player and his action
 //easyjson:json
 type PlayerAction struct {
-	Player int       `json:"player"`
-	Action int       `json:"action"`
+	Player int32     `json:"player"`
+	Action int32     `json:"action"`
 	Time   time.Time `json:"-"`
 }
 
 // NewPlayerAction return new instance of PlayerAction
-func NewPlayerAction(player int, action int) *PlayerAction {
+func NewPlayerAction(player int32, action int32) *PlayerAction {
 	pa := &PlayerAction{
 		Player: player,
 		Action: action,

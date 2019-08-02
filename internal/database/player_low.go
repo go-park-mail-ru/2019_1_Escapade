@@ -18,7 +18,7 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 		RETURNING id;
 		`
 	t := time.Now()
-	row := db.Db.QueryRow(sqlInsert, user.Name,
+	row := tx.QueryRow(sqlInsert, user.Name,
 		user.Password, t, t)
 
 	err = row.Scan(&id)

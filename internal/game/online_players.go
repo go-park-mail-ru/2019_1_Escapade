@@ -20,7 +20,8 @@ func (onlinePlayers *OnlinePlayers) Init(field *Field) {
 }
 
 // search element in slice
-func sliceIndex(limit int, predicate func(i int) bool) int {
+func sliceIndex(limit32 int32, predicate func(i int) bool) int {
+	limit := int(limit32)
 	for i := 0; i < limit; i++ {
 		if predicate(i) {
 			return i

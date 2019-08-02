@@ -6,7 +6,7 @@ import (
 )
 
 // Capacity return '_capacity' field
-func (onlinePlayers *OnlinePlayers) Capacity() int {
+func (onlinePlayers *OnlinePlayers) Capacity() int32 {
 
 	onlinePlayers.capacityM.RLock()
 	defer onlinePlayers.capacityM.RUnlock()
@@ -14,7 +14,7 @@ func (onlinePlayers *OnlinePlayers) Capacity() int {
 }
 
 // SetCapacity set capacity
-func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int) {
+func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int32) {
 
 	onlinePlayers.capacityM.Lock()
 	defer onlinePlayers.capacityM.Unlock()
@@ -65,7 +65,7 @@ func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
 }
 
 // SetPlayerID sets the id of an player slice element with an index i
-func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int) {
+func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int32) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()

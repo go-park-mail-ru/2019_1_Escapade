@@ -59,7 +59,8 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		room.wGroup.Done()
 	}()
 
-	which := 0
+	var which int32
+	which = 0
 	for _, flag := range room.Players.Flags() {
 		if flag.Cell.X == found.X && flag.Cell.Y == found.Y {
 			which = flag.Cell.PlayerID
@@ -86,7 +87,7 @@ func (room *Room) isAlive(conn *Connection) bool {
 }
 
 // Kill make user die and check for finish battle
-func (room *Room) Kill(conn *Connection, action int) {
+func (room *Room) Kill(conn *Connection, action int32) {
 	if room.done() {
 		return
 	}
@@ -273,7 +274,7 @@ func (room *Room) FillField() {
 }
 
 // addAction creates an action and passes it on appendAction()
-func (room *Room) addAction(id int, action int) (pa *PlayerAction) {
+func (room *Room) addAction(id int32, action int32) (pa *PlayerAction) {
 	if room.done() {
 		return
 	}

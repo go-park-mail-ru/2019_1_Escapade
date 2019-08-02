@@ -7,6 +7,8 @@ echo ""
 trap 'echo " stop" ' INT TERM
 #chmod +x postgresql.sh && ./postgresql.sh
 
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 done=0
 
 echo "  1. Create our postgreSQL user and database"

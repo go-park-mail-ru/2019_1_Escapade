@@ -2,7 +2,6 @@ package database
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
 
@@ -10,23 +9,40 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func (db *DataBase) createGame(tx *sql.Tx, game models.Game) (id int, err error) {
+func (db *DataBase) createGame(tx *sql.Tx, game *models.Game) (id int32, err error) {
 	sqlInsert := `
-	INSERT INTO Game(roomID, name, players, status, timeToPrepare,
-		timeToPlay, date) VALUES
-		($1, $2, $3, $4, $5, $6, $7)
+	INSERT INTO Game(roomID, name, players, timeToPrepare,
+		timeToPlay, date, noAnonymous, deathmatch) VALUES
+		($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 		`
-	row := tx.QueryRow(sqlInsert, game.RoomID, game.Name,
-		game.Players, game.Status, game.TimeToPrepare,
-		game.TimeToPlay, game.Date)
+	row := tx.QueryRow(sqlInsert, game.Settings.ID, game.Settings.Name,
+		game.Settings.Players, game.Settings.TimeToPrepare,
+		game.Settings.TimeToPlay, game.Date, game.Settings.NoAnonymous,
+		game.Settings.Deathmatch)
 
 	err = row.Scan(&id)
 
 	return
 }
 
-func (db *DataBase) createGamers(tx *sql.Tx, GameID int, gamers []models.Gamer) (err error) {
+func (db *DataBase) updateGame(tx *sql.Tx, game models.Game) error {
+	sqlStatement := `
+	UPDATE Game 
+		SET status = $1, chatID = $2, recruitment = $3, playing = $4
+		WHERE id = $5
+		RETURNING id
+	`
+
+	row := tx.QueryRow(sqlStatement, game.Status, game.ChatID,
+		game.RecruitmentTime, game.PlayingTime, game.Settings.ID)
+
+	var id int32
+	err := row.Scan(&id)
+	return err
+}
+
+func (db *DataBase) createGamers(tx *sql.Tx, GameID int32, gamers []models.Gamer) (err error) {
 	sqlInsert := `
 	INSERT INTO Gamer(player_id, game_id, score, time,
 		 left_click, right_click, explosion, won) VALUES
@@ -43,7 +59,7 @@ func (db *DataBase) createGamers(tx *sql.Tx, GameID int, gamers []models.Gamer) 
 	return
 }
 
-func (db *DataBase) createField(tx *sql.Tx, gameID int, field models.Field) (id int, err error) {
+func (db *DataBase) createField(tx *sql.Tx, gameID int32, field models.Field) (id int32, err error) {
 	sqlInsert := `
 	INSERT INTO Field(game_id, width, height, cellsLeft, difficult,
 		mines) VALUES
@@ -58,7 +74,7 @@ func (db *DataBase) createField(tx *sql.Tx, gameID int, field models.Field) (id 
 	return
 }
 
-func (db *DataBase) createActions(tx *sql.Tx, GameID int, actions []models.Action) (err error) {
+func (db *DataBase) createActions(tx *sql.Tx, GameID int32, actions []models.Action) (err error) {
 	sqlInsert := `
 	INSERT INTO Action(game_id, player_id, action, date) VALUES
     ($1, $2, $3, $4);
@@ -74,16 +90,7 @@ func (db *DataBase) createActions(tx *sql.Tx, GameID int, actions []models.Actio
 	return
 }
 
-/*
-type GameInformation struct {
-	Game    Game     `json:"game"`
-	Field   Field    `json:"field"`
-	Actions []Action `json:"actions"`
-	Cells   []Cell   `json:"cells"`
-	Gamers  []Gamer  `json:"gamer"`
-}
-*/
-func (db *DataBase) createCells(tx *sql.Tx, FieldID int, cells []models.Cell) (err error) {
+func (db *DataBase) createCells(tx *sql.Tx, FieldID int32, cells []models.Cell) (err error) {
 	sqlInsert := `
 	INSERT INTO Cell(field_id, player_id, x, y, value, date) VALUES
     ($1, $2, $3, $4, $5, $6);
@@ -100,7 +107,7 @@ func (db *DataBase) createCells(tx *sql.Tx, FieldID int, cells []models.Cell) (e
 }
 
 // getGamesURL get user games URL
-func (db *DataBase) getGamesURL(tx *sql.Tx, playerID int) (URLs []string, err error) {
+func (db *DataBase) getGamesURL(tx *sql.Tx, playerID int32) (URLs []string, err error) {
 	getURLs := `
 	SELECT roomID
 				 FROM Game
@@ -146,10 +153,10 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 	row := tx.QueryRow(getGame, roomID)
 
 	game := models.Game{}
-	var gameID int
-	err = row.Scan(&gameID, &game.RoomID, &game.Name,
-		&game.Players, &game.Status, &game.TimeToPrepare,
-		&game.TimeToPlay, &game.Date)
+	var gameID int32
+	err = row.Scan(&gameID, &game.Settings.ID, &game.Settings.Name,
+		&game.Settings.Players, &game.Status, &game.Settings.TimeToPrepare,
+		&game.Settings.TimeToPlay, &game.Date)
 	if err != nil {
 		return
 	}
@@ -251,20 +258,39 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 	if err != nil {
 		return
 	}
+	/*
 
-	var messages []*models.Message
-	messages, err = db.getMessages(tx, true, game.RoomID)
-	if err != nil {
-		utils.Debug(true, "cant get messages!", err.Error())
-	}
+		var (
+			chat = &pChat.Chat{
+				Type:   pChat.ChatType_ROOM,
+				TypeId: gameID,
+			}
+			chatID    *pChat.ChatID
+			pMessages *pChat.Messages
+		)
+
+		chatID, err = clients.ALL.Chat.GetChat(context.Background(), chat)
+
+		if err != nil {
+			utils.Debug(true, "cant access to chat service", err.Error())
+		}
+		pMessages, err = clients.ALL.Chat.GetChatMessages(context.Background(), chatID)
+
+		var messages []*models.Message
+		messages = MessagesFromProto(pMessages.Messages...)
+		//db.getMessages(tx, true, game.RoomID)
+		if err != nil {
+			utils.Debug(true, "cant get messages!", err.Error())
+		}
+	*/
 
 	return models.GameInformation{
-		Game:     game,
-		Gamers:   gamers,
-		Field:    field,
-		Actions:  actions,
-		Cells:    cells,
-		Messages: messages,
+		Game:    game,
+		Gamers:  gamers,
+		Field:   field,
+		Actions: actions,
+		Cells:   cells,
+		//Messages: messages,
 	}, err
 
 }

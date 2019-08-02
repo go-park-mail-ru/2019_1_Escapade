@@ -1,19 +1,49 @@
 package database
 
 import (
-	"fmt"
-
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
+	"context"
 	"database/sql"
 )
+
+func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
+
+	var (
+		tx       *sql.Tx
+		roomID   int32
+		pbChatID *chat.ChatID
+		err      error
+	)
+	if tx, err = db.Db.Begin(); err != nil {
+		return 0, 0, err
+	}
+	defer tx.Rollback()
+	if roomID, err = db.createGame(tx, game); err != nil {
+		return 0, 0, err
+	}
+
+	newChat := &chat.ChatWithUsers{
+		Type:   chat.ChatType_ROOM,
+		TypeId: roomID,
+	}
+
+	pbChatID, err = clients.ALL.Chat.CreateChat(context.Background(), newChat)
+	if err != nil {
+		return 0, 0, err
+	}
+	err = tx.Commit()
+	return roomID, pbChatID.Value, err
+}
 
 // SaveGame save game to database
 func (db *DataBase) SaveGame(
 	info models.GameInformation) (err error) {
 	var (
 		tx              *sql.Tx
-		gameID, fieldID int
+		gameID, fieldID int32
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
@@ -21,9 +51,18 @@ func (db *DataBase) SaveGame(
 	}
 	defer tx.Rollback()
 
-	if gameID, err = db.createGame(tx, info.Game); err != nil {
+	if err = db.updateGame(tx, info.Game); err != nil {
 		return
 	}
+
+	/*
+		msgs := MessagesToProto(info.Messages...)
+
+		_, err = clients.ALL.Chat.AppendMessages(context.Background(), msgs)
+		if err != nil {
+			return
+		}
+	*/
 
 	if err = db.createGamers(tx, gameID, info.Gamers); err != nil {
 		return
@@ -42,12 +81,11 @@ func (db *DataBase) SaveGame(
 	}
 
 	err = tx.Commit()
-	fmt.Println("success save", info.Game.RoomID)
 	return
 }
 
 // GetGames get list of games
-func (db *DataBase) GetGames(userID int) (
+func (db *DataBase) GetGames(userID int32) (
 	games []models.GameInformation, err error) {
 	var (
 		tx   *sql.Tx
@@ -77,7 +115,7 @@ func (db *DataBase) GetGames(userID int) (
 }
 
 // GetGamesURL get games url
-func (db *DataBase) GetGamesURL(userID int) (
+func (db *DataBase) GetGamesURL(userID int32) (
 	URLs []string, err error) {
 	var (
 		tx *sql.Tx
@@ -112,7 +150,6 @@ func (db *DataBase) GetGame(roomID string) (
 		return
 	}
 
-	fmt.Println("success get", game)
 	err = tx.Commit()
 	return
 }

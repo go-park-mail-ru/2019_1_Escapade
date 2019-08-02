@@ -5,7 +5,7 @@ import (
 )
 
 // ShowWebsocketMessage record information transmitted over the websocket
-func ShowWebsocketMessage(message []byte, id int) {
+func ShowWebsocketMessage(message []byte, id int32) {
 	str := string(message)
 	var start, end, counter int
 	for i, s := range str {

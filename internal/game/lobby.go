@@ -2,12 +2,14 @@ package game
 
 import (
 	"context"
-	"fmt"
 	"sync"
+	"time"
 
+	сhat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // SetImage function to set image
@@ -48,9 +50,17 @@ type Lobby struct {
 
 	chanBreak chan interface{}
 
-	db *database.DataBase
+	dbM *sync.RWMutex
+	_db *database.DataBase
 
-	config *config.GameConfig
+	configM *sync.RWMutex
+	_config *config.GameConfig
+
+	dbChatIDM *sync.RWMutex
+	_dbChatID int32
+
+	locationM *sync.RWMutex
+	_location *time.Location
 
 	SetImage SetImage
 }
@@ -59,28 +69,12 @@ type Lobby struct {
 func NewLobby(config *config.GameConfig, db *database.DataBase,
 	SetImage SetImage) *Lobby {
 
-	var (
-		messages []*models.Message
-		err      error
-	)
-	if db != nil {
-		if messages, err = db.LoadMessages(false, ""); err != nil {
-			fmt.Println("cant load messages:", err.Error())
-		}
-		for _, message := range messages {
-			SetImage(message.User)
-		}
-	} else {
-		messages = make([]*models.Message, 0)
-	}
 	context, cancel := context.WithCancel(context.Background())
 	lobby := &Lobby{
 		wGroup: &sync.WaitGroup{},
 
 		doneM: &sync.RWMutex{},
 		_done: false,
-
-		config: config,
 
 		allRooms:  NewRooms(config.RoomsCapacity),
 		freeRooms: NewRooms(config.RoomsCapacity),
@@ -89,7 +83,7 @@ func NewLobby(config *config.GameConfig, db *database.DataBase,
 		Playing: NewConnections(config.ConnectionCapacity),
 
 		messagesM: &sync.Mutex{},
-		_messages: messages,
+		_messages: make([]*models.Message, 0),
 
 		anonymousM: &sync.Mutex{},
 		_anonymous: -1,
@@ -97,14 +91,51 @@ func NewLobby(config *config.GameConfig, db *database.DataBase,
 		context: context,
 		cancel:  cancel,
 
+		dbM:       &sync.RWMutex{},
+		configM:   &sync.RWMutex{},
+		dbChatIDM: &sync.RWMutex{},
+		locationM: &sync.RWMutex{},
+
 		chanJoin:      make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
-
-		db:       db,
-		SetImage: SetImage,
 	}
+	lobby.SetConfiguration(config, db, SetImage)
 	return lobby
+}
+
+func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.DataBase,
+	SetImage SetImage) {
+
+	var (
+		messages []*models.Message
+		err      error
+		chatID   int32
+		location *time.Location
+	)
+	location, err = time.LoadLocation(config.Location)
+	if err != nil {
+		utils.Debug(true, "cant set location!")
+	}
+	if db != nil {
+		chatID, messages, err = GetChatIDAndMessages(location, сhat.ChatType_LOBBY, 0)
+		if err != nil {
+			utils.Debug(true, "cant load messages:", err.Error())
+		}
+		for _, message := range messages {
+			SetImage(message.User)
+		}
+	} else {
+		messages = make([]*models.Message, 0)
+	}
+	lobby.setConfig(config)
+	lobby.setMessages(messages)
+	lobby.setDB(db)
+	lobby.setDBChatID(chatID)
+	lobby.setLocation(location)
+	lobby.SetImage = SetImage
+
+	return
 }
 
 // lobby singleton
@@ -130,7 +161,7 @@ func GetLobby() *Lobby {
 // Stop lobby goroutine
 func (lobby *Lobby) Stop() {
 	if lobby != nil {
-		fmt.Println("Stop called!")
+		utils.Debug(false, "stop called!")
 		lobby.chanBreak <- nil
 	}
 }
@@ -148,7 +179,7 @@ func (lobby *Lobby) Free() {
 
 	lobby.wGroup.Wait()
 
-	fmt.Println("All resources clear!")
+	utils.Debug(false, "All resources clear!")
 
 	go lobby.allRooms.Free()
 	go lobby.freeRooms.Free()
@@ -159,6 +190,9 @@ func (lobby *Lobby) Free() {
 
 	close(lobby.chanJoin)
 	close(lobby.chanBroadcast)
-	lobby.db = nil
+	lobby.setConfig(nil)
+	lobby.setMessages(nil)
+	lobby.setDB(nil)
+	lobby.setLocation(nil)
 	lobby = nil
 }

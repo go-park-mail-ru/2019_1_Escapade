@@ -42,21 +42,45 @@ CREATE Table Game (
 	roomID varchar(30),
 	name varchar(30),
 	players int NOT NULL,
-	status int NOT NULL,
+	status int,
 	timeToPrepare int,
 	timeToPlay int,
+	chatID int,
+	recruitment interval,
+	playing interval,
+	noAnonymous bool default false,
+	deathmatch bool default false,
 	date TIMESTAMPTZ not null
 );
 
-CREATE Table GameChat (
+CREATE Table Message (
 	id SERIAL PRIMARY KEY,
-	in_room bool,
-	name varchar(30),
-	roomID varchar(20),
-	player_id int NOT NULL,
+	answer_id int,
+	sender_id int NOT NULL,
+	sender_name varchar(30),
+	sender_status int,
+	getter_id int,
+	getter_name varchar(30),
+	chat_id int NOT NULL,
 	message varchar(8000),
-	time TIMESTAMPTZ,
+	date TIMESTAMPTZ NOT NULL,
 	edited bool default false
+);
+
+CREATE Table Chat (
+	id SERIAL PRIMARY KEY,
+	chat_type int NOT NULL,
+	type_id int default 0,
+	UNIQUE (chat_type, type_id)
+);
+
+INSERT INTO Chat(chat_type, type_id) VALUES (0, 0);
+
+CREATE Table UserInChat (
+	id SERIAL PRIMARY KEY,
+	user_id int NOT NULL,
+	chat_id int NOT NULL,
+	UNIQUE (user_id, chat_id)
 );
 
 CREATE Table Field (

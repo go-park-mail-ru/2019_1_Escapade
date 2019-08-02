@@ -24,7 +24,7 @@ func LaunchLobbyHistory(db *database.DataBase,
 		return
 	}
 
-	gameSettings.RoomsCapacity = len(urls) * 2
+	gameSettings.RoomsCapacity = int32(len(urls) * 2)
 	lobby := NewLobby(gameSettings, db, si)
 
 	go lobby.Run()

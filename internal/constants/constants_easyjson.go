@@ -39,23 +39,23 @@ func easyjson8a25db09DecodeGithubComGoParkMailRu20191EscapadeInternalConstants(i
 		case "Set":
 			out.Set = bool(in.Bool())
 		case "nameMin":
-			out.NameMin = int(in.Int())
+			out.NameMin = int32(in.Int32())
 		case "nameMax":
-			out.NameMax = int(in.Int())
+			out.NameMax = int32(in.Int32())
 		case "timeToPrepareMin":
-			out.TimeToPrepareMin = int(in.Int())
+			out.TimeToPrepareMin = int32(in.Int32())
 		case "timeToPrepareMax":
-			out.TimeToPrepareMax = int(in.Int())
+			out.TimeToPrepareMax = int32(in.Int32())
 		case "timeToPlayMin":
-			out.TimeToPlayMin = int(in.Int())
+			out.TimeToPlayMin = int32(in.Int32())
 		case "timeToPlayMax":
-			out.TimeToPlayMax = int(in.Int())
+			out.TimeToPlayMax = int32(in.Int32())
 		case "playersMin":
-			out.PlayersMin = int(in.Int())
+			out.PlayersMin = int32(in.Int32())
 		case "playersMax":
-			out.PlayersMax = int(in.Int())
+			out.PlayersMax = int32(in.Int32())
 		case "observersMax":
-			out.ObserversMax = int(in.Int())
+			out.ObserversMax = int32(in.Int32())
 		default:
 			in.SkipRecursive()
 		}
@@ -78,47 +78,47 @@ func easyjson8a25db09EncodeGithubComGoParkMailRu20191EscapadeInternalConstants(o
 	{
 		const prefix string = ",\"nameMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.NameMin))
+		out.Int32(int32(in.NameMin))
 	}
 	{
 		const prefix string = ",\"nameMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.NameMax))
+		out.Int32(int32(in.NameMax))
 	}
 	{
 		const prefix string = ",\"timeToPrepareMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.TimeToPrepareMin))
+		out.Int32(int32(in.TimeToPrepareMin))
 	}
 	{
 		const prefix string = ",\"timeToPrepareMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.TimeToPrepareMax))
+		out.Int32(int32(in.TimeToPrepareMax))
 	}
 	{
 		const prefix string = ",\"timeToPlayMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.TimeToPlayMin))
+		out.Int32(int32(in.TimeToPlayMin))
 	}
 	{
 		const prefix string = ",\"timeToPlayMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.TimeToPlayMax))
+		out.Int32(int32(in.TimeToPlayMax))
 	}
 	{
 		const prefix string = ",\"playersMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.PlayersMin))
+		out.Int32(int32(in.PlayersMin))
 	}
 	{
 		const prefix string = ",\"playersMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.PlayersMax))
+		out.Int32(int32(in.PlayersMax))
 	}
 	{
 		const prefix string = ",\"observersMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.ObserversMax))
+		out.Int32(int32(in.ObserversMax))
 	}
 	out.RawByte('}')
 }
@@ -168,13 +168,13 @@ func easyjson8a25db09DecodeGithubComGoParkMailRu20191EscapadeInternalConstants1(
 		case "Set":
 			out.Set = bool(in.Bool())
 		case "widthMin":
-			out.WidthMin = int(in.Int())
+			out.WidthMin = int32(in.Int32())
 		case "widthMax":
-			out.WidthMax = int(in.Int())
+			out.WidthMax = int32(in.Int32())
 		case "heightMin":
-			out.HeightMin = int(in.Int())
+			out.HeightMin = int32(in.Int32())
 		case "heightMax":
-			out.HeightMax = int(in.Int())
+			out.HeightMax = int32(in.Int32())
 		default:
 			in.SkipRecursive()
 		}
@@ -197,22 +197,22 @@ func easyjson8a25db09EncodeGithubComGoParkMailRu20191EscapadeInternalConstants1(
 	{
 		const prefix string = ",\"widthMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.WidthMin))
+		out.Int32(int32(in.WidthMin))
 	}
 	{
 		const prefix string = ",\"widthMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.WidthMax))
+		out.Int32(int32(in.WidthMax))
 	}
 	{
 		const prefix string = ",\"heightMin\":"
 		out.RawString(prefix)
-		out.Int(int(in.HeightMin))
+		out.Int32(int32(in.HeightMin))
 	}
 	{
 		const prefix string = ",\"heightMax\":"
 		out.RawString(prefix)
-		out.Int(int(in.HeightMax))
+		out.Int32(int32(in.HeightMax))
 	}
 	out.RawByte('}')
 }

@@ -66,8 +66,7 @@ func (room *Room) setRecruitmentTime() {
 	v := room._date
 	room.dateM.RUnlock()
 
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-	t := time.Now().In(loc)
+	t := time.Now().In(room.lobby.location())
 
 	fmt.Println("compare these:", t, v)
 
@@ -92,8 +91,7 @@ func (room *Room) setPlayingTime() {
 	v := room._date
 	room.dateM.RUnlock()
 
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-	t := time.Now().In(loc)
+	t := time.Now().In(room.lobby.location())
 
 	room.playingTimeM.Lock()
 	room._playingTime = t.Sub(v)
@@ -172,7 +170,7 @@ func (room *Room) historyFree() {
 }
 
 // done return '_killed' field
-func (room *Room) killed() int {
+func (room *Room) killed() int32 {
 	room.killedM.RLock()
 	v := room._killed
 	room.killedM.RUnlock()
@@ -187,7 +185,7 @@ func (room *Room) incrementKilled() {
 }
 
 // setKilled set new value of killed
-func (room *Room) setKilled(killed int) {
+func (room *Room) setKilled(killed int32) {
 	room.killedM.Lock()
 	room._killed = killed
 	room.killedM.Unlock()

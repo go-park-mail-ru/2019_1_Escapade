@@ -1,5 +1,18 @@
 package database
 
+/*
+import (
+	"fmt"
+	"time"
+
+	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat_service/proto"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+
+	"strconv"
+)*/
+
+/*
 import (
 	"database/sql"
 
@@ -16,8 +29,8 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 		place = "getMessages -"
 	)
 	sqlStatement := `
-	select GC.id, GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time, GC.edited 
-		from GameChat as GC 
+	select GC.id, GC.player_id, GC.name, P.name, P.photo_title, GC.message, GC.time, GC.edited
+		from GameChat as GC
 		left join Player as P on P.id = GC.player_id
 		`
 	if inRoom {
@@ -67,3 +80,4 @@ func (db *DataBase) getMessages(tx *sql.Tx, inRoom bool, gameID string) (message
 
 	return
 }
+*/

@@ -21,19 +21,19 @@ type Field struct {
 	_done bool
 
 	matrixM *sync.RWMutex
-	_matrix [][]int
+	_matrix [][]int32
 
 	historyM *sync.RWMutex
 	_history []*Cell
-	Width    int
-	Height   int
+	Width    int32
+	Height   int32
 
 	cellsLeftM *sync.RWMutex
-	_cellsLeft int
+	_cellsLeft int32
 
 	config *config.FieldConfig
 
-	Mines     int
+	Mines     int32
 	Difficult float64
 }
 
@@ -59,7 +59,7 @@ func NewField(rs *models.RoomSettings, config *config.FieldConfig) *Field {
 
 		cellsLeftM: &sync.RWMutex{},
 	}
-	var cellsleft int
+	var cellsleft int32
 	if rs.Deathmatch {
 		cellsleft = rs.Width*rs.Height - rs.Mines - rs.Players
 	} else {
@@ -104,9 +104,10 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
 
-	for i := 0; i < field.Height; i++ {
-		for j := 0; j < field.Width; j++ {
-			v := field.matrixValue(i, j)
+	var i, j, v int32
+	for i = 0; i < field.Height; i++ {
+		for j = 0; j < field.Width; j++ {
+			v = field.matrixValue(i, j)
 			if v != CellOpened && v != CellFlagTaken {
 				cell := NewCell(i, j, v, 0)
 				field.saveCell(cell, cells)
@@ -118,7 +119,7 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 
 // openCellArea open cell area, if there is no mines around
 // in this cell
-func (field *Field) openCellArea(x, y, ID int, cells *[]Cell) {
+func (field *Field) openCellArea(x, y, ID int32, cells *[]Cell) {
 	if field.areCoordinatesRight(x, y) {
 		v := field.matrixValue(x, y)
 
@@ -201,7 +202,7 @@ func (field *Field) RandomFlags(players []Player) (flags []Flag) {
 }
 
 // CreateRandomFlag create flag for player
-func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
+func (field *Field) CreateRandomFlag(playerID int32) (cell Cell) {
 	if field.Done() {
 		return
 	}
@@ -209,8 +210,9 @@ func (field *Field) CreateRandomFlag(playerID int) (cell Cell) {
 	defer field.wGroup.Done()
 
 	rand.Seed(time.Now().UnixNano())
-	x := rand.Intn(field.Width)
-	y := rand.Intn(field.Height)
+	var x, y int32
+	x = rand.Int31n(field.Width)
+	y = rand.Int31n(field.Height)
 	cell = *NewCell(x, y, FlagID(playerID), playerID)
 
 	return cell
@@ -223,8 +225,8 @@ func (field *Field) OpenSave(n int) (cells []Cell) {
 
 	for n > size {
 		rand.Seed(time.Now().UnixNano())
-		i := rand.Intn(field.Width)
-		j := rand.Intn(field.Height)
+		i := rand.Int31n(field.Width)
+		j := rand.Int31n(field.Height)
 		if field.lessThenMine(i, j) {
 			cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
 			size = len(cells)
@@ -238,8 +240,9 @@ func (field *Field) OpenSave(n int) (cells []Cell) {
 func (field *Field) OpenZero() (cells []Cell) {
 	cells = make([]Cell, 0)
 
-	for i := 0; i < field.Width; i++ {
-		for j := 0; j < field.Height; j++ {
+	var i, j int32
+	for i = 0; i < field.Width; i++ {
+		for j = 0; j < field.Height; j++ {
 			if field.matrixValue(i, j) == 0 {
 				cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
 			}
@@ -250,8 +253,9 @@ func (field *Field) OpenZero() (cells []Cell) {
 
 // Zero clears the entire matrix of values
 func (field *Field) Zero() {
-	for i := 0; i < field.Width; i++ {
-		for j := 0; j < field.Height; j++ {
+	var i, j int32
+	for i = 0; i < field.Width; i++ {
+		for j = 0; j < field.Height; j++ {
 			field.setMatrixValue(i, j, 0)
 		}
 	}
@@ -286,7 +290,7 @@ func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 			areaSize = maxAreaSize
 		}
 		var (
-			areaSizeINT    = int(areaSize)
+			areaSizeINT    = int32(areaSize)
 			probability    = 5 * int(areaSize*areaSize)
 			minProbability = field.config.MinProbability
 			maxProbability = field.config.MaxProbability
@@ -302,9 +306,10 @@ func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 			x := flag.Cell.X
 			y := flag.Cell.Y
 			utils.Debug(false, "flag[%d, %d] - %d\n", x, y, flag.Cell.PlayerID)
-			for i := x - areaSizeINT; i <= x+areaSizeINT; i++ {
+			var i, j int32
+			for i = x - areaSizeINT; i <= x+areaSizeINT; i++ {
 				if i >= 0 && i < width {
-					for j := y - areaSizeINT; j <= y+areaSizeINT; j++ {
+					for j = y - areaSizeINT; j <= y+areaSizeINT; j++ {
 						if j >= 0 && j < height {
 							if field.matrixValue(i, j) != CellMine && !(x == i && y == j) {
 								rand.Seed(time.Now().UnixNano())
@@ -327,8 +332,8 @@ func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 	for mines > 0 {
 
 		rand.Seed(time.Now().UnixNano())
-		someX := rand.Intn(width)
-		someY := rand.Intn(height)
+		someX := rand.Int31n(width)
+		someY := rand.Int31n(height)
 
 		if field.lessThenMine(someX, someY) {
 			field.setMatrixValue(someX, someY, CellMine)
@@ -341,19 +346,20 @@ func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 // which are not mine or flags
 func (field *Field) SetMinesCounters() {
 
-	width := field.Width
-	height := field.Height
+	var width, height, x, y, i, j, value int32
+	width = field.Width
+	height = field.Height
 
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
+	for x = 0; x < width; x++ {
+		for y = 0; y < height; y++ {
 			if field.matrixValue(x, y) != 0 {
 				continue
 			}
-			value := 0
+			value = 0
 
-			for i := x - 1; i <= x+1; i++ {
+			for i = x - 1; i <= x+1; i++ {
 				if i >= 0 && i < width {
-					for j := y - 1; j <= y+1; j++ {
+					for j = y - 1; j <= y+1; j++ {
 						if j >= 0 && j < height {
 							if field.matrixValue(i, j) == CellMine {
 								value++
@@ -368,19 +374,19 @@ func (field *Field) SetMinesCounters() {
 }
 
 // generate matrix
-func generate(rs *models.RoomSettings) (matrix [][]int) {
+func generate(rs *models.RoomSettings) (matrix [][]int32) {
 	width := rs.Width
 	height := rs.Height
 
-	matrix = [][]int{}
-	for i := 0; i < height; i++ {
-		matrix = append(matrix, make([]int, width))
+	matrix = [][]int32{}
+	for i := int32(0); i < height; i++ {
+		matrix = append(matrix, make([]int32, width))
 	}
 	return
 }
 
 // IsInside check if coordinates are in field
-func (field Field) areCoordinatesRight(x, y int) bool {
+func (field Field) areCoordinatesRight(x, y int32) bool {
 	return x >= 0 && x < field.Width && y >= 0 && y < field.Height
 }
 
@@ -390,8 +396,8 @@ func (field Field) IsInside(cell *Cell) bool {
 }
 
 // FlagID convert player ID to Flag ID
-func FlagID(connID int) int {
-	return int(math.Abs(float64(connID))) + CellIncrement
+func FlagID(connID int32) int32 {
+	return int32(math.Abs(float64(connID))) + CellIncrement
 }
 
 ///////////////////// Set cells func //////////
@@ -414,7 +420,7 @@ func (field *Field) SetFlag(cell *Cell) {
 }
 
 // setCellOpen set cell opened
-func (field *Field) setCellOpen(x, y, v int) {
+func (field *Field) setCellOpen(x, y, v int32) {
 	if v < CellMine {
 		field.setMatrixValue(x, y, CellOpened)
 	} else {

@@ -19,7 +19,7 @@ func (lobby *Lobby) removeFromFreeRooms(roomID string, group *sync.WaitGroup) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	if lobby.freeRooms.Remove(roomID) && lobby.config.Metrics {
+	if lobby.freeRooms.Remove(roomID) && lobby.config().Metrics {
 		metrics.RecruitmentRooms.Dec()
 	}
 }
@@ -35,7 +35,7 @@ func (lobby *Lobby) removeFromAllRooms(roomID string, group *sync.WaitGroup) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	if lobby.allRooms.Remove(roomID) && lobby.config.Metrics {
+	if lobby.allRooms.Remove(roomID) && lobby.config().Metrics {
 		metrics.ActiveRooms.Dec()
 	}
 }
@@ -54,7 +54,7 @@ func (lobby *Lobby) addToFreeRooms(room *Room) error {
 	defer room.wGroup.Done()
 
 	if lobby.freeRooms.Add(room) {
-		if lobby.config.Metrics {
+		if lobby.config().Metrics {
 			metrics.RecruitmentRooms.Inc()
 		}
 	} else {
@@ -77,7 +77,7 @@ func (lobby *Lobby) addToAllRooms(room *Room) error {
 	defer room.wGroup.Done()
 
 	if lobby.allRooms.Add(room) {
-		if lobby.config.Metrics {
+		if lobby.config().Metrics {
 			metrics.ActiveRooms.Inc()
 		}
 	} else {
@@ -89,7 +89,7 @@ func (lobby *Lobby) addToAllRooms(room *Room) error {
 // m mean metrics
 
 func (lobby *Lobby) mUserWelcome(isAnonymous bool) {
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.Online.Inc()
 		if isAnonymous {
 			metrics.AnonymousOnline.Inc()
@@ -98,7 +98,7 @@ func (lobby *Lobby) mUserWelcome(isAnonymous bool) {
 }
 
 func (lobby *Lobby) mUserBye(isAnonymous bool) {
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.Online.Dec()
 		metrics.InLobby.Dec()
 		if isAnonymous {
@@ -111,7 +111,7 @@ func (lobby *Lobby) removeWaiter(conn *Connection) {
 	if !lobby.Waiting.Remove(conn) {
 		return
 	}
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.InLobby.Dec()
 	}
 	go lobby.sendWaiterExit(conn, All)
@@ -119,7 +119,7 @@ func (lobby *Lobby) removeWaiter(conn *Connection) {
 
 func (lobby *Lobby) addPlayer(conn *Connection) {
 	lobby.Playing.Add(conn)
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.InGame.Inc()
 	}
 	go lobby.sendPlayerEnter(conn, All)
@@ -129,7 +129,7 @@ func (lobby *Lobby) removePlayer(conn *Connection) {
 	if !lobby.Playing.Remove(conn) {
 		return
 	}
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.InGame.Dec()
 	}
 	go lobby.sendPlayerExit(conn, All)
@@ -139,7 +139,7 @@ func (lobby *Lobby) removePlayer(conn *Connection) {
 func (lobby *Lobby) addWaiter(newConn *Connection) {
 
 	lobby.Waiting.Add(newConn)
-	if lobby.config.Metrics {
+	if lobby.config().Metrics {
 		metrics.InLobby.Inc()
 	}
 

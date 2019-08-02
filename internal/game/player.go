@@ -2,14 +2,14 @@ package game
 
 // Player has name, ID, points and flag Finish
 type Player struct {
-	ID       int
+	ID       int32
 	Points   float64
 	Finished bool
 	Died     bool
 }
 
 // NewPlayer create new instance of Player
-func NewPlayer(id int) *Player {
+func NewPlayer(id int32) *Player {
 	player := &Player{
 		ID:     id,
 		Points: 0,

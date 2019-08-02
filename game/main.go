@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"google.golang.org/grpc"
 
 	"os"
 )
@@ -68,6 +70,14 @@ func main() {
 
 	metrics.InitApi()
 	metrics.InitGame()
+
+	conn, err := grpc.Dial(":3005", grpc.WithInsecure())
+	if err != nil {
+		utils.Debug(false, "Cant connect to chat service. Retry? ", err.Error())
+	}
+	defer conn.Close()
+	clients.ALL.InitChat(conn)
+
 	/*
 		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
 		if err != nil {
@@ -93,6 +103,6 @@ func main() {
 		}
 	}()
 
-	server.InterruptHandlet(srv, configuration.Server)
+	server.InterruptHandler(srv, configuration.Server)
 	os.Exit(0)
 }

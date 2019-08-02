@@ -336,7 +336,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		Message(lobby, conn, lr.Message,
 			lobby.appendMessage, lobby.setMessage,
 			lobby.removeMessage, lobby.findMessage,
-			lobby.send, All, false, "")
+			lobby.send, All, false, lobby.dbChatID())
 	}
 }
 
@@ -354,8 +354,7 @@ func (lobby *Lobby) Invite(conn *Connection, inv *Invitation) {
 
 	inv.From = conn.User
 	inv.Message.User = conn.User
-	loc, _ := time.LoadLocation(lobby.config.Location)
-	inv.Message.Time = time.Now().In(loc)
+	inv.Message.Time = time.Now().In(lobby.location())
 	if inv.All {
 		lobby.sendInvitation(inv, All)
 		lobby.sendInvitationCallback(conn, nil)

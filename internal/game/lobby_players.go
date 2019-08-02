@@ -6,16 +6,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-// Anonymous return anonymous id
-func (lobby *Lobby) Anonymous() int {
-	var id int
-	lobby.anonymousM.Lock()
-	id = lobby._anonymous
-	lobby._anonymous--
-	lobby.anonymousM.Unlock()
-	return id
-}
-
 // waiterToPlayer turns the waiting into a player
 func (lobby *Lobby) waiterToPlayer(conn *Connection, room *Room) {
 	if lobby.done() {

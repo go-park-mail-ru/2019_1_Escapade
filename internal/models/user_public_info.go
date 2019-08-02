@@ -8,7 +8,7 @@ import (
 // available for unauthorized users
 //easyjson:json
 type UserPublicInfo struct {
-	ID        int            `json:"id"`
+	ID        int32          `json:"id"`
 	Name      string         `json:"name" minLength:"3" maxLength:"30"`
 	PhotoURL  string         `json:"photo,omitempty"  maxLength:"50"`
 	FileKey   string         `json:"-"`

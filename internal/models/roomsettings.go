@@ -6,13 +6,13 @@ package models
 type RoomSettings struct {
 	ID            string `json:"id"`
 	Name          string `json:"name" minLength:"1" maxLength:"30"`
-	Width         int    `json:"width" minimum:"5" maximum:"100"`
-	Height        int    `json:"height" minimum:"5" maximum:"100"`
-	Players       int    `json:"players" minimum:"2" maximum:"100"`
-	Observers     int    `json:"observers"  maximum:"100"`
-	TimeToPrepare int    `json:"prepare" maximum:"60"`
-	TimeToPlay    int    `json:"play" maximum:"7200"`
-	Mines         int    `json:"mines"`
+	Width         int32  `json:"width" minimum:"5" maximum:"100"`
+	Height        int32  `json:"height" minimum:"5" maximum:"100"`
+	Players       int32  `json:"players" minimum:"2" maximum:"100"`
+	Observers     int32  `json:"observers"  maximum:"100"`
+	TimeToPrepare int32  `json:"prepare" maximum:"60"`
+	TimeToPlay    int32  `json:"play" maximum:"7200"`
+	Mines         int32  `json:"mines"`
 	NoAnonymous   bool   `json:"noAnonymous"`
 	Deathmatch    bool   `json:"deathmatch"`
 }

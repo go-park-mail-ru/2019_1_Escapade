@@ -95,7 +95,7 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 func (lobby *Lobby) createRoom(rs *models.RoomSettings) (room *Room, err error) {
 
 	id := utils.RandomString(16) // вынести в кофиг
-	if room, err = NewRoom(lobby.config.Field, lobby, rs, id); err != nil {
+	if room, err = NewRoom(lobby.config().Field, lobby, &models.Game{Settings: rs}, id); err != nil {
 		return
 	}
 	if err = lobby.addRoom(room); err != nil {

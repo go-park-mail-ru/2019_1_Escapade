@@ -1,7 +1,7 @@
 package game
 
 // LeaveMeta update metainformation about user leaving room
-func (room *Room) LeaveMeta(conn *Connection, action int) {
+func (room *Room) LeaveMeta(conn *Connection, action int32) {
 	if room.done() {
 		return
 	}

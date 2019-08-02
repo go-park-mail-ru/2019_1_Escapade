@@ -126,7 +126,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	if userID < 0 {
 		user = &models.UserPublicInfo{
 			Name:    "Anonymous" + strconv.Itoa(rand.Intn(10000)),
-			ID:      userID,
+			ID:      int32(userID),
 			FileKey: photo.GetDefaultAvatar(),
 		}
 	} else {

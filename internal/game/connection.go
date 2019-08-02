@@ -361,7 +361,7 @@ func (conn *Connection) sendGroupInformation(value utils.JSONtype, wg *sync.Wait
 }
 
 // ID return player's id
-func (conn *Connection) ID() int {
+func (conn *Connection) ID() int32 {
 	if conn.done() {
 		return conn.User.ID
 	}

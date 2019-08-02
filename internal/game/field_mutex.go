@@ -1,7 +1,7 @@
 package game
 
 // sets the value in the min matrix
-func (field *Field) setMatrixValue(x, y, v int) {
+func (field *Field) setMatrixValue(x, y, v int32) {
 	field.matrixM.Lock()
 	field._matrix[x][y] = v
 	field.matrixM.Unlock()
@@ -9,7 +9,7 @@ func (field *Field) setMatrixValue(x, y, v int) {
 
 // incrementMatrixValue increments the counter of mines in
 // the neighborhood
-func (field *Field) incrementMatrixValue(x, y int) {
+func (field *Field) incrementMatrixValue(x, y int32) {
 	field.matrixM.Lock()
 	field._matrix[x][y]++
 	field.matrixM.Unlock()
@@ -50,7 +50,7 @@ func (field *Field) historyFree() {
 
 // lessThenMine returns true if there is a min counter
 // in the cell located in the coordinates 'x','y'
-func (field *Field) lessThenMine(x, y int) bool {
+func (field *Field) lessThenMine(x, y int32) bool {
 	field.matrixM.RLock()
 	v := field._matrix[x][y] < CellMine
 	field.matrixM.RUnlock()
@@ -58,7 +58,7 @@ func (field *Field) lessThenMine(x, y int) bool {
 }
 
 // matrixValue get the value from the min matrix
-func (field *Field) matrixValue(x, y int) int {
+func (field *Field) matrixValue(x, y int32) int32 {
 	field.matrixM.RLock()
 	v := field._matrix[x][y]
 	field.matrixM.RUnlock()
@@ -80,7 +80,7 @@ func (field *Field) decrementCellsLeft() {
 }
 
 // cellsLeft get the number of remaining cells
-func (field *Field) cellsLeft() int {
+func (field *Field) cellsLeft() int32 {
 	field.cellsLeftM.RLock()
 	v := field._cellsLeft
 	field.cellsLeftM.RUnlock()
@@ -88,7 +88,7 @@ func (field *Field) cellsLeft() int {
 }
 
 // setCellsLeft set new number of remaining cells
-func (field *Field) setCellsLeft(cellsLeft int) {
+func (field *Field) setCellsLeft(cellsLeft int32) {
 	field.cellsLeftM.Lock()
 	field._cellsLeft = cellsLeft
 	field.cellsLeftM.Unlock()

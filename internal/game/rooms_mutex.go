@@ -35,7 +35,7 @@ func (rooms *Rooms) Add(room *Room) bool {
 }
 
 // Capacity return the capacity of the stored slice
-func (rooms *Rooms) Capacity() int {
+func (rooms *Rooms) Capacity() int32 {
 
 	rooms.capacityM.RLock()
 	defer rooms.capacityM.RUnlock()
@@ -51,7 +51,7 @@ func (rooms *Rooms) Set(slice []*Room) {
 }
 
 // SetCapacity set the capacity of slice
-func (rooms *Rooms) SetCapacity(size int) {
+func (rooms *Rooms) SetCapacity(size int32) {
 
 	rooms.capacityM.Lock()
 	defer rooms.capacityM.Unlock()
@@ -106,7 +106,7 @@ func (rooms *Rooms) EnoughPlace() bool {
 	rooms.capacityM.RLock()
 	cap := rooms._capacity
 	rooms.capacityM.RUnlock()
-	return size < cap
+	return int32(size) < cap
 }
 
 // Free free memory

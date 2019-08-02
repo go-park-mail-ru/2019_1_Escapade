@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
@@ -24,14 +25,18 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 	}()
 
 	players := room.Players.RPlayers()
+
+	// made in NewRoom
+	//room.Settings.ID = room.ID()
+
 	game := models.Game{
-		RoomID:        room.ID(),
-		Name:          room.Name(),
-		Status:        room.Status(),
-		Players:       len(players),
-		TimeToPrepare: room.Settings.TimeToPrepare,
-		TimeToPlay:    room.Settings.TimeToPlay,
-		Date:          room.Date(),
+		ID:              room.dbRoomID,
+		Settings:        room.Settings,
+		RecruitmentTime: room.recruitmentTime(),
+		PlayingTime:     room.playingTime(),
+		ChatID:          room.dbChatID,
+		Status:          int32(room.Status()),
+		Date:            room.Date(),
 	}
 
 	winners := room.Winners()
@@ -85,7 +90,7 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 		Cells:   cells,
 	}
 
-	if err = room.lobby.db.SaveGame(gameInformation); err != nil {
+	if err = room.lobby.db().SaveGame(gameInformation); err != nil {
 		fmt.Println("err. Cant save.", err.Error())
 	}
 
@@ -103,31 +108,17 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}()
 
 	var info models.GameInformation
-	if info, err = lobby.db.GetGame(id); err != nil {
+	if info, err = lobby.db().GetGame(id); err != nil {
 		return
 	}
 
-	// settings
-	settings := &models.RoomSettings{
-		ID:            info.Game.RoomID,
-		Name:          info.Game.Name,
-		Width:         info.Field.Width,
-		Height:        info.Field.Height,
-		Players:       info.Game.Players,
-		Observers:     1,
-		TimeToPrepare: info.Game.TimeToPrepare,
-		TimeToPlay:    info.Game.TimeToPlay,
-	}
-
-	if room, err = NewRoom(lobby.config.Field, lobby, settings, id); err != nil {
+	if room, err = NewRoom(lobby.config().Field, lobby, &info.Game, id); err != nil {
 		return
 	}
 
 	// main info
-	room.setID(info.Game.RoomID)
-	room.setName(info.Game.Name)
-	room.setStatus(info.Game.Status)
-	room.setKilled(info.Game.Players)
+	room.setStatus(int(info.Game.Status))
+	room.setKilled(info.Game.Settings.Players)
 	room.setDate(info.Game.Date)
 
 	// actions
@@ -160,7 +151,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	// players
-	room.Players = newOnlinePlayers(info.Game.Players, *room.Field)
+	room.Players = newOnlinePlayers(info.Game.Settings.Players, *room.Field)
 	for i, gamer := range info.Gamers {
 		room.Players.SetPlayer(i, Player{
 			ID:       gamer.ID,
@@ -170,7 +161,9 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		})
 	}
 
-	room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+	_, room._messages, err = GetChatIDAndMessages(lobby.location(), pChat.ChatType_ROOM, room.dbChatID)
+
+	//room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
 
 	room.setStatus(StatusHistory)
 

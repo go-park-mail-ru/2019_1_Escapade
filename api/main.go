@@ -81,6 +81,6 @@ func main() {
 		}
 	}()
 
-	server.InterruptHandlet(srv, configuration.Server)
+	server.InterruptHandler(srv, configuration.Server)
 	os.Exit(0)
 }

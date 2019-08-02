@@ -35,6 +35,9 @@ type Room struct {
 	doneM *sync.RWMutex
 	_done bool
 
+	dbRoomID int32
+	dbChatID int32
+
 	//playersM *sync.RWMutex
 	Players *OnlinePlayers
 
@@ -48,7 +51,7 @@ type Room struct {
 	_messages []*models.Message
 
 	killedM *sync.RWMutex
-	_killed int //amount of killed users
+	_killed int32 //amount of killed users
 
 	idM *sync.RWMutex
 	_id string
@@ -87,7 +90,7 @@ type Room struct {
 // CharacteristicsCheck check room's characteristics are valid
 func CharacteristicsCheck(rs *models.RoomSettings) bool {
 	if constants.ROOM.Set {
-		namelen := len(rs.Name)
+		namelen := int32(len(rs.Name))
 		if namelen < constants.ROOM.NameMin || namelen > constants.ROOM.NameMax {
 			utils.Debug(false, "Name length is invalid:", namelen, ". Need more then",
 				constants.ROOM.NameMin, " and less then", constants.ROOM.NameMax)
@@ -124,14 +127,31 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 }
 
 // NewRoom return new instance of room
-func NewRoom(config *config.FieldConfig, lobby *Lobby, rs *models.RoomSettings, id string) (*Room, error) {
-	if !CharacteristicsCheck(rs) || !rs.FieldCheck() {
+func NewRoom(config *config.FieldConfig, lobby *Lobby, game *models.Game, id string) (*Room, error) {
+	if !CharacteristicsCheck(game.Settings) || !game.Settings.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
-	var room = &Room{}
+	var (
+		room           = &Room{}
+		roomID, chatID int32
+		err            error
+	)
+	game.Settings.ID = id
+	if game.ID == 0 {
+		game.Date = time.Now()
+		roomID, chatID, err = lobby.db().CreateGame(game)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		roomID = game.ID
+		chatID = game.ChatID
+	}
 
-	room.Init(config, lobby, rs, id)
-	return room, nil
+	room.dbRoomID = roomID
+	room.dbChatID = chatID
+	room.Init(config, lobby, game.Settings, id)
+	return room, err
 }
 
 // Init init instance of room
@@ -185,9 +205,7 @@ func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
 
 	room.Field = field
 
-	loc, _ := time.LoadLocation(room.lobby.config.Location)
-
-	room.setDate(time.Now().In(loc))
+	room.setDate(time.Now().In(room.lobby.location()))
 
 	go room.runRoom()
 
