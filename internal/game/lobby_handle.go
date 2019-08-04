@@ -1,9 +1,12 @@
 package game
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -72,6 +75,91 @@ func (lobby *Lobby) launchGarbageCollector(timeout float64) {
 	*/
 }
 
+func (lobby *Lobby) sendMessagesToDB() {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go Join()")
+		lobby.wGroup.Done()
+	}()
+
+	var (
+		err      error
+		chatID   int32
+		messages []*MessageWithAction
+		msgID    *chat.MessageID
+		msgs     []*models.Message
+	)
+	// TODO change it if implement several service instances(i am about 0 )
+	if lobby.dbChatID() == 0 {
+		chatID, msgs, err = GetChatIDAndMessages(lobby.location(),
+			chat.ChatType_LOBBY, 0, lobby.SetImage)
+		if err != nil {
+			utils.Debug(false, "sendMessagesToDB error:", err.Error())
+			return
+		}
+		msgs = append(msgs, lobby.Messages()...)
+		lobby.setMessages(msgs)
+		sendMessages(lobby.send, All, msgs...)
+
+		lobby.setDBChatID(chatID)
+	}
+	messages = lobby.NotSavedMessagesGetAndClear()
+	utils.Debug(false, "messages:", len(messages), lobby.dbChatID())
+	for _, messageAction := range messages {
+		if messageAction.origin == nil {
+			continue
+		}
+		if messageAction.message.ChatId == 0 {
+
+			chatID, err = messageAction.getChatID()
+			if err != nil {
+				lobby.AddNotSavedMessage(messageAction)
+				continue
+			}
+			messageAction.message.ChatId = chatID
+		}
+		switch messageAction.action {
+		case models.Write:
+			msgID, err = clients.ALL.Chat().AppendMessage(context.Background(), messageAction.message)
+			if err == nil {
+				messageAction.origin.ID = msgID.Value
+			}
+		case models.Update:
+			_, err = clients.ALL.Chat().UpdateMessage(context.Background(), messageAction.message)
+
+		case models.Delete:
+			_, err = clients.ALL.Chat().DeleteMessage(context.Background(), messageAction.message)
+		}
+		if err != nil {
+			lobby.AddNotSavedMessage(messageAction)
+		}
+	}
+}
+
+func (lobby *Lobby) sendGamesToDB() {
+	if lobby.done() {
+		return
+	}
+	lobby.wGroup.Add(1)
+	defer func() {
+		utils.CatchPanic("lobby_handle.go Join()")
+		lobby.wGroup.Done()
+	}()
+
+	var (
+		err   error
+		games = lobby.NotSavedGamesGetAndClear()
+	)
+	for _, game := range games {
+		if err = lobby.db().SaveGame(*game); err != nil {
+			lobby.AddNotSavedGame(game)
+		}
+	}
+}
+
 /*
 Run accepts connections and messages from them
 Goroutine. When it is finished, the lobby will be cleared
@@ -82,15 +170,17 @@ func (lobby *Lobby) Run() {
 		lobby.Free()
 	}()
 
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
+	s10 := time.NewTicker(time.Second * 10)
+	defer s10.Stop()
 	var timeout float64
 	timeout = 10
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-s10.C:
 			go lobby.launchGarbageCollector(timeout)
+			go lobby.sendMessagesToDB()
+			go lobby.sendGamesToDB()
 		case connection := <-lobby.chanJoin:
 			go lobby.Join(connection)
 		case message := <-lobby.chanBroadcast:
@@ -336,7 +426,7 @@ func (lobby *Lobby) HandleRequest(conn *Connection, lr *LobbyRequest) {
 		Message(lobby, conn, lr.Message,
 			lobby.appendMessage, lobby.setMessage,
 			lobby.removeMessage, lobby.findMessage,
-			lobby.send, All, false, lobby.dbChatID())
+			lobby.send, All, nil, lobby.dbChatID())
 	}
 }
 

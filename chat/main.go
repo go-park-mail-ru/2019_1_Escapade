@@ -41,9 +41,7 @@ func main() {
 		return
 	}
 
-	service := &chat.Service{
-		DB: db.Db,
-	}
+	service := chat.NewService(db.Db)
 
 	port := server.Port(configuration)
 

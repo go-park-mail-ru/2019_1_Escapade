@@ -30,6 +30,9 @@ func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		h.UpdateProfile(rw, r)
 	case http.MethodOptions:
+		rw.WriteHeader(http.StatusOK)
+		utils.Debug(false, "cors:", rw.Header().Get("Access-Control-Allow-Origin"))
+
 		return
 	default:
 		utils.Debug(true, "/api/user wrong request:", r.Method)

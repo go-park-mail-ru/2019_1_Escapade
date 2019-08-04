@@ -2,6 +2,9 @@ package chat
 
 import (
 	"database/sql"
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
 
 	//
 	_ "github.com/lib/pq"
@@ -14,18 +17,57 @@ import (
 func (service *Service) insertMessage(message *Message) (*MessageID, error) {
 
 	var (
-		id  int32
-		err error
+		id              int32
+		err             error
+		extraParameters int
+		row             *sql.Row
+		date            time.Time
 	)
-	sqlInsert := `
-	INSERT INTO Message(answer_id, sender_id, sender_name, sender_status, 
-		getter_id, getter_name,chat_id, message, date) VALUES
-		`
-	sqlInsert += addMessageToQuery(message) + " returning id;"
-	row := service.DB.QueryRow(sqlInsert)
+	var sqlInsert = "INSERT INTO Message(not_saved_id"
+	if message.Answer != nil {
+		sqlInsert += ",answer_id"
+		extraParameters++
+	}
+	if message.To != nil {
+		sqlInsert += ",getter_id, getter_name"
+		extraParameters += 2
+	}
+
+	date, err = ptypes.Timestamp(message.Time)
+	if err != nil {
+		utils.Debug(false, "cant convert ptypes.Timestamp to time.Time", err.Error())
+		return nil, err
+	}
+
+	sqlInsert += `,sender_id, sender_name, sender_status, 
+	chat_id, message, date) VALUES
+	($1,$2,$3,$4,$5,$6,$7`
+	switch extraParameters {
+	case 0:
+		sqlInsert += `) returning id;`
+		row = service.DB.QueryRow(sqlInsert, message.Id, message.From.Id,
+			message.From.Name, message.From.Status, message.ChatId,
+			message.Text, date)
+	case 1:
+		sqlInsert += `$8) returning id;`
+		row = service.DB.QueryRow(sqlInsert, message.Id, message.Answer.Id,
+			message.From.Id, message.From.Name, message.From.Status,
+			message.ChatId, message.Text, date)
+	case 2:
+		row = service.DB.QueryRow(sqlInsert, message.Id, message.To.Id,
+			message.To.Name, message.From.Id, message.From.Name,
+			message.From.Status, message.ChatId, message.Text, date)
+		sqlInsert += `$8, $9) returning id;`
+	case 3:
+		row = service.DB.QueryRow(sqlInsert, message.Id, message.Answer.Id,
+			message.To.Id, message.To.Name, message.From.Id, message.From.Name,
+			message.From.Status, message.ChatId, message.Text, date)
+		sqlInsert += `$8, $9, $10) returning id;`
+	}
 
 	if err = row.Scan(&id); err != nil {
-		utils.Debug(true, "cant create message", err.Error())
+		utils.Debug(false, "sql statement:", sqlInsert)
+		utils.Debug(false, "cant create message", err.Error())
 		return &MessageID{}, err
 	}
 
@@ -34,47 +76,19 @@ func (service *Service) insertMessage(message *Message) (*MessageID, error) {
 
 func (service *Service) insertMessages(messages *Messages) (*MessagesID, error) {
 
-	sqlInsert := `
-	INSERT INTO Message(answer_id, sender_id, sender_name, sender_status,
-		 getter_id, getter_name, chat_id, message, date) VALUES
-		`
-
+	var err error
 	if len(messages.Messages) == 0 {
 		return &MessagesID{}, nil
 	}
+	var ids = make([]*MessageID, len(messages.Messages))
 	for i, message := range messages.Messages {
-		if i == 0 {
-			sqlInsert += addMessageToQuery(message)
-		} else {
-			sqlInsert += "," + addMessageToQuery(message)
-		}
-	}
-
-	sqlInsert += " returning id;"
-	var (
-		rows *sql.Rows
-		err  error
-	)
-
-	if rows, err = service.DB.Query(sqlInsert); err != nil {
-		return &MessagesID{}, err
-	}
-	defer rows.Close()
-
-	var ids = make([]int32, len(messages.Messages))
-	i := 0
-	for rows.Next() {
-		if err = rows.Scan(&ids[i]); err != nil {
+		ids[i], err = service.insertMessage(message)
+		if err != nil {
 			break
 		}
-		i++
 	}
 
-	if err != nil {
-		return &MessagesID{}, err
-	}
-
-	return &MessagesID{Values: ids}, nil
+	return &MessagesID{Values: ids}, err
 }
 
 func (service *Service) updateMessage(message *Message) (*Result, error) {
@@ -84,13 +98,14 @@ func (service *Service) updateMessage(message *Message) (*Result, error) {
 		err error
 	)
 	sqlUpdate := `
-	Update Message set message = $1, edited = true where id = $2
+	Update Message set message = $1, edited = true where id = $2 or (not_saved_id = $2 and sender_id = $3)
 		RETURNING ID;
 		`
-	row := service.DB.QueryRow(sqlUpdate, message.Text, message.Id)
+	row := service.DB.QueryRow(sqlUpdate, message.Text, message.Id, message.From.Id)
 
 	if err = row.Scan(&id); err != nil {
-		utils.Debug(true, "cant update message", err.Error())
+		utils.Debug(false, "sql statement:", sqlUpdate)
+		utils.Debug(false, "cant update message", err.Error())
 		return &Result{Done: false}, err
 	}
 
@@ -104,13 +119,14 @@ func (service *Service) deleteMessage(message *Message) (*Result, error) {
 		err error
 	)
 	sqlDelete := `
-	Delete from Message where id = $1
+	Delete from Message where id = $1 or (not_saved_id = $1 and sender_id = $2)
 	RETURNING ID;
 		`
-	row := service.DB.QueryRow(sqlDelete, message.Id)
+	row := service.DB.QueryRow(sqlDelete, message.Id, message.From.Id)
 
 	if err = row.Scan(&id); err != nil {
-		utils.Debug(true, "cant delete message", err.Error())
+		utils.Debug(false, "sql statement:", sqlDelete)
+		utils.Debug(false, "cant delete message", err.Error())
 		return &Result{Done: false}, err
 	}
 
@@ -164,12 +180,23 @@ func (service *Service) getChatMessages(chatID *ChatID) (*Messages, error) {
 			&from.Status, &to.ID, &to.Name, &message.ChatID, &message.Text,
 			&message.Time, &message.Edited, &photo, &aFrom.ID, &aFrom.Name,
 			&aFrom.Status, &answer.Text, &aTo.ID, &aTo.Name, &answer.ChatID,
-			(*models.ScanTime)(&answer.Time)); err != nil {
+			(*models.NullTime)(&answer.Time)); err != nil {
 			break
 		}
-		result = MessageFromNullMessage(message)
-		result.Answer = MessageFromNullMessage(answer)
-		result.From.Photo = "anonymous.jpg"
+		result, err = MessageFromNullMessage(message)
+		if err != nil {
+			break
+		}
+		result.Answer, err = MessageFromNullMessage(answer)
+		if err != nil {
+			break
+		}
+		if photo.Valid {
+			result.From.Photo = photo.String
+		} else {
+			result.From.Photo = "anonymous.jpg"
+		}
+		utils.Debug(false, "result.From.Photo", result.From.Photo)
 
 		messages = append(messages, result)
 	}

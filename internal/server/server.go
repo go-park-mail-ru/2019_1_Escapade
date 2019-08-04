@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Server(r *mux.Router, serverConfig config.ServerConfig, port string) *http.Server {
+func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool, port string) *http.Server {
 	var (
 		readTimeout  = time.Duration(serverConfig.ReadTimeoutS) * time.Second
 		writeTimeout = time.Duration(serverConfig.WriteTimeoutS) * time.Second
@@ -24,8 +24,8 @@ func Server(r *mux.Router, serverConfig config.ServerConfig, port string) *http.
 		handler      http.Handler
 	)
 
-	if serverConfig.WaitTimeoutS == 0 {
-		handler = http.TimeoutHandler(r, execTimeout, "Timeout!")
+	if serverConfig.WaitTimeoutS != 0 && isHTTP {
+		handler = http.TimeoutHandler(r, execTimeout, "ESCAPADE DEBUG Timeout!")
 	} else {
 		handler = r
 	}
@@ -50,12 +50,12 @@ func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			errChan <- err
+			close(errChan)
 			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
 
 	defer func() {
-		close(errChan)
 		close(stopChan)
 		lastFunc()
 	}()
@@ -82,7 +82,6 @@ func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc 
 		if err != nil {
 			utils.Debug(false, "Shutdown error:", err.Error())
 		}
-		lastFunc()
 	}()
 }
 

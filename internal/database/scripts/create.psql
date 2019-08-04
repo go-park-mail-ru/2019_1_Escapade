@@ -55,6 +55,7 @@ CREATE Table Game (
 
 CREATE Table Message (
 	id SERIAL PRIMARY KEY,
+	not_saved_id int,
 	answer_id int,
 	sender_id int NOT NULL,
 	sender_name varchar(30),

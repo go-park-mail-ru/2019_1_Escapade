@@ -16,6 +16,7 @@ func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
 		roomID   int32
 		pbChatID *chat.ChatID
 		err      error
+		id       int32
 	)
 	if tx, err = db.Db.Begin(); err != nil {
 		return 0, 0, err
@@ -31,11 +32,11 @@ func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
 	}
 
 	pbChatID, err = clients.ALL.Chat().CreateChat(context.Background(), newChat)
-	if err != nil {
-		return 0, 0, err
+	if err == nil {
+		id = pbChatID.Value
 	}
 	err = tx.Commit()
-	return roomID, pbChatID.Value, err
+	return roomID, id, err
 }
 
 // SaveGame save game to database

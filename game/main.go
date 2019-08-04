@@ -82,13 +82,14 @@ func main() {
 	var (
 		r    = server.GameRouter(handler, configuration.Cors)
 		port = server.Port(configuration)
-		srv  = server.Server(r, configuration.Server, port)
+		srv  = server.Server(r, configuration.Server, false, port)
 	)
 
 	server.LaunchHTTP(srv, configuration.Server, func() {
 		finishChan <- nil
 		game.GetLobby().Stop()
-		db.Db.Close()
+		close(readyChan)
+		close(finishChan)
 	})
 	os.Exit(0)
 }

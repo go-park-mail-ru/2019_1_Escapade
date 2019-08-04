@@ -16,22 +16,29 @@ done=0
 #go get -u github.com/golang/protobuf/protoc-gen-go
 
 export CHATPROTO=$PWD/../chat/proto/
+export AUTHPROTO=$PWD/../auth/proto/
 export PROTO=$GOPATH/src
 
 echo "  1. Copy .proto files to protobuf directory"
 
 cp $CHATPROTO/chat.proto $PROTO && \
+cp $AUTHPROTO/auth.proto $PROTO && \
 
-echo "  2. Apply proto to chat service" && \
+echo "  2.1 Apply proto to chat" && \
 cd $PROTO && \
 protoc --go_out=plugins=grpc:. chat.proto && \
-
 cp $PROTO/chat.pb.go $CHATPROTO && \
+
+echo "  2.2 Apply proto to auth" && \
+protoc --go_out=plugins=grpc:. auth.proto && \
+cp $PROTO/auth.pb.go $AUTHPROTO && \
+done=1
 
 echo "  3. Remove our .proto and .go files from GOPATH" && \
 rm $PROTO/chat.pb.go && \
 rm $PROTO/chat.proto && \
-done=1
+rm $PROTO/auth.pb.go && \
+rm $PROTO/auth.proto && \
 
 echo ""
 if [ "$done" -eq 1 ]

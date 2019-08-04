@@ -92,6 +92,7 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 
 	if err = room.lobby.db().SaveGame(gameInformation); err != nil {
 		fmt.Println("err. Cant save.", err.Error())
+		room.lobby.AddNotSavedGame(&gameInformation)
 	}
 
 	return
@@ -161,7 +162,8 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 		})
 	}
 
-	_, room._messages, err = GetChatIDAndMessages(lobby.location(), pChat.ChatType_ROOM, room.dbChatID)
+	_, room._messages, err = GetChatIDAndMessages(lobby.location(),
+		pChat.ChatType_ROOM, room.dbChatID, room.lobby.SetImage)
 
 	//room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
 

@@ -2,10 +2,10 @@ package game
 
 import (
 	"context"
-	"fmt"
+	"math/rand"
 	"time"
 
-	сhat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -28,32 +28,58 @@ type FindMessage func(*models.Message) int
 // DeleteMessage - the function to delete message from message slice
 type DeleteMessage func(int)
 
-func GetChatIDAndMessages(loc *time.Location, chatType сhat.ChatType, typeID int32) (int32, []*models.Message, error) {
+// GetChatID accesses the chat service to get the ID of the chat
+func GetChatID(chatType chat.ChatType, typeID int32) (int32, error) {
 	var (
-		newChat = &сhat.Chat{
+		newChat = &chat.Chat{
 			Type:   chatType,
 			TypeId: typeID,
 		}
-		chatID    *сhat.ChatID
-		pMessages *сhat.Messages
+		chatID *chat.ChatID
+		err    error
+	)
+
+	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
+
+	if err != nil {
+		utils.Debug(false, "cant access to chat service", err.Error())
+		return 0, err
+	}
+	return chatID.Value, err
+}
+
+// GetChatIDAndMessages accesses the chat service to get the ID of the chat and
+// all messages
+func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int32,
+	setImage SetImage) (int32, []*models.Message, error) {
+	var (
+		newChat = &chat.Chat{
+			Type:   chatType,
+			TypeId: typeID,
+		}
+		chatID    *chat.ChatID
+		pMessages *chat.Messages
 		err       error
 	)
 
 	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
 
 	if err != nil {
-		utils.Debug(true, "cant access to chat service", err.Error())
+		utils.Debug(false, "cant access to chat service", err.Error())
 		return 0, nil, err
 	}
 	pMessages, err = clients.ALL.Chat().GetChatMessages(context.Background(), chatID)
 	if err != nil {
-		utils.Debug(true, "cant get messages!", err.Error())
+		utils.Debug(false, "cant get messages!", err.Error())
 		return 0, nil, err
 	}
 
 	var messages []*models.Message
-	messages = сhat.MessagesFromProto(loc, pMessages.Messages...)
-	//db.getMessages(tx, true, game.RoomID)
+	messages, err = chat.MessagesFromProto(loc, pMessages.Messages...)
+
+	for _, message := range messages {
+		setImage(message.User)
+	}
 
 	return chatID.Value, messages, err
 }
@@ -61,27 +87,37 @@ func GetChatIDAndMessages(loc *time.Location, chatType сhat.ChatType, typeID in
 // Message send message to connections
 func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	append AppendMessage, update UpdateMessage, delete DeleteMessage,
-	find FindMessage, send Sender, predicate SendPredicate, inRoom bool, chatID int32) (err error) {
+	find FindMessage, send Sender, predicate SendPredicate, room *Room,
+	chatID int32) (err error) {
+
 	message.User = conn.User
 
 	message.Time = time.Now().In(lobby.location())
+
+	if message.Action == models.Write {
+		rand.Seed(time.Now().UnixNano())
+		message.ID = rand.Int31n(10000000) // в конфиг?
+	}
+
+	msg, err := chat.MessageToProto(message)
+
+	if err != nil {
+		return err
+	}
+	msg.ChatId = chatID
+
+	var msgID *chat.MessageID
 
 	// ignore models.StartWrite, models.FinishWrite
 	switch message.Action {
 	case models.Write:
 		append(message)
-		utils.Debug(false, "look at time", message.Time)
-		msg := сhat.MessageToProto(message)
-		utils.Debug(false, "newtime", msg.Time)
-		msg.ChatId = chatID
-		msgID, err := clients.ALL.Chat().AppendMessage(context.Background(), msg)
-		if err != nil {
-			return err
+		msgID, err = clients.ALL.Chat().AppendMessage(context.Background(), msg)
+		if msgID != nil {
+			message.ID = msgID.Value
 		}
-		message.ID = msgID.Value
-		//message.ID, err = lobby.db.CreateMessage(message, inRoom, roomID)
 		if lobby.config().Metrics {
-			if inRoom {
+			if room != nil {
 				metrics.RoomsMessages.Inc()
 			} else {
 				metrics.LobbyMessages.Inc()
@@ -89,55 +125,79 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		}
 	case models.Update:
 		if message.ID <= 0 {
-			return re.ErrorMessageInvalidID()
+			return re.InvalidMessageID()
 		}
 		update(find(message), message)
 
-		msg := сhat.MessageToProto(message)
-		_, err := clients.ALL.Chat().UpdateMessage(context.Background(), msg)
-		if err != nil {
-			return err
-		}
+		_, err = clients.ALL.Chat().UpdateMessage(context.Background(), msg)
 
-		//_, err = lobby.db.UpdateMessage(message)
 	case models.Delete:
 		if message.ID <= 0 {
-			return re.ErrorMessageInvalidID()
+			return re.InvalidMessageID()
 		}
 		delete(find(message))
 
-		msg := сhat.MessageToProto(message)
-		_, err := clients.ALL.Chat().DeleteMessage(context.Background(), msg)
-		if err != nil {
-			return err
-		}
+		_, err = clients.ALL.Chat().DeleteMessage(context.Background(), msg)
 
-		//_, err = lobby.db.DeleteMessage(message)
 		if lobby.config().Metrics {
-			if inRoom {
+			if room != nil {
 				metrics.RoomsMessages.Dec()
 			} else {
 				metrics.LobbyMessages.Dec()
 			}
 		}
 	}
+	utils.Debug(false, "message", err == nil)
 	if err != nil {
-		return err
+		action := message.Action
+		utils.Debug(false, "in room", room != nil)
+		if room != nil {
+			lobby.AddNotSavedMessage(&MessageWithAction{
+				message, msg, action, func() (int32, error) {
+					if room.dbChatID != 0 {
+						return room.dbChatID, nil
+					}
+					id, err := GetChatID(chat.ChatType_ROOM, room.dbRoomID)
+					if err != nil {
+						room.dbChatID = id
+					}
+					return id, err
+				}})
+		} else {
+			lobby.AddNotSavedMessage(&MessageWithAction{
+				message, msg, action, func() (int32, error) {
+					dbChatID := lobby.dbChatID()
+					if dbChatID != 0 {
+						utils.Debug(false, "we have id")
+						return dbChatID, nil
+					}
+					utils.Debug(false, "no id")
+					id, err := GetChatID(chat.ChatType_LOBBY, 0)
+					if err != nil {
+						lobby.setDBChatID(id)
+					}
+					return id, err
+				}})
+		}
 	}
 
-	response := models.Response{
-		Type:  "GameMessage",
-		Value: message,
-	}
-
-	fmt.Println("response")
-
-	send(response, predicate)
+	sendMessages(send, predicate, message)
 	return err
+}
 
+func sendMessages(send Sender, predicate SendPredicate, messages ...*models.Message) {
+	for _, message := range messages {
+		response := models.Response{
+			Type:  "GameMessage",
+			Value: message,
+		}
+
+		send(response, predicate)
+	}
 }
 
 // Messages processes the receipt of an object Messages from the user
+// TODO: delete or normally implement
 func Messages(conn *Connection, messages *models.Messages,
 	messageSlice []*models.Message) {
 

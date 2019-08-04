@@ -104,7 +104,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
-		utils.Debug(false, err.Error())
+		utils.Debug(false, "cant upgrade", err.Error())
 		rw.WriteHeader(http.StatusBadRequest)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			utils.SendErrorJSON(rw, re.ErrorHandshake(), place)

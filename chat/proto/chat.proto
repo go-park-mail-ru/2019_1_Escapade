@@ -15,7 +15,6 @@ service ChatService {
   rpc AppendMessages(Messages) returns (MessagesID) {}
   rpc UpdateMessage(Message) returns (Result) {}
 	rpc DeleteMessage(Message) returns (Result) {}
-  //rpc GetUserMessages(User) returns (Messages) {}
   rpc GetChatMessages(ChatID) returns (Messages) {}
 }
 
@@ -29,7 +28,7 @@ message MessageID {
 }
 
 message MessagesID {
- repeated int32 values = 1;
+ repeated MessageID values = 1;
 }
 
 message Result {
@@ -60,39 +59,6 @@ message Message {
   google.protobuf.Timestamp time = 7;
   bool edited = 8;
 }
-
-/*
-message NullInt32 {
-	int32 value = 1;
-	bool valid = 2;
-}
-
-message NullString {
-	string value = 1;
-	bool valid = 2;
-}
-
-message NullTimestamp {
-	google.protobuf.Timestamp value = 1;
-	bool valid = 2;
-}
-
-message NullUser {
-  NullInt32 id = 1;
-  NullString name = 2;
-  NullString photo = 3;
-  NullInt32 status = 4;
-}
-
-message NullMessage {
-  NullInt32 id = 1;
-  NullString text = 2;
-  NullUser from = 3;
-  NullUser to = 4;
-  NullInt32 chat_id = 5;
-  NullTimestamp time = 6;
-}
-*/
 
 message Messages {
   repeated Message messages = 1;

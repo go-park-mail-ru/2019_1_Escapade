@@ -40,7 +40,6 @@ type CORSConfig struct {
 	Origins     []string `json:"origins"`
 	Headers     []string `json:"headers"`
 	Credentials string   `json:"credentials"`
-	Methods     []string `json:"methods"`
 }
 
 // DatabaseConfig set type of database management system

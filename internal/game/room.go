@@ -91,20 +91,25 @@ type Room struct {
 func CharacteristicsCheck(rs *models.RoomSettings) bool {
 	if constants.ROOM.Set {
 		namelen := int32(len(rs.Name))
-		if namelen < constants.ROOM.NameMin || namelen > constants.ROOM.NameMax {
-			utils.Debug(false, "Name length is invalid:", namelen, ". Need more then",
-				constants.ROOM.NameMin, " and less then", constants.ROOM.NameMax)
+		if namelen < constants.ROOM.NameMin ||
+			namelen > constants.ROOM.NameMax {
+			utils.Debug(false, "Name length is invalid:",
+				namelen, ". Need more then", constants.ROOM.NameMin,
+				" and less then", constants.ROOM.NameMax)
 			return false
 		}
-		if rs.Width < constants.FIELD.WidthMin || rs.Width > constants.FIELD.WidthMax {
+		if rs.Width < constants.FIELD.WidthMin ||
+			rs.Width > constants.FIELD.WidthMax {
 			utils.Debug(false, "Width is invalid:", rs.Width)
 			return false
 		}
-		if rs.Height < constants.FIELD.HeightMin || rs.Height > constants.FIELD.HeightMax {
+		if rs.Height < constants.FIELD.HeightMin ||
+			rs.Height > constants.FIELD.HeightMax {
 			utils.Debug(false, "Height is invalid:", rs.Height)
 			return false
 		}
-		if rs.Players < constants.ROOM.PlayersMin || rs.Players > constants.ROOM.PlayersMax {
+		if rs.Players < constants.ROOM.PlayersMin ||
+			rs.Players > constants.ROOM.PlayersMax {
 			utils.Debug(false, "Amount of players is invalid:", rs.Players)
 			return false
 		}
@@ -112,11 +117,13 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 			utils.Debug(false, "Amount of observers is invalid:", rs.Observers)
 			return false
 		}
-		if rs.TimeToPrepare < constants.ROOM.TimeToPrepareMin || rs.TimeToPrepare > constants.ROOM.TimeToPrepareMax {
+		if rs.TimeToPrepare < constants.ROOM.TimeToPrepareMin ||
+			rs.TimeToPrepare > constants.ROOM.TimeToPrepareMax {
 			utils.Debug(false, "Time to prepare is invalid:", rs.TimeToPrepare)
 			return false
 		}
-		if rs.TimeToPlay < constants.ROOM.TimeToPlayMin || rs.TimeToPlay > constants.ROOM.TimeToPlayMax {
+		if rs.TimeToPlay < constants.ROOM.TimeToPlayMin ||
+			rs.TimeToPlay > constants.ROOM.TimeToPlayMax {
 			utils.Debug(false, "Time to play is invalid:", rs.TimeToPlay)
 			return false
 		}
@@ -127,7 +134,8 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 }
 
 // NewRoom return new instance of room
-func NewRoom(config *config.FieldConfig, lobby *Lobby, game *models.Game, id string) (*Room, error) {
+func NewRoom(config *config.FieldConfig, lobby *Lobby,
+	game *models.Game, id string) (*Room, error) {
 	if !CharacteristicsCheck(game.Settings) || !game.Settings.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
@@ -139,6 +147,8 @@ func NewRoom(config *config.FieldConfig, lobby *Lobby, game *models.Game, id str
 	game.Settings.ID = id
 	if game.ID == 0 {
 		game.Date = time.Now()
+		// we create chat here, not when all people will be find, because
+		// with this chat people can message while battle is finding players
 		roomID, chatID, err = lobby.db().CreateGame(game)
 		if err != nil {
 			return nil, err

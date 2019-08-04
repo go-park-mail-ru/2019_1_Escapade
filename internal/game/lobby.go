@@ -5,23 +5,147 @@ import (
 	"sync"
 	"time"
 
-	сhat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	models "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	utils "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-// SetImage function to set image
+/*
+SetImage - a function that accesses the photo service. It passes to the service
+ the name of the photo to be specified in the PhotoURL field of the
+ UserPublicInfo structure. In response, it gets a key to access the image it is
+ looking for and places key in the FileKey field.
+	The entrance accepts an unlimited number of users. The above action applies
+	to each of them. If for some user it will not be possible to get an
+	image(an error will be returned), the function will continue to work,
+	skipping this user. Does not return errors even if they have occurred
+*/
 type SetImage func(users ...*models.UserPublicInfo)
 
-// Request connect Connection and his message
+/*
+Request - Structure for messaging with websocket connections
+
+	Connection - message sender/receiver.
+
+	Message - the information to be sent.
+*/
 type Request struct {
 	Connection *Connection
 	Message    []byte
 }
 
-// Lobby there are all rooms and users placed
+/*
+MessageWithAction  - structure required to save actions related to messages in
+ case they cannot be added to the database
+
+ 	origin - a pointer to an item in the lobby(or room) message array.
+		If the user has created a message, but it could not get into the database,
+		it is assigned a random ID(instead of getting the ID from the database).
+		With it you can find this message to perform operations on it(update,
+		delete). After the message is delivered to the database, its identifier
+		is updated in accordance with the specified in the database(set new origin.id)
+
+	message - proto-struct, that is sent to chat service
+
+	action - defines the operation to be performed on the message(create,
+		edit, delete). All available types are in package 'models'
+
+	getChatID - function to get the chat ID(if the corresponding message field
+		is not initialized)
+*/
+type MessageWithAction struct {
+	origin    *models.Message
+	message   *chat.Message
+	action    int32
+	getChatID func() (int32, error)
+}
+
+/*
+Lobby - the structure that controls the slices of players and rooms.
+
+	wGroup - any goroutine that is associated with the Lobby at the beginning
+	 of execution incremented counter of wGroup and before ending decrements it.
+	 A function to clear memory (which will be invoked in the event of
+	 destruction of the Lobby) will wait until wGroup will not become equal to 0.
+	 This ensures that all associated with this structure goroutines will have
+	 time to finish their job
+
+	_done - determines whether the memory cleanup function of the object has
+	 been called. Each goroutine before started check this field. If done is
+	 true, the goroutine terminates. Otherwise, increments the wGroup counter
+	 described above
+
+	doneM - provides exclusive access to the field _done. Available actions
+	 you can see in lobby_mutex.go
+
+	allRooms - slice of all active rooms(rooms whose gameplay is not over)
+	freeRooms - slice of free rooms(rooms that search for players)
+
+	Waiting - an slice of connections located in the lobby(IMPORTANT: the
+	 connection can be both in the lobby and in the rooms. This is possible
+	 if the connection is in a room that hosts a set of players. This
+	 connection will also be in this slice)
+
+	Playing - an slice of connections located only in room(connections with any
+	 status are meant: both players, and observers)
+
+	_messages - an slice of messages from the lobby chat
+
+	messagesM - provides exclusive access to the field _messages. Available actions
+	 you can see in lobby_mutex.go
+
+	_notSavedMessages - an slice of actions related to messages that have not
+	 yet been stored in the database. This field is protected by a
+	 mutex(notSavedMessagesM)
+
+	__notSavedGames - an slice of games that have not yet been stored in the
+	 database. This field is protected by a mutex(notSavedGamesM)
+
+	_anonymous - the ID of the next anonymous connection. To distinguish
+	 anonymous connections from the non-anonumous connections for anonymous
+	 connections are specified by negative numbers(at the time, as identicator
+	 compounds registered users are defined as the ID of the corresponding user
+	 from the database). This field is protected by a mutex(anonymousM), so to
+	 get this field you need to call the anonymous getter function, which will
+	 return the value of this field and decrement the value in this field. This
+	 ensures the uniqueness of the IDs of anonymous connections(as long as the
+	 object of the Lobby will not be rebuilt). The uniqueness of the identifiers
+	 is required for the correct operation of the games, where players are
+	 identified with the help of user identifier.
+
+	context, cancel - TODO delete or normally implement
+
+	chanJoin - the channel in which the connections joining the lobby are
+	 transmitted.
+
+	chanJoin - the channel for transmitting information from connections (Not
+	 for writing to connections. To write to a connection, use the channel of
+	 the connection to which you want to send information)
+
+	chanBreak - the channel transmitting the signal of completion of the work
+
+	_db - instance of database struct. This field is protected by a
+	 mutex(dbM)
+
+	_config - configuration of game. This field is protected by a
+	 mutex(configM)
+
+	_dbChatID - the chat ID(obtained from the database), that is used by the
+	 Lobby. It determines in which chat, operations on messages(recording,
+	 editing, deleting) will be saved. It is set during initialization. If
+	 install failed(because of the inability to connect to the chat service),
+	 will be installed later in the goroutine sending unsent actions in the chat
+	 service. This field is protected by a mutex(dbChatIDM)
+
+	_location - time.Location. It is necessary to set the time zone when
+	 specifying dates(in rooms, messages, actions, etc.). It is set during
+	 initialization. This field is protected by a mutex(locationM)
+
+	SetImage - instance of SetImage, described above. It is necessary to obtain
+	 user images for chat
+*/
 type Lobby struct {
 	wGroup *sync.WaitGroup
 
@@ -37,18 +161,21 @@ type Lobby struct {
 	messagesM *sync.Mutex
 	_messages []*models.Message
 
+	notSavedMessagesM *sync.Mutex
+	_notSavedMessages []*MessageWithAction
+
+	notSavedGamesM *sync.Mutex
+	_notSavedGames []*models.GameInformation
+
 	anonymousM *sync.Mutex
 	_anonymous int
 
 	context context.Context
 	cancel  context.CancelFunc
 
-	// connection joined lobby
-	chanJoin chan *Connection
-	// connection send some JSON
+	chanJoin      chan *Connection
 	chanBroadcast chan *Request
-
-	chanBreak chan interface{}
+	chanBreak     chan interface{}
 
 	dbM *sync.RWMutex
 	_db *database.DataBase
@@ -96,6 +223,12 @@ func NewLobby(config *config.GameConfig, db *database.DataBase,
 		dbChatIDM: &sync.RWMutex{},
 		locationM: &sync.RWMutex{},
 
+		notSavedMessagesM: &sync.Mutex{},
+		_notSavedMessages: make([]*MessageWithAction, 0),
+
+		notSavedGamesM: &sync.Mutex{},
+		_notSavedGames: make([]*models.GameInformation, 0),
+
 		chanJoin:      make(chan *Connection),
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
@@ -104,8 +237,9 @@ func NewLobby(config *config.GameConfig, db *database.DataBase,
 	return lobby
 }
 
+// SetConfiguration set lobby configuration
 func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.DataBase,
-	SetImage SetImage) {
+	setImage SetImage) {
 
 	var (
 		messages []*models.Message
@@ -117,23 +251,21 @@ func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.Dat
 	if err != nil {
 		utils.Debug(true, "cant set location!")
 	}
-	if db != nil {
-		chatID, messages, err = GetChatIDAndMessages(location, сhat.ChatType_LOBBY, 0)
-		if err != nil {
-			utils.Debug(true, "cant load messages:", err.Error())
-		}
-		for _, message := range messages {
-			SetImage(message.User)
-		}
-	} else {
-		messages = make([]*models.Message, 0)
-	}
+	lobby.setMessages(make([]*models.Message, 0))
 	lobby.setConfig(config)
-	lobby.setMessages(messages)
 	lobby.setDB(db)
 	lobby.setDBChatID(chatID)
 	lobby.setLocation(location)
-	lobby.SetImage = SetImage
+	lobby.SetImage = setImage
+	if db != nil {
+		chatID, messages, err = GetChatIDAndMessages(location, chat.ChatType_LOBBY,
+			0, setImage)
+		if err != nil {
+			utils.Debug(false, "cant load messages:", err.Error())
+		} else {
+			lobby.setMessages(messages)
+		}
+	}
 
 	return
 }
@@ -166,8 +298,7 @@ func (lobby *Lobby) Stop() {
 	}
 }
 
-// Free delete all rooms and connections. Inform all players
-// about closing
+// Free clean the memory allocated to the structure of the lobby
 func (lobby *Lobby) Free() {
 
 	if lobby.done() {
@@ -192,6 +323,7 @@ func (lobby *Lobby) Free() {
 	close(lobby.chanBroadcast)
 	lobby.setConfig(nil)
 	lobby.setMessages(nil)
+	lobby.db().Db.Close()
 	lobby.setDB(nil)
 	lobby.setLocation(nil)
 	lobby = nil

@@ -1,4 +1,4 @@
-package session
+package auth
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -9,23 +9,24 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gomodule/redigo/redis"
+	"database/sql"
 )
 
-// SessionManager session struct
-type SessionManager struct {
-	redisConn redis.Conn
+// Service auth struct
+type Service struct {
+	DB *sql.DB
 	config    config.SessionConfig
 }
 
-func NewSessionManager(redis redis.Conn, c config.SessionConfig) *SessionManager {
-	return &SessionManager{
-		redisConn: redis,
-		config:    c,
+//NewService Create new instance of service
+func NewService(db *sql.DB, config config.SessionConfig) *Service {
+	return &Service{
+		DB: db,
+		config: config,
 	}
 }
 
-func (sm *SessionManager) Create(ctx context.Context, sess *Session) (sid *SessionID, err error) {
+func (service *Service) Create(ctx context.Context, sess *Session) (sid *SessionID, err error) {
 	fmt.Println("Creating sess for: ", sess.UserID)
 	sid = &SessionID{ID: utils.RandomString(sm.config.Length)}
 	// UserID - в конфиг, name - не хранить

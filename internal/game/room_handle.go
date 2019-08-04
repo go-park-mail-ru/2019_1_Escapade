@@ -291,7 +291,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		}
 		Message(room.lobby, conn, rr.Message, room.appendMessage,
 			room.setMessage, room.removeMessage, room.findMessage,
-			room.send, room.All, true, room.dbChatID)
+			room.send, room.All, room, room.dbChatID)
 	}
 }
 
@@ -327,7 +327,7 @@ func (room *Room) StartFlagPlacing() {
 	room.wGroup.Add(1)
 	room.lobby.RoomStart(room, room.wGroup)
 
-	//go room.sendStatus(room.All, nil)
+	go room.sendStatus(room.All, StatusFlagPlacing, nil)
 	go room.sendField(room.All)
 }
 
@@ -351,6 +351,7 @@ func (room *Room) StartGame() {
 	go room.sendNewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
 	room.setDate(time.Now().In(room.lobby.location()))
+	go room.sendStatus(room.All, StatusRunning, nil)
 	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
 }
 

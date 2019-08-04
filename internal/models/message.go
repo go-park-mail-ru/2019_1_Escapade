@@ -12,13 +12,6 @@ const (
 	StatusObserver
 )
 
-const (
-	No       = 0
-	Observer = 1
-	Player   = 2
-	Admin    = 3
-)
-
 // Action associated with the message
 const (
 	Write = iota
@@ -40,21 +33,28 @@ type Message struct {
 	Edited bool            `json:"edited"`
 }
 
-type ScanTime time.Time
+// NullTime overriding the time type.Time to be able to retrieve time
+//  from the database, even if the corresponding field is nil
+type NullTime time.Time
 
-func (t *ScanTime) Scan(v interface{}) error {
+// Scan allow to fill in a field of the type NullTime from the database
+func (t *NullTime) Scan(v interface{}) error {
 	if v == nil {
-		*t = ScanTime(time.Now())
+		*t = NullTime(time.Now())
 		return nil
 	}
 	vt, err := time.Parse("2006-01-02 15:04:05 +300 MSK", v.(time.Time).String())
 	if err != nil {
 		return err
 	}
-	*t = ScanTime(vt)
+	*t = NullTime(vt)
 	return nil
 }
 
+/*
+MessageUserSQL - wrapper to retrieve user data from the Database, given that
+ the User may not exist
+*/
 type MessageUserSQL struct {
 	ID     sql.NullInt64  `json:"-"`
 	Name   sql.NullString `json:"-"`
@@ -62,6 +62,10 @@ type MessageUserSQL struct {
 	Status sql.NullInt64  `json:"-"`
 }
 
+/*
+MessageSQL - wrapper to retrieve Message data from the Database, given that
+ the Message may not exist
+*/
 type MessageSQL struct {
 	ID     sql.NullInt64   `json:"-"`
 	Answer *MessageSQL     `json:"-"`

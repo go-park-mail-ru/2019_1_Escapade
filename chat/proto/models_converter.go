@@ -1,18 +1,23 @@
 package chat
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	//
 	"time"
 
+	//
 	_ "github.com/lib/pq"
 
 	"github.com/golang/protobuf/ptypes"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+// UserFromNullUser converts the structure to retrieve user from the database
+// into the structure for transmission over grpc
 func UserFromNullUser(nullUser *models.MessageUserSQL) *User {
+	if nullUser == nil {
+		return nil
+	}
 	if val, _ := nullUser.ID.Value(); val != nil {
 		return &User{
 			Id:     int32(nullUser.ID.Int64),
@@ -24,38 +29,63 @@ func UserFromNullUser(nullUser *models.MessageUserSQL) *User {
 	return nil
 }
 
-func MessageFromNullMessage(nullMessage *models.MessageSQL) *Message {
+// MessageFromNullMessage converts the structure to retrieve message from the
+// database into the structure for transmission over grpc
+func MessageFromNullMessage(nullMessage *models.MessageSQL) (*Message, error) {
+	if nullMessage == nil {
+		return nil, nil
+	}
 	if val, _ := nullMessage.ID.Value(); val != nil {
-		pMessage := &Message{
-			Id:     int32(nullMessage.ID.Int64),
-			Text:   nullMessage.Text.String,
-			ChatId: int32(nullMessage.ChatID.Int64),
-			From:   UserFromNullUser(nullMessage.From),
-			To:     UserFromNullUser(nullMessage.To),
+		var (
+			pMessage = &Message{
+				Id:     int32(nullMessage.ID.Int64),
+				Text:   nullMessage.Text.String,
+				ChatId: int32(nullMessage.ChatID.Int64),
+				From:   UserFromNullUser(nullMessage.From),
+				To:     UserFromNullUser(nullMessage.To),
+				Edited: nullMessage.Edited.Bool,
+			}
+			err error
+		)
+		if nullMessage.Answer != nil {
+			pMessage.Answer, err = MessageFromNullMessage(nullMessage)
 		}
-		pMessage.Time, _ = ptypes.TimestampProto(nullMessage.Time)
-		return pMessage
+		pMessage.Time, err = ptypes.TimestampProto(nullMessage.Time)
+		return pMessage, err
 	}
-	return nil
+	return nil, nil
 }
 
+// UserFromProto converts the structure for transmission over grpc into the
+// structure to retrieve user from the database
 func UserFromProto(pUser *User) *models.UserPublicInfo {
+	if pUser == nil {
+		return nil
+	}
+	utils.Debug(false, "pUser.Photo", pUser.Photo)
 	return &models.UserPublicInfo{
-		ID:       pUser.Id,
-		Name:     pUser.Name,
-		PhotoURL: pUser.Photo,
+		ID:      pUser.Id,
+		Name:    pUser.Name,
+		FileKey: pUser.Photo,
 	}
 }
 
+// UserToProto converts the structure to retrieve user from the database
+// into the structure for transmission over grpc
 func UserToProto(user *models.UserPublicInfo) *User {
+	if user == nil {
+		return nil
+	}
 	return &User{
 		Id:    user.ID,
 		Name:  user.Name,
-		Photo: user.PhotoURL,
+		Photo: user.FileKey,
 	}
 }
 
-func MessagesFromProto(loc *time.Location, pMessages ...*Message) []*models.Message {
+// MessagesFromProto converts the structure for transmission over grpc into the
+// structure to retrieve messages from the database
+func MessagesFromProto(loc *time.Location, pMessages ...*Message) ([]*models.Message, error) {
 	var (
 		mMessages = make([]*models.Message, 0)
 		err       error
@@ -71,40 +101,49 @@ func MessagesFromProto(loc *time.Location, pMessages ...*Message) []*models.Mess
 		}
 		mMessage.Time, err = ptypes.Timestamp(message.Time)
 		if err != nil {
-			panic("MessagesFromProto panic")
+			return mMessages, err
 		}
 
 		mMessage.Time = mMessage.Time.In(loc)
 		mMessages = append(mMessages, mMessage)
 	}
-	return mMessages
+	return mMessages, err
 }
 
-func MessagesToProto(mMessages ...*models.Message) *Messages {
+// MessagesToProto converts the structure to retrieve messages from the database
+// into the structure for transmission over grpc
+func MessagesToProto(mMessages ...*models.Message) (*Messages, error) {
 	var (
 		pMessages = make([]*Message, 0)
 	)
 	for _, message := range mMessages {
-		pMessage := MessageToProto(message)
+		pMessage, err := MessageToProto(message)
+		if err != nil {
+			return &Messages{}, err
+		}
 		pMessages = append(pMessages, pMessage)
 	}
 	return &Messages{
 		Messages: pMessages,
-	}
+	}, nil
 }
 
-func MessageToProto(message *models.Message) *Message {
-	var err error
-	pMessage := &Message{
-		Id:     message.ID,
-		From:   UserToProto(message.User),
-		Text:   message.Text,
-		Edited: message.Edited,
-	}
+// MessageToProto converts the structure to retrieve message from the database
+// into the structure for transmission over grpc
+func MessageToProto(message *models.Message) (*Message, error) {
+	var (
+		err      error
+		pMessage = &Message{
+			Id:     message.ID,
+			From:   UserToProto(message.User),
+			Text:   message.Text,
+			Edited: message.Edited,
+		}
+	)
 	pMessage.Time, err = ptypes.TimestampProto(message.Time)
 	if err != nil {
-		panic("MessagesToProto panic")
+		return pMessage, err
 	}
 	pMessage.From.Status = Status(message.Status)
-	return pMessage
+	return pMessage, err
 }

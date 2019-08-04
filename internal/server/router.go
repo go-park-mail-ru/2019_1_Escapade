@@ -13,6 +13,7 @@ import (
 
 // APIRouter return router for api
 func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionConfig) *mux.Router {
+
 	r := mux.NewRouter()
 
 	r.PathPrefix("/swagger").Handler(httpSwagger.Handler(
@@ -24,8 +25,8 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	var api = r.PathPrefix("/api").Subrouter()
 	var apiWithAuth = r.PathPrefix("/api").Subrouter()
 
-	api.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
-	apiWithAuth.Use(mi.Recover, mi.CORS(cors), mi.Auth(session), mi.Metrics)
+	api.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Metrics)
+	apiWithAuth.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Auth(session), mi.Metrics)
 
 	api.HandleFunc("/user", API.HandleUser).Methods("POST", "GET", "OPTIONS")
 	apiWithAuth.HandleFunc("/user", API.HandleUser).Methods("DELETE", "PUT")
@@ -43,6 +44,7 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	api.HandleFunc("/users/pages", API.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages_amount", API.GetUsersPageAmount).Methods("GET")
 
+	return r
 	return r
 }
 

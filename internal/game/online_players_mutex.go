@@ -149,7 +149,7 @@ func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
 	return onlinePlayers._flags[i]
 }
 
-// RPlayers return slice of players only for read
+// CopyPlayers return copy of slice of players
 func (onlinePlayers *OnlinePlayers) CopyPlayers() []Player {
 
 	onlinePlayers.playersM.Lock()

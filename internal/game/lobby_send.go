@@ -32,11 +32,11 @@ func (lobby *Lobby) greet(conn *Connection) {
 	response := models.Response{
 		Type: "Lobby",
 		Value: struct {
-			Lobby Lobby                 `json:"lobby"`
+			Lobby LobbyJSON             `json:"lobby"`
 			You   models.UserPublicInfo `json:"you"`
 			Room  *Room                 `json:"room,omitempty"`
 		}{
-			Lobby: *lobby,
+			Lobby: lobby.JSON(),
 			You:   *conn.User,
 			Room:  conn.WaitingRoom(),
 		},
@@ -61,7 +61,8 @@ func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
 	lobby.sendToAll(response, predicate)
 }
 
-func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
+func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate,
+	group *sync.WaitGroup) {
 	defer group.Done()
 	defer utils.CatchPanic("lobby_send.go sendRoomCreate")
 
@@ -75,21 +76,18 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate, group *s
 		Type:  "LobbyRoomCreate",
 		Value: room.JSON(),
 	}
+
 	lobby.send(response, predicate)
 }
 
 func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
 
-	utils.Debug(false, "here")
 	defer group.Done()
-	utils.Debug(false, "we")
 	defer utils.CatchPanic("lobby_send.go sendRoomUpdate")
 
 	if lobby.done() {
-		utils.Debug(false, "aaaaaa")
 		return
 	}
-	utils.Debug(false, "wtf")
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
@@ -97,7 +95,6 @@ func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *s
 		Type:  "LobbyRoomUpdate",
 		Value: room.JSON(),
 	}
-	utils.Debug(false, "why")
 	lobby.send(response, predicate)
 }
 
@@ -127,6 +124,8 @@ func (lobby *Lobby) sendWaiterEnter(conn *Connection, predicate SendPredicate) {
 		lobby.wGroup.Done()
 		utils.CatchPanic("lobby sendWaiterEnter")
 	}()
+
+	utils.Debug(false, "LobbyWaiterEnter")
 
 	response := models.Response{
 		Type:  "LobbyWaiterEnter",

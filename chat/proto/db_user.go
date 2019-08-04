@@ -9,6 +9,10 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+func addUserToQuery(user *User) string {
+	return "('" + utils.String32(user.Id) + "',$1)"
+}
+
 func (service *Service) insertUsers(tx *sql.Tx, chatID int32, users ...*User) error {
 	var (
 		err error

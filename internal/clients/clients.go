@@ -1,19 +1,18 @@
 package clients
 
 import (
-	session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
+	//session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"os"
 	"sync"
 
 	"google.golang.org/grpc"
 )
 
 type Clients struct {
-	Session session.AuthCheckerClient
+	//Session session.AuthCheckerClient
 
 	chatM *sync.RWMutex
 	_chat pChat.ChatServiceClient
@@ -59,16 +58,16 @@ func (clients *Clients) Chat() pChat.ChatServiceClient {
 	return v
 }
 
-func ServiceConnectionsInit(conf config.AuthClient) (authConn *grpc.ClientConn, err error) {
+// func ServiceConnectionsInit(conf config.AuthClient) (authConn *grpc.ClientConn, err error) {
 
-	authConn, err = grpc.Dial(
-		os.Getenv(conf.URL),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		return
-	}
+// 	authConn, err = grpc.Dial(
+// 		os.Getenv(conf.URL),
+// 		grpc.WithInsecure(),
+// 	)
+// 	if err != nil {
+// 		return
+// 	}
 
-	//Other micro services conns wiil be here
-	return
-}
+// 	//Other micro services conns wiil be here
+// 	return
+// }

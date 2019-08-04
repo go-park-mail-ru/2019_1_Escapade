@@ -132,7 +132,7 @@ func (lobby *Lobby) removePlayer(conn *Connection) {
 	if lobby.config().Metrics {
 		metrics.InGame.Dec()
 	}
-	go lobby.sendPlayerExit(conn, All)
+	go lobby.sendPlayerExit(conn, AllExceptThat(conn))
 }
 
 // addWaiter add connection to waiters slice and send to the connection LobbyJSON
@@ -143,6 +143,6 @@ func (lobby *Lobby) addWaiter(newConn *Connection) {
 		metrics.InLobby.Inc()
 	}
 
-	go lobby.greet(newConn)
-	go lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
+	lobby.greet(newConn)
+	lobby.sendWaiterEnter(newConn, AllExceptThat(newConn))
 }

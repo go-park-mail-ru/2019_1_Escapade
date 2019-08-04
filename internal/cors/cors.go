@@ -31,7 +31,6 @@ func SetCORS(rw http.ResponseWriter, cc config.CORSConfig, name string) {
 	rw.Header().Set("Access-Control-Allow-Origin", name)
 	rw.Header().Set("Access-Control-Allow-Headers", strings.Join(cc.Headers, ", "))
 	rw.Header().Set("Access-Control-Allow-Credentials", cc.Credentials)
-	rw.Header().Set("Access-Control-Allow-Methods", strings.Join(cc.Methods, ", "))
 }
 
 // GetOrigin get domain connected to server

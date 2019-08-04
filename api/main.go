@@ -72,15 +72,14 @@ func main() {
 	var (
 		r    = server.APIRouter(API, configuration.Cors, configuration.Session)
 		port = server.Port(configuration)
-		srv  = server.Server(r, configuration.Server, port)
+		srv  = server.Server(r, configuration.Server, true, port)
 	)
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			utils.Debug(false, "Serving error:", err.Error())
-		}
-	}()
+	if err := srv.ListenAndServe(); err != nil {
+		//errChan <- err
+		utils.Debug(false, "Serving error:", err.Error())
+	}
 
-	server.InterruptHandler(srv, configuration.Server)
+	//server.LaunchHTTP(srv, configuration.Server, func() { API.DB.Db.Close() })
 	os.Exit(0)
 }

@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"log"
 )
 
 // ShowWebsocketMessage record information transmitted over the websocket
@@ -37,8 +37,8 @@ func PrintResult(catched error, number int, place string) {
 // Debug record information for logging
 // if 'needPanic' is true then panic(text) will be called
 func Debug(needPanic bool, text ...interface{}) {
-	fmt.Println(text...)
+	log.Println(text...)
 	if needPanic {
-		panic(text)
+		panic("panic called!")
 	}
 }

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package auth;
+
+message Session {
+   string ID = 1; 
+   }
+
+message User {
+  int32 ID = 1;
+}
+
+message Result {
+  bool done = 1; 
+}
+
+service AuthService {
+  rpc Create(User) returns (Session) {}
+  rpc Check(Session) returns (User) {}
+  rpc Delete(Session) returns (Result) {}
+}

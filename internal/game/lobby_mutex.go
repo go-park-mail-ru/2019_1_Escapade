@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 //setDone set done = true. It will finish all operaions on Lobby
@@ -21,6 +22,36 @@ func (lobby *Lobby) done() bool {
 	v := lobby._done
 	lobby.doneM.RUnlock()
 	return v
+}
+
+func (lobby *Lobby) AddNotSavedMessage(mwa *MessageWithAction) {
+	lobby.notSavedMessagesM.Lock()
+	utils.Debug(false, "append")
+	lobby._notSavedMessages = append(lobby._notSavedMessages, mwa)
+	lobby.notSavedMessagesM.Unlock()
+}
+
+func (lobby *Lobby) NotSavedMessagesGetAndClear() []*MessageWithAction {
+	lobby.notSavedMessagesM.Lock()
+	slice := lobby._notSavedMessages
+	utils.Debug(false, "get", len(slice))
+	lobby._notSavedMessages = make([]*MessageWithAction, 0)
+	lobby.notSavedMessagesM.Unlock()
+	return slice
+}
+
+func (lobby *Lobby) AddNotSavedGame(game *models.GameInformation) {
+	lobby.notSavedGamesM.Lock()
+	lobby._notSavedGames = append(lobby._notSavedGames, game)
+	lobby.notSavedGamesM.Unlock()
+}
+
+func (lobby *Lobby) NotSavedGamesGetAndClear() []*models.GameInformation {
+	lobby.notSavedGamesM.Lock()
+	slice := lobby._notSavedGames
+	lobby._notSavedGames = make([]*models.GameInformation, 0)
+	lobby.notSavedGamesM.Unlock()
+	return slice
 }
 
 func (lobby *Lobby) setDB(newDB *database.DataBase) {

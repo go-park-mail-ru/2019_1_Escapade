@@ -50,13 +50,16 @@ func GetImages(users ...*models.UserPublicInfo) {
 
 	for _, user := range users {
 		if user == nil {
+			utils.Debug(false, "image warning: user == nil")
 			continue
 		}
 		if user.FileKey == "" {
+			utils.Debug(false, "image warning: FileKey == ''")
 			continue
 		}
 		var err error
 		if user.PhotoURL, err = GetImage(user.FileKey); err != nil {
+			utils.Debug(false, "image error: ", err.Error())
 			continue
 		}
 	}
