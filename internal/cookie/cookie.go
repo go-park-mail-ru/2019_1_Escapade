@@ -1,9 +1,22 @@
 package cookie
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"net/http"
+	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 )
+
+func Cookie(name string, value string, expire time.Time) (cookie *http.Cookie) {
+	cookie = &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Expires:  expire,
+		HttpOnly: false,
+	}
+	return
+}
 
 // CreateCookie create instance of cookie
 func CreateCookie(value string, cc config.SessionConfig) (cookie *http.Cookie) {
@@ -18,7 +31,7 @@ func CreateCookie(value string, cc config.SessionConfig) (cookie *http.Cookie) {
 }
 
 // GetSessionCookie get session cookie from request
-func GetSessionCookie(r *http.Request, cc config.SessionConfig) (string, error) {
+func GetSessionCookie1(r *http.Request, cc config.SessionConfig) (string, error) {
 	session, err := r.Cookie(cc.Name)
 	if err != nil || session == nil || session.Value == "" {
 		return "", err

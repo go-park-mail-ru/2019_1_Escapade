@@ -70,6 +70,27 @@ func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found
 	return
 }
 
+func (db *DataBase) LoginNew(name, password string) (int, error) {
+
+	var (
+		tx     *sql.Tx
+		userID int
+		err    error
+	)
+
+	if tx, err = db.Db.Begin(); err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	if userID, _, err = db.checkBunch(tx, name, password); err != nil {
+		return userID, err
+	}
+
+	err = tx.Commit()
+	return userID, err
+}
+
 // UpdatePlayerPersonalInfo gets name of Player from
 // relation Session, cause we know that user has session
 func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivateInfo) (err error) {

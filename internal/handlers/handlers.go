@@ -8,6 +8,8 @@ import (
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 
 	"net/http"
+
+	"golang.org/x/oauth2"
 )
 
 // Handler is struct
@@ -17,9 +19,11 @@ type Handler struct {
 	WebSocket config.WebSocketSettings
 	Game      config.GameConfig
 	Clients   *clients.Clients
+	Oauth     oauth2.Config
 }
 
 func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
+
 	switch r.Method {
 	case http.MethodPost:
 		h.CreateUser(rw, r)
@@ -31,7 +35,7 @@ func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
 		h.UpdateProfile(rw, r)
 	case http.MethodOptions:
 		rw.WriteHeader(http.StatusOK)
-		utils.Debug(false, "cors:", rw.Header().Get("Access-Control-Allow-Origin"))
+		utils.Debug(false, "cors:", rw.Header().Get("Access-Control-Allow-Methods"))
 
 		return
 	default:
@@ -47,6 +51,7 @@ func (h *Handler) HandleSession(rw http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		h.Logout(rw, r)
 	case http.MethodOptions:
+		utils.Debug(false, "cors:", rw.Header().Get("Access-Control-Allow-Methods"))
 		return
 	default:
 		utils.Debug(true, "/api/session wrong request:", r.Method)

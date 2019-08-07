@@ -94,13 +94,13 @@ func LaunchGRPC(grpcServer *grpc.Server, lis net.Listener, lastFunc func()) {
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
 			errChan <- err
+			close(errChan)
 			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
 
 	defer func() {
 		grpcServer.GracefulStop()
-		close(errChan)
 		close(stopChan)
 		lastFunc()
 	}()

@@ -6,9 +6,10 @@ import (
 	"strconv"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	me "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -120,12 +121,25 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (userID int, err error) {
-	sessionID, _ := cookie.GetSessionCookie(r, cc)
+func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (int, error) {
 
-	if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
-		return
+	interf := r.Context().Value(me.ContextUserKey)
+	if interf != nil {
+		s := r.Context().Value(me.ContextUserKey).(string)
+		i, err := strconv.Atoi(s)
+		utils.Debug(false, "id found as", i)
+		return i, err
 	}
+	utils.Debug(false, "id not found")
+	return 0, re.NoAuthFound()
+
+	/*
+		r.Cookie("")
+		sessionID, _ := cookie.GetSessionCookie(r, cc)
+
+		if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
+			return
+		}*/
 	/*
 		fmt.Println("sessionID", sessionID)
 
@@ -140,7 +154,7 @@ func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) 
 		fmt.Println("your id is", sess.UserID)
 		userID = int(sess.UserID)
 	*/
-	return
+	//return
 }
 
 func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {

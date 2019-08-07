@@ -34,13 +34,13 @@ func (db *DataBase) PostImage(filename string, userID int) (err error) {
 }
 
 // GetImage Get avatar - filename of player image
-func (db *DataBase) GetImage(userID int) (filename string, err error) {
+func (db *DataBase) GetImage(name string) (filename string, err error) {
 	sqlStatement := `
 	SELECT photo_title
 		FROM Player as P 
-		WHERE P.id = $1 
+		WHERE P.name like $1 
 `
-	row := db.Db.QueryRow(sqlStatement, userID)
+	row := db.Db.QueryRow(sqlStatement, name)
 
 	if err = row.Scan(&filename); err != nil {
 		return

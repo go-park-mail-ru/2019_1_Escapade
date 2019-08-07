@@ -1,6 +1,10 @@
 package api
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -43,6 +47,12 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := h.Oauth.PasswordCredentialsToken(context.Background(), user.Name, user.Password)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	/*
 		ctx := r.Context()
 
@@ -58,7 +68,10 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 		fmt.Println("cookie set ", sessionID.ID)
 	*/
 
-	cookie.CreateAndSet(rw, h.Session, sessionName)
+	//cookie.CreateAndSet(rw, h.Session, sessionName)
+	http.SetCookie(rw, cookie.Cookie("access_token", token.AccessToken, token.Expiry))
+	http.SetCookie(rw, cookie.Cookie("token_type", token.TokenType, token.Expiry))
+	http.SetCookie(rw, cookie.Cookie("refresh_token", token.RefreshToken, token.Expiry))
 
 	utils.SendSuccessJSON(rw, found, place)
 
@@ -77,18 +90,20 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) {
 // @Router /session [DELETE]
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 	const place = "Logout"
-	var (
-		err       error
-		sessionID string
-	)
+	/*
+		var (
+			err       error
+			sessionID string
+		)
 
-	if sessionID, err = cookie.GetSessionCookie(r, h.Session); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
-	}
-	h.DB.DeleteSession(sessionID)
+		if sessionID, err = cookie.GetSessionCookie(r, h.Session); err != nil {
+			rw.WriteHeader(http.StatusUnauthorized)
+			utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
+			utils.PrintResult(err, http.StatusUnauthorized, place)
+			return
+		}
+		h.DB.DeleteSession(sessionID)
+	*/
 	/*
 		ctx := context.Background()
 		_, err = h.Clients.Session.Delete(ctx,
@@ -100,9 +115,29 @@ func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) {
 			return
 		}*/
 
-	cookie.CreateAndSet(rw, h.Session, "")
+	//cookie.CreateAndSet(rw, h.Session, "")
+	http.SetCookie(rw, cookie.Cookie("access_token", "", time.Unix(0, 0)))
+	http.SetCookie(rw, cookie.Cookie("token_type", "", time.Unix(0, 0)))
+	http.SetCookie(rw, cookie.Cookie("refresh_token", "", time.Unix(0, 0)))
+
 	rw.WriteHeader(http.StatusOK)
-	utils.SendSuccessJSON(rw, nil, place)
-	utils.PrintResult(err, http.StatusOK, place)
+
+	cookie, err := r.Cookie("access_token")
+	if err != nil || cookie == nil || cookie.Value == "" {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		utils.Debug(false, "1)something went wrong", err.Error())
+		return
+	}
+
+	var authServerURL = "http://localhost:9096"
+	resp, err := http.Get(fmt.Sprintf("%s/delete?access_token=%s", authServerURL, cookie.Value))
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		utils.Debug(false, "2)something went wrong", err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	//utils.SendSuccessJSON(rw, nil, place)
+	//utils.PrintResult(err, http.StatusOK, place)
 	return
 }

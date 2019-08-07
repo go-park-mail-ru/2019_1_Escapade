@@ -25,19 +25,18 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetImage"
 	var (
 		err     error
-		userID  int
+		name    string
 		fileKey string
 		url     models.Avatar
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
+	if name, err = h.getName(r); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		utils.SendErrorJSON(rw, re.ErrorInvalidName(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 	}
 
-	if fileKey, err = h.DB.GetImage(userID); err != nil {
+	if fileKey, err = h.DB.GetImage(name); err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
 		utils.PrintResult(err, http.StatusNotFound, place)

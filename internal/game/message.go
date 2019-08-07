@@ -147,10 +147,8 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 			}
 		}
 	}
-	utils.Debug(false, "message", err == nil)
 	if err != nil {
 		action := message.Action
-		utils.Debug(false, "in room", room != nil)
 		if room != nil {
 			lobby.AddNotSavedMessage(&MessageWithAction{
 				message, msg, action, func() (int32, error) {
@@ -168,15 +166,9 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 				message, msg, action, func() (int32, error) {
 					dbChatID := lobby.dbChatID()
 					if dbChatID != 0 {
-						utils.Debug(false, "we have id")
 						return dbChatID, nil
 					}
-					utils.Debug(false, "no id")
-					id, err := GetChatID(chat.ChatType_LOBBY, 0)
-					if err != nil {
-						lobby.setDBChatID(id)
-					}
-					return id, err
+					return dbChatID, re.InvalidChatID()
 				}})
 		}
 	}
@@ -190,6 +182,21 @@ func sendMessages(send Sender, predicate SendPredicate, messages ...*models.Mess
 		response := models.Response{
 			Type:  "GameMessage",
 			Value: message,
+		}
+
+		send(response, predicate)
+	}
+}
+
+func sendMessagesTodelete(send Sender, predicate SendPredicate, messages ...*models.Message) {
+	for _, message := range messages {
+		newMessage := models.Message{
+			ID:     message.ID,
+			Action: models.Delete,
+		}
+		response := models.Response{
+			Type:  "GameMessage",
+			Value: newMessage,
 		}
 
 		send(response, predicate)

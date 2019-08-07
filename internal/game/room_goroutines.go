@@ -36,28 +36,22 @@ func (room *Room) runRoom() {
 	var beginGame, timeOut bool
 
 	for {
-		fmt.Println("new wait!")
 		select {
 		//go room.launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished)
 		case <-room.prepare.C:
-			fmt.Println("prepare!", beginGame)
 			if beginGame {
 				room.prepareOver()
 			}
 		case <-room.play.C:
-			fmt.Println("play!", beginGame)
 			if beginGame {
 				timeOut = true
 				room.playingOver()
 			}
 		case conn := <-room.chanConnection:
-			fmt.Println("handle!")
 			go room.processConnectionAction(conn)
 		case newStatus := <-room.chanStatus:
-			fmt.Println("chanStatus!", newStatus)
 			oldStatus := room.Status()
 
-			fmt.Println("Status!", oldStatus, newStatus)
 			if newStatus == oldStatus || newStatus > StatusFinished {
 				continue
 			}
@@ -68,27 +62,21 @@ func (room *Room) runRoom() {
 			}
 			switch newStatus {
 			case StatusFlagPlacing:
-				fmt.Println("coooooool!", oldStatus, newStatus)
 				beginGame = true
 				room.StartFlagPlacing()
 			case StatusRunning:
-				fmt.Println("StatusRunning!")
 				room.StartGame()
-				fmt.Println("StatusRunning! +")
 			case StatusFinished:
-				fmt.Println("StatusFinished!")
 				if oldStatus == StatusRecruitment {
 					room.CancelGame()
 				} else {
 					room.FinishGame(timeOut)
 				}
-				fmt.Println("StatusFinished +!")
 			//return
 			case StatusAborted:
 				ticker.Stop()
 				return
 			}
-			fmt.Println("chanStatus finish +!")
 		}
 	}
 }
@@ -181,7 +169,6 @@ func (room *Room) processActionBackToLobby(conn *Connection) {
 	room.wGroup.Add(1)
 	go room.lobby.LeaveRoom(conn, ActionBackToLobby, room, room.wGroup)
 
-	fmt.Println("back!")
 	room.Leave(conn, conn.Index() >= 0)
 	if conn.Index() >= 0 {
 		room.Kill(conn, ActionBackToLobby)

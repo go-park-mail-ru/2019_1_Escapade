@@ -21,3 +21,7 @@ func InvalidChatID() error {
 func InvalidUser() error {
 	return errors.New("Invalid user")
 }
+
+func NoAuthFound() error {
+	return errors.New("No UserID in token")
+}

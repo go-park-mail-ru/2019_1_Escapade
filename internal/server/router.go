@@ -28,11 +28,11 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	api.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Metrics)
 	apiWithAuth.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Auth(session), mi.Metrics)
 
-	api.HandleFunc("/user", API.HandleUser).Methods("POST", "GET", "OPTIONS")
-	apiWithAuth.HandleFunc("/user", API.HandleUser).Methods("DELETE", "PUT")
+	api.HandleFunc("/user", API.HandleUser).Methods("OPTIONS", "POST")
+	apiWithAuth.HandleFunc("/user", API.HandleUser).Methods("DELETE", "PUT", "GET")
 
-	api.HandleFunc("/session", API.HandleSession).Methods("POST", "OPTIONS")
-	apiWithAuth.HandleFunc("/session", API.HandleSession).Methods("DELETE")
+	api.HandleFunc("/session", API.HandleSession).Methods("POST", "OPTIONS", "DELETE")
+	//apiWithAuth.HandleFunc("/session", API.HandleSession).Methods("DELETE")
 
 	api.HandleFunc("/avatar/{name}", API.HandleAvatar).Methods("GET")
 	api.HandleFunc("/avatar", API.HandleAvatar).Methods("OPTIONS")
@@ -44,7 +44,6 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	api.HandleFunc("/users/pages", API.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages_amount", API.GetUsersPageAmount).Methods("GET")
 
-	return r
 	return r
 }
 

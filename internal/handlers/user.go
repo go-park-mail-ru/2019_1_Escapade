@@ -90,6 +90,17 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := h.Oauth.PasswordCredentialsToken(context.Background(), user.Name, user.Password)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//cookie.CreateAndSet(rw, h.Session, sessionName)
+	http.SetCookie(rw, cookie.Cookie("access_token", token.AccessToken, token.Expiry))
+	http.SetCookie(rw, cookie.Cookie("token_type", token.TokenType, token.Expiry))
+	http.SetCookie(rw, cookie.Cookie("refresh_token", token.RefreshToken, token.Expiry))
+
 	cookie.CreateAndSet(rw, h.Session, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)

@@ -1,8 +1,13 @@
 package middleware
 
 import (
+	"context"
+	"encoding/json"
+
+	"gopkg.in/oauth2.v3/models"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
+	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -10,10 +15,15 @@ import (
 
 	"strconv"
 
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
+
+type ContextKey string
+
+const ContextUserKey ContextKey = "userID"
 
 type respWriterStatusCode struct {
 	http.ResponseWriter
@@ -50,15 +60,49 @@ func CORS(cc config.CORSConfig) mux.MiddlewareFunc {
 func Auth(cc config.SessionConfig) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			if _, err := cookie.GetSessionCookie(r, cc); err != nil {
-				const place = "middleware/Auth"
-				utils.PrintResult(err, http.StatusUnauthorized, place)
-				rw.WriteHeader(http.StatusUnauthorized)
-				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
+			/*
+							timeAlive := int(token.Expiry.Sub(time.Now()).Seconds())
+				http.SetCookie(rw, cookie.Cookie("accessToken", token.AccessToken, timeAlive))
+				http.SetCookie(rw, cookie.Cookie("tokenType", token.TokenType, timeAlive))
+				http.SetCookie(rw, cookie.Cookie("refreshToken", token.RefreshToken, timeAlive))
+
+			*/
+
+			cookie, err := r.Cookie("access_token")
+			if err != nil || cookie == nil || cookie.Value == "" {
+				http.Error(rw, err.Error(), http.StatusBadRequest)
+				utils.Debug(false, "1)something went wrong", err.Error())
 				return
 			}
 
-			next.ServeHTTP(rw, r)
+			var authServerURL = "http://localhost:9096"
+			resp, err := http.Get(fmt.Sprintf("%s/test?access_token=%s", authServerURL, cookie.Value))
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusBadRequest)
+				utils.Debug(false, "2)something went wrong", err.Error())
+				return
+			}
+			defer resp.Body.Close()
+
+			token := models.Token{}
+
+			err = json.NewDecoder(resp.Body).Decode(&token)
+
+			r.Context().Value("UserID")
+
+			if err != nil {
+				const place = "middleware/Auth"
+				rw.WriteHeader(http.StatusUnauthorized)
+				utils.PrintResult(err, http.StatusUnauthorized, place)
+				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
+				return
+			} else {
+				utils.Debug(false, "!!!!!!!!!!!!!!!!!!!!!token:", token.GetClientID(), token.GetCode(), token.GetScope(), token.GetAccess())
+			}
+
+			ctx := context.WithValue(r.Context(), ContextUserKey, token.GetUserID())
+
+			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
 }

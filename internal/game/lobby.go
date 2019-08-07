@@ -242,7 +242,6 @@ func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.Dat
 	setImage SetImage) {
 
 	var (
-		messages []*models.Message
 		err      error
 		chatID   int32
 		location *time.Location
@@ -257,15 +256,6 @@ func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.Dat
 	lobby.setDBChatID(chatID)
 	lobby.setLocation(location)
 	lobby.SetImage = setImage
-	if db != nil {
-		chatID, messages, err = GetChatIDAndMessages(location, chat.ChatType_LOBBY,
-			0, setImage)
-		if err != nil {
-			utils.Debug(false, "cant load messages:", err.Error())
-		} else {
-			lobby.setMessages(messages)
-		}
-	}
 
 	return
 }
