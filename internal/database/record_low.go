@@ -24,7 +24,7 @@ func (db *DataBase) createRecords(tx *sql.Tx, id int) (err error) {
 	return
 }
 
-func (db *DataBase) updateRecords(tx *sql.Tx, id int,
+func (db *DataBase) updateRecords(tx *sql.Tx, id int32,
 	record *models.Record) (err error) {
 
 	var sqlStatement string

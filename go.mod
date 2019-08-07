@@ -15,6 +15,7 @@ require (
 	github.com/dgryski/go-sip13 v0.0.0-20190329191031-25c5027a8c7b // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
+	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/go-openapi/spec v0.19.2 // indirect
@@ -68,6 +69,7 @@ require (
 	golang.org/x/tools v0.0.0-20190802220118-1d1727260058 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
+	gopkg.in/go-oauth2/mongo.v3 v3.0.0
 	gopkg.in/oauth2.v3 v3.10.1
 	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 )

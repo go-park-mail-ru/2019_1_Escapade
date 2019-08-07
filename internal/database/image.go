@@ -22,7 +22,7 @@ type DataBase struct {
 // }
 
 // PostImage set filename of avatar to relation Player
-func (db *DataBase) PostImage(filename string, userID int) (err error) {
+func (db *DataBase) PostImage(filename string, userID int32) (err error) {
 	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE id = $2;`
 
 	_, err = db.Db.Exec(sqlStatement, filename, userID)

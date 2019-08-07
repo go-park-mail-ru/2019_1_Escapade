@@ -2,11 +2,10 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 
-	"gopkg.in/oauth2.v3/models"
-
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -15,10 +14,10 @@ import (
 
 	"strconv"
 
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
 )
 
 type ContextKey string
@@ -57,50 +56,28 @@ func CORS(cc config.CORSConfig) mux.MiddlewareFunc {
 }
 
 // Auth Check cookie exists
-func Auth(cc config.SessionConfig) mux.MiddlewareFunc {
+func Auth(cc config.SessionConfig, oauth oauth2.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			/*
-							timeAlive := int(token.Expiry.Sub(time.Now()).Seconds())
-				http.SetCookie(rw, cookie.Cookie("accessToken", token.AccessToken, timeAlive))
-				http.SetCookie(rw, cookie.Cookie("tokenType", token.TokenType, timeAlive))
-				http.SetCookie(rw, cookie.Cookie("refreshToken", token.RefreshToken, timeAlive))
-
-			*/
-
-			cookie, err := r.Cookie("access_token")
-			if err != nil || cookie == nil || cookie.Value == "" {
-				http.Error(rw, err.Error(), http.StatusBadRequest)
-				utils.Debug(false, "1)something went wrong", err.Error())
-				return
+			var (
+				maxLimit = 3
+				userID   string
+				err      error
+			)
+			for i := 0; i < maxLimit; i++ {
+				userID, err = auth.Check(rw, r, oauth)
+				if err == nil {
+					break
+				}
 			}
-
-			var authServerURL = "http://localhost:9096"
-			resp, err := http.Get(fmt.Sprintf("%s/test?access_token=%s", authServerURL, cookie.Value))
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusBadRequest)
-				utils.Debug(false, "2)something went wrong", err.Error())
-				return
-			}
-			defer resp.Body.Close()
-
-			token := models.Token{}
-
-			err = json.NewDecoder(resp.Body).Decode(&token)
-
-			r.Context().Value("UserID")
-
 			if err != nil {
 				const place = "middleware/Auth"
 				rw.WriteHeader(http.StatusUnauthorized)
 				utils.PrintResult(err, http.StatusUnauthorized, place)
-				utils.SendErrorJSON(rw, re.ErrorNoCookie(), place)
+				utils.SendErrorJSON(rw, http.ErrNoCookie, place)
 				return
-			} else {
-				utils.Debug(false, "!!!!!!!!!!!!!!!!!!!!!token:", token.GetClientID(), token.GetCode(), token.GetScope(), token.GetAccess())
 			}
-
-			ctx := context.WithValue(r.Context(), ContextUserKey, token.GetUserID())
+			ctx := context.WithValue(r.Context(), ContextUserKey, userID)
 
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})

@@ -7,8 +7,7 @@ import (
 )
 
 // UpdateRecords update records for offline game
-func (db *DataBase) UpdateRecords(id int,
-	record *models.Record) (err error) {
+func (db *DataBase) UpdateRecords(id int32, record *models.Record) (err error) {
 	var (
 		tx *sql.Tx
 	)

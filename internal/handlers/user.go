@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -39,10 +40,10 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 	const place = "GetMyProfile"
 	var (
 		err    error
-		userID int
+		userID int32
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -65,9 +66,8 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 	const place = "CreateUser"
 	var (
-		user      models.UserPrivateInfo
-		err       error
-		sessionID string
+		user models.UserPrivateInfo
+		err  error
 	)
 
 	if user, err = getUserWithAllFields(r); err != nil {
@@ -83,25 +83,17 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) {
 		utils.PrintResult(err, http.StatusBadRequest, place)
 	}
 
-	if _, sessionID, err = h.createUserInDB(r.Context(), user); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
+	if _, err = h.DB.Register(&user); err != nil {
 		return
 	}
 
-	token, err := h.Oauth.PasswordCredentialsToken(context.Background(), user.Name, user.Password)
+	err = auth.CreateToken(rw, h.Oauth, user.Name, user.Password)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
+		rw.WriteHeader(http.StatusNotFound)
+		utils.SendErrorJSON(rw, re.ErrorUserNotFound(), place)
+		utils.PrintResult(err, http.StatusNotFound, place)
 	}
 
-	//cookie.CreateAndSet(rw, h.Session, sessionName)
-	http.SetCookie(rw, cookie.Cookie("access_token", token.AccessToken, token.Expiry))
-	http.SetCookie(rw, cookie.Cookie("token_type", token.TokenType, token.Expiry))
-	http.SetCookie(rw, cookie.Cookie("refresh_token", token.RefreshToken, token.Expiry))
-
-	cookie.CreateAndSet(rw, h.Session, sessionID)
 	rw.WriteHeader(http.StatusCreated)
 	utils.SendSuccessJSON(rw, nil, place)
 	utils.PrintResult(err, http.StatusCreated, place)
@@ -122,7 +114,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 	var (
 		user   models.UserPrivateInfo
 		err    error
-		userID int
+		userID int32
 	)
 
 	if user, err = getUser(r); err != nil {
@@ -132,7 +124,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -215,11 +207,11 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.getUser(rw, r, userID)
+	h.getUser(rw, r, int32(userID))
 	return
 }
 
-func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
+func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int32) {
 	const place = "GetProfile"
 
 	var (
@@ -246,28 +238,6 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request, userID int) {
 	return
 }
 
-func (h *Handler) createUserInDB(ctx context.Context,
-	user models.UserPrivateInfo) (userID int, sessionID string, err error) {
-
-	sessionID = utils.RandomString(16)
-	if userID, err = h.DB.Register(&user, sessionID); err != nil {
-		return
-	}
-
-	/*sessID, err := h.Clients.Session.Create(ctx,
-		&session.Session{
-			UserID: int32(userID),
-			Login:  user.Name,
-		})
-
-	if err != nil {
-		return
-	}
-
-	sessionID = sessID.ID*/
-	return
-}
-
 func (h *Handler) deleteUserInDB(ctx context.Context,
 	user *models.UserPrivateInfo, sessionID string) (err error) {
 
@@ -289,10 +259,10 @@ func (h *Handler) RandomUsers(limit int) {
 	n := 16
 	for i := 0; i < limit; i++ {
 		ran.Seed(time.Now().UnixNano())
-		user := models.UserPrivateInfo{
+		user := &models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		userID, _, err := h.createUserInDB(context.Background(), user)
+		userID, err := h.DB.Register(user)
 		if err != nil {
 			utils.Debug(true, "cant register random")
 			return
@@ -307,7 +277,7 @@ func (h *Handler) RandomUsers(limit int) {
 				OnlineTotal: ran.Intn(2),
 				SingleWin:   ran.Intn(2),
 				OnlineWin:   ran.Intn(2)}
-			h.DB.UpdateRecords(userID, record)
+			h.DB.UpdateRecords(int32(userID), record)
 		}
 
 	}

@@ -20,10 +20,10 @@ func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) {
 	const place = "OfflineSave"
 	var (
 		err    error
-		userID int
+		userID int32
 		record models.Record
 	)
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)
@@ -78,14 +78,13 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 	const place = "GameOnline"
 	var (
 		err    error
-		userID int
+		userID int32
 		ws     *websocket.Conn
 		user   *models.UserPublicInfo
 		roomID string
 	)
 
 	utils.Debug(false, "GameOnline")
-
 	lobby := game.GetLobby()
 	if lobby == nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -115,7 +114,7 @@ func (h *Handler) GameOnline(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		userID = lobby.Anonymous()
 		//rw.WriteHeader(http.StatusUnauthorized)
 		//utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
@@ -151,12 +150,12 @@ func (h *Handler) GameHistory(rw http.ResponseWriter, r *http.Request) {
 	const place = "GameHistory:"
 	var (
 		err    error
-		userID int
+		userID int32
 		ws     *websocket.Conn
 		user   *models.UserPublicInfo
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)

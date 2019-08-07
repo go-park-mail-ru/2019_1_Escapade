@@ -194,7 +194,7 @@ func (lobby *Lobby) Messages() []*models.Message {
 }
 
 // Anonymous return anonymous id
-func (lobby *Lobby) Anonymous() int {
+func (lobby *Lobby) Anonymous() int32 {
 	lobby.anonymousM.Lock()
 	id := lobby._anonymous
 	lobby._anonymous--

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	me "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -53,25 +52,25 @@ func (h *Handler) getUserID(r *http.Request) (id int, err error) {
 	return
 }
 
-func (h *Handler) getPage(r *http.Request) (page int) {
+func (h *Handler) getPage(r *http.Request) int {
 
-	page, _ = getIntFromPath(r, "page", 1, nil)
-	return
+	page, _ := getIntFromPath(r, "page", 1, nil)
+	return page
 }
 
-func (h *Handler) getPerPage(r *http.Request) (page int) {
+func (h *Handler) getPerPage(r *http.Request) int {
 
-	page, _ = getIntFromPath(r, "per_page", 100, nil)
-	return
+	page, _ := getIntFromPath(r, "per_page", 100, nil)
+	return page
 }
 
-func (h *Handler) getDifficult(r *http.Request) (diff int) {
+func (h *Handler) getDifficult(r *http.Request) int {
 
-	diff, _ = getIntFromPath(r, "difficult", 0, nil)
+	diff, _ := getIntFromPath(r, "difficult", 0, nil)
 	if diff > 3 {
 		diff = 3
 	}
-	return
+	return diff
 }
 
 func (h *Handler) getSort(r *http.Request) string {
@@ -121,40 +120,17 @@ func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, er
 	return
 }
 
-func (h *Handler) getUserIDFromCookie(r *http.Request, cc config.SessionConfig) (int, error) {
+func (h *Handler) getUserIDFromAuthRequest(r *http.Request) (int32, error) {
 
 	interf := r.Context().Value(me.ContextUserKey)
 	if interf != nil {
 		s := r.Context().Value(me.ContextUserKey).(string)
 		i, err := strconv.Atoi(s)
 		utils.Debug(false, "id found as", i)
-		return i, err
+		return int32(i), err
 	}
 	utils.Debug(false, "id not found")
 	return 0, re.NoAuthFound()
-
-	/*
-		r.Cookie("")
-		sessionID, _ := cookie.GetSessionCookie(r, cc)
-
-		if userID, err = h.DB.GetUserIdBySessionID(sessionID); err != nil {
-			return
-		}*/
-	/*
-		fmt.Println("sessionID", sessionID)
-
-		ctx := context.Background()
-
-		sess, err := h.Clients.Session.Check(ctx, &session.SessionID{
-			ID: sessionID,
-		})
-		if err != nil {
-			return
-		}
-		fmt.Println("your id is", sess.UserID)
-		userID = int(sess.UserID)
-	*/
-	//return
 }
 
 func getUser(r *http.Request) (user models.UserPrivateInfo, err error) {

@@ -70,12 +70,12 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 	var (
 		err    error
 		input  multipart.File
-		userID int
+		userID int32
 		handle *multipart.FileHeader
 		url    models.Avatar
 	)
 
-	if userID, err = h.getUserIDFromCookie(r, h.Session); err != nil {
+	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
 		rw.WriteHeader(http.StatusUnauthorized)
 		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
 		utils.PrintResult(err, http.StatusUnauthorized, place)

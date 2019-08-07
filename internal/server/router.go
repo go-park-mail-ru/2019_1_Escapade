@@ -26,7 +26,7 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	var apiWithAuth = r.PathPrefix("/api").Subrouter()
 
 	api.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Metrics)
-	apiWithAuth.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Auth(session), mi.Metrics)
+	apiWithAuth.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Auth(session, API.Oauth), mi.Metrics)
 
 	api.HandleFunc("/user", API.HandleUser).Methods("OPTIONS", "POST")
 	apiWithAuth.HandleFunc("/user", API.HandleUser).Methods("DELETE", "PUT", "GET")

@@ -12,7 +12,7 @@ import (
 
 // Register check sql-injections and is name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
 
 	var (
 		tx *sql.Tx
@@ -29,10 +29,6 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 		return
 	}
 
-	if err = db.createSession(tx, userID, sessionID); err != nil {
-		return
-	}
-
 	if err = db.createRecords(tx, userID); err != nil {
 		return
 	}
@@ -43,38 +39,11 @@ func (db *DataBase) Register(user *models.UserPrivateInfo, sessionID string) (us
 
 // Login check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (db *DataBase) Login(user *models.UserPrivateInfo, sessionID string) (found *models.UserPublicInfo, err error) {
+func (db *DataBase) Login(name, password string) (int32, error) {
 
 	var (
 		tx     *sql.Tx
-		userID int
-	)
-
-	if tx, err = db.Db.Begin(); err != nil {
-		return
-	}
-	defer tx.Rollback()
-
-	if userID, found, err = db.checkBunch(tx, user.Name, user.Password); err != nil {
-		return
-	}
-
-	if err = db.createSession(tx, userID, sessionID); err != nil {
-		return
-	}
-
-	if err = db.updatePlayerLastSeen(tx, userID); err != nil {
-		return
-	}
-	err = tx.Commit()
-	return
-}
-
-func (db *DataBase) LoginNew(name, password string) (int, error) {
-
-	var (
-		tx     *sql.Tx
-		userID int
+		userID int32
 		err    error
 	)
 
@@ -93,7 +62,7 @@ func (db *DataBase) LoginNew(name, password string) (int, error) {
 
 // UpdatePlayerPersonalInfo gets name of Player from
 // relation Session, cause we know that user has session
-func (db *DataBase) UpdatePlayerPersonalInfo(userID int, user *models.UserPrivateInfo) (err error) {
+func (db *DataBase) UpdatePlayerPersonalInfo(userID int32, user *models.UserPrivateInfo) (err error) {
 	var (
 		confirmedUser *models.UserPrivateInfo
 		tx            *sql.Tx
@@ -153,7 +122,7 @@ func (db *DataBase) GetUsers(difficult int, page int, perPage int,
 }
 
 // GetUser get one user
-func (db *DataBase) GetUser(userID int, difficult int) (user *models.UserPublicInfo, err error) {
+func (db *DataBase) GetUser(userID int32, difficult int) (user *models.UserPublicInfo, err error) {
 
 	var (
 		tx *sql.Tx
@@ -188,9 +157,10 @@ func (db *DataBase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 		return
 	}
 
-	if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
-		return
-	}
+	// TODO delete all tokens
+	// if err = db.deleteAllUserSessions(tx, user.Name); err != nil {
+	// 	return
+	// }
 
 	err = tx.Commit()
 	return

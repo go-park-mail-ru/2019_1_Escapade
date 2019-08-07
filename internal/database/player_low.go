@@ -68,7 +68,7 @@ func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) (err error) {
 	return
 }
 
-func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int, user *models.UserPublicInfo, err error) {
+func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int32, user *models.UserPublicInfo, err error) {
 	sqlStatement := `
 	SELECT pl.id, pl.name, r.score, r.time, r.difficult
 		FROM Player as pl
@@ -85,14 +85,14 @@ func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int
 }
 
 // GetPrivateInfo get player's personal info
-func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int) (user *models.UserPrivateInfo, err error) {
+func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int32) (user *models.UserPrivateInfo, err error) {
 	sqlStatement := "SELECT name, password " +
 		"FROM Player where id = $1"
 
 	row := tx.QueryRow(sqlStatement, userID)
 
 	user = &models.UserPrivateInfo{}
-	user.ID = userID
+	user.ID = int(userID)
 	err = row.Scan(&user.Name, &user.Password)
 	if err != nil {
 		utils.Debug(true, "cant get user's name and password")
@@ -145,7 +145,7 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 }
 
 // GetUser returns information about user
-func (db *DataBase) getUser(tx *sql.Tx, userID int, difficult int) (player *models.UserPublicInfo, err error) {
+func (db *DataBase) getUser(tx *sql.Tx, userID int32, difficult int) (player *models.UserPublicInfo, err error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,

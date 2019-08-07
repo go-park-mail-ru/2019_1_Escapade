@@ -168,7 +168,7 @@ type Lobby struct {
 	_notSavedGames []*models.GameInformation
 
 	anonymousM *sync.Mutex
-	_anonymous int
+	_anonymous int32
 
 	context context.Context
 	cancel  context.CancelFunc

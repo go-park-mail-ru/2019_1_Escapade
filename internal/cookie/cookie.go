@@ -18,6 +18,14 @@ func Cookie(name string, value string, expire time.Time) (cookie *http.Cookie) {
 	return
 }
 
+func GetCookie(r *http.Request, key string) (string, error) {
+	cookie, err := r.Cookie(key)
+	if err != nil || cookie == nil {
+		return "", http.ErrNoCookie
+	}
+	return cookie.Value, nil
+}
+
 // CreateCookie create instance of cookie
 func CreateCookie(value string, cc config.SessionConfig) (cookie *http.Cookie) {
 	cookie = &http.Cookie{

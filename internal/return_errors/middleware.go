@@ -2,16 +2,15 @@ package rerrors
 
 import "errors"
 
-// DELETE!!!!! IT IS COPY OF ErrorAuthorization
-// ErrorNoCookie shows that there is no session cookie
-func ErrorNoCookie() error {
-	return errors.New("Not found session cookie")
-}
-
 // ErrorAuthorization call it, if client
 // 	hasnt session cookie
 func ErrorAuthorization() error {
 	return errors.New("Required authorization")
+}
+
+// ErrorTokenType wrong type of token
+func ErrorTokenType() error {
+	return errors.New("Wrong type of token")
 }
 
 // ErrorPanic shows that panic happened
