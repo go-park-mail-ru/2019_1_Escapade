@@ -25,14 +25,10 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 	var api = r.PathPrefix("/api").Subrouter()
 	var apiWithAuth = r.PathPrefix("/api").Subrouter()
 
-	api.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Metrics)
-	apiWithAuth.Use(mi.Recover, mux.CORSMethodMiddleware(r), mi.CORS(cors), mi.Auth(session, API.Oauth), mi.Metrics)
-
 	api.HandleFunc("/user", API.HandleUser).Methods("OPTIONS", "POST")
 	apiWithAuth.HandleFunc("/user", API.HandleUser).Methods("DELETE", "PUT", "GET")
 
 	api.HandleFunc("/session", API.HandleSession).Methods("POST", "OPTIONS", "DELETE")
-	//apiWithAuth.HandleFunc("/session", API.HandleSession).Methods("DELETE")
 
 	api.HandleFunc("/avatar/{name}", API.HandleAvatar).Methods("GET")
 	api.HandleFunc("/avatar", API.HandleAvatar).Methods("OPTIONS")
@@ -43,6 +39,9 @@ func APIRouter(API *api.Handler, cors config.CORSConfig, session config.SessionC
 
 	api.HandleFunc("/users/pages", API.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages_amount", API.GetUsersPageAmount).Methods("GET")
+
+	r.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
+	apiWithAuth.Use(mi.Auth(session, API.Oauth))
 
 	return r
 }

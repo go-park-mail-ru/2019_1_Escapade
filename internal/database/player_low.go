@@ -6,7 +6,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -22,11 +21,6 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 		user.Password, t, t)
 
 	err = row.Scan(&id)
-	if err == nil {
-		fmt.Println("register:", user.Name, user.Password, id)
-	} else {
-		fmt.Println("create err", err.Error())
-	}
 	return
 }
 
@@ -38,16 +32,11 @@ func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivat
 			RETURNING id
 		`
 
-	fmt.Println("Update to", user.Name, user.Password)
 	row := tx.QueryRow(sqlStatement, user.Name,
 		user.Password, time.Now(), user.ID)
 	err = row.Scan(&user.ID)
 	if err != nil {
-		fmt.Println("updatePlayerPersonalInfo: err", err.Error())
 		err = re.ErrorUserIsExist()
-	} else {
-		fmt.Println("updatePlayerPersonalInfo done", user.Name,
-			user.Password, user.ID)
 	}
 
 	return
@@ -175,8 +164,6 @@ func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error
 	RETURNING ID
 		`
 	row := tx.QueryRow(sqlStatement, user.Name, user.Password)
-
-	fmt.Println("deletePlayer:", user.Name, user.Password)
 
 	err := row.Scan(&user.ID)
 	if err != nil {

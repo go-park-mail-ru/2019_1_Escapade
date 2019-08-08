@@ -34,6 +34,9 @@
 		"headers": [
 			"Content-type"
 		],
+		"methods": [
+			"GET", "POST", "DELETE", "PUT", "OPTIONS"
+		],
 		"credentials": "true"
 	},
 	"session": {

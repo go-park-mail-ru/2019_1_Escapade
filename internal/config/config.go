@@ -39,6 +39,7 @@ type ServerConfig struct {
 type CORSConfig struct {
 	Origins     []string `json:"origins"`
 	Headers     []string `json:"headers"`
+	Methods     []string `json:"methods"`
 	Credentials string   `json:"credentials"`
 }
 
@@ -84,6 +85,13 @@ type AuthClient struct {
 	URL     string `json:"url"`
 	Address string `json:"address"`
 }
+
+/*
+type AuthClient struct {
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
+}
+*/
 
 type Client struct {
 	Name    string `json:"name"`

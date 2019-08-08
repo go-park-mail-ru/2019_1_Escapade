@@ -755,6 +755,29 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig7(in 
 				}
 				in.Delim(']')
 			}
+		case "methods":
+			if in.IsNull() {
+				in.Skip()
+				out.Methods = nil
+			} else {
+				in.Delim('[')
+				if out.Methods == nil {
+					if !in.IsDelim(']') {
+						out.Methods = make([]string, 0, 4)
+					} else {
+						out.Methods = []string{}
+					}
+				} else {
+					out.Methods = (out.Methods)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v3 string
+					v3 = string(in.String())
+					out.Methods = append(out.Methods, v3)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
 		case "credentials":
 			out.Credentials = string(in.String())
 		default:
@@ -778,11 +801,11 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig7(out
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v3, v4 := range in.Origins {
-				if v3 > 0 {
+			for v4, v5 := range in.Origins {
+				if v4 > 0 {
 					out.RawByte(',')
 				}
-				out.String(string(v4))
+				out.String(string(v5))
 			}
 			out.RawByte(']')
 		}
@@ -794,11 +817,27 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig7(out
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v5, v6 := range in.Headers {
-				if v5 > 0 {
+			for v6, v7 := range in.Headers {
+				if v6 > 0 {
 					out.RawByte(',')
 				}
-				out.String(string(v6))
+				out.String(string(v7))
+			}
+			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"methods\":"
+		out.RawString(prefix)
+		if in.Methods == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v8, v9 := range in.Methods {
+				if v8 > 0 {
+					out.RawByte(',')
+				}
+				out.String(string(v9))
 			}
 			out.RawByte(']')
 		}
@@ -1008,9 +1047,9 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig9(in 
 					out.Services = (out.Services)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v7 Client
-					easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig10(in, &v7)
-					out.Services = append(out.Services, v7)
+					var v10 Client
+					easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig10(in, &v10)
+					out.Services = append(out.Services, v10)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1066,11 +1105,11 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig9(out
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v8, v9 := range in.Services {
-				if v8 > 0 {
+			for v11, v12 := range in.Services {
+				if v11 > 0 {
 					out.RawByte(',')
 				}
-				easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig10(out, v9)
+				easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig10(out, v12)
 			}
 			out.RawByte(']')
 		}

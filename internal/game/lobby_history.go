@@ -1,14 +1,13 @@
 package game
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // LaunchLobbyHistory launch local lobby with rooms from database
@@ -20,7 +19,7 @@ func LaunchLobbyHistory(db *database.DataBase,
 	urls, err := db.GetGamesURL(user.ID)
 
 	if err != nil {
-		fmt.Println("GetGamesURL", err.Error())
+		utils.Debug(false, "GetGamesURL", err.Error())
 		return
 	}
 
@@ -29,20 +28,17 @@ func LaunchLobbyHistory(db *database.DataBase,
 
 	go lobby.Run()
 	defer func() {
-		fmt.Println("stop lobby!")
 		lobby.Stop()
 	}()
 
 	if len(urls) > 0 {
 		err = lobby.LoadRooms(urls)
 		if err != nil {
-			fmt.Println("LoadRooms", err.Error())
+			utils.Debug(false, "LoadRooms", err.Error())
 			return
 		}
 	}
 
-	fmt.Println("connection create!")
 	conn := NewConnection(ws, user, lobby)
 	conn.Launch(WSsettings, "")
-	fmt.Println("conn launch")
 }

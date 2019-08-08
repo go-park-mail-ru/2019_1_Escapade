@@ -19,10 +19,12 @@ import (
 type AwsPublicConfig struct {
 	set                   bool
 	config                *aws.Config
-	Region                string `json:"region"`
-	Endpoint              string `json:"endpoint"`
-	PlayersAvatarsStorage string `json:"playersAvatarsStorage"`
-	DefaultAvatar         string `json:"defaultAvatar"`
+	Region                string   `json:"region"`
+	Endpoint              string   `json:"endpoint"`
+	PlayersAvatarsStorage string   `json:"playersAvatarsStorage"`
+	DefaultAvatar         string   `json:"defaultAvatar"`
+	MaxFileSize           int64    `json:"maxFileSize"`
+	AllowedFileTypes      []string `json:"allowedFileTypes"`
 }
 
 // AwsPrivateConfig private aws information. Need another json.
@@ -39,6 +41,24 @@ type AwsPrivateConfig struct {
 var _AWS struct {
 	public  AwsPublicConfig
 	private AwsPrivateConfig
+}
+
+// MaxFileSize return the maximum size of the file
+func MaxFileSize() int64 {
+	if !_AWS.public.set {
+		utils.Debug(true, "package photo not initialized")
+		return 0
+	}
+	return _AWS.public.MaxFileSize
+}
+
+// AllowedFileTypes return allowed file types
+func AllowedFileTypes() []string {
+	if !_AWS.public.set {
+		utils.Debug(true, "package photo not initialized")
+		return nil
+	}
+	return _AWS.public.AllowedFileTypes
 }
 
 //GetImages get image from image storage and set it to every user
@@ -209,6 +229,7 @@ func initPrivate(path string) error {
 	return err
 }
 
+// GetDefaultAvatar return default avatar
 func GetDefaultAvatar() string {
 	return _AWS.public.DefaultAvatar
 }

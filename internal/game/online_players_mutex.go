@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -83,7 +82,6 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell, prepareO
 		return
 	}
 
-	fmt.Println("somebody set flag", index, cell.X, cell.Y, FlagID(conn.ID()))
 	onlinePlayers._flags[index].Cell.X = cell.X
 	onlinePlayers._flags[index].Cell.Y = cell.Y
 	onlinePlayers._flags[index].Cell.PlayerID = conn.ID()

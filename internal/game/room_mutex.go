@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -67,8 +66,6 @@ func (room *Room) setRecruitmentTime() {
 	room.dateM.RUnlock()
 
 	t := time.Now().In(room.lobby.location())
-
-	fmt.Println("compare these:", t, v)
 
 	room.recruitmentTimeM.Lock()
 	room._recruitmentTime = t.Sub(v)

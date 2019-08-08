@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -17,9 +16,6 @@ func (conn *Connection) setDone() {
 
 // done return '_done' field
 func (conn *Connection) done() bool {
-	if conn == nil {
-		fmt.Println("conn nil")
-	}
 	conn.doneM.RLock()
 	v := conn._done
 	conn.doneM.RUnlock()
@@ -173,7 +169,6 @@ func (conn *Connection) wsWriteMessage(mt int, payload []byte, wsc config.WebSoc
 	conn.wsM.Lock()
 	defer conn.wsM.Unlock()
 	conn._ws.SetWriteDeadline(time.Now().Add(wsc.WriteWait))
-	//fmt.Println("wsWriteMessage: lock/unlock")
 	return conn._ws.WriteMessage(mt, payload)
 }
 

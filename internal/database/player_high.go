@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -23,7 +22,6 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 	}
 	defer tx.Rollback()
 
-	fmt.Println("lets create", user.Name)
 	if userID, err = db.createPlayer(tx, user); err != nil {
 		err = re.ErrorUserIsExist()
 		return

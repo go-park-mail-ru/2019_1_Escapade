@@ -1,12 +1,12 @@
 package game
 
 import (
-	"fmt"
 	"sync"
 
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Save save room information to database
@@ -91,7 +91,7 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 	}
 
 	if err = room.lobby.db().SaveGame(gameInformation); err != nil {
-		fmt.Println("err. Cant save.", err.Error())
+		utils.Debug(false, "err. Cant save.", err.Error())
 		room.lobby.AddNotSavedGame(&gameInformation)
 	}
 

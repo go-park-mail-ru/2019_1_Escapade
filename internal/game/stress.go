@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
@@ -12,7 +10,6 @@ func (lobby *Lobby) stress(n int) {
 		rs := models.NewBigRoom()
 		lobby.createRoom(rs)
 	}
-	fmt.Println("create all rooms")
 
 	it := NewRoomsIterator(lobby.freeRooms)
 	for it.Next() {
@@ -20,5 +17,4 @@ func (lobby *Lobby) stress(n int) {
 		var cells []Cell
 		room.Field.OpenEverything(&cells)
 	}
-	fmt.Println("finish all rooms")
 }

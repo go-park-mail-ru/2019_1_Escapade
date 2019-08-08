@@ -131,6 +131,31 @@ func easyjson49c0357aDecodeGithubComGoParkMailRu20191EscapadeInternalPhoto1(in *
 			out.PlayersAvatarsStorage = string(in.String())
 		case "defaultAvatar":
 			out.DefaultAvatar = string(in.String())
+		case "maxFileSize":
+			out.MaxFileSize = int64(in.Int64())
+		case "allowedFileTypes":
+			if in.IsNull() {
+				in.Skip()
+				out.AllowedFileTypes = nil
+			} else {
+				in.Delim('[')
+				if out.AllowedFileTypes == nil {
+					if !in.IsDelim(']') {
+						out.AllowedFileTypes = make([]string, 0, 4)
+					} else {
+						out.AllowedFileTypes = []string{}
+					}
+				} else {
+					out.AllowedFileTypes = (out.AllowedFileTypes)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v1 string
+					v1 = string(in.String())
+					out.AllowedFileTypes = append(out.AllowedFileTypes, v1)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -164,6 +189,27 @@ func easyjson49c0357aEncodeGithubComGoParkMailRu20191EscapadeInternalPhoto1(out 
 		const prefix string = ",\"defaultAvatar\":"
 		out.RawString(prefix)
 		out.String(string(in.DefaultAvatar))
+	}
+	{
+		const prefix string = ",\"maxFileSize\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.MaxFileSize))
+	}
+	{
+		const prefix string = ",\"allowedFileTypes\":"
+		out.RawString(prefix)
+		if in.AllowedFileTypes == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v2, v3 := range in.AllowedFileTypes {
+				if v2 > 0 {
+					out.RawByte(',')
+				}
+				out.String(string(v3))
+			}
+			out.RawByte(']')
+		}
 	}
 	out.RawByte('}')
 }

@@ -85,7 +85,6 @@ func check(rw http.ResponseWriter, r *http.Request, config oauth2.Config, access
 	}
 
 	if expire.Before(now) {
-		fmt.Println("update need")
 		newAccessToken, err = update(rw, r, config,
 			refreshToken, accessTokenKey, refreshTokenKey,
 			refreshTokenKey, expireStringKey)
@@ -93,7 +92,6 @@ func check(rw http.ResponseWriter, r *http.Request, config oauth2.Config, access
 			return "", err
 		}
 	} else {
-		fmt.Println("update no need", expire, expire.Before(now), now)
 		newAccessToken = accessToken
 	}
 

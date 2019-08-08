@@ -7,7 +7,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"fmt"
 	"time"
 )
 
@@ -51,8 +50,6 @@ func (room *Room) Free() {
 		return
 	}
 	room.setDone()
-
-	fmt.Println("room.setDone()")
 
 	room.chanStatus <- StatusAborted
 

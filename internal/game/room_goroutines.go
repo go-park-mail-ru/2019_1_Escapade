@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -100,7 +98,6 @@ func (room *Room) initTimers(first bool) {
 }
 
 func (room *Room) launchGarbageCollector(timeoutPeopleFinding, timeoutPlayer, timeoutObserver, timeoutFinished float64) {
-	//fmt.Println("launchGarbageCollector")
 	if room.done() {
 		return
 	}
@@ -275,7 +272,6 @@ func (room *Room) processConnectionAction(ca *ConnectionAction) {
 		room.wGroup.Done()
 	}()
 
-	fmt.Println("action!")
 	switch ca.action {
 	case ActionBackToLobby:
 		room.processActionBackToLobby(ca.conn)

@@ -5,7 +5,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"fmt"
 	"sync"
 	"time"
 
@@ -187,8 +186,6 @@ func (conn *Connection) Free() {
 	conn.lobby = nil
 	conn.setPlayingRoom(nil)
 	conn.setWaitingRoom(nil)
-
-	//fmt.Println("conn free memory")
 }
 
 // InPlayingRoom check is player in playing room
@@ -208,13 +205,12 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 
 	// dont place there conn.wGroup.Add(1)
 	if conn.lobby == nil || conn.lobby.context == nil {
-		fmt.Println("lobby nil or hasnt context!")
+		utils.Debug(true, "lobby nil or hasnt context!")
 		return
 	}
 
 	all := &sync.WaitGroup{}
 
-	fmt.Println("JoinConn!")
 	conn.lobby.JoinConn(conn, 3)
 	all.Add(1)
 	go conn.WriteConn(conn.context, ws, all)
@@ -223,7 +219,6 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 
 	conn.SetConnected()
 
-	//fmt.Println("Wait!")
 	if roomID != "" {
 		rs := &models.RoomSettings{}
 		rs.ID = roomID
@@ -232,7 +227,6 @@ func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
 	all.Wait()
 
 	conn.setDisconnected()
-	fmt.Println("conn finished")
 	conn.lobby.Leave(conn, "finished")
 	//conn.Free()
 }

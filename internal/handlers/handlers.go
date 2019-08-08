@@ -51,7 +51,7 @@ func (h *Handler) HandleSession(rw http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		h.Logout(rw, r)
 	case http.MethodOptions:
-		utils.Debug(false, "cors:", rw.Header().Get("Access-Control-Allow-Methods"))
+		utils.Debug(false, "cors Access-Control-Allow-Methods:", rw.Header().Get("Access-Control-Allow-Methods"))
 		return
 	default:
 		utils.Debug(true, "/api/session wrong request:", r.Method)
