@@ -161,10 +161,9 @@ func (conn *Connection) IsConnected() bool {
 // Free free memory, if flag disconnect true then connection and player will not become nil
 func (conn *Connection) Free() {
 
-	if conn.done() {
+	if conn.checkAndSetCleared() {
 		return
 	}
-	conn.setDone()
 
 	conn.wGroup.Wait()
 

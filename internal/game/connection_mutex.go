@@ -7,6 +7,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// checkAndSetCleared checks if the cleanup function was called. This check is
+// based on 'done'. If it is true, then the function has already been called.
+// If not, set done to True and return false.
+// IMPORTANT: this function must only be called in the cleanup function
+func (conn *Connection) checkAndSetCleared() bool {
+	conn.doneM.Lock()
+	defer conn.doneM.Unlock()
+	if conn._done {
+		return true
+	}
+	conn._done = true
+	return false
+}
+
 // setDone set done = true. It will finish all operaions on Connection
 func (conn *Connection) setDone() {
 	conn.doneM.Lock()

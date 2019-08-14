@@ -40,16 +40,13 @@ func (room *Room) Enter(conn *Connection) bool {
 //  observers and players inside
 func (room *Room) Free() {
 
-	if room.done() {
+	if room.checkAndSetCleared() {
 		return
 	}
 
-	//room.setDone()
-	room.wGroup.Wait()
-	if room.done() {
-		return
-	}
-	room.setDone()
+	groupWaitRoom := 60 * time.Second // TODO в конфиг
+	fieldWaitRoom := 40 * time.Second // TODO в конфиг
+	utils.WaitWithTimeout(room.wGroup, groupWaitRoom)
 
 	room.chanStatus <- StatusAborted
 
@@ -58,7 +55,7 @@ func (room *Room) Free() {
 	go room.messagesFree()
 	go room.Players.Free()
 	go room.Observers.Free()
-	go room.Field.Free()
+	go room.Field.Free(fieldWaitRoom)
 
 	close(room.chanStatus)
 	close(room.chanConnection)

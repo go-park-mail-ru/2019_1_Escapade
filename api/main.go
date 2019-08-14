@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
@@ -28,8 +30,10 @@ func main() {
 		err           error
 	)
 
-	if len(os.Args) < 4 {
-		utils.Debug(false, "Api service need 3 command line arguments. But",
+	utils.Debug(false, "1. Check command line arguments")
+
+	if len(os.Args) < 6 {
+		utils.Debug(false, "ERROR. Api service need 5 command line arguments. But",
 			len(os.Args)-1, "get.")
 		return
 	}
@@ -38,48 +42,76 @@ func main() {
 		configurationPath = os.Args[1]
 		photoPublicPath   = os.Args[2]
 		photoPrivatePath  = os.Args[3]
+		mainPort          = os.Args[4]
+		consulPort        = os.Args[5]
+		mainPortInt       int
 	)
+
+	mainPort, mainPortInt, err = server.Port(mainPort)
+	if err != nil {
+		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
+		return
+	}
+	consulPort = server.FixPort(consulPort)
+
+	utils.Debug(false, "✔")
+	utils.Debug(false, "2. Setting the environment")
 
 	configuration, err = config.Init(configurationPath)
 	if err != nil {
-		utils.Debug(false, "Initialization error with main configuration:", err.Error())
+		utils.Debug(false, "ERROR with main configuration:", err.Error())
 		return
 	}
 
 	err = photo.Init(photoPublicPath, photoPrivatePath)
 	if err != nil {
-		utils.Debug(false, "Initialization error with photo configuration:", err.Error())
+		utils.Debug(false, "ERROR with photo configuration:", err.Error())
 		return
 	}
 
 	API, err = api.GetHandler(configuration)
 	if err != nil {
-		utils.Debug(false, "Initialization error with photo configuration:", err.Error())
+		utils.Debug(false, "ERROR with photo configuration:", err.Error())
 		return
 	}
 
 	metrics.InitApi()
 
-	/*
-		authConn, err := clients.ServiceConnectionsInit(configuration.AuthClient)
-		if err != nil {
-			log.Fatal("serviceConnectionsInit error:", err)
-		}
-		defer authConn.Close()
-	*/
-
 	//API.RandomUsers(10) // create 10 users for tests
-	var (
-		r    = server.APIRouter(API, configuration.Cors, configuration.Session)
-		port = server.Port(configuration)
-		srv  = server.Server(r, configuration.Server, true, port)
-	)
 
-	if err := srv.ListenAndServe(); err != nil {
-		//errChan <- err
-		utils.Debug(false, "Serving error:", err.Error())
+	utils.Debug(false, "✔✔")
+	utils.Debug(false, "3. Set the settings of our server and associate it with third-party")
+
+	r := server.APIRouter(API, configuration.Cors, configuration.Session)
+
+	srv := server.Server(r, configuration.Server, true, mainPort)
+
+	// в конфиг
+	var (
+		serviceName = "api"
+		ttl         = time.Second * 10
+	)
+	finishHealthCheck := make(chan interface{}, 1)
+	consul, serviceID, err := server.ConsulClient(serviceName, configuration.Server.Host,
+		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
+		finishHealthCheck)
+	if err != nil {
+		utils.Debug(false, "ERROR while connecting to consul")
+		API.Close()
 	}
 
-	//server.LaunchHTTP(srv, configuration.Server, func() { API.DB.Db.Close() })
+	utils.Debug(false, "✔✔✔")
+	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+
+	server.LaunchHTTP(srv, configuration.Server, func() {
+		finishHealthCheck <- nil
+		API.Close()
+		err := consul.Agent().ServiceDeregister(serviceID)
+		if err != nil {
+			utils.Debug(false, "Consul error while deregistering:", err.Error())
+			return
+		}
+		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
+	})
 	os.Exit(0)
 }

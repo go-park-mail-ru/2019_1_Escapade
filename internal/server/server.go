@@ -11,11 +11,14 @@ import (
 	"os/signal"
 	"time"
 
+	"golang.org/x/net/netutil"
+
 	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 )
 
-func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool, port string) *http.Server {
+func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool,
+	port string) *http.Server {
 	var (
 		readTimeout  = time.Duration(serverConfig.ReadTimeoutS) * time.Second
 		writeTimeout = time.Duration(serverConfig.WriteTimeoutS) * time.Second
@@ -32,11 +35,12 @@ func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool, port s
 
 	utils.Debug(false, "look", readTimeout, writeTimeout, idleTimeout, execTimeout)
 	srv := &http.Server{
-		Addr:         port,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		IdleTimeout:  idleTimeout,
-		Handler:      handler,
+		Addr:           port,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:   writeTimeout,
+		IdleTimeout:    idleTimeout,
+		Handler:        handler,
+		MaxHeaderBytes: 1 << 15, // TODO в конфиг
 	}
 	return srv
 }
@@ -44,24 +48,37 @@ func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool, port s
 func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
+	defer func() {
+		close(stopChan)
+		close(errChan)
+		lastFunc()
+	}()
 
 	signal.Notify(stopChan, os.Interrupt)
 
+	connectionCount := 20 // TODO в конфиг
+
+	l, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		utils.Debug(true, "Listen error", err.Error())
+		return
+	}
+
+	defer l.Close()
+
+	l = netutil.LimitListener(l, connectionCount)
+
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
+		utils.Debug(false, "✔✔✔ GO ✔✔✔")
+		if err := server.Serve(l); err != nil && err != http.ErrServerClosed {
 			errChan <- err
-			close(errChan)
 			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
 
-	defer func() {
-		close(stopChan)
-		lastFunc()
-	}()
-
 	waitTimeout := time.Duration(serverConfig.WaitTimeoutS) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
+	defer cancel()
 
 	select {
 	case err := <-errChan:
@@ -73,36 +90,42 @@ func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc 
 			utils.Debug(false, "Shutdown error:", err.Error())
 		}
 	}
-
-	defer cancel()
 	<-ctx.Done()
-
-	go func() {
-		err := server.Shutdown(ctx)
-		if err != nil {
-			utils.Debug(false, "Shutdown error:", err.Error())
-		}
-	}()
 }
 
-func LaunchGRPC(grpcServer *grpc.Server, lis net.Listener, lastFunc func()) {
+func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 
+	defer func() {
+		close(stopChan)
+		close(errChan)
+		lastFunc()
+	}()
+
+	connectionCount := 20 // TODO в конфиг
+
+	l, err := net.Listen("tcp", port)
+
+	if err != nil {
+		utils.Debug(true, "Listen error", err.Error())
+		return
+	}
+
+	defer l.Close()
+
+	l = netutil.LimitListener(l, connectionCount)
+
+	utils.Debug(false, "before signal.Notify")
 	signal.Notify(stopChan, os.Interrupt)
+	utils.Debug(false, "after signal.Notify")
 
 	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
+		if err := grpcServer.Serve(l); err != nil {
 			errChan <- err
 			close(errChan)
 			utils.Debug(false, "Serving error:", err.Error())
 		}
-	}()
-
-	defer func() {
-		grpcServer.GracefulStop()
-		close(stopChan)
-		lastFunc()
 	}()
 
 	// block until either OS signal, or server fatal error
@@ -110,5 +133,6 @@ func LaunchGRPC(grpcServer *grpc.Server, lis net.Listener, lastFunc func()) {
 	case err := <-errChan:
 		utils.Debug(false, "Fatal error: ", err.Error())
 	case <-stopChan:
+		grpcServer.GracefulStop()
 	}
 }

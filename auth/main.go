@@ -1,156 +1,139 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	a_handlers "github.com/go-park-mail-ru/2019_1_Escapade/auth/internal/handlers"
+	e_oauth "github.com/go-park-mail-ru/2019_1_Escapade/auth/internal/oauth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"github.com/go-session/session"
-	"github.com/jackc/pgx"
-	pg "github.com/vgarvardt/go-oauth2-pg"
-	"github.com/vgarvardt/go-pg-adapter/pgxadapter"
-	"gopkg.in/oauth2.v3/errors"
-	"gopkg.in/oauth2.v3/generates"
-	"gopkg.in/oauth2.v3/manage"
 	"gopkg.in/oauth2.v3/models"
-	"gopkg.in/oauth2.v3/server"
-	"gopkg.in/oauth2.v3/store"
 )
 
 func main() {
-	manager := manage.NewDefaultManager()
-	cfg := &manage.Config{
-		// access token expiration time
-		AccessTokenExp: time.Hour * 2,
-		// refresh token expiration time
-		RefreshTokenExp: time.Hour * 24 * 14,
-		// whether to generate the refreshing token
-		IsGenerateRefresh: true,
-	}
-
-	manager.SetPasswordTokenCfg(cfg)
-	// token store
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
-
-	// generate jwt access token
-	manager.MapAccessGenerate(generates.NewJWTAccessGenerate([]byte("00000000"), jwt.SigningMethodHS512))
-
-	link := "postgres://rolepade:escapade@localhost:5432/escabase?sslmode=disable"
-	pgxConnConfig, _ := pgx.ParseURI(link)
-	pgxConn, _ := pgx.Connect(pgxConnConfig)
-
-	// use PostgreSQL token store with pgx.Connection adapter
-	adapter := pgxadapter.NewConn(pgxConn)
-	tokenStore, _ := pg.NewTokenStore(adapter, pg.WithTokenStoreGCInterval(time.Minute))
-	defer tokenStore.Close()
-
-	clientStore, _ := pg.NewClientStore(adapter)
-
-	manager.MapTokenStorage(tokenStore)
-
-	clientStore.Create(&models.Client{
-		ID:     "1",
-		Secret: "1",
-		Domain: "http://localhost:3001",
-	})
-	manager.MapClientStorage(clientStore)
-
-	/*clientStore := store.NewClientStore()
-	clientStore.Set("1", &models.Client{
-		ID:     "1",
-		Secret: "1",
-		Domain: "http://localhost:3001",
-	})
-	manager.MapClientStorage(clientStore)*/
-
-	srv := server.NewServer(server.NewConfig(), manager)
-	srv.SetAllowGetAccessRequest(true)
-	// allow the grant types model:AuthorizationCode,PasswordCredentials,ClientCredentials,Refreshing
-	//srv.SetAllowedGrantType("password_credentials", "refreshing")
 
 	var (
-		configuration     *config.Configuration
-		err               error
-		db                *database.DataBase
-		configurationPath = "auth.json"
+		configuration *config.Configuration
+		err           error
+		// database with users
+		db *database.DataBase
 	)
+	utils.Debug(false, "host", os.Getenv("DOCKER_HOST"))
+
+	utils.Debug(false, "1. Check command line arguments")
+
+	if len(os.Args) < 5 {
+		utils.Debug(false, "ERROR. Auth service need 4 command line arguments. But",
+			len(os.Args)-1, "get.")
+		return
+	}
+
+	var (
+		configurationPath = os.Args[1]
+		mainPort          = os.Args[2]
+		consulPort        = os.Args[3]
+		mainPortInt       int
+		// database with clients and tokens
+		postgresqlPort int
+	)
+	postgresqlPort, err = strconv.Atoi(os.Args[4])
+	if err != nil {
+		utils.Debug(false, "ERROR. Wrong port of auth models database", err.Error())
+		return
+	}
+
+	mainPort, mainPortInt, err = e_server.Port(mainPort)
+	if err != nil {
+		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
+		return
+	}
+	consulPort = e_server.FixPort(consulPort)
+
+	utils.Debug(false, "✔")
+	utils.Debug(false, "2. Set the configuration")
 
 	configuration, err = config.Init(configurationPath)
 	if err != nil {
-		utils.Debug(false, "Initialization error with main configuration:", err.Error())
+		utils.Debug(false, "ERROR with main configuration:", err.Error())
 		return
 	}
+
+	utils.Debug(false, "✔✔")
+	utils.Debug(false, "3. Connect to user information storage")
 
 	db, err = database.Init(configuration.DataBase)
 	if err != nil {
-		utils.Debug(false, "Initialization error with database:", err.Error())
+		utils.Debug(false, "ERROR with database:", err.Error())
 		return
 	}
 
-	srv.SetPasswordAuthorizationHandler(func(username, password string) (userID string, err error) {
-		var intUserID int32
-		utils.Debug(false, "look at", username, password)
-		if intUserID, err = db.Login(username, password); err != nil {
-			utils.Debug(false, "whaaaat", err.Error())
-			err = re.ErrorUserNotFound()
+	utils.Debug(false, "✔✔✔")
+	utils.Debug(false, "4. Connect to tokens and clients storage")
+
+	// TODO в конфиг
+	var (
+		accessTokenExp    = time.Hour * 2
+		refreshTokenExp   = time.Hour * 24 * 14
+		isGenerateRefresh = true
+		jwtSecret         = "00000000"
+		pgHost            = configuration.Server.Host
+
+		clients = make([]*models.Client, 1)
+	)
+	clients[0] = &models.Client{
+		ID:     "1",
+		Secret: "1",
+		Domain: configuration.Server.Host + ":3001",
+	}
+
+	manager, tokenStore, err := e_oauth.Init(accessTokenExp, refreshTokenExp,
+		isGenerateRefresh, jwtSecret, pgHost, postgresqlPort, clients)
+	if err != nil {
+		utils.Debug(false, "ERROR with oauth2 equipment", err.Error())
+		db.Db.Close()
+		return
+	}
+
+	utils.Debug(false, "✔✔✔✔")
+	utils.Debug(false, "5. Set the settings of server and register in Consul")
+
+	srv := e_oauth.Server(db, manager)
+	r := a_handlers.Router(srv, tokenStore)
+	server := e_server.Server(r, configuration.Server, true, mainPort)
+
+	var (
+		serviceName = "auth"
+		ttl         = time.Second * 10
+	)
+	finishHealthCheck := make(chan interface{}, 1)
+
+	consul, serviceID, err := e_server.ConsulClient(serviceName, configuration.Server.Host,
+		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
+		finishHealthCheck)
+	if err != nil {
+		utils.Debug(false, "ERROR while connecting to consul")
+		db.Db.Close()
+		tokenStore.Close()
+	}
+
+	utils.Debug(false, "✔✔✔✔✔")
+	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+
+	e_server.LaunchHTTP(server, configuration.Server, func() {
+		finishHealthCheck <- nil
+		db.Db.Close()
+		tokenStore.Close()
+		err := consul.Agent().ServiceDeregister(serviceID)
+		if err != nil {
+			utils.Debug(false, "Consul error while deregistering:", err.Error())
 			return
 		}
-		userID = utils.String32(intUserID)
-		utils.Debug(false, "userID", userID, intUserID)
-		return
+		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 
-	//srv.SetAllowedGrantType("password", "refresh_token")
-	srv.SetUserAuthorizationHandler(userAuthorizeHandler)
-
-	srv.SetInternalErrorHandler(func(err error) (re *errors.Response) {
-		log.Println("Internal Error:", err.Error())
-		return
-	})
-
-	srv.SetResponseErrorHandler(func(re *errors.Response) {
-		log.Println("Response Error:", re.Error.Error())
-	})
-
-	r := a_handlers.Router(srv, tokenStore)
-	port := e_server.Port(configuration)
-	server := e_server.Server(r, configuration.Server, true, port)
-
-	e_server.LaunchHTTP(server, configuration.Server, func() { db.Db.Close() })
-
-}
-
-func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-	utils.Debug(false, "/userAuthorizeHandler")
-	store, err := session.Start(nil, w, r)
-	if err != nil {
-		return
-	}
-
-	uid, ok := store.Get("LoggedInUserID")
-	if !ok {
-		if r.Form == nil {
-			r.ParseForm()
-		}
-
-		store.Set("ReturnUri", r.Form)
-		store.Save()
-
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
-		return
-	}
-
-	userID = uid.(string)
-	store.Delete("LoggedInUserID")
-	store.Save()
-	return
 }

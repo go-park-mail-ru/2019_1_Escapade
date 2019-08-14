@@ -94,12 +94,18 @@ func (field *Field) setCellsLeft(cellsLeft int32) {
 	field.cellsLeftM.Unlock()
 }
 
-// setDone sets the done flag to true, thus indicating that
-// field is preparing to free memory
-func (field *Field) setDone() {
+// checkAndSetCleared checks if the cleanup function was called. This check is
+// based on 'done'. If it is true, then the function has already been called.
+// If not, set done to True and return false.
+// IMPORTANT: this function must only be called in the cleanup function
+func (field *Field) checkAndSetCleared() bool {
 	field.doneM.Lock()
+	defer field.doneM.Unlock()
+	if field._done {
+		return true
+	}
 	field._done = true
-	field.doneM.Unlock()
+	return false
 }
 
 // Done returns true if the field is preparing to free memory

@@ -22,6 +22,11 @@ type Handler struct {
 	Oauth     oauth2.Config
 }
 
+// TODO добавить группу ожидания и здесь ждать ее, не забыть использовтаь ustils.WaitWithTimeout
+func (h *Handler) Close() {
+	h.DB.Db.Close()
+}
+
 func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {

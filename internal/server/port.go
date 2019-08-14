@@ -1,20 +1,32 @@
 package server
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"strconv"
+	"strings"
 )
 
-// Port return port
-func Port(conf *config.Configuration) (port string) {
-	env := os.Getenv(conf.Server.PortURL)
-	if os.Getenv(conf.Server.PortURL)[0] != ':' {
-		port = ":" + env
-	} else {
-		port = env
+func FixHost(host string) string {
+	if strings.Contains(host, "http://") {
+		host = strings.Replace(host, "http://", "", 1)
 	}
-	fmt.Println("launched, look at us on " + conf.Server.Host + port)
-	return
+	if strings.Contains(host, "https://") {
+		host = strings.Replace(host, "https://", "", 1)
+	}
+	return host
+}
+
+
+func FixPort(port string) string {
+	if port[0] != ':' {
+		return ":" + port
+	}
+	return port
+}
+
+func Port(port string) (string, int, error) {
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		return port, 0, err
+	}
+	return ":" + port, intPort, err
 }

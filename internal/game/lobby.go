@@ -291,14 +291,12 @@ func (lobby *Lobby) Stop() {
 // Free clean the memory allocated to the structure of the lobby
 func (lobby *Lobby) Free() {
 
-	if lobby.done() {
+	if lobby.checkAndSetCleared() {
 		return
 	}
-	lobby.setDone()
 
-	go lobby.sendLobbyMessage("server closed", All)
-
-	lobby.wGroup.Wait()
+	groupWaitTimeout := 80 * time.Second // TODO в конфиг
+	utils.WaitWithTimeout(lobby.wGroup, groupWaitTimeout)
 
 	utils.Debug(false, "All resources clear!")
 

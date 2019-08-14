@@ -71,11 +71,13 @@ func NewField(rs *models.RoomSettings, config *config.FieldConfig) *Field {
 }
 
 // Free clear matrix and history
-func (field *Field) Free() {
+func (field *Field) Free(timeout time.Duration) {
 
-	field.setDone()
+	if field.checkAndSetCleared() {
+		return
+	}
 
-	field.wGroup.Wait()
+	utils.WaitWithTimeout(field.wGroup, timeout)
 
 	go field.matrixFree()
 	go field.historyFree()

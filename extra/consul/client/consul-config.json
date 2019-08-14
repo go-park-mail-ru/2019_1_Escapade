@@ -1,0 +1,11 @@
+{
+  "datacenter": "localhost",
+  "data_dir": "/consul/data",
+  "log_level": "DEBUG",
+  "server": false,
+  "ui": true,
+  "ports": {
+    "dns": 53
+  },
+  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw=="
+}

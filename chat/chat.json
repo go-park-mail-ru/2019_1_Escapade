@@ -3,6 +3,7 @@
 		"host": "http://localhost",
 		"portUrl": "PORT_CHAT_URL",
 		"portValue": ":3005",
+		"ports":[3051, 3052, 3053, 3054, 3055],
 		"readTimeoutS":10,
 		"writeTimeoutS":15,
 		"idleTimeoutS":5,

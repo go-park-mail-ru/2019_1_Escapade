@@ -76,6 +76,7 @@ func (lobby *Lobby) sendMessagesToDB(single chan interface{}) {
 		msgID       *chat.MessageID
 		newMessages []*models.Message
 	)
+	utils.Debug(false, "sendMessagesToDB:")
 	single <- nil
 	// TODO change it if implement several service instances(i am about 0 )
 	if lobby.dbChatID() == 0 {
@@ -94,6 +95,7 @@ func (lobby *Lobby) sendMessagesToDB(single chan interface{}) {
 	}
 	<-single
 	messages = lobby.NotSavedMessagesGetAndClear()
+	utils.Debug(false, "lost messages:", len(messages))
 	for _, messageAction := range messages {
 		if messageAction.origin == nil {
 			continue
@@ -120,6 +122,7 @@ func (lobby *Lobby) sendMessagesToDB(single chan interface{}) {
 			_, err = clients.ALL.Chat().DeleteMessage(context.Background(), messageAction.message)
 		}
 		if err != nil {
+			utils.Debug(false, "again error:", err.Error())
 			lobby.AddNotSavedMessage(messageAction)
 		}
 	}
@@ -156,7 +159,7 @@ func (lobby *Lobby) Run() {
 		lobby.Free()
 	}()
 
-	s10 := time.NewTicker(time.Second * 1)
+	s10 := time.NewTicker(time.Second * 5)
 	defer s10.Stop()
 	var timeout float64
 	timeout = 10

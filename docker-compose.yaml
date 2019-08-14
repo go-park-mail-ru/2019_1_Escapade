@@ -1,6 +1,30 @@
 version: '3'
 services:
 
+  traefik-load-config:
+    build:
+      dockerfile: ./cmd/traefik/Dockerfile
+      context: .
+    command: 
+      storeconfig --consul.endpoint=127.0.0.1:8500 -c config.toml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+    network_mode: "host"
+
+  traefik:
+    depends_on:
+      - "traefik-load-config"
+    image: traefik 
+    command: 
+      --api --docker --consul --consul.endpoint=127.0.0.2:8500 # Enables the web UI and tells Traefik to listen to docker
+   
+    ports:
+      - "80:80"     # The HTTP port
+      - "8080:8080" # The Web UI (enabled by --api)
+    network_mode: "host"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+
   pg:
     
     image: postgres:11.2-alpine
@@ -9,36 +33,32 @@ services:
       POSTGRES_PASSWORD: 'docker'
       POSTGRES_DB: 'docker'
 
-  redis:
-    image: redis
-
   api:
     build:
       dockerfile: ./api/Dockerfile
       context: .
     depends_on:
       - "pg"
-      - "auth"
     ports:
       - 3001:3001
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
       - PORT_API_URL=:3001
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api api/api.json internal/photo/photo.json secret.json 3010 8500"
   
   auth:
     build:
       dockerfile: ./auth/Dockerfile
       context: .
     depends_on:
-      - "redis"
+      - "pg"
     ports:
-      - 3333:3333
+      - 3003:3003
     environment:
-      - REDIS_URL=redis://:@redis:6379
       - PORT_AUTH_URL=:3333
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/auth"
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/auth auth/auth.json 3045 8500 2345"
+
 
   game:
     build:
@@ -46,14 +66,13 @@ services:
       context: .
     depends_on:
        - "pg"
-       - "auth"
     ports:
       - 3002:3002
     environment:
       - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: /bin/sh -c "./wait-for-it.sh redis:6379 && ./bin/game"
+    command: /bin/sh -c "./bin/game"
 
   history:
     build:
@@ -72,9 +91,9 @@ services:
 
   prometheus:
     build:
-      dockerfile: ./Dockerfile
+      #dockerfile: ./Dockerfile
       context: ./prometheus
-    # image: prom/prometheus:latest
+    image: prom/prometheus:latest
     container_name: prometheus
     # volumes:
     #   - './prometheus/:/etc/prometheus/'
@@ -94,6 +113,67 @@ services:
     restart: unless-stopped
     ports:
       - 3000:3000
+
+  # consul:
+  #   container_name: consul_server
+  #   build:
+  #     context: ./extra/consul
+  #     dockerfile: Dockerfile
+  #   hostname: localhost
+  #   command: agent -config-file=/consul/config/bootstrap/consul-config.json
+  #   ports:
+  #     - 8500:8500
+      
+  # consul-client:
+  #   container_name: consul_agent
+  #   build:
+  #     context: ./extra/consul
+  #     dockerfile: Dockerfile
+  #   hostname: localhost1
+  #   command: agent -join consul -config-file=/consul/config/client/consul-config.json
+  #   ports:
+  #     - 8499:8500
+  #   volumes:
+  #     - ./consul/config/consul-config.json:/consul/config/config.json
+  #   depends_on:
+  #     - consul
+
+  vault:
+    build:
+      context: ./extra/vault
+      dockerfile: Dockerfile
+    ports:
+      - 8200:8200
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/policies:/vault/policies
+      - ./vault/data:/vault/data
+      - ./vault/logs:/vault/logs
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+    command: server -config=/vault/config/vault-config.json
+    cap_add:
+      - IPC_LOCK
+
+  consul:
+    container_name: consul_server
+    image: progrium/consul
+    hostname: localhost
+    command: -server -bootstrap -log-level debug -ui-dir /ui
+    ports:
+      - 8500:8500
+
+  consul-client:
+    container_name: consul_agent
+    image: progrium/consul
+    hostname: localhost
+    command:  agent -join 172.18.0.3:830 -config-file=/consul/config/client/consul-config.json
+    ports:
+      - 8498:8500
+    depends_on:
+      - consul
+
+     # docker run -d --restart always -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8302:8302/udp -p 8302:8302 -p 8400:8400 -p 8500:8500 -p 53:53/udp -h server1 progrium/consul -server -bootstrap -ui-dir /ui -advertise $(dm ip nb-consul)
 
   # nginx:
 

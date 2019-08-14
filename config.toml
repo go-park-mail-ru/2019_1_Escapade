@@ -1,0 +1,188 @@
+
+# [backends]
+#   [backends.database]
+#     [backends.database.main]
+#       driverName = "postgres"
+#       link = "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable"
+#       pageGames = 2
+#       pageUsers = 100
+#       ports = [2345]
+#       maxOpenConns =  20
+#     [backends.database.auth]
+#       driverName = "postgres"
+#       link = "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable"
+#       ports = [2345]
+#       maxOpenConns =  20  
+#   [backends.service]
+#     [backends.service.api]
+#       ServiceName = "api"
+#       ContainerName = "api"
+#       Secret = "sDcrliQy2Q7n1rvs"
+#       ports = [3001]
+#       wGroupTimeoutS = 2
+#     [backends.service.game]
+#       ServiceName = "game"
+#       ContainerName = "game"
+#       Secret = "54xI3d3yWes2PdQg"
+#       ports = [3002]
+#       dependsOn = ["chat"]
+#       roomsCapacity = 500
+#       connectionCapacity = 1000
+#       closeRoom = true
+#       metrics = true
+#       wGroupTimeoutS = 60
+#       [backends.service.game.field]
+#         minAreaSize = 1
+#         maxAreaSize = 5
+#         minProbability = 20
+#         maxProbability = 80
+#         wGroupTimeoutS = 40
+#     [backends.service.auth]
+#       ServiceName = "auth"
+#       ContainerName = "auth"
+#       Secret = "3yffZ5D03wdnfWAA"
+#       ports = [3003]
+#       accessTokenExpireHours = 2
+#       refreshTokenExpireHours = 336
+#       isGenerateRefresh = true
+#       withReserve = true
+#       tokenType = "bearer"
+#       wGroupTimeoutS = 10
+#     [backends.service.history]
+#       ServiceName = "history"
+#       ContainerName = "history"
+#       Secret = "gtMMMTWqqqqFBhSY"
+#       ports = [3004]
+#       dependsOn = ["chat"]
+#       roomsCapacity = 500
+#       connectionCapacity = 1
+#       closeRoom = false
+#       metrics = false
+#       wGroupTimeoutS = 2
+#     [backends.service.chat]
+#       ServiceName = "chat"
+#       ContainerName = "chat"
+#       Secret = "rrjb6QEYWn5tDrrr"
+#       ports = [3005]
+#       wGroupTimeoutS = 2
+#   [backends.settings]
+#     [backends.settings.cors]
+#       origins = ["http://localhost:8080",
+#         "http://localhost:3000",
+#         "http://localhost:3001",
+#         "http://localhost:3002",
+#         "https://escapade-frontend.herokuapp.com",
+#         "https://ser.ru.com",
+#         "https://explosion.team"]
+#       headers = ["Content-type"]
+#       methods = ["GET", 
+#         "POST", 
+#         "DELETE", 
+#         "PUT", 
+#         "OPTIONS"]
+#       credentials = "true"
+#     [backends.settings.timeouts]
+#       readTimeoutS = 10
+#       writeTimeoutS = 15
+#       idleTimeoutS = 5
+#       waitTimeoutS = 0
+#       execTimeoutS = 90
+#     [backends.settings.websocket]
+#       writeWait = 60
+# 	  	pongWait = 10
+# 		  pingPeriod = 9
+# 		  maxMessageSize = 4096
+# 		  readBufferSize = 1024
+# 		  writeBufferSize = 1024
+#     [backends.settings.sync]
+#       location = "Europe/Moscow"
+#     [backends.settings.cookie]
+#       path = "/"
+#       length = 32
+#       lifetime = 604800
+#       httpOnly = false
+#     [backends.settings.consul]
+#   [backends.cookie]
+#     [backends.cookie.token]
+#       [backends.cookie.token.main]
+#         accessToken = "access_token"
+#         tokenType = "token_type"
+#         refreshToken = "refresh_token"
+#         expire = "expire"
+#       [backends.cookie.token.reserve]
+#         accessToken = "r_access_token"
+#         tokenType = "r_token_type"
+#         refreshToken = "r_refresh_token"
+#         expire = "r_expire"
+
+[aa]
+ jjj = 8
+
+[file]
+[aaaa]
+ jjj = 8
+# rules
+[backends]
+  [backends.backend1]
+    [backends.backend1.circuitbreaker]
+    expression = "NetworkErrorRatio() > 0.5"
+    [backends.backend1.servers.server1]
+    url = "http://172.17.0.2:80"
+    weight = 10
+    [backends.backend1.servers.server2]
+    port = 3
+    kim = 4
+  [backends.backend2]
+    [backends.backend2.maxconn]
+    lolololo1 = 10
+    extractorfunc = "request.host"
+    lolololo = 3
+    [backends.backend2.LoadBalancer]
+    lolololo1 = 10
+    extractorfunc = "request.host"
+    lolololo = 3
+    [backends.backend2.servers.server1]
+    lolololo1 = 10
+    extractorfunc = "request.host"
+    lolololo = 3
+    [backends.backend2.servers.server2]
+    lolololo1 = 10
+    extractorfunc = "request.host"
+    lolololo = 3
+
+[frontends]
+  [frontends.frontend1]
+  backend = "backend2"
+    [frontends.frontend1.routes.test_1]
+    rule = "Host:test.localhost"
+  [frontends.frontend2]
+  backend = "backend1"
+  passHostHeader = true
+  priority = 10
+      [frontends.frontend2.auth.basic]
+      users = [
+        "test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/",
+        "test2:$apr1$d9hr9HBB$4HxwgUir3HP4EsggP/QNo0",
+      ]
+  entrypoints = ["https"] # overrides defaultEntryPoints
+    [frontends.frontend2.routes.test_1]
+    rule = "Host:{subdomain:[a-z]+}.localhost"
+  [frontends.frontend3]
+  entrypoints = ["http", "https"] # overrides defaultEntryPoints
+  backend = "backend2"
+  rule = "Path:/test"
+
+[[tls]]
+  [tls.certificate]
+    certFile = "path/to/your.cert"
+    keyFile = "path/to/your.key"
+
+[[tls]]
+  entryPoints = ["https","other-https"]
+  [tls.certificate]
+    certFile = """-----BEGIN CERTIFICATE-----
+                      <cert file content>
+                      -----END CERTIFICATE-----"""
+    keyFile = """-----BEGIN CERTIFICATE-----
+                      <key file content>
+                      -----END CERTIFICATE-----"""

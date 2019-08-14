@@ -13,5 +13,9 @@
 *.html
 
 /vendor
+/bin
 secret.json
 .vscode
+/vault/data
+/consul/data
+/vault/logs

@@ -6,11 +6,18 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-//setDone set done = true. It will finish all operaions on Room
-func (room *Room) setDone() {
+// checkAndSetCleared checks if the cleanup function was called. This check is
+// based on 'done'. If it is true, then the function has already been called.
+// If not, set done to True and return false.
+// IMPORTANT: this function must only be called in the cleanup function
+func (room *Room) checkAndSetCleared() bool {
 	room.doneM.Lock()
+	defer room.doneM.Unlock()
+	if room._done {
+		return true
+	}
 	room._done = true
-	room.doneM.Unlock()
+	return false
 }
 
 // done return room readiness flag to free up resources

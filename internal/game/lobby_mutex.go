@@ -8,11 +8,18 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-//setDone set done = true. It will finish all operaions on Lobby
-func (lobby *Lobby) setDone() {
+// checkAndSetCleared checks if the cleanup function was called. This check is
+// based on 'done'. If it is true, then the function has already been called.
+// If not, set done to True and return false.
+// IMPORTANT: this function must only be called in the cleanup function
+func (lobby *Lobby) checkAndSetCleared() bool {
 	lobby.doneM.Lock()
+	defer lobby.doneM.Unlock()
+	if lobby._done {
+		return true
+	}
 	lobby._done = true
-	lobby.doneM.Unlock()
+	return false
 }
 
 // done return '_done' field

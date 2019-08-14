@@ -1,12 +1,16 @@
 package chat
 
 import (
+	"sync"
+	"time"
+
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"context"
 
 	"database/sql"
+	"errors"
 
 	//
 	_ "github.com/lib/pq"
@@ -14,20 +18,60 @@ import (
 
 // Service of chat
 type Service struct {
-	DB *sql.DB
+	wGroup           *sync.WaitGroup
+	ID               int
+	DB               *sql.DB
+	errorsCollection chan error
 }
 
 //NewService Create new instance of service
-func NewService(db *sql.DB) *Service {
+func NewService(db *sql.DB, id int) *Service {
 	return &Service{
-		DB: db,
+		wGroup:           &sync.WaitGroup{},
+		DB:               db,
+		ID:               id,
+		errorsCollection: make(chan error, 10000),
 	}
+}
+
+func (service *Service) Debug(needPanic bool, text ...interface{}) {
+	utils.Debug(needPanic, "Chat", service.ID, ":", text)
+}
+
+func (service *Service) Check() (bool, error) {
+	err := service.DB.Ping()
+	if err != nil {
+		return false, err
+	}
+
+	select {
+	case err = <-service.errorsCollection:
+		utils.Debug(false, "service check warning!!!")
+		return true, err
+	default:
+		utils.Debug(false, "service no errors:(")
+		return false, nil
+	}
+}
+
+func (service *Service) Close() {
+	timeout := 2 * time.Second //TODO в конфиг!
+	utils.WaitWithTimeout(service.wGroup, timeout)
+
+	service.DB.Close()
+	close(service.errorsCollection)
+	return
 }
 
 // CreateChat create chat with or without users.
 // Specify the type of chat and id received from the corresponding database table
 // Return id for this chat, save it. It must be transferred to any chat operations
 func (service *Service) CreateChat(ctx context.Context, chat *ChatWithUsers) (*ChatID, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("CreateChat")
 	if chat == nil {
 		return &ChatID{}, re.InvalidMessage()
 	}
@@ -54,19 +98,24 @@ func (service *Service) CreateChat(ctx context.Context, chat *ChatWithUsers) (*C
 	if err = tx.Commit(); err != nil {
 		return ChatID, err
 	}
-	utils.Debug(false, "CreateChat success")
+	service.Debug(false, "CreateChat success")
 	return ChatID, err
 }
 
 // GetChat get the ID of the chat, based on its type and the passed ID of this type
 func (service *Service) GetChat(ctx context.Context, chat *Chat) (*ChatID, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("GetChat")
 	if chat == nil {
 		return &ChatID{}, re.InvalidChatID()
 	}
 
 	id, err := service.getChat(chat)
 	if err == nil {
-		utils.Debug(false, "GetChat success:", chat.Type, chat.TypeId, id)
+		service.Debug(false, "GetChat success:", chat.Type, chat.TypeId, id)
 	} else {
 		var (
 			tx *sql.Tx
@@ -92,6 +141,11 @@ func (service *Service) GetChat(ctx context.Context, chat *Chat) (*ChatID, error
 // Return id for this message, save it. It must be transferred to any message
 // operations
 func (service *Service) AppendMessage(ctx context.Context, message *Message) (*MessageID, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("AppendMessage")
 	if message == nil {
 		return &MessageID{}, re.InvalidMessage()
 	}
@@ -102,20 +156,25 @@ func (service *Service) AppendMessage(ctx context.Context, message *Message) (*M
 
 	id, err := service.insertMessage(message)
 	if err == nil {
-		utils.Debug(false, "AppendMessage success")
+		service.Debug(false, "AppendMessage success")
 	}
 	return id, err
 }
 
 // AppendMessages append messages to database
 func (service *Service) AppendMessages(ctx context.Context, messages *Messages) (*MessagesID, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("AppendMessages")
 	if messages == nil {
 		return &MessagesID{}, re.InvalidMessage()
 	}
 
 	ids, err := service.insertMessages(messages)
 	if err == nil {
-		utils.Debug(false, "AppendMessages success")
+		service.Debug(false, "AppendMessages success")
 	}
 	return ids, err
 }
@@ -124,6 +183,11 @@ func (service *Service) AppendMessages(ctx context.Context, messages *Messages) 
 // to work correctly, specify the ID of the message in which
 // the operation occurs
 func (service *Service) UpdateMessage(ctx context.Context, message *Message) (*Result, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("UpdateMessage")
 	if message == nil {
 		return &Result{}, re.InvalidMessage()
 	}
@@ -134,7 +198,7 @@ func (service *Service) UpdateMessage(ctx context.Context, message *Message) (*R
 
 	res, err := service.updateMessage(message)
 	if err == nil {
-		utils.Debug(false, "UpdateMessage success")
+		service.Debug(false, "UpdateMessage success")
 	}
 	return res, err
 }
@@ -143,6 +207,11 @@ func (service *Service) UpdateMessage(ctx context.Context, message *Message) (*R
 // to work correctly, specify the ID of the message in which
 // the operation occurs
 func (service *Service) DeleteMessage(ctx context.Context, message *Message) (*Result, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("DeleteMessage")
 	if message == nil {
 		return &Result{}, re.InvalidMessage()
 	}
@@ -153,7 +222,7 @@ func (service *Service) DeleteMessage(ctx context.Context, message *Message) (*R
 
 	res, err := service.deleteMessage(message)
 	if err == nil {
-		utils.Debug(false, "deleteMessage success")
+		service.Debug(false, "deleteMessage success")
 	}
 	return res, err
 }
@@ -161,6 +230,11 @@ func (service *Service) DeleteMessage(ctx context.Context, message *Message) (*R
 // InviteToChat invite user to the chat
 // to work correctly, specify user and id of the chat
 func (service *Service) InviteToChat(ctx context.Context, userInChat *UserInGroup) (*Result, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("InviteToChat")
 	if userInChat == nil {
 		return &Result{}, re.InvalidUser()
 	}
@@ -189,7 +263,7 @@ func (service *Service) InviteToChat(ctx context.Context, userInChat *UserInGrou
 
 	err = tx.Commit()
 	if err == nil {
-		utils.Debug(false, "InviteToChat success")
+		service.Debug(false, "InviteToChat success")
 	}
 
 	return &Result{Done: true}, err
@@ -198,6 +272,11 @@ func (service *Service) InviteToChat(ctx context.Context, userInChat *UserInGrou
 // LeaveChat leave user from the chat
 // to work correctly, specify user and id of the chat
 func (service *Service) LeaveChat(ctx context.Context, userInChat *UserInGroup) (*Result, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("LeaveChat")
 	if userInChat == nil {
 		return &Result{}, re.InvalidUser()
 	}
@@ -212,20 +291,25 @@ func (service *Service) LeaveChat(ctx context.Context, userInChat *UserInGroup) 
 
 	res, err := service.deleteUserInChat(userInChat)
 	if err == nil {
-		utils.Debug(false, "LeaveChat success")
+		service.Debug(false, "LeaveChat success")
 	}
 	return res, err
 }
 
 // GetChatMessages get all messages from the chad with specified id
 func (service Service) GetChatMessages(ctx context.Context, chatID *ChatID) (*Messages, error) {
+	service.wGroup.Add(1)
+	defer func() {
+		service.wGroup.Done()
+	}()
+	service.errorsCollection <- errors.New("GetChatMessages")
 	if chatID == nil {
 		return &Messages{}, re.InvalidMessage()
 	}
 
 	messages, err := service.getChatMessages(chatID)
 	if err == nil {
-		utils.Debug(false, "GetChatMessages success. Id was", chatID.Value,
+		service.Debug(false, "GetChatMessages success. Id was", chatID.Value,
 			"Messages amount:", len(messages.Messages))
 	}
 	return messages, err
