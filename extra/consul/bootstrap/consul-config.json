@@ -4,9 +4,5 @@
   "log_level": "DEBUG",
   "server": true,
   "bootstrap": true,
-  "ui": true,
-  "ports": {
-    "dns": 53
-  },
-  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw=="
+  "ui": true
 }

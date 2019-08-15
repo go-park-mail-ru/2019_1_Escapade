@@ -20,6 +20,7 @@ func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
 		database *sql.DB
 		place    = "database Init() -"
 	)
+	utils.Debug(false, "db info", os.Getenv(CDB.URL))
 	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
 		utils.Debug(true, place, "cant open: -", err.Error())
 		return

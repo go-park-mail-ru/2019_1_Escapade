@@ -1,6 +1,0 @@
-
- {
-		"host": "http://localhost",
-		"portUrl": "PORT_API_URL",
-		"portValue": ":3001"
-	}

@@ -16,6 +16,6 @@
 /bin
 secret.json
 .vscode
-/vault/data
-/consul/data
-/vault/logs
+/vault/data/*
+/consul/data/*
+/vault/logs/*

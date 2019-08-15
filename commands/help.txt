@@ -1,5 +1,0 @@
-// enter in container
-sudo docker-compose exec -it consul /bin/bash
-
-// update config
-storeconfig --consul.endpoint=127.0.0.1:8500 -c config.toml &&

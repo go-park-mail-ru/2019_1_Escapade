@@ -614,6 +614,8 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig6(in 
 			out.URL = string(in.String())
 		case "connectionString":
 			out.ConnectionString = string(in.String())
+		case "authConnectionString":
+			out.AuthConnectionString = string(in.String())
 		case "maxOpenConns":
 			out.MaxOpenConns = int(in.Int())
 		case "pageGames":
@@ -648,6 +650,11 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig6(out
 		const prefix string = ",\"connectionString\":"
 		out.RawString(prefix)
 		out.String(string(in.ConnectionString))
+	}
+	{
+		const prefix string = ",\"authConnectionString\":"
+		out.RawString(prefix)
+		out.String(string(in.AuthConnectionString))
 	}
 	{
 		const prefix string = ",\"maxOpenConns\":"

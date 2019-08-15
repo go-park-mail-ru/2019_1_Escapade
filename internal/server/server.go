@@ -116,9 +116,7 @@ func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
 
 	l = netutil.LimitListener(l, connectionCount)
 
-	utils.Debug(false, "before signal.Notify")
 	signal.Notify(stopChan, os.Interrupt)
-	utils.Debug(false, "after signal.Notify")
 
 	go func() {
 		if err := grpcServer.Serve(l); err != nil {

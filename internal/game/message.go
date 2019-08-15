@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"time"
 
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 

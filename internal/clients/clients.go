@@ -2,8 +2,8 @@ package clients
 
 import (
 	//session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
-	pChat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"strconv"
@@ -48,7 +48,8 @@ func (clients *Clients) InitChat(address string, consulAddr string, ready chan e
 
 	servers := []string{}
 	for _, item := range health {
-		addr := item.Service.Address +
+		//item.Service.Address
+		addr := "chat1" +
 			":" + strconv.Itoa(item.Service.Port)
 		servers = append(servers, addr)
 	}

@@ -49,12 +49,13 @@ type CORSConfig struct {
 //   and users
 //easyjson:json
 type DatabaseConfig struct {
-	DriverName       string `json:"driverName"`
-	URL              string `json:"url"`
-	ConnectionString string `json:"connectionString"`
-	MaxOpenConns     int    `json:"maxOpenConns"`
-	PageGames        int    `json:"pageGames"`
-	PageUsers        int    `json:"pageUsers"`
+	DriverName           string `json:"driverName"`
+	URL                  string `json:"url"`
+	ConnectionString     string `json:"connectionString"`
+	AuthConnectionString string `json:"authConnectionString"`
+	MaxOpenConns         int    `json:"maxOpenConns"`
+	PageGames            int    `json:"pageGames"`
+	PageUsers            int    `json:"pageUsers"`
 }
 
 //easyjson:json

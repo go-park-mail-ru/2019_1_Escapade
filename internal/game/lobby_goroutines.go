@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 

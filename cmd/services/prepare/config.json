@@ -1,0 +1,160 @@
+{
+    "backends": {
+      "database": {
+        "main": {
+          "driverName": "postgres",
+          "postgres://rolepade:escapade@pg:5432/escabase?sslmode\npageGames": 2,
+          "pageUsers": 100,
+          "ports": [
+            2345
+          ],
+          "maxOpenConns": 20
+        },
+        "auth": {
+          "driverName": "postgres",
+          "postgres://rolepade:escapade@pg:5432/escabase?sslmode\nports": [
+            2345
+          ],
+          "maxOpenConns": 20
+        }
+      },
+      "service": {
+        "api": {
+          "ServiceName": "api",
+          "ContainerName": "api",
+          "Secret": "sDcrliQy2Q7n1rvs",
+          "ports": [
+            3001
+          ],
+          "wGroupTimeoutS": 2
+        },
+        "game": {
+          "ServiceName": "game",
+          "ContainerName": "game",
+          "Secret": "54xI3d3yWes2PdQg",
+          "ports": [
+            3002
+          ],
+          "dependsOn": [
+            "chat"
+          ],
+          "roomsCapacity": 500,
+          "connectionCapacity": 1000,
+          "closeRoom": true,
+          "metrics": true,
+          "wGroupTimeoutS": 60,
+          "field": {
+            "minAreaSize": 1,
+            "maxAreaSize": 5,
+            "minProbability": 20,
+            "maxProbability": 80,
+            "wGroupTimeoutS": 40
+          }
+        },
+        "auth": {
+          "ServiceName": "auth",
+          "ContainerName": "auth",
+          "Secret": "3yffZ5D03wdnfWAA",
+          "ports": [
+            3003
+          ],
+          "accessTokenExpireHours": 2,
+          "refreshTokenExpireHours": 336,
+          "isGenerateRefresh": true,
+          "withReserve": true,
+          "tokenType": "bearer",
+          "wGroupTimeoutS": 10
+        },
+        "history": {
+          "ServiceName": "history",
+          "ContainerName": "history",
+          "Secret": "gtMMMTWqqqqFBhSY",
+          "ports": [
+            3004
+          ],
+          "dependsOn": [
+            "chat"
+          ],
+          "roomsCapacity": 500,
+          "connectionCapacity": 1,
+          "closeRoom": false,
+          "metrics": false,
+          "wGroupTimeoutS": 2
+        },
+        "chat": {
+          "ServiceName": "chat",
+          "ContainerName": "chat",
+          "Secret": "rrjb6QEYWn5tDrrr",
+          "ports": [
+            3005
+          ],
+          "wGroupTimeoutS": 2
+        }
+      },
+      "settings": {
+        "cors": {
+          "origins": [
+            "http://localhost:8080",
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "https://escapade-frontend.herokuapp.com",
+            "https://ser.ru.com",
+            "https://explosion.team"
+          ],
+          "headers": [
+            "Content-type"
+          ],
+          "methods": [
+            "GET",
+            "POST",
+            "DELETE",
+            "PUT",
+            "OPTIONS"
+          ],
+          "credentials": "true"
+        },
+        "timeouts": {
+          "readTimeoutS": 10,
+          "writeTimeoutS": 15,
+          "idleTimeoutS": 5,
+          "waitTimeoutS": 0,
+          "execTimeoutS": 90
+        },
+        "websocket": {
+          "writeWait": 60,
+          "pongWait": 10,
+          "pingPeriod": 9,
+          "maxMessageSize": 4096,
+          "readBufferSize": 1024,
+          "writeBufferSize": 1024
+        },
+        "sync": {
+          "location": "Europe/Moscow"
+        },
+        "cookie": {
+          "path": "/",
+          "length": 32,
+          "lifetime": 604800,
+          "httpOnly": false
+        },
+        "consul": {}
+      },
+      "cookie": {
+        "token": {
+          "main": {
+            "accessToken": "access_token",
+            "tokenType": "token_type",
+            "refreshToken": "refresh_token",
+            "expire": "expire"
+          },
+          "reserve": {
+            "accessToken": "r_access_token",
+            "tokenType": "r_token_type",
+            "refreshToken": "r_refresh_token",
+            "expire": "r_expire"
+          }
+        }
+      }
+    }
+  }
