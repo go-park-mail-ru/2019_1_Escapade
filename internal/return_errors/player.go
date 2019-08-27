@@ -8,6 +8,10 @@ func ErrorUserIsExist() error {
 	return errors.New("Username with such name exists")
 }
 
+func UserExistWrapper(err error) error {
+	return errors.New("Username with such name exists. More: " + err.Error())
+}
+
 // ErrorNameIstaken call it, if client give you
 // 	name, that exists in database
 func ErrorNameIstaken() error {
@@ -30,4 +34,9 @@ func ErrorInvalidName() error {
 // 	find user
 func ErrorUserNotFound() error {
 	return errors.New("User not found")
+}
+
+// NoUserWrapper - wrapper for an no-user error
+func NoUserWrapper(err error) error {
+	return errors.New("User not found. More: " + err.Error())
 }

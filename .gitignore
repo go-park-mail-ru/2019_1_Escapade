@@ -14,7 +14,7 @@
 
 /vendor
 /bin
-secret.json
+secret*.json
 .vscode
 /vault/data/*
 /consul/data/*

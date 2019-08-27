@@ -14,7 +14,7 @@ import (
 // Init try to connect to DataBase.
 // If success - return instance of DataBase
 // if failed - return error
-func Init(CDB config.DatabaseConfig) (db *DataBase, err error) {
+func Init(CDB config.Database) (db *DataBase, err error) {
 
 	var (
 		database *sql.DB

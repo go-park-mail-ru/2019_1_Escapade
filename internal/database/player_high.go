@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"database/sql"
 )
@@ -23,7 +22,6 @@ func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err erro
 	defer tx.Rollback()
 
 	if userID, err = db.createPlayer(tx, user); err != nil {
-		err = re.ErrorUserIsExist()
 		return
 	}
 

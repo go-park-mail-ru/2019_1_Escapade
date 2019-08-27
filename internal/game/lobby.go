@@ -181,7 +181,7 @@ type Lobby struct {
 	_db *database.DataBase
 
 	configM *sync.RWMutex
-	_config *config.GameConfig
+	_config *config.Game
 
 	dbChatIDM *sync.RWMutex
 	_dbChatID int32
@@ -193,7 +193,7 @@ type Lobby struct {
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(config *config.GameConfig, db *database.DataBase,
+func NewLobby(config *config.Game, db *database.DataBase,
 	SetImage SetImage) *Lobby {
 
 	context, cancel := context.WithCancel(context.Background())
@@ -238,7 +238,7 @@ func NewLobby(config *config.GameConfig, db *database.DataBase,
 }
 
 // SetConfiguration set lobby configuration
-func (lobby *Lobby) SetConfiguration(config *config.GameConfig, db *database.DataBase,
+func (lobby *Lobby) SetConfiguration(config *config.Game, db *database.DataBase,
 	setImage SetImage) {
 
 	var (
@@ -266,7 +266,7 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.GameConfig, db *database.DataBase, si SetImage) {
+func Launch(gc *config.Game, db *database.DataBase, si SetImage) {
 
 	if LOBBY == nil {
 		LOBBY = NewLobby(gc, db, si)

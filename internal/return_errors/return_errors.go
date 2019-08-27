@@ -2,6 +2,10 @@ package rerrors
 
 import "errors"
 
+func ID() error {
+	return errors.New("No such id")
+}
+
 // ErrorInvalidName call it, if client give you
 // 	invalid username
 func ErrorInvalidUserID() error {
@@ -32,12 +36,24 @@ func ErrorAvatarNotFound() error {
 	return errors.New("Avatar not found")
 }
 
+func NoAvatarWrapper(err error) error {
+	return errors.New("Avatar not found. More: " + err.Error())
+}
+
 // ErrorDataBase  call it, if error in database
 func ErrorDataBase() error {
 	return errors.New("DataBase error")
 }
 
+func DatabaseWrapper(err error) error {
+	return errors.New("Database error. More: " + err.Error())
+}
+
 // ErrorServer  call it, if error internal
 func ErrorServer() error {
 	return errors.New("Server error")
+}
+
+func ServerWrapper(err error) error {
+	return errors.New("Server error. More: " + err.Error())
 }

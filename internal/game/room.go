@@ -134,7 +134,7 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 }
 
 // NewRoom return new instance of room
-func NewRoom(config *config.FieldConfig, lobby *Lobby,
+func NewRoom(config *config.Field, lobby *Lobby,
 	game *models.Game, id string) (*Room, error) {
 	if !CharacteristicsCheck(game.Settings) || !game.Settings.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
@@ -165,7 +165,7 @@ func NewRoom(config *config.FieldConfig, lobby *Lobby,
 }
 
 // Init init instance of room
-func (room *Room) Init(config *config.FieldConfig, lobby *Lobby,
+func (room *Room) Init(config *config.Field, lobby *Lobby,
 	rs *models.RoomSettings, id string) {
 
 	room.wGroup = &sync.WaitGroup{}

@@ -23,19 +23,19 @@ type Clients struct {
 
 var ALL Clients
 
-func (clients *Clients) Init(consulAddr string, ready chan error, finish chan interface{}, configClients ...config.Client) {
+func (clients *Clients) Init(consulAddr string, ready chan error,
+	finish chan interface{}, conf config.Service) {
 	clients.chatM = &sync.RWMutex{}
-	utils.Debug(false, "init", len(configClients))
-	for _, client := range configClients {
-		utils.Debug(false, "client name ", client.Name)
-		if client.Name == "chat" {
-			go clients.InitChat(client.Address, consulAddr, ready, finish)
+	for _, client := range conf.DependsOn {
+		utils.Debug(false, "client name ", client)
+		if client == "chat" {
+			go clients.InitChat(client, consulAddr, ready, finish)
 			<-ready
 		}
 	}
 }
 
-func (clients *Clients) InitChat(address string, consulAddr string, ready chan error, finish chan interface{}) {
+func (clients *Clients) InitChat(name string, consulAddr string, ready chan error, finish chan interface{}) {
 
 	config := consulapi.DefaultConfig()
 	config.Address = consulAddr

@@ -2,11 +2,9 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
@@ -24,7 +22,7 @@ import (
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 404 {object} models.Result "Avatar not found"
 // @Router /avatar [GET]
-func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) Result {
 	const place = "GetImage"
 	var (
 		err     error
@@ -34,32 +32,22 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 	)
 
 	if name, err = h.getName(r); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, re.ErrorInvalidName(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
+		return NewResult(http.StatusBadRequest, place, nil, re.ErrorInvalidName())
 	}
 
 	if fileKey, err = h.DB.GetImage(name); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+		return NewResult(http.StatusNotFound, place, nil, re.NoAvatarWrapper(err))
 	}
 
-	url.URL, err = photo.GetImage(fileKey)
+	url.URL, err = photo.GetImageFromS3(fileKey)
 	if err != nil {
-		utils.Debug(false, "Failed to sign request", err)
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+		return NewResult(http.StatusNotFound, place, nil, re.NoAvatarWrapper(err))
 	}
 
-	utils.SendSuccessJSON(rw, url, place)
-	utils.PrintResult(err, http.StatusOK, place)
+	return NewResult(http.StatusOK, place, &url, nil)
 }
 
-// PostImage create avatar
+// PostImage create avatar поделать курл
 // @Summary Create user avatar
 // @Description Create user avatar
 // @ID PostImage
@@ -67,7 +55,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "Avatar not found"
 // @Router /avatar [POST]
-func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) Result {
 	const place = "PostImage"
 
 	var (
@@ -78,60 +66,41 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		url    models.Avatar
 	)
 
-	if userID, err = h.getUserIDFromAuthRequest(r); err != nil {
-		rw.WriteHeader(http.StatusUnauthorized)
-		utils.SendErrorJSON(rw, re.ErrorAuthorization(), place)
-		utils.PrintResult(err, http.StatusUnauthorized, place)
-		return
+	if userID, err = GetUserIDFromAuthRequest(r); err != nil {
+		return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
-	utils.Debug(false, "r.FormFile next")
 	maxFileSize := photo.MaxFileSize()
 
 	if err := r.ParseMultipartForm(maxFileSize); err != nil {
-		utils.Debug(false, "ParseMultipartForm err", err.Error())
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, re.ErrorInvalidFile(), place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
+		return NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
 	}
 
 	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
 
 	if file, handle, err = r.FormFile("file"); err != nil || file == nil || handle == nil {
-		utils.Debug(false, "r.FormFile err", err.Error())
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, re.ErrorInvalidFile(), place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
+		return NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
 	}
 
 	defer file.Close()
 
-	var buff bytes.Buffer
-	fileSize, err := buff.ReadFrom(file)
-	fmt.Println("fileSize:", fileSize)
+	var (
+		buff     bytes.Buffer
+		fileSize int64
+	)
 
-	if err != nil {
-		utils.Debug(false, "ReadFrom err", err.Error())
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, re.ErrorInvalidFile(), place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
+	if fileSize, err = buff.ReadFrom(file); err != nil {
+		return NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
 	}
 
-	utils.Debug(false, "compare sizes", fileSize, maxFileSize)
 	if fileSize > maxFileSize {
-		err = re.ErrorInvalidFileSize(fileSize, maxFileSize)
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, err, place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
+		return NewResult(http.StatusBadRequest, place, nil,
+			re.ErrorInvalidFileSize(fileSize, maxFileSize))
 	}
 
 	if _, err := file.Seek(0, 0); err != nil {
-		utils.Debug(false, "file.Seek err", err.Error())
-		return
+		return NewResult(http.StatusBadRequest, place, nil,
+			re.ErrorInvalidFileSize(fileSize, maxFileSize))
 	}
 
 	var (
@@ -146,45 +115,25 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !found {
-		utils.Debug(false, "found type", fileType)
-		rw.WriteHeader(http.StatusBadRequest)
-		utils.SendErrorJSON(rw, re.ErrorInvalidFileFormat(allowedFileTypes), place)
-		utils.PrintResult(err, http.StatusBadRequest, place)
-		return
+		return NewResult(http.StatusBadRequest, place, nil, re.ErrorInvalidFileFormat(allowedFileTypes))
 	}
-	//Генерация уник.ключа для хранения картинки
-	fileKey := uuid.NewV4()
+	fileKey := uuid.NewV4().String()
 
-	utils.Debug(false, "save next", fileType)
-
-	err = photo.SaveImage(fileKey.String(), file)
-
+	err = photo.SaveImageInS3(fileKey, file)
 	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorServer(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
-		return
+		return NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
 
-	utils.Debug(false, "h.DB.PostImage next")
-
-	if err = h.DB.PostImage(fileKey.String(), userID); err != nil {
-		photo.DeleteImage(fileKey.String())
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
-		return
+	if err = h.DB.PostImage(fileKey, userID); err != nil {
+		photo.DeleteImageFromS3(fileKey)
+		return NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
 
-	utils.Debug(false, "photo.GetImage next")
-
-	if url.URL, err = photo.GetImage(fileKey.String()); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorAvatarNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+	if url.URL, err = photo.GetImageFromS3(fileKey); err != nil {
+		return NewResult(http.StatusInternalServerError, place, nil, re.NoAvatarWrapper(err))
 	}
 
-	utils.SendSuccessJSON(rw, url, place)
-	utils.PrintResult(err, http.StatusCreated, place)
+	return NewResult(http.StatusCreated, place, &url, nil)
 }
+
+// 192 -> 141

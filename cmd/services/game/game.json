@@ -16,7 +16,7 @@
 	"dataBase": {
 		"driverName": "postgres",
 		"url": "DATABASE_URL",
-		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable",
+		"connectionString": "postgres://rolepade:escapade@pg:5429/escabase?sslmode=disable",
 		"maxOpenConns": 20
 	},
 	"cors": {

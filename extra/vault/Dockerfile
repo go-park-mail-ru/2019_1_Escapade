@@ -25,6 +25,8 @@ ENV PATH="PATH=$PATH:$PWD/vault"
 # add the config file
 COPY . .
 
+RUN rm -rf  /vault/data/*
+
 # expose port 8200
 EXPOSE 8200
 

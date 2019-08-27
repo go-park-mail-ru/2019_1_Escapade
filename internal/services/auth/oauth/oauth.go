@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/go-session/session"
 	"github.com/jackc/pgx"
@@ -88,7 +90,7 @@ func addClients(store *pg.ClientStore, clients []*models.Client) error {
 	}
 }
 
-func Server(db *database.DataBase, manager *manage.Manager) *server.Server {
+func Server(db *database.DataBase, eryDB *erydb.DB, manager *manage.Manager) *server.Server {
 	srv := server.NewServer(
 		&server.Config{
 			TokenType:            "Bearer",
@@ -102,15 +104,33 @@ func Server(db *database.DataBase, manager *manage.Manager) *server.Server {
 	// allow the grant types model:AuthorizationCode,PasswordCredentials,ClientCredentials,Refreshing
 	//srv.SetAllowedGrantType("password_credentials", "refreshing")
 
-	srv.SetPasswordAuthorizationHandler(func(username, password string) (userID string, err error) {
-		var intUserID int32
-		if intUserID, err = db.Login(username, password); err != nil {
-			err = re.ErrorUserNotFound()
-			return
+	srv.SetPasswordAuthorizationHandler(func(username, password string) (string, error) {
+		var (
+			intUserID    int32
+			stringUserID string
+			err          error
+		)
+		fmt.Println("try password!")
+		if db != nil {
+			if intUserID, err = db.Login(username, password); err != nil {
+				utils.Debug(false, "exp password check error ", re.NoUserWrapper(err))
+			}
 		}
-		userID = utils.String32(intUserID)
-		utils.Debug(false, "userID", userID, intUserID)
-		return
+		if eryDB != nil {
+			if intUserID, err = eryDB.GetUserID(username, password); err != nil {
+				utils.Debug(false, "ery password check error", re.NoUserWrapper(err))
+			}
+		}
+		if err != nil {
+			return stringUserID, re.NoUserWrapper(err)
+		}
+		if intUserID == 0 {
+			return stringUserID, re.ErrorUserNotFound()
+		}
+
+		stringUserID = utils.String32(intUserID)
+		utils.Debug(false, "userID", stringUserID, intUserID)
+		return stringUserID, nil
 	})
 
 	srv.SetUserAuthorizationHandler(userAuthorizeHandler)

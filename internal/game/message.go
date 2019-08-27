@@ -9,12 +9,13 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Sender is the func that send information to connections
-type Sender func(utils.JSONtype, SendPredicate)
+type Sender func(handlers.JSONtype, SendPredicate)
 
 // AppendMessage - the function to append message to message slice
 type AppendMessage func(*models.Message)

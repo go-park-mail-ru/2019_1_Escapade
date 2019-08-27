@@ -14,6 +14,18 @@ definitions:
       success:
         type: boolean
     type: object
+  models.UserPrivateInfo:
+    properties:
+      name:
+        example: John
+        maxLength: 30
+        type: string
+      password:
+        example: easyPassword
+        maxLength: 30
+        minLength: 6
+        type: string
+    type: object
   models.UserPublicInfo:
     properties:
       bestScore:
@@ -25,14 +37,19 @@ definitions:
       id:
         type: integer
       name:
+        maxLength: 30
+        minLength: 3
         type: string
       photo:
+        maxLength: 50
         type: string
     type: object
-host: https://explosion.team
+host: localhost:3001
 info:
   contact: {}
-  description: API documentation
+  description: We don't have a public API, so instead of a real host(explosion.team)
+    we specify localhost:3001. To test the following methods, git clone https://github.com/go-park-mail-ru/2019_1_Escapade,
+    enter the root directory and run 'docker-compose up -d'
   license: {}
   title: Escapade Explosion API
   version: "1.0"
@@ -46,14 +63,17 @@ paths:
           description: Avatar found successfully
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "404":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: Get user avatar
     post:
       description: Create user avatar
@@ -63,14 +83,17 @@ paths:
           description: Avatar created successfully
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: Create user avatar
   /session:
     delete:
@@ -81,14 +104,17 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "401":
           description: Require authorization
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: logout
     post:
       description: login
@@ -98,14 +124,17 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
+            type: object
         "400":
           description: invalid name or password
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: login
   /user:
     delete:
@@ -116,18 +145,65 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "400":
           description: invalid input
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: delete account
     get:
       description: get public information about that user
       operationId: GetMyProfile
+      parameters:
+      - description: string enums
+        enum:
+        - A
+        - B
+        - C
+        in: query
+        name: enumstring
+        type: string
+      - description: int enums
+        enum:
+        - 1
+        - 2
+        - 3
+        in: query
+        name: enumint
+        type: integer
+      - description: int enums
+        enum:
+        - 1.1
+        - 1.2
+        - 1.3
+        in: query
+        name: enumnumber
+        type: number
+      - description: string valid
+        in: query
+        maxLength: 10
+        minLength: 5
+        name: string
+        type: string
+      - description: int valid
+        in: query
+        maximum: 10
+        minimum: 1
+        name: int
+        type: integer
+      - default: A
+        description: string default
+        in: query
+        name: default
+        type: string
+      produces:
+      - application/json
       responses:
         "201":
           description: Create user successfully
@@ -137,21 +213,28 @@ paths:
               type: string
           schema:
             $ref: '#/definitions/models.Result'
-        "400":
+            type: object
+        "401":
           description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: get public information about that user
-    options:
-      description: catch CORS preflight
-      operationId: OK1
-      responses:
-        "200":
-          description: successfully
-      summary: catch CORS preflight
     post:
+      consumes:
+      - application/json
       description: create new user
       operationId: Register
+      parameters:
+      - description: User ingo1
+        in: body
+        name: name
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserPrivateInfo'
+          type: object
+      produces:
+      - application/json
       responses:
         "201":
           description: Create user successfully
@@ -161,10 +244,12 @@ paths:
               type: string
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "400":
           description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: create new user
     put:
       description: update public info
@@ -174,14 +259,17 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "400":
           description: invalid info
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "401":
           description: need authorization
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: update user information
   /users/{name}/profile:
     get:
@@ -202,14 +290,17 @@ paths:
           description: Profile found successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
+            type: object
         "400":
           description: Invalid username
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: Get public user inforamtion
   /users/{page}:
     get:
@@ -226,14 +317,17 @@ paths:
           description: Invalid pade
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "404":
           description: Users not found
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: Get users list
   /users/pages_amount:
     get:
@@ -244,9 +338,11 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Pages'
+            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
+            type: object
       summary: amount of users list page
 swagger: "2.0"

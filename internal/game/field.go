@@ -31,14 +31,14 @@ type Field struct {
 	cellsLeftM *sync.RWMutex
 	_cellsLeft int32
 
-	config *config.FieldConfig
+	config *config.Field
 
 	Mines     int32
 	Difficult float64
 }
 
 // NewField create new instance of field
-func NewField(rs *models.RoomSettings, config *config.FieldConfig) *Field {
+func NewField(rs *models.RoomSettings, config *config.Field) *Field {
 	matrix := generate(rs)
 	field := &Field{
 		wGroup: &sync.WaitGroup{},

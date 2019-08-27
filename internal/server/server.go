@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool,
+func Server(r *mux.Router, serverConfig config.Server, isHTTP bool,
 	port string) *http.Server {
 	var (
 		readTimeout  = time.Duration(serverConfig.ReadTimeoutS) * time.Second
@@ -45,7 +45,7 @@ func Server(r *mux.Router, serverConfig config.ServerConfig, isHTTP bool,
 	return srv
 }
 
-func LaunchHTTP(server *http.Server, serverConfig config.ServerConfig, lastFunc func()) {
+func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 	defer func() {

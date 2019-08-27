@@ -5,11 +5,12 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"strconv"
@@ -17,12 +18,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/oauth2"
 )
-
-type ContextKey string
-
-const ContextUserKey ContextKey = "userID"
 
 type respWriterStatusCode struct {
 	http.ResponseWriter
@@ -35,14 +31,12 @@ func (rw *respWriterStatusCode) WriteHeader(status int) {
 }
 
 // CORS Access-Control-Allow-Origin
-func CORS(cc config.CORSConfig) mux.MiddlewareFunc {
+func CORS(cc config.CORS) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			origin := cors.GetOrigin(r)
 			if !cors.IsAllowed(origin, cc.Origins) {
-				place := "middleware/CORS"
-				utils.PrintResult(re.ErrorCORS(origin), http.StatusForbidden, place)
-				rw.WriteHeader(http.StatusForbidden)
+				api.SendResult(rw, api.NewResult(http.StatusForbidden, "cors", nil, re.CORS(origin)))
 				utils.Debug(false, "cors no!!!!!!!!!!")
 				return
 			}
@@ -56,29 +50,31 @@ func CORS(cc config.CORSConfig) mux.MiddlewareFunc {
 }
 
 // Auth Check cookie exists
-func Auth(cc config.SessionConfig, oauth oauth2.Config) mux.MiddlewareFunc {
+func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			utils.Debug(false, "auth start")
 			var (
 				maxLimit = 3
 				userID   string
 				err      error
 			)
 			for i := 0; i < maxLimit; i++ {
-				userID, err = auth.Check(rw, r, oauth)
+				utils.Debug(false, "auth check start")
+				userID, err = auth.Check(rw, r, cc, ca, client)
+				utils.Debug(false, "auth check end")
 				if err == nil {
 					break
 				}
 			}
 			if err != nil {
 				const place = "middleware/Auth"
-				rw.WriteHeader(http.StatusUnauthorized)
-				utils.PrintResult(err, http.StatusUnauthorized, place)
-				utils.SendErrorJSON(rw, http.ErrNoCookie, place)
+				api.SendResult(rw, api.NewResult(http.StatusUnauthorized, place, nil, err))
 				return
 			}
-			ctx := context.WithValue(r.Context(), ContextUserKey, userID)
+			ctx := context.WithValue(r.Context(), api.ContextUserKey, userID)
 
+			utils.Debug(false, "auth end")
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}

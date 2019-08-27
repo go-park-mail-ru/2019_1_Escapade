@@ -13,7 +13,7 @@ import (
 // LaunchLobbyHistory launch local lobby with rooms from database
 func LaunchLobbyHistory(db *database.DataBase,
 	ws *websocket.Conn, user *models.UserPublicInfo,
-	WSsettings config.WebSocketSettings, gameSettings *config.GameConfig,
+	cw config.WebSocket, gameSettings *config.Game,
 	si SetImage) {
 
 	urls, err := db.GetGamesURL(user.ID)
@@ -40,5 +40,5 @@ func LaunchLobbyHistory(db *database.DataBase,
 	}
 
 	conn := NewConnection(ws, user, lobby)
-	conn.Launch(WSsettings, "")
+	conn.Launch(cw, "")
 }

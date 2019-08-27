@@ -80,14 +80,14 @@ func (lobby *Lobby) db() *database.DataBase {
 }
 
 // dbChatID set the configuration of lobby
-func (lobby *Lobby) setConfig(c *config.GameConfig) {
+func (lobby *Lobby) setConfig(c *config.Game) {
 	lobby.configM.Lock()
 	lobby._config = c
 	lobby.configM.Unlock()
 }
 
 // dbChatID get the congifuration of lobby
-func (lobby *Lobby) config() *config.GameConfig {
+func (lobby *Lobby) config() *config.Game {
 	lobby.configM.RLock()
 	v := lobby._config
 	lobby.configM.RUnlock()

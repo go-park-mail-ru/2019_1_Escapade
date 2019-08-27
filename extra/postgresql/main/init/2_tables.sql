@@ -1,3 +1,5 @@
+\c escabase
+
 CREATE TABLE Player (
   id SERIAL PRIMARY KEY,
   name varchar(30) NOT NULL,

@@ -6,11 +6,12 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 )
 
 // sendToAllInRoom send info to those in room, whose predicate
 // returns true
-func (room *Room) send(info utils.JSONtype, predicate SendPredicate) {
+func (room *Room) send(info handlers.JSONtype, predicate SendPredicate) {
 	players := room.Players.Connections
 	observers := room.Observers
 	SendToConnections(info, predicate, players, observers)

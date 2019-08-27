@@ -19,8 +19,20 @@
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
-		"address": ":3003"
+		"id": "1",
+		"secret": "1",
+		"scopes": ["all"],
+		"redirectURL": "http://auth:3003/auth/oauth2",
+		"address": "http://auth:3003"
 	},
+	"auth": {
+		"salt": "3yffZ5D03wdnfWAA",
+		"accessTokenExpireHours": 2,
+		"refreshTokenExpireHours": 336,
+		"isGenerateRefresh": true,
+		"withReserve": true,
+		"tokenType": "bearer"
+	  },
 	"cors": {
 		"origins": [
 			"http://localhost:8080",
@@ -32,7 +44,11 @@
 			"https://explosion.team"
 		],
 		"headers": [
-			"Content-type"
+			"Content-type",
+			"Authorization-access",
+			"Authorization-type",
+			"Authorization-refresh",
+			"Authorization-expire"
 		],
 		"methods": [
 			"GET", "POST", "DELETE", "PUT", "OPTIONS"

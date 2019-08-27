@@ -2,6 +2,7 @@ package game
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -200,8 +201,16 @@ func (conn *Connection) InPlayingRoom() bool {
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
-func (conn *Connection) Launch(ws config.WebSocketSettings, roomID string) {
+func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
 
+	ws := config.WebSocketSettings{
+		WriteWait:       time.Duration(cw.WriteWait) * time.Second,
+		PongWait:        time.Duration(cw.PongWait) * time.Second,
+		PingPeriod:      time.Duration(cw.PingPeriod) * time.Second,
+		MaxMessageSize:  cw.MaxMessageSize,
+		ReadBufferSize:  cw.ReadBufferSize,
+		WriteBufferSize: cw.WriteBufferSize,
+	}
 	// dont place there conn.wGroup.Add(1)
 	if conn.lobby == nil || conn.lobby.context == nil {
 		utils.Debug(true, "lobby nil or hasnt context!")
@@ -317,7 +326,7 @@ func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSe
 }
 
 // SendInformation send info
-func (conn *Connection) SendInformation(value utils.JSONtype) {
+func (conn *Connection) SendInformation(value handlers.JSONtype) {
 	if conn.done() {
 		return
 	}
@@ -345,7 +354,7 @@ func (conn *Connection) SendInformation(value utils.JSONtype) {
 }
 
 // sendGroupInformation send info with WaitGroup
-func (conn *Connection) sendGroupInformation(value utils.JSONtype, wg *sync.WaitGroup) {
+func (conn *Connection) sendGroupInformation(value handlers.JSONtype, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 		utils.CatchPanic("connection.go sendGroupInformation()")

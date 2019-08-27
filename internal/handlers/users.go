@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
@@ -17,7 +16,7 @@ import (
 // @Success 200 {object} models.Pages "Get successfully"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/pages_amount [GET]
-func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) Result {
 	const place = "GetUsersPageAmount"
 
 	var (
@@ -29,14 +28,10 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 	perPage = h.getPerPage(r)
 
 	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		utils.SendErrorJSON(rw, re.ErrorDataBase(), place)
-		utils.PrintResult(err, http.StatusInternalServerError, place)
-		return
+		return NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
 
-	utils.SendSuccessJSON(rw, pages, place)
-	utils.PrintResult(err, http.StatusOK, place)
+	return NewResult(http.StatusOK, place, &pages, nil)
 }
 
 // GetUsers get users list
@@ -48,7 +43,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} models.Result "Users not found"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/{page} [GET]
-func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) Result {
 	const place = "GetUsers"
 	var (
 		err       error
@@ -65,14 +60,10 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	difficult = h.getDifficult(r)
 
 	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
-		rw.WriteHeader(http.StatusNotFound)
-		utils.SendErrorJSON(rw, re.ErrorUsersNotFound(), place)
-		utils.PrintResult(err, http.StatusNotFound, place)
-		return
+		return NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	photo.GetImages(users...)
 
-	utils.SendSuccessJSON(rw, models.UsersPublicInfo{users}, place)
-	utils.PrintResult(err, http.StatusOK, place)
+	return NewResult(http.StatusOK, place, &models.UsersPublicInfo{users}, nil)
 }

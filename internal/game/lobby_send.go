@@ -3,6 +3,7 @@ package game
 import (
 	"sync"
 
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
@@ -11,11 +12,11 @@ import (
 // also all thay should be launched in goroutines and
 // recover panic
 
-func (lobby *Lobby) send(info utils.JSONtype, predicate SendPredicate) {
+func (lobby *Lobby) send(info handlers.JSONtype, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting)
 }
 
-func (lobby *Lobby) sendToAll(info utils.JSONtype, predicate SendPredicate) {
+func (lobby *Lobby) sendToAll(info handlers.JSONtype, predicate SendPredicate) {
 	SendToConnections(info, predicate, lobby.Waiting, lobby.Playing)
 }
 

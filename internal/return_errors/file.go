@@ -26,3 +26,10 @@ func ErrorInvalidFileSize(fileSize, maxSize int64) error {
 
 	return errors.New(message)
 }
+
+func FileWrapper(err error) error {
+	if err == nil {
+		return errors.New("Invalid file")
+	}
+	return errors.New("Invalid file. More: " + err.Error())
+}

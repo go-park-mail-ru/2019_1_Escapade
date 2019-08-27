@@ -83,7 +83,6 @@ func main() {
 		service.Check, finishHealthCheck)
 
 	if err != nil {
-		service.Close()
 		close(finishHealthCheck)
 		return
 	}

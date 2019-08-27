@@ -19,9 +19,9 @@ import (
 
 // @title Escapade Explosion API
 // @version 1.0
-// @description API documentation
+// @description We don't have a public API, so instead of a real host(explosion.team) we specify localhost:3001. To test the following methods, git clone https://github.com/go-park-mail-ru/2019_1_Escapade, enter the root directory and run 'docker-compose up -d'
 
-// @host https://explosion.team
+// @host localhost:3001
 // @BasePath /api
 func main() {
 	var (
@@ -82,7 +82,8 @@ func main() {
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Set the settings of our server and associate it with third-party")
 
-	r := server.APIRouter(API, configuration.Cors, configuration.Session)
+	r := server.APIRouter(API, configuration.Cors, configuration.Cookie,
+		configuration.Auth, configuration.AuthClient)
 
 	srv := server.Server(r, configuration.Server, true, mainPort)
 
@@ -102,8 +103,8 @@ func main() {
 		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
 		finishHealthCheck)
 	if err != nil {
+		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")
-		API.Close()
 	}
 
 	utils.Debug(false, "✔✔✔")

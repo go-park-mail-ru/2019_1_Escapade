@@ -18,13 +18,24 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/main/
+    ports:
+      - "5429:5432"    
+
+  pg-auth:
+    image: postgres:11.2-alpine
     environment:
-      POSTGRES_USER: 'rolepade'
-      POSTGRES_PASSWORD: 'escapade'
-      POSTGRES_DB: 'escabase'
-    volumes:
-      - ./init/01_user.psql:/docker-entrypoint-initdb.d/1-user.sql
-      - ./init/02_create.psql:/docker-entrypoint-initdb.d/2-tables.sql
+      POSTGRES_USER: 'auth' 
+      POSTGRES_PASSWORD: 'auth'
+      POSTGRES_DB: 'authbase'
+    ports:
+      - "5431:5432"    
+
+  pg-ery:
+    build:
+      dockerfile: Dockerfile
+      context: ./extra/postgresql/ery/
+    ports:
+      - "5430:5432"   
 
   api:
     build:
@@ -32,6 +43,8 @@ services:
       context: .
     depends_on:
       - "pg"
+      - "consul"
+      - "auth"
     ports:
       - 3001:3001
     environment:
@@ -40,8 +53,27 @@ services:
      # - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
      # - AUTHSERVICE_URL=auth:3333
      # - PORT_API_URL=:3001
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3010 8500"
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
   
+  ery:
+    build:
+      dockerfile: ./cmd/services/ery/Dockerfile
+      context: .
+    depends_on:
+      - "pg-ery"
+      - "consul"
+      - "auth"
+    ports:
+      - 3100:3100
+    environment:
+      CONSUL_ADDRESS: consul
+    #environment:
+     # - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+     # - AUTHSERVICE_URL=auth:3333
+     # - PORT_API_URL=:3001
+    command: /bin/sh -c "./bin/ery cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
+  
+
   chat1:
     container_name: chat1
     build:
@@ -62,12 +94,25 @@ services:
       context: .
     depends_on:
       - "pg"
+      - "pg-auth"
     ports:
       - 3003:3003
     environment:
       - CONSUL_ADDRESS=consul
-      - PORT_AUTH_URL=:3333
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/auth cmd/services/auth/auth.json 3045 8500 2345"
+    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
+
+  loader:
+    build:
+      dockerfile: ./cmd/services/configLoader/Dockerfile
+      context: .
+    depends_on:
+      - "consul"
+      - "vault"
+    ports:
+      - 3007:3007
+    command: /bin/sh -c "./bin/loader config.json"
+    networks: 
+      - backend
 
   game:
     build:
@@ -126,18 +171,23 @@ services:
 
   consul:
     container_name: consul_server
+    #hostname: localhost
     build:
       context: ./extra/consul
       dockerfile: progrium/Dockerfile
-    command: agent  -bind 0.0.0.0 -client 0.0.0.0  -config-file=/consul/config/bootstrap/consul-config.json
+    ports:
+      - 8500:8500
+    command: -server -bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - ./extra/consul/config/client/consul-config.json:/consul/config/config.json
-      
+    networks: 
+      - backend
+
   consul-client:
     container_name: consul_agent
     build:
       context: ./extra/consul
-      dockerfile: progrium/Dockerfile
+      dockerfile: Dockerfile
     command: agent -join consul -config-file=/consul/config/client/consul-config.json
     ports:
       - 8499:8500
@@ -145,16 +195,10 @@ services:
       - ./extra/consul/config/client/consul-config.json:/consul/config/config.json
     depends_on:
       - consul
-
-  consul-server-2:
-    image: progrium/consul
-    command: agent -join consul -log-level debug -ui-dir /ui
-    ports:
-      - "8401:8400"
-      - "8501:8500"
-    depends_on:
-      - consul
-  
+    networks: 
+      - backend
+    links:
+      - "consul:consul-server"
 
   vault:
     build:
@@ -174,6 +218,12 @@ services:
       - IPC_LOCK
     depends_on:
       - consul
+    networks: 
+      - backend
+
+networks:
+  backend:
+    driver: bridge
 
   # consul:
   #   container_name: consul_server

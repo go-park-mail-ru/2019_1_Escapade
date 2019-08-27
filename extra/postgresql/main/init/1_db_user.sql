@@ -1,3 +1,2 @@
 CREATE USER rolepade WITH SUPERUSER PASSWORD 'escapade';
-CREATE DATABASE authbase OWNER rolepade;
 CREATE DATABASE escabase OWNER rolepade;

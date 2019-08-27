@@ -8,10 +8,10 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"os"
@@ -20,7 +20,6 @@ import (
 func main() {
 	var (
 		configuration *config.Configuration
-		handler       *api.Handler
 		db            *database.DataBase
 		err           error
 	)
@@ -107,7 +106,6 @@ func main() {
 		finishHealthCheck)
 	if err != nil {
 		utils.Debug(false, "ERROR while connecting to consul")
-		db.Db.Close()
 	}
 
 	utils.Debug(false, "✔✔✔")
@@ -116,16 +114,16 @@ func main() {
 	readyChan := make(chan error)
 	finishChan := make(chan interface{})
 
-	clients.ALL.Init(consulAddr+consulPort, readyChan, finishChan, configuration.Services...)
+	clients.ALL.Init(consulAddr+consulPort, readyChan,
+		finishChan, configuration.Service)
 
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "4. Launch the game lobby")
-	handler = api.Init(db, configuration)
 
 	game.Launch(&configuration.Game, db, photo.GetImages)
 
 	var (
-		r   = server.GameRouter(handler, configuration.Cors)
+		r   = handlers.Router(db, configuration)
 		srv = server.Server(r, configuration.Server, false, mainPort)
 	)
 

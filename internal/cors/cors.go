@@ -27,7 +27,7 @@ func IsAllowed(origin string, origins []string) (allowed bool) {
 }
 
 // SetCORS set cors headers
-func SetCORS(rw http.ResponseWriter, cc config.CORSConfig, name string) {
+func SetCORS(rw http.ResponseWriter, cc config.CORS, name string) {
 	rw.Header().Set("Access-Control-Allow-Origin", name)
 	rw.Header().Set("Access-Control-Allow-Headers", strings.Join(cc.Headers, ", "))
 	rw.Header().Set("Access-Control-Allow-Credentials", cc.Credentials)

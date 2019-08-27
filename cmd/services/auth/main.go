@@ -10,6 +10,7 @@ import (
 	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	a_handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/handlers"
 	e_oauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/oauth"
+	erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"gopkg.in/oauth2.v3/models"
@@ -21,7 +22,8 @@ func main() {
 		configuration *config.Configuration
 		err           error
 		// database with users
-		db *database.DataBase
+		db        *database.DataBase
+		anotherDB *erydb.DB
 	)
 
 	utils.Debug(false, "1. Check command line arguments")
@@ -65,11 +67,18 @@ func main() {
 	}
 
 	utils.Debug(false, "✔✔")
-	utils.Debug(false, "3. Connect to user information storage")
+	utils.Debug(false, "3. Connect to user information storages")
 
 	db, err = database.Init(configuration.DataBase)
 	if err != nil {
-		utils.Debug(false, "ERROR with database:", err.Error())
+		utils.Debug(false, "ERROR with user database:", err.Error())
+		return
+	}
+
+	anotherDB, err = erydb.Init("postgres://eryuser:nopassword@pg-ery:5432/erybase?sslmode=disable",
+		20, 20, time.Hour)
+	if err != nil {
+		utils.Debug(false, "ERROR with ery database:", err.Error())
 		return
 	}
 
@@ -103,7 +112,7 @@ func main() {
 	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "5. Set the settings of server and register in Consul")
 
-	srv := e_oauth.Server(db, manager)
+	srv := e_oauth.Server(db, anotherDB, manager)
 	r := a_handlers.Router(srv, tokenStore)
 	server := e_server.Server(r, configuration.Server, true, mainPort)
 
@@ -123,9 +132,8 @@ func main() {
 		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
 		finishHealthCheck)
 	if err != nil {
+		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")
-		db.Db.Close()
-		tokenStore.Close()
 	}
 
 	utils.Debug(false, "✔✔✔✔✔")

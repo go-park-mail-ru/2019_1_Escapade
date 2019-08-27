@@ -27,8 +27,10 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/hashicorp/memberlist v0.1.4 // indirect
 	github.com/jackc/pgx v3.5.0+incompatible
+	github.com/jmoiron/sqlx v1.2.0
 	github.com/klauspost/compress v1.7.5 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
+	github.com/kr/pty v1.1.8 // indirect
 	github.com/lib/pq v1.2.0
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e
 	github.com/mattn/go-colorable v0.1.2 // indirect
@@ -40,20 +42,22 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337
+	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/swaggo/files v0.0.0-20190704085106-630677cd5c14 // indirect
 	github.com/swaggo/http-swagger v0.0.0-20190614090009-c2865af9083e
 	github.com/swaggo/swag v1.6.2
 	github.com/tidwall/buntdb v1.1.0 // indirect
 	github.com/tidwall/gjson v1.3.2 // indirect
+	github.com/urfave/cli v1.21.0 // indirect
 	github.com/valyala/fasthttp v1.4.0 // indirect
 	github.com/vgarvardt/go-oauth2-pg v0.0.0-20190226204934-2d810489d985
 	github.com/vgarvardt/go-pg-adapter v0.3.0
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
-	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
-	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
+	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
-	golang.org/x/tools v0.0.0-20190802220118-1d1727260058 // indirect
+	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
+	golang.org/x/tools v0.0.0-20190815235612-5b08f89bfc0c // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/oauth2.v3 v3.10.1

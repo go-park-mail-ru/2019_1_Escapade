@@ -24,14 +24,6 @@ func ShowWebsocketMessage(message []byte, id int32) {
 	}
 }
 
-func PrintResult(catched error, number int, place string) {
-	if catched != nil {
-		Debug(false, "api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
-	} else {
-		Debug(false, "api/"+place+" success(code:", number, ")")
-	}
-}
-
 // Debug record information for logging
 // if 'needPanic' is true then panic(text) will be called
 func Debug(needPanic bool, text ...interface{}) {

@@ -1,0 +1,65 @@
+{
+	"server": {
+		"host": "http://localhost",
+		"portUrl": "PORT_ERY_URL",
+		"portValue": ":3100",
+		"readTimeoutS":10,
+		"writeTimeoutS":15,
+		"idleTimeoutS":5,
+		"waitTimeoutS":0,
+		"execTimeoutS":60
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL",
+		"connectionString": "postgres://eryuser:nopassword@pg:5430/erybase?sslmode=disable",
+		"maxOpenConns": 20,
+		"PageGames": 2,
+		"PageUsers": 100
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"id": "1",
+		"secret": "1",
+		"scopes": ["all"],
+		"redirectURL": "http://auth:3003/auth/oauth2",
+		"address": "http://auth:3003"
+	},
+	"auth": {
+		"salt": "3yffZ5D03wdnfWAA",
+		"accessTokenExpireHours": 2,
+		"refreshTokenExpireHours": 336,
+		"isGenerateRefresh": true,
+		"withReserve": true,
+		"tokenType": "bearer"
+	  },
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"https://escapade-frontend.herokuapp.com",
+			"https://ser.ru.com",
+			"https://explosion.team"
+		],
+		"headers": [
+			"Content-type",
+			"Authorization-Access",
+			"Authorization-Type",
+			"Authorization-Refresh",
+			"Authorization-Expire"
+		],
+		"methods": [
+			"GET", "POST", "DELETE", "PUT", "OPTIONS"
+		],
+		"credentials": "true"
+	},
+	"session": {
+		"name": "sessionid",
+		"path": "/",
+		"length": 16,
+		"lifetime": 604800,
+		"httpOnly": true
+	}
+}

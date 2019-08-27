@@ -25,3 +25,7 @@ func InvalidUser() error {
 func NoAuthFound() error {
 	return errors.New("No UserID in token")
 }
+
+func NoTokenFound() error {
+	return errors.New("No token")
+}

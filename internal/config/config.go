@@ -5,24 +5,28 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Configuration contains all types of configurations
 //easyjson:json
 type Configuration struct {
-	Server    ServerConfig    `json:"server"`
-	Cors      CORSConfig      `json:"cors"`
-	DataBase  DatabaseConfig  `json:"dataBase"`
-	Game      GameConfig      `json:"game"`
-	Session   SessionConfig   `json:"session"`
-	WebSocket WebSocketConfig `json:"websocket"`
-	Services  []Client        `json:"services"`
+	Server     Server     `json:"server"`
+	Cors       CORS       `json:"cors"`
+	DataBase   Database   `json:"dataBase"`
+	Game       Game       `json:"game"`
+	Cookie     Cookie     `json:"cookie"`
+	WebSocket  WebSocket  `json:"websocket"`
+	Service    Service    `json:"service"`
+	Auth       Auth       `json:"auth"`
+	AuthClient AuthClient `json:"authClient"`
 }
 
 // ServerConfig set host, post and buffers sizes
 //easyjson:json
-type ServerConfig struct {
+type Server struct {
 	Host      string `json:"host"`
 	PortURL   string `json:"portUrl"`
 	PortValue string `json:"portValue"`
@@ -36,7 +40,7 @@ type ServerConfig struct {
 
 // CORSConfig set allowable origins, headers and methods
 //easyjson:json
-type CORSConfig struct {
+type CORS struct {
 	Origins     []string `json:"origins"`
 	Headers     []string `json:"headers"`
 	Methods     []string `json:"methods"`
@@ -48,7 +52,7 @@ type CORSConfig struct {
 //   connections, tables, sizes of page  of gamers
 //   and users
 //easyjson:json
-type DatabaseConfig struct {
+type Database struct {
 	DriverName           string `json:"driverName"`
 	URL                  string `json:"url"`
 	ConnectionString     string `json:"connectionString"`
@@ -59,7 +63,7 @@ type DatabaseConfig struct {
 }
 
 //easyjson:json
-type FieldConfig struct {
+type Field struct {
 	MinAreaSize    int `json:"minAreaSize"`
 	MaxAreaSize    int `json:"maxAreaSize"`
 	MinProbability int `json:"minProbability"`
@@ -71,48 +75,67 @@ type FieldConfig struct {
 // can server close rooms or not(for history mode),
 // metrics should be recorded or not
 //easyjson:json
-type GameConfig struct {
-	RoomsCapacity      int32        `json:"roomsCapacity"`
-	ConnectionCapacity int32        `json:"connectionCapacity"`
-	Location           string       `json:"location"`
-	CanClose           bool         `json:"closeRoom"`
-	Metrics            bool         `json:"metrics"`
-	Field              *FieldConfig `json:"field"`
+type Game struct {
+	RoomsCapacity      int32  `json:"roomsCapacity"`
+	ConnectionCapacity int32  `json:"connectionCapacity"`
+	Location           string `json:"location"`
+	CanClose           bool   `json:"closeRoom"`
+	Metrics            bool   `json:"metrics"`
+	Field              *Field `json:"field"`
 }
 
 // AuthClient client of auth microservice
 //easyjson:json
-type AuthClient struct {
-	URL     string `json:"url"`
-	Address string `json:"address"`
+type Auth struct {
+	Salt                    string       `json:"salt"`
+	AccessTokenExpireHours  int          `json:"accessTokenExpireHours"`
+	RefreshTokenExpireHours int          `json:"refreshTokenExpireHours"`
+	IsGenerateRefresh       bool         `json:"isGenerateRefresh"`
+	WithReserve             bool         `json:"withReserve"`
+	TokenType               string       `json:"tokenType"`
+	WhiteList               []AuthClient `json:"whiteList"`
 }
 
-/*
 type AuthClient struct {
-	ClientID     string `json:"clientID"`
-	ClientSecret string `json:"clientSecret"`
+	// address of auth service
+	Address      string        `json:"address"`
+	ClientID     string        `json:"id"`
+	ClientSecret string        `json:"secret"`
+	Scopes       []string      `json:"scopes"`
+	RedirectURL  string        `json:"redirectURL"`
+	Config       oauth2.Config `json:"-"`
 }
-*/
 
-type Client struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
+//easyjson:json
+type Service struct {
+	ConsulID  string   `json:"-"`
+	Name      string   `json:"name"`
+	DependsOn []string `json:"dependsOn"`
 }
 
 // SessionConfig set cookie name, path, length, expiration time
 // and HTTPonly flag
 //easyjson:json
-type SessionConfig struct {
-	Name            string `json:"name"`
-	Path            string `json:"path"`
-	Length          int    `json:"length"`
-	LifetimeSeconds int    `json:"lifetime"`
-	HTTPOnly        bool   `json:"httpOnly"`
+type Cookie struct {
+	Path          string     `json:"path"`
+	Length        int        `json:"length"`
+	LifetimeHours int        `json:"lifetime"`
+	HTTPOnly      bool       `json:"httpOnly"`
+	Auth          AuthCookie `json:"authCookie"`
+}
+
+//easyjson:json
+type AuthCookie struct {
+	AccessToken   string `json:"accessToken"`
+	TokenType     string `json:"rokenType"`
+	RefreshToken  string `json:"refreshToken"`
+	Expire        string `json:"expire"`
+	ReservePrefix string `json:"reservePrefix"`
 }
 
 // WebSocketConfig set timeouts
 //easyjson:json
-type WebSocketConfig struct {
+type WebSocket struct {
 	WriteWait       int   `json:"writeWait"`
 	PongWait        int   `json:"pongWait"`
 	PingPeriod      int   `json:"pingPeriod"`
@@ -155,6 +178,16 @@ func Init(path string) (conf *Configuration, err error) {
 	}
 	if err = conf.UnmarshalJSON(data); err != nil {
 		return
+	}
+	conf.AuthClient.Config = oauth2.Config{
+		ClientID:     conf.AuthClient.ClientID,
+		ClientSecret: conf.AuthClient.ClientSecret,
+		Scopes:       conf.AuthClient.Scopes,
+		RedirectURL:  conf.AuthClient.RedirectURL,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  conf.AuthClient.Address + "/auth/authorize",
+			TokenURL: conf.AuthClient.Address + "/auth/token",
+		},
 	}
 	InitEnvironment(conf)
 	return
