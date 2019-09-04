@@ -9,6 +9,8 @@ import (
 )
 
 func (db *DB) CreateErythrocyte(userID, projectID, sceneID int32, obj *models.Erythrocyte) error {
+	obj.UserID = userID
+	obj.SceneID = sceneID
 	return db.workInScene(userID, projectID,
 		func(tx *sqlx.Tx) error {
 			return db.createErythrocyte(tx, sceneID, obj)

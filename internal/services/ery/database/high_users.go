@@ -17,7 +17,7 @@ func (db *DB) CreateUser(user *models.User) error {
 	}
 	defer tx.Rollback()
 
-	if user.ID, err = db.createUser(tx, user); err != nil {
+	if err = db.createUser(tx, user); err != nil {
 		return err
 	}
 
@@ -64,17 +64,17 @@ func (db *DB) UpdateUserPrivate(user *models.UpdatePrivateUser) error {
 	return err
 }
 
-func (db *DB) GetUser(userID int32) (*models.User, error) {
+func (db *DB) GetUser(userID int32) (models.User, error) {
 
+	var user models.User
 	tx, err := db.db.Beginx()
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 	defer tx.Rollback()
 
-	var user *models.User
 	if user, err = db.getOneUser(tx, userID); err != nil {
-		return nil, err
+		return user, err
 	}
 
 	err = tx.Commit()
@@ -82,7 +82,6 @@ func (db *DB) GetUser(userID int32) (*models.User, error) {
 }
 
 func (db *DB) GetUserID(name, password string) (int32, error) {
-	utils.Debug(false, "name:", name, "password:", password)
 	sqlStatement := "SELECT id " +
 		" FROM Users where name like $1 and password like $2"
 
@@ -91,7 +90,7 @@ func (db *DB) GetUserID(name, password string) (int32, error) {
 	var userID int32
 	err := row.Scan(&userID)
 	if err != nil {
-		utils.Debug(true, "cant get user's name and password")
+		utils.Debug(false, "cant get user's name and password")
 	}
 
 	return userID, err

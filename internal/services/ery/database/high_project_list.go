@@ -11,7 +11,15 @@ import (
 	_ "github.com/jackc/pgx"
 )
 
-func (db *DB) ProjectListCreate(project models.Project, userID int32) (models.ProjectWithMembers, error) {
+/*
+ProjectListCreate - создать проект
+Создает новый проект и добавляет текущего пользователя в него с максимальными
+правами доступа(поле owner=true). Возвращает информацию о проекте и его членах
+
+project - модель проекта
+userID - идентификатор пользователя, создающего проект
+*/
+func (db *DB) ProjectListCreate(project *models.Project, userID int32) (models.ProjectWithMembers, error) {
 	var info models.ProjectWithMembers
 	tx, err := db.db.Beginx()
 	if err != nil {
@@ -19,8 +27,8 @@ func (db *DB) ProjectListCreate(project models.Project, userID int32) (models.Pr
 	}
 	defer tx.Rollback()
 
-	project.ID, err = db.createProject(tx, project)
-	if err != nil {
+	project.EditorID = userID
+	if err = db.createProject(tx, project); err != nil {
 		return info, err
 	}
 
@@ -55,7 +63,8 @@ func (db *DB) ProjectListCreate(project models.Project, userID int32) (models.Pr
 		return info, err
 	}
 
-	info.Project = project
+	info.Project = *project
+	project.Edit = time.Now()
 	member := models.Projectmember{
 		ID:    userID,
 		User:  user,
@@ -69,172 +78,13 @@ func (db *DB) ProjectListCreate(project models.Project, userID int32) (models.Pr
 	return info, err
 }
 
-/////////// Вступление в другой проект
-
 /*
-ProjectListApply - подать заявку о вступлении в существующий проект
-При попытке повторной подачи заявки в проект(с учетом, что предыдущая
-заявка еще не была рассмотрена) функция вернет ошибку
-
-При попытке подать заявку на вступление в проект, в который данный
-пользователь приглашен, функция вернет ошибку. Чтобы принять приглашение
-используйте функцию ProjectListAcceptInvitation
-
-userID - идентификатор пользователя, совершающего действие
-projectID - идентификатор проекта, над котором совершается действие
+ProjectListGet - получить список проектов, принадлежащих пользователю с
+идентификатором userID
 */
-/*
-func (db *DB) ProjectListApply(projectID, userID int32) error {
-	tx, err := db.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 
-	//Проверка не состоит ли пользователь в данном проекте
-	member, err := db.getProjectMember(tx, userID, projectID)
-	// Пользователь состоит
-	if err == nil {
-
-	}
-
-	token := models.ProjectToken{}
-
-	token.ID, err = db.createProjectToken(tx, token)
-	if err != nil {
-		return err
-	}
-
-	userInRole := models.UserInProject{
-		Position:         "Ожидает принятие заявки",
-		UserID:           userID,
-		TokenID:          token.ID,
-		ProjectID:        projectID,
-		From:             time.Now(),
-		To:               time.Unix(0, 0),
-		UserConfirmed:    true,
-		ProjectConfirmed: false,
-	}
-
-	userInRole.ID, err = db.createUserInProject(tx, userInRole)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	return err
-}
-*/
-/*
-ProjectListAcceptInvitation - принять приглашение вступить в
-существующий проект
-
-userID - идентификатор пользователя, совершающего действие
-projectID - идентификатор проекта, над котором совершается действие
-*/
-/*
-func (db *DB) ProjectListAcceptInvitation(projectID, userID int32) error {
-	tx, err := db.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	err = db.acceptInvitationToProject(tx, projectID, userID)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	return err
-}
-*/
-/*
-ProjectListAcceptInvitation - отказаться от приглашения в
-существующий проект(или отменить поданную заявку)
-
-userID - идентификатор пользователя, совершающего действие
-projectID - идентификатор проекта, над котором совершается действие
-*/
-/*
-func (db *DB) ProjectListRefuseInvitation(projectID, userID int32) error {
-	tx, err := db.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	err = db.deleteUserFromProject(tx, projectID, userID)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	return err
-}
-*/
-/////////// Добавление других людей в своей проект
-
-/*
-ProjectListApply - подать заявку о вступлении в существующий проект
-При попытке повторной повторного приглашения в проект(с учетом, что
-предыдущее приглашение не было рассмотрена) функция вернет ошибку.
-
-При попытке пригласить пользователя, который сам подал заявку, функция
-вернет ошибку. Чтобы принять заявку Используйте функцию ProjectListAcceptApply
-
-userID - идентификатор пользователя, совершающего действие
-goalID - идентификатор пользователя, который будет приглашен
-projectID - идентификатор проекта, над котором совершается действие
-*/
-/*
-func (db *DB) ProjectListInvite(projectID, userID, goalID int32) error {
-	tx, err := db.db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// токен пользователя, который инициализировал действие
-	mainToken, err := db.getProjectToken(tx, userID, projectID)
-	if err != nil {
-		return re.UserInProjectNotFoundWrapper(err)
-	}
-
-	// имеет ли данный пользователь право приглашать пользователей
-	if !mainToken.CanUpdateUser() {
-		return re.ProjectNotAllowed()
-	}
-
-	token := models.ProjectToken{}
-
-	token.ID, err = db.createProjectToken(tx, token)
-	if err != nil {
-		return err
-	}
-
-	userInRole := models.UserInProject{
-		Position:         "Приглашен",
-		UserID:           goalID,
-		TokenID:          token.ID,
-		ProjectID:        projectID,
-		From:             time.Now(),
-		To:               time.Unix(0, 0),
-		UserConfirmed:    false,
-		ProjectConfirmed: true,
-	}
-
-	userInRole.ID, err = db.createUserInProject(tx, userInRole)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	return err
-}*/
-
-func (db *DB) ProjectListGet(userID int32) (models.ProjectsList, error) {
-	var list models.ProjectsList
+func (db *DB) ProjectListGet(userID int32) (models.Projects, error) {
+	var list models.Projects
 	tx, err := db.db.Beginx()
 	if err != nil {
 		return list, err
@@ -242,6 +92,16 @@ func (db *DB) ProjectListGet(userID int32) (models.ProjectsList, error) {
 	defer tx.Rollback()
 
 	list.Projects, err = db.getProjectListByUserID(tx, userID)
+	if err != nil {
+		return list, err
+	}
+	for i, project := range list.Projects {
+		list.Projects[i], err = db.ProjectGet(userID, project.Project.ID)
+		if err != nil {
+			break
+		}
+		utils.Debug(false, "list.Projects[i]", i, list.Projects[i].Project.ID, list.Projects[i].Project.Name)
+	}
 	if err != nil {
 		return list, err
 	}
@@ -271,34 +131,66 @@ func (db *DB) ProjectGet(userID, projectID int32) (models.ProjectWithMembers, er
 	}
 	defer tx.Rollback()
 
-	project, err := db.getProject(tx, projectID)
+	project, err := db.GetProject(projectID)
 	if err != nil {
 		return projectWithMembers, err
 	}
 
-	member, err := db.getProjectMember(tx, userID, projectID)
+	var (
+		members, owners int32
+		isOwner         bool
+	)
+	members, owners, isOwner, projectWithMembers.You, err = db.getMembersInfo(tx, projectID, userID)
+
 	if err != nil {
-		utils.Debug(false, "getProjectMember err:", err.Error())
-		member = models.Projectmember{}
+		return projectWithMembers, err
 	}
-	projectWithMembers.You = member
 
-	if project.PublicAccess || (err == nil && member.User.Confirmed()) {
-		projectWithMembers.Project = project
+	project.MembersAmount = members
+	project.OwnersAmount = owners
+	project.YouOwner = isOwner
+	projectWithMembers.Project = *project
 
-		needTokens := member.Token.HasAccessToTokens()
+	project.ScenesAmount, err = db.GetScenesInProjectAmount(projectID)
+	if err != nil {
+		return projectWithMembers, err
+	}
+
+	if project.PublicAccess || (err == nil && projectWithMembers.You.User.Confirmed()) {
+
+		needTokens := projectWithMembers.You.Token.HasAccessToTokens()
 		projectWithMembers.Members, err = db.getProjectMembers(tx, projectID, needTokens)
 		if err != nil {
 			return projectWithMembers, err
 		}
-
-		projectWithMembers.Scenes, err = db.getProjectScenes(tx, projectID)
+		scenes, err := db.getProjectScenes(tx, projectID)
 		if err != nil {
 			return projectWithMembers, err
 		}
 
-	} else {
-		return projectWithMembers, re.ProjectNotAllowed()
+		projectWithMembers.Scenes = make([]models.SceneWithObjects, len(scenes))
+
+		for i, scene := range scenes {
+			projectWithMembers.Scenes[i].Diseases, err = db.getSceneDiseases(tx, scene.ID)
+			if err != nil {
+				break
+			}
+
+			projectWithMembers.Scenes[i].Files, err = db.getSceneEryObjects(tx, scene.ID)
+			if err != nil {
+				break
+			}
+
+			projectWithMembers.Scenes[i].Erythrocytes, err = db.getSceneErythrocytes(tx, scene.ID)
+			if err != nil {
+				break
+			}
+			projectWithMembers.Scenes[i].Scene = scene
+		}
+		if err != nil {
+			return projectWithMembers, err
+		}
+
 	}
 	err = tx.Commit()
 	return projectWithMembers, err
@@ -311,20 +203,18 @@ ProjectDelete - удалить проект и все связанные с ни
 случае вернётся ошибка NotProjectOwner
 */
 func (db *DB) ProjectDelete(userID, projectID int32) error {
+	_, err := db.CheckToken(userID, projectID, func(token models.ProjectToken) bool {
+		return token.Owner
+	})
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.db.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-
-	member, err := db.getProjectMember(tx, userID, projectID)
-	if err != nil {
-		return err
-	}
-
-	if !member.Token.Owner {
-		return re.NotProjectOwner()
-	}
 
 	if err = db.deleteProject(tx, projectID); err != nil {
 		return err
@@ -347,34 +237,36 @@ ProjectUpdate - обновить информацию о проекте и до�
 		утверждены те изменения, на внесение которых вам предоставлено
 		право(см. ProjectToken)
 
+Для корректной работы все поля структуры project должны быть проинициализированы
+(кроме идентификатора проекта - его можно не задавать)
+
 userID - идентификатор пользователя, совершающего действие
 projectID - идентификатор проекта, над котором совершается действие
 project - структура проекта с изменениями, которые необходимо занести в БД
 */
 func (db *DB) ProjectUpdate(userID, projectID int32, project *models.Project) error {
+
+	token, err := db.CheckToken(userID, projectID, func(token models.ProjectToken) bool {
+		return token.CanUpdateProjectInfo()
+	})
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.db.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	token, err := db.getProjectToken(tx, userID, projectID)
+	realProject, err := db.GetProject(projectID)
 	if err != nil {
-		return re.UserInProjectNotFoundWrapper(err)
+		return err
 	}
 
-	if !token.CanUpdateProjectInfo() {
-		return re.ProjectNotAllowed()
-	}
+	project = realProject.Update(project, token)
 
-	if !token.Owner {
-		realProject, err := db.getProject(tx, project.ID)
-		if err != nil {
-			return err
-		}
-
-		project = realProject.Update(project, token)
-	}
+	project.ID = projectID
 	err = db.updateProject(tx, project)
 	if err != nil {
 		return err
@@ -413,30 +305,23 @@ func (db *DB) ProjectTokenUpdate(userID, goalID, projectID int32, newToken *mode
 	}
 	defer tx.Rollback()
 
-	// токен пользователя, который инициализировал действие
-	mainToken, err := db.getProjectToken(tx, userID, projectID)
-	if err != nil {
-		return re.UserInProjectNotFoundWrapper(err)
-	}
-
 	// имеет ли данный пользователь право менять токены других участников
-	if mainToken.CanUpdateToken() {
-		return re.ProjectNotAllowed()
-	}
-
-	// токен пользователя, над которым проводится действие
-	goalToken, err := db.getProjectToken(tx, goalID, projectID)
+	mainToken, err := db.CheckToken(userID, projectID, func(token models.ProjectToken) bool {
+		return token.CanUpdateToken()
+	})
 	if err != nil {
-		return re.UserInProjectNotFoundWrapper(err)
+		return err
 	}
 
 	/* Проверка, не пытаестя не "создатель" назначить кого то на должность
 	создателя или снять создателя с должности */
-	if !mainToken.Owner && (goalToken.Owner != newToken.Owner) {
-		return re.NotProjectOwner()
+	goalToken, err := db.CheckToken(goalID, projectID, func(token models.ProjectToken) bool {
+		return token.Owner == newToken.Owner || (token.Owner != newToken.Owner && mainToken.Owner)
+	})
+	if err != nil {
+		return err
 	}
 
-	newToken.ID = goalToken.ID
 	err = db.updateProjectToken(tx, goalToken.ID, newToken)
 	if err != nil {
 		return err
@@ -464,15 +349,12 @@ func (db *DB) ProjectUserUpdate(userID, goalID, projectID int32, user *models.Us
 	}
 	defer tx.Rollback()
 
-	// токен пользователя, который инициализировал действие
-	mainToken, err := db.getProjectToken(tx, userID, projectID)
-	if err != nil {
-		return re.UserInProjectNotFoundWrapper(err)
-	}
-
 	// имеет ли данный пользователь право менять информацию других участников
-	if !mainToken.CanUpdateUser() {
-		return re.ProjectNotAllowed()
+	_, err = db.CheckToken(userID, projectID, func(token models.ProjectToken) bool {
+		return token.CanUpdateUser()
+	})
+	if err != nil {
+		return err
 	}
 
 	err = db.updateUserInProject(tx, goalID, projectID, user)
@@ -485,7 +367,7 @@ func (db *DB) ProjectUserUpdate(userID, goalID, projectID int32, user *models.Us
 }
 
 /*
-membersWork отвечает за работу с участниками проекта
+MembersWork отвечает за работу с участниками проекта
 
 add - флаг действия. Если истина, значит требуется добавить пользователя.
 	Если ложь, значит требуется удалить
@@ -533,32 +415,34 @@ func (db *DB) MembersWork(projectID, goalID, memberID int32, add bool) error {
 	invite := goalID != memberID
 	// Проверка, что memberID имеет право взаимодействовать с участниками проектаmembersWork
 	if invite {
-		// токен пользователя, который инициализировал действие
-		mainToken, err := db.getProjectToken(tx, memberID, projectID)
-		if err != nil {
-			return re.UserInProjectNotFoundWrapper(err)
-		}
-
 		// имеет ли данный пользователь право менять информацию других участников
-		if !mainToken.CanUpdateUser() {
-			return re.ProjectNotAllowed()
+		_, err = db.CheckToken(memberID, projectID, func(token models.ProjectToken) bool {
+			return token.CanUpdateUser()
+		})
+		if err != nil {
+			return err
 		}
 	}
 
 	//Проверка не связан ли пользователь с данным проектом
-	member, err := db.getProjectMember(tx, goalID, projectID)
+	member, err := db.getProjectMember(goalID, projectID)
+	if err != nil {
+		utils.Debug(false, "совсем не связан!", goalID, projectID, err.Error())
+	}
 	// Связан(подал заявку/был приглашен/является участников)
-	if err == nil {
+	if err == nil && (member.User.UserConfirmed || member.User.ProjectConfirmed) {
+		utils.Debug(false, "связан!", goalID)
+		utils.Debug(false, "Юзер конфермед!", member.User.UserConfirmed)
+		utils.Debug(false, "Проект конфермед!", member.User.ProjectConfirmed)
 		// является участником
 		if member.User.Confirmed() {
 			if add {
 				return re.AlreadyInProject()
 			}
 			err = db.deleteUserFromProject(tx, projectID, goalID)
-			return err
-		}
-		// Пользователь goalID подал заявку
-		if member.User.UserConfirmed {
+			// Пользователь goalID подал заявку
+		} else if member.User.UserConfirmed {
+			utils.Debug(false, "подал заявку!")
 			// добавление в проект
 			if add {
 				// пользователь memberID пригласил goalID
@@ -566,17 +450,18 @@ func (db *DB) MembersWork(projectID, goalID, memberID int32, add bool) error {
 					// одобрить заявку
 					err = db.addUserToProject(tx, projectID, goalID)
 				} else {
+					utils.Debug(false, "заявка уже подана!")
 					// заявка уже подана, ошибка
 					return re.AlreadyApplied()
 				}
 			} else {
+				utils.Debug(false, "отклонить заявку!")
 				// отклонить заявку или отменить - без разницы(разве что для логов)
 				err = db.deleteUserFromProject(tx, projectID, goalID)
 			}
-			return err
-		}
-		// Пользователь goalID приглашен
-		if member.User.ProjectConfirmed {
+			// Пользователь goalID приглашен
+		} else {
+			utils.Debug(false, "приглашен")
 			// добавление в проект
 			if add {
 				// пользователь goalID подал заявку
@@ -592,10 +477,13 @@ func (db *DB) MembersWork(projectID, goalID, memberID int32, add bool) error {
 				err = db.deleteUserFromProject(tx, projectID, goalID)
 			}
 		}
+		if err == nil {
+			err = tx.Commit()
+		}
 		return err
 	}
 	// пользователь не связан с проектом
-
+	utils.Debug(false, "не связан!", err.Error())
 	if !add {
 		// удалить пользователя, которого нет в проекте нельзя
 		return re.NoSuchUserInProject()
@@ -627,15 +515,19 @@ func (db *DB) MembersWork(projectID, goalID, memberID int32, add bool) error {
 	}
 
 	userInRole.ID, err = db.createUserInProject(tx, userInRole)
-	if err != nil {
-		return err
+	if err == nil {
+		err = tx.Commit()
 	}
 
-	err = tx.Commit()
 	return err
 }
 
-func (db *DB) GetProjects(name string) (models.Projects, error) {
+/*
+GetProjects получить список всех проектов. Если name пустое, будут получены
+ все существующие проекты. В ином случае в массиве проектов будут
+ присутсвовать только те проекты, в имена которых присутсвует подстрока name
+*/
+func (db *DB) GetProjects(userID int32, name string) (models.Projects, error) {
 
 	var projects models.Projects
 	tx, err := db.db.Beginx()
@@ -653,6 +545,38 @@ func (db *DB) GetProjects(name string) (models.Projects, error) {
 		return projects, err
 	}
 
+	for i, project := range projects.Projects {
+		var (
+			members, owners, projectID int32
+			isOwner                    bool
+			you                        models.Projectmember
+		)
+		projectID = project.Project.ID
+		members, owners, isOwner, you, err = db.getMembersInfo(tx, projectID, userID)
+
+		if err != nil {
+			break
+		}
+
+		projects.Projects[i].Project.MembersAmount = members
+		projects.Projects[i].Project.OwnersAmount = owners
+		projects.Projects[i].Project.YouOwner = isOwner
+		projects.Projects[i].You = you
+
+		projects.Projects[i].Project.ScenesAmount, err = db.GetScenesInProjectAmount(projectID)
+		if err != nil {
+			break
+		}
+		utils.Debug(false, "projects.Projects[i].You ", you)
+		utils.Debug(false, "members amount", project.Project.MembersAmount)
+		utils.Debug(false, "scenes amount", project.Project.ScenesAmount)
+	}
+	if err != nil {
+		return projects, err
+	}
+
 	err = tx.Commit()
 	return projects, err
 }
+
+// 666 -> 519 -> 503

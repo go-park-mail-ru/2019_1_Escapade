@@ -1,7 +1,7 @@
 {
     "region": "eu-west-2",
-    "endpoint": "https://hb.bizmrg.com",
-    "playersAvatarsStorage": "artyom",
+    "endpoint": "",
+    "playersAvatarsStorage": "fabhub-ui-test",
     "defaultAvatar": "anonymous.jpg",
     "maxFileSize": 6000000,
     "allowedFileTypes": ["image/jpg","image/jpeg","image/png", "image/gif"]

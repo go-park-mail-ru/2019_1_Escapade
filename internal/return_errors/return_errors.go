@@ -24,6 +24,11 @@ func ErrorUsersNotFound() error {
 	return errors.New("Users not found")
 }
 
+// NoUpdate godoc
+func NoUpdate() error {
+	return errors.New("No updated fields")
+}
+
 // ErrorGamesNotFound call it, if you cant
 // 	find games
 func ErrorGamesNotFound() error {

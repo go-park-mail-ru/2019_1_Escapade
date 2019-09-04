@@ -1,21 +1,48 @@
 package models
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
 )
 
 //easyjson:json
 type Disease struct {
 	ID       int32     `json:"id" db:"id"`
+	Name     string    `json:"name" db:"name"`
+	About    string    `json:"about" db:"about"`
 	UserID   int32     `json:"user_id" db:"user_id"`
 	SceneID  int32     `json:"scene_id" db:"scene_id"`
 	Form     float32   `json:"form" db:"form"`
 	Oxygen   float32   `json:"oxygen" db:"oxygen"`
 	Gemoglob float32   `json:"gemoglob" db:"gemoglob"`
 	Add      time.Time `json:"add" db:"add"`
+}
+
+//easyjson:json
+type DiseaseUpdate struct {
+	Name     *string  `json:"name,omitempty"`
+	About    *string  `json:"about,omitempty"`
+	Form     *float32 `json:"form,omitempty"`
+	Oxygen   *float32 `json:"oxygen,omitempty"`
+	Gemoglob *float32 `json:"gemoglob,omitempty"`
+}
+
+func (updated *DiseaseUpdate) Update(diseaseI api.JSONtype) bool {
+	var needUpdate bool
+
+	switch disease := diseaseI.(type) {
+	case *Disease:
+		updateString(&disease.Name, updated.Name, &needUpdate)
+		updateString(&disease.About, updated.About, &needUpdate)
+		updateFloat32(&disease.Form, updated.Form, &needUpdate)
+		updateFloat32(&disease.Oxygen, updated.Oxygen, &needUpdate)
+		updateFloat32(&disease.Gemoglob, updated.Gemoglob, &needUpdate)
+	}
+	return needUpdate
 }
 
 //easyjson:json
@@ -32,6 +59,28 @@ type EryObject struct {
 	IsImage   bool      `json:"is_image" db:"is_image"`
 	Public    bool      `json:"public" db:"public"`
 	Add       time.Time `json:"add" db:"add"`
+}
+
+//easyjson:json
+type EryObjectUpdate struct {
+	Name   *string `json:"name,omitempty"`
+	About  *string `json:"about,omitempty"`
+	Source *string `json:"source,omitempty"`
+	Public *bool   `json:"public,omitempty"`
+}
+
+func (updated *EryObjectUpdate) Update(eryObjectI api.JSONtype) bool {
+	var needUpdate bool
+
+	switch eryObject := eryObjectI.(type) {
+	case *EryObject:
+		updateString(&eryObject.Name, updated.Name, &needUpdate)
+		updateString(&eryObject.About, updated.About, &needUpdate)
+		updateString(&eryObject.Source, updated.Source, &needUpdate)
+		updateBool(&eryObject.Public, updated.Public, &needUpdate)
+	}
+
+	return needUpdate
 }
 
 func (obj *EryObject) Set(r *http.Request, name, size, ftype, path string) error {
@@ -94,3 +143,101 @@ type Erythrocyte struct {
 
 	Add time.Time `json:"add" db:"add"`
 }
+
+//easyjson:json
+type ErythrocyteUpdate struct {
+	TextureID *int32 `json:"texture_id,omitempty"`
+	FormID    *int32 `json:"form_id,omitempty"`
+	DiseaseID *int32 `json:"disease_id,omitempty"`
+
+	SizeX *float32 `json:"size_x,omitempty"`
+	SizeY *float32 `json:"size_y,omitempty"`
+	SizeZ *float32 `json:"size_z,omitempty"`
+
+	AngleX *float32 `json:"angle_x,omitempty"`
+	AngleY *float32 `json:"angle_y,omitempty"`
+	AngleZ *float32 `json:"angle_z,omitempty"`
+
+	ScaleX *float32 `json:"scale_x,omitempty"`
+	ScaleY *float32 `json:"scale_y,omitempty"`
+	ScaleZ *float32 `json:"scale_z,omitempty"`
+
+	PositionX *float32 `json:"position_x,omitempty"`
+	PositionY *float32 `json:"position_y,omitempty"`
+	PositionZ *float32 `json:"position_z,omitempty"`
+
+	Form     *float32 `json:"form,omitempty"`
+	Oxygen   *float32 `json:"oxygen,omitempty"`
+	Gemoglob *float32 `json:"gemoglob,omitempty"`
+}
+
+func (updated *ErythrocyteUpdate) Update(erythrocyteI api.JSONtype) bool {
+	var needUpdate bool
+
+	switch erythrocyte := erythrocyteI.(type) {
+	case *Erythrocyte:
+		updateInt32(&erythrocyte.TextureID, updated.TextureID, &needUpdate)
+		updateInt32(&erythrocyte.FormID, updated.FormID, &needUpdate)
+		updateInt32(&erythrocyte.DiseaseID, updated.DiseaseID, &needUpdate)
+	
+		updateFloat32(&erythrocyte.SizeX, updated.PositionX, &needUpdate)
+		updateFloat32(&erythrocyte.SizeY, updated.PositionY, &needUpdate)
+		updateFloat32(&erythrocyte.SizeZ, updated.PositionZ, &needUpdate)
+	
+		updateFloat32(&erythrocyte.AngleX, updated.PositionX, &needUpdate)
+		updateFloat32(&erythrocyte.AngleY, updated.PositionY, &needUpdate)
+		updateFloat32(&erythrocyte.AngleZ, updated.PositionZ, &needUpdate)
+	
+		updateFloat32(&erythrocyte.ScaleX, updated.PositionX, &needUpdate)
+		updateFloat32(&erythrocyte.ScaleY, updated.PositionY, &needUpdate)
+		updateFloat32(&erythrocyte.ScaleZ, updated.PositionZ, &needUpdate)
+	
+		updateFloat32(&erythrocyte.PositionX, updated.PositionX, &needUpdate)
+		updateFloat32(&erythrocyte.PositionY, updated.PositionY, &needUpdate)
+		updateFloat32(&erythrocyte.PositionZ, updated.PositionZ, &needUpdate)
+	
+		updateFloat32(&erythrocyte.Form, updated.Form, &needUpdate)
+		updateFloat32(&erythrocyte.Oxygen, updated.Oxygen, &needUpdate)
+		updateFloat32(&erythrocyte.Gemoglob, updated.Gemoglob, &needUpdate)
+	}
+
+	return needUpdate
+}
+
+func updateInt32(oldValue, newValue *int32, needUpdate *bool) {
+	if newValue != nil {
+		*needUpdate = true
+		*oldValue = *newValue
+	}
+}
+
+func updateFloat32(oldValue, newValue *float32, needUpdate *bool) {
+	if newValue != nil {
+		*needUpdate = true
+		*oldValue = *newValue
+	}
+}
+
+func updateBool(oldValue, newValue *bool, needUpdate *bool) {
+	if newValue != nil {
+		*needUpdate = true
+		*oldValue = *newValue
+	}
+}
+
+func updateString(oldValue, newValue *string, needUpdate *bool) {
+	if newValue != nil {
+		fmt.Println("newValue", *newValue)
+		*needUpdate = true
+		*oldValue = *newValue
+	}
+}
+
+func updateTime(oldValue, newValue *time.Time, needUpdate *bool) {
+	if newValue != nil {
+		*needUpdate = true
+		*oldValue = *newValue
+	}
+}
+
+// 266 -> 238

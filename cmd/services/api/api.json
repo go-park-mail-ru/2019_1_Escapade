@@ -31,7 +31,7 @@
 		"refreshTokenExpireHours": 336,
 		"isGenerateRefresh": true,
 		"withReserve": true,
-		"tokenType": "bearer"
+		"tokenType": "Bearer"
 	  },
 	"cors": {
 		"origins": [

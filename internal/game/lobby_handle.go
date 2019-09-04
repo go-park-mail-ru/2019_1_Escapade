@@ -226,7 +226,7 @@ func (lobby *Lobby) Analize(req *Request) {
 
 	var send LobbyRequest
 	if err := send.UnmarshalJSON(req.Message); err != nil {
-		req.Connection.SendInformation(models.Result{
+		req.Connection.SendInformation(&models.Result{
 			Success: false,
 			Message: err.Error(),
 		})

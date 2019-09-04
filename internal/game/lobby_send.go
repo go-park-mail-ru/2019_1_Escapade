@@ -42,7 +42,7 @@ func (lobby *Lobby) greet(conn *Connection) {
 			Room:  conn.WaitingRoom(),
 		},
 	}
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }
 
 func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
@@ -59,7 +59,7 @@ func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
 		Type:  "LobbyMessage",
 		Value: message,
 	}
-	lobby.sendToAll(response, predicate)
+	lobby.sendToAll(&response, predicate)
 }
 
 func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate,
@@ -78,7 +78,7 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate,
 		Value: room.JSON(),
 	}
 
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
@@ -96,7 +96,7 @@ func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *s
 		Type:  "LobbyRoomUpdate",
 		Value: room.JSON(),
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendRoomDelete(roomID string, predicate SendPredicate) {
@@ -113,7 +113,7 @@ func (lobby *Lobby) sendRoomDelete(roomID string, predicate SendPredicate) {
 		Type:  "LobbyRoomDelete",
 		Value: roomID,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendWaiterEnter(conn *Connection, predicate SendPredicate) {
@@ -132,7 +132,7 @@ func (lobby *Lobby) sendWaiterEnter(conn *Connection, predicate SendPredicate) {
 		Type:  "LobbyWaiterEnter",
 		Value: conn,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendWaiterExit(conn *Connection, predicate SendPredicate) {
@@ -149,7 +149,7 @@ func (lobby *Lobby) sendWaiterExit(conn *Connection, predicate SendPredicate) {
 		Type:  "LobbyWaiterExit",
 		Value: conn,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendPlayerEnter(conn *Connection, predicate SendPredicate) {
@@ -166,7 +166,7 @@ func (lobby *Lobby) sendPlayerEnter(conn *Connection, predicate SendPredicate) {
 		Type:  "LobbyPlayerEnter",
 		Value: conn,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendPlayerExit(conn *Connection, predicate SendPredicate) {
@@ -183,7 +183,7 @@ func (lobby *Lobby) sendPlayerExit(conn *Connection, predicate SendPredicate) {
 		Type:  "LobbyPlayerExit",
 		Value: conn,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendInvitation(inv *Invitation, predicate SendPredicate) {
@@ -200,7 +200,7 @@ func (lobby *Lobby) sendInvitation(inv *Invitation, predicate SendPredicate) {
 		Type:  "LobbyInvitation",
 		Value: inv,
 	}
-	lobby.send(response, predicate)
+	lobby.send(&response, predicate)
 }
 
 func (lobby *Lobby) sendInvitationCallback(conn *Connection, err error) {
@@ -217,5 +217,5 @@ func (lobby *Lobby) sendInvitationCallback(conn *Connection, err error) {
 		Type:  "LobbyInvitationCallback",
 		Value: err,
 	}
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }

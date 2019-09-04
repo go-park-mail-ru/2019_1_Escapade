@@ -7,6 +7,7 @@ import (
 	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
 	// re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -32,8 +33,14 @@ func (H *Handler) projectEnter(rw http.ResponseWriter, r *http.Request,
 func (H *Handler) projectExit(rw http.ResponseWriter, r *http.Request,
 	projectID, memberID int32) api.Result {
 	const place = "projectExit"
+	var err error
 
-	err := H.DB.MembersWork(projectID, memberID, memberID, false)
+	var delete = r.FormValue("delete")
+	if delete == "" {
+		err = H.DB.MembersWork(projectID, memberID, memberID, false)
+	} else {
+		err = H.DB.ProjectDelete(memberID, projectID)
+	}
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
@@ -55,21 +62,17 @@ func (H *Handler) projectGet(rw http.ResponseWriter, r *http.Request,
 
 func (H *Handler) projectUpdate(rw http.ResponseWriter, r *http.Request,
 	projectID, memberID int32) api.Result {
-	const place = "projectUpdate"
-
-	var project models.Project
-
-	err := api.ModelFromRequest(r, &project)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	err = H.DB.ProjectUpdate(memberID, projectID, &project)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	return api.NewResult(http.StatusOK, place, &project, err)
+	return api.UpdateModel(r, &models.ProjectUpdate{}, "projectUpdate", false,
+		func(userID int32) (api.JSONtype, error) {
+			return H.DB.GetProject(projectID)
+		},
+		func(interf api.JSONtype) error {
+			project, ok := interf.(*models.Project)
+			if !ok {
+				return re.NoUpdate()
+			}
+			return H.DB.ProjectUpdate(memberID, projectID, project)
+		})
 }
 
 func (H *Handler) projectAcceptUser(rw http.ResponseWriter, r *http.Request,
@@ -98,38 +101,31 @@ func (H *Handler) projectKickUser(rw http.ResponseWriter, r *http.Request,
 
 func (H *Handler) projectUpdateUser(rw http.ResponseWriter, r *http.Request,
 	projectID, goalID, memberID int32) api.Result {
-	const place = "projectUpdateUser"
-
-	var user models.UserInProject
-
-	err := api.ModelFromRequest(r, &user)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	err = H.DB.ProjectUserUpdate(memberID, goalID, projectID, &user)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	return api.NewResult(http.StatusOK, place, nil, err)
+	return api.UpdateModel(r, &models.UserInProjectUpdate{}, "projectUpdateUser", false,
+		func(userID int32) (api.JSONtype, error) {
+			return H.DB.GetUserInProject(projectID, goalID)
+		},
+		func(interf api.JSONtype) error {
+			user, ok := interf.(*models.UserInProject)
+			if !ok {
+				return re.NoUpdate()
+			}
+			return H.DB.ProjectUserUpdate(memberID, goalID, projectID, user)
+		})
 }
 
 func (H *Handler) projectUpdateUserToken(rw http.ResponseWriter, r *http.Request,
 	projectID, goalID, memberID int32) api.Result {
-	const place = "projectUpdateUserToken"
-
-	var token models.ProjectToken
-
-	err := api.ModelFromRequest(r, &token)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	err = H.DB.ProjectTokenUpdate(memberID, goalID, projectID, &token)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	return api.NewResult(http.StatusOK, place, nil, err)
+	return api.UpdateModel(r, &models.ProjectTokenUpdate{}, "projectUpdateUserToken", false,
+		func(userID int32) (api.JSONtype, error) {
+			token, err := H.DB.GetProjectToken(userID, projectID)
+			return &token, err
+		},
+		func(interf api.JSONtype) error {
+			token, ok := interf.(*models.ProjectToken)
+			if !ok {
+				return re.NoUpdate()
+			}
+			return H.DB.ProjectTokenUpdate(memberID, goalID, projectID, token)
+		})
 }

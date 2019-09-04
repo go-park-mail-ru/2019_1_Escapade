@@ -1,19 +1,11 @@
 package eryhandlers
 
 import (
-	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
-	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-
-	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-
-	// re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	// erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 
 	"bytes"
 	"net/http"
@@ -23,8 +15,6 @@ import (
 	"mime/multipart"
 
 	uuid "github.com/satori/go.uuid"
-	// "github.com/gorilla/mux"
-	// mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 )
 
 func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
@@ -34,13 +24,8 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 	var (
 		file   multipart.File
 		handle *multipart.FileHeader
-		eryOBJ models.EryObject
+		err    error
 	)
-
-	err := api.ModelFromRequest(r, &eryOBJ)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
 
 	maxFileSize := int64(6000000)
 
@@ -50,7 +35,7 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 
 	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
 
-	if file, handle, err = r.FormFile("file"); err != nil || file == nil || handle == nil {
+	if file, handle, err = r.FormFile("File"); err != nil || file == nil || handle == nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
 	}
 
@@ -80,7 +65,7 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 		found            = false
 		allowedFileTypes = make([]string, 0)
 	)
-	allowedFileTypes = append(allowedFileTypes, "image/jpg", "image/jpeg", "image/png", "image/gif", "obj")
+	allowedFileTypes = append(allowedFileTypes, "image/jpg", "image/jpeg", "image/png", "image/gif", "obj", "")
 	for _, allowed := range allowedFileTypes {
 		if fileType == allowed {
 			found = true
@@ -93,13 +78,14 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 
 	fileKey := uuid.NewV4().String()
 
+	var eryOBJ models.EryObject
 	err = eryOBJ.Set(r, handle.Filename, utils.String32(int32(fileSize)),
 		fileType, fileKey)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	err = photo.SaveImageInS3(fileKey, file)
+	err = photo.SaveImageInS3(fileKey, file, handle)
 	if err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
@@ -109,39 +95,29 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 		photo.DeleteImageFromS3(fileKey)
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
-
 	return api.NewResult(http.StatusCreated, place, &eryOBJ, nil)
 }
 
 func (h *Handler) eryobjectUpdate(rw http.ResponseWriter, r *http.Request,
-	userID, projectID, sceneID int32) api.Result {
-	const place = "eryobjectUpdate"
-
-	var eryobj models.EryObject
-	err := api.ModelFromRequest(r, &eryobj)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	err = h.DB.UpdateEryObject(userID, projectID, eryobj)
-	if err != nil {
-		return api.NewResult(http.StatusInternalServerError, place, nil, err)
-	}
-
-	return api.NewResult(http.StatusCreated, place, nil, err)
+	userID, projectID, sceneID, objectID int32) api.Result {
+	return api.UpdateModel(r, &models.EryObjectUpdate{}, "eryobjectUpdate", false,
+		func(userID int32) (api.JSONtype, error) {
+			return h.DB.GetEryObject(objectID)
+		},
+		func(interf api.JSONtype) error {
+			eryObject, ok := interf.(*models.EryObject)
+			if !ok {
+				return re.NoUpdate()
+			}
+			return h.DB.UpdateEryObject(userID, projectID, *eryObject)
+		})
 }
 
 func (h *Handler) eryobjectDelete(rw http.ResponseWriter, r *http.Request,
-	userID, projectID, sceneID int32) api.Result {
+	userID, projectID, sceneID, objectID int32) api.Result {
 	const place = "erythrocyteDelete"
 
-	var eryobj models.EryObject
-	err := api.ModelFromRequest(r, &eryobj)
-	if err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	err = h.DB.DeleteEryObject(userID, projectID, eryobj.ID)
+	err := h.DB.DeleteEryObject(userID, projectID, objectID)
 	if err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, err)
 	}

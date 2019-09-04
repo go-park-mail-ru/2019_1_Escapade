@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -40,7 +41,6 @@ func update(rw http.ResponseWriter, token oauth2.Token,
 	tokenSource := ca.TokenSource(context.Background(), &token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
-		utils.Debug(false, "error while updating", err.Error())
 		return oauth2.Token{}, err
 	}
 	return *newToken, err
@@ -73,8 +73,8 @@ func Check(rw http.ResponseWriter, r *http.Request,
 
 	// token given in headers
 	if accessToken == "" {
-		token, err = tokenFromHeaders(rw)
-		if err == nil {
+		token, err = tokenFromHeaders(r)
+		if err != nil {
 			return accessToken, err
 		}
 		accessToken, token, updated, err = check(rw, r, false, token, ca, client)
@@ -87,17 +87,17 @@ func Check(rw http.ResponseWriter, r *http.Request,
 	return accessToken, err
 }
 
-func tokenFromHeaders(rw http.ResponseWriter) (oauth2.Token, error) {
+func tokenFromHeaders(r *http.Request) (oauth2.Token, error) {
 
 	token := oauth2.Token{
-		AccessToken:  rw.Header().Get("Authorization-Access"),
-		TokenType:    rw.Header().Get("Authorization-Type"),
-		RefreshToken: rw.Header().Get("Authorization-Refresh"),
+		AccessToken:  r.Header.Get("Authorization-Access"),
+		TokenType:    r.Header.Get("Authorization-Type"),
+		RefreshToken: r.Header.Get("Authorization-Refresh"),
 	}
 	if token.AccessToken == "" {
 		return token, re.NoHeaders()
 	}
-	expireString := rw.Header().Get("Authorization-Expire")
+	expireString := r.Header.Get("Authorization-Expire")
 	token.Expiry, _ = time.Parse("2006-01-02 15:04:05", expireString)
 	return token, nil
 }
@@ -106,7 +106,7 @@ func setTokenToHeaders(rw http.ResponseWriter, token oauth2.Token) {
 
 	rw.Header().Set("Authorization-Access", token.AccessToken)
 	rw.Header().Set("Authorization-Type", token.TokenType)
-	rw.Header().Set("Authorization-Кefresh", token.RefreshToken)
+	rw.Header().Set("Authorization-Refresh", token.RefreshToken)
 	rw.Header().Set("Authorization-Expire", token.Expiry.Format("2006-01-02 15:04:05"))
 	return
 }
@@ -114,33 +114,37 @@ func setTokenToHeaders(rw http.ResponseWriter, token oauth2.Token) {
 func check(rw http.ResponseWriter, r *http.Request, isReserve bool,
 	token oauth2.Token, ca config.Auth, client config.AuthClient) (string, oauth2.Token, bool, error) {
 
-	var (
-		accessToken string
-		err         error
-	)
-
 	if token.TokenType != ca.TokenType {
-		utils.Debug(false, "TokenType wrong! Get:", token.TokenType)
+		utils.Debug(false, "TokenType wrong! Get:", token.TokenType, ". Expected:", ca.TokenType)
 		return "", oauth2.Token{}, false, re.ErrorTokenType()
 	}
 
-	now, err := time.Parse("2006-01-02 15:04:05", time.Now().Format("2006-01-02 15:04:05"))
-	if err != nil {
-		return "", oauth2.Token{}, false, err
-	}
+	// now, err := time.Parse("2006-01-02 15:04:05", time.Now().Format("2006-01-02 15:04:05"))
+	// if err != nil {
+	// 	return "", oauth2.Token{}, false, err
+	// }
+
+	// var updated bool
+	// if token.Expiry.Before(now) {
+	// 	updated = true
+	// 	utils.Debug(false, "before, go to updare")
+	// 	token, err = update(rw, token, client.Config)
+	// 	if err != nil {
+	// 		return "", token, updated, err
+	// 	}
+	// }
+	//accessToken = token.AccessToken
 
 	var updated bool
-	if token.Expiry.Before(now) {
-		updated = true
-		token, err = update(rw, token, client.Config)
-		if err != nil {
-			return "", token, updated, err
-		}
-	}
-	accessToken = token.AccessToken
+	resp, err := http.Get(fmt.Sprintf("%s/auth/test?access_token=%s",
+		client.Address, token.AccessToken))
+	if err != nil {
 
-	resp, err := http.Get(fmt.Sprintf("%s/test?access_token=%s",
-		client.Address, accessToken))
+		token, err = update(rw, token, client.Config)
+		resp, err = http.Get(fmt.Sprintf("%s/auth/test?access_token=%s",
+			client.Address, token.AccessToken))
+		updated = true
+	}
 	if err != nil {
 		utils.Debug(false, "get cant sorry", err.Error())
 		return "", token, updated, err
@@ -149,16 +153,19 @@ func check(rw http.ResponseWriter, r *http.Request, isReserve bool,
 
 	tokenModel := models.Token{}
 
-	err = json.NewDecoder(resp.Body).Decode(&tokenModel)
-
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", token, updated, err
+	}
+	err = json.Unmarshal(bytes, &tokenModel)
 	if err != nil {
 		return "", token, updated, err
 	}
 	return tokenModel.GetUserID(), token, updated, err
 }
 
-func DeleteFromHeader(rw http.ResponseWriter, client config.AuthClient) error {
-	token, err := tokenFromHeaders(rw)
+func DeleteFromHeader(r *http.Request, client config.AuthClient) error {
+	token, err := tokenFromHeaders(r)
 	if err != nil {
 		return err
 	}

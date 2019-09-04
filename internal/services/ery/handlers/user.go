@@ -2,6 +2,8 @@ package eryhandlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -36,6 +38,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) api.Result
 
 	var user models.User
 	err := api.GetUserWithAllFields(r, salt, &user)
+	utils.Debug(false, user.Name)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
@@ -66,36 +69,24 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) api.Result
 // @Failure 500 {object} models.Result "error with database"
 // @Router /user [PUT]
 func (h *Handler) UpdateUser(rw http.ResponseWriter, r *http.Request) api.Result {
-	const place = "UpdateProfile"
-
-	var (
-		user   models.User
-		err    error
-		userID int32
-	)
-
-	if err = api.GetUser(r, salt, &user); err != nil {
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
-	}
-
-	if userID, err = api.GetUserIDFromAuthRequest(r); err != nil {
-		return api.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
-	}
-
-	user.ID = userID
-
-	if err = h.DB.UpdateUser(&user); err != nil {
-		return api.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
-	}
-
-	return api.NewResult(http.StatusOK, place, nil, nil)
+	return api.UpdateModel(r, &models.UserUpdate{}, "UpdateProfile", true,
+		func(userID int32) (api.JSONtype, error) {
+			user, err := h.DB.GetUser(userID)
+			return &user, err
+		}, func(userI api.JSONtype) error {
+			user, ok := userI.(*models.User)
+			if !ok {
+				return re.NoUpdate()
+			}
+			return h.DB.UpdateUser(user)
+		})
 }
 
 func (h *Handler) GetUser(rw http.ResponseWriter, r *http.Request) api.Result {
 
 	const place = "Get user"
 	var (
-		user   *models.User
+		user   = models.User{}
 		err    error
 		userID int32
 	)
@@ -105,10 +96,10 @@ func (h *Handler) GetUser(rw http.ResponseWriter, r *http.Request) api.Result {
 	}
 
 	if user, err = h.DB.GetUser(userID); err != nil {
-		api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
-	return api.NewResult(http.StatusOK, place, user, nil)
+	return api.NewResult(http.StatusOK, place, &user, nil)
 }
 
 func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) api.Result {
@@ -123,7 +114,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) api.Result {
 	name = r.FormValue("name")
 
 	if users, err = h.DB.GetUsers(name); err != nil {
-		api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	return api.NewResult(http.StatusOK, place, &users, nil)
@@ -133,13 +124,15 @@ func (h *Handler) GetUserByID(rw http.ResponseWriter, r *http.Request, userID in
 
 	const place = "Get user"
 	var (
-		user *models.User
+		user models.User
 		err  error
 	)
 
 	if user, err = h.DB.GetUser(userID); err != nil {
-		api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
-	return api.NewResult(http.StatusOK, place, user, nil)
+	return api.NewResult(http.StatusOK, place, &user, nil)
 }
+
+// 148

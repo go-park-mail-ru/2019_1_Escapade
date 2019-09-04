@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	clients "github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"net/http"
 )
@@ -24,6 +25,12 @@ type Handler struct {
 type JSONtype interface {
 	MarshalJSON() ([]byte, error)
 	UnmarshalJSON(data []byte) error
+}
+
+type ModelUpdate interface {
+	JSONtype
+
+	Update(JSONtype) bool
 }
 
 // Result - every handler return it
@@ -46,6 +53,47 @@ func NewResult(code int, place string, send JSONtype, err error) Result {
 // TODO добавить группу ожидания и здесь ждать ее, не забыть использовтаь ustils.WaitWithTimeout
 func (h *Handler) Close() {
 	h.DB.Db.Close()
+}
+
+// UpdateModel update any object in DB
+// dont use for updating passwords(or hash it before set to BD)
+// needAuth - if true, then userID will be taken from auth request
+func UpdateModel(r *http.Request, updated ModelUpdate, place string, needAuth bool,
+	getFromDB func(userID int32) (JSONtype, error), setToDB func(JSONtype) error) Result {
+	var (
+		userID int32
+		err    error
+	)
+
+	// if need userID from auth middleware
+	if needAuth {
+		if userID, err = GetUserIDFromAuthRequest(r); err != nil {
+			return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
+		}
+	}
+
+	// updated - new version of object - get it from request
+	if err = ModelFromRequest(r, updated); err != nil {
+		return NewResult(http.StatusBadRequest, place, nil, err)
+	}
+
+	// object - origin object(old version) - get it from bd
+	object, err := getFromDB(userID)
+	if err != nil {
+		return NewResult(http.StatusBadRequest, place, nil, err)
+	}
+
+	// update origin object to new version (taking into account empty fields)
+	if !updated.Update(object) {
+		return NewResult(http.StatusBadRequest, place, nil, re.NoUpdate())
+	}
+
+	// try to set updated object to database
+	if err = setToDB(object); err != nil {
+		return NewResult(http.StatusInternalServerError, place, nil, err)
+	}
+
+	return NewResult(http.StatusOK, place, object, nil)
 }
 
 func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
@@ -201,6 +249,7 @@ func sendSuccessJSON(rw http.ResponseWriter, result JSONtype, place string) {
 		}
 	}
 	if b, err := result.MarshalJSON(); err == nil {
+		utils.Debug(false, string(b))
 		rw.Write(b)
 	}
 }

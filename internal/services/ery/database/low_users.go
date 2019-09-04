@@ -3,33 +3,20 @@ package database
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
-	"fmt"
-
 	_ "github.com/jackc/pgx"
 	"github.com/jmoiron/sqlx"
 )
 
 // createPlayer создать пользователя
-func (db *DB) createUser(tx *sqlx.Tx, user *models.User) (int32, error) {
+func (db *DB) createUser(tx *sqlx.Tx, user *models.User) error {
 	sqlInsert := `
 	INSERT INTO Users(name, password, photo_title, website,
 		 about, email, phone) VALUES
 		(:name, :password, :photo_title, :website, :about,
 			:email, :phone)
-		RETURNING id;
+		RETURNING *;
 		`
-	fmt.Println("createUser:", user.Name)
-	rows, err := tx.NamedQuery(tx.Rebind(sqlInsert), user)
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-
-	var id int32
-	for rows.Next() {
-		err = rows.Scan(&id)
-	}
-	return id, err
+	return createAndReturnStruct(tx, sqlInsert, &user)
 }
 
 // updateUser обновить публичную информацию о пользователе
@@ -48,14 +35,14 @@ func (db *DB) updateUser(tx *sqlx.Tx, user *models.User) error {
 func (db *DB) updateUserPrivate(tx *sqlx.Tx, oldUser *models.User, newUser *models.User) error {
 	statement := `
 	UPDATE Users 
-	SET name like $1, password like $2
+	SET name = $1, password = $2
 	WHERE name like $3 and password like $4
 		`
 	_, err := tx.Exec(statement, newUser.Name, newUser.Password, oldUser.Name, oldUser.Password)
 	return err
 }
 
-func (db *DB) getOneUser(tx *sqlx.Tx, userID int32) (*models.User, error) {
+func (db *DB) getOneUser(tx *sqlx.Tx, userID int32) (models.User, error) {
 	statement := `
 	select * from Users 
 	WHERE id=$1
@@ -68,14 +55,14 @@ func (db *DB) getOneUser(tx *sqlx.Tx, userID int32) (*models.User, error) {
 
 	err := row.StructScan(&user)
 	user.Password = ""
-	return &user, err
+	return user, err
 }
 
 // searchUsersWithName - найти людей с именем name
 // Поиск людей в одном проекте реализовать на стороне клиента при получении массива участников
 func (db *DB) searchUsersWithName(tx *sqlx.Tx, name string) ([]models.User, error) {
 	statement := `
-	select name, photo_title, about from Users where name ~*  '.$1.'
+	select id, name, photo_title, about from Users where name ~* $1
 	`
 	rows, err := tx.Queryx(statement, name)
 	if err != nil {

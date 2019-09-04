@@ -9,7 +9,6 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"net/http"
-
 	//"github.com/gorilla/websocket"
 )
 
@@ -24,7 +23,8 @@ func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) Result {
 	if userID, err = GetUserIDFromAuthRequest(r); err != nil {
 		return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
-	if record, err = getRecord(r); err != nil {
+
+	if err = ModelFromRequest(r, &record); err != nil {
 		return NewResult(http.StatusBadRequest, place, nil, err)
 	}
 	if err = h.DB.UpdateRecords(userID, &record); err != nil {

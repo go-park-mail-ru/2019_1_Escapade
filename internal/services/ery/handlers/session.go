@@ -22,12 +22,12 @@ import (
 func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) api.Result {
 	const place = "Login"
 	var (
-		user   *models.User
+		user   models.User
 		err    error
 		userID int32
 	)
 
-	err = api.GetUser(r, salt, user)
+	err = api.GetUser(r, salt, &user)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
@@ -46,7 +46,34 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) api.Result {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
-	return api.NewResult(http.StatusOK, place, user, nil)
+	return api.NewResult(http.StatusOK, place, &user, nil)
+}
+
+func (h *Handler) GetToken(rw http.ResponseWriter, r *http.Request) api.Result {
+	const place = "GetToken"
+	var (
+		user models.User
+		err  error
+	)
+
+	err = api.GetUser(r, salt, &user)
+	if err != nil {
+		return api.NewResult(http.StatusBadRequest, place, nil, err)
+	}
+
+	token, err := auth.CreateTokenInHeaders(rw, user.Name, user.Password, h.AuthClient.Config)
+	if err != nil {
+		return api.NewResult(http.StatusBadRequest, place, nil, err)
+	}
+
+	tokenModel := models.UserToken{
+		Access:  token.AccessToken,
+		Type:    token.TokenType,
+		Refresh: token.RefreshToken,
+		Expire:  token.Expiry,
+	}
+
+	return api.NewResult(http.StatusOK, place, &tokenModel, nil)
 }
 
 func (h *Handler) UpdatePrivate(rw http.ResponseWriter, r *http.Request) api.Result {
@@ -84,7 +111,7 @@ func (h *Handler) UpdatePrivate(rw http.ResponseWriter, r *http.Request) api.Res
 // @Router /session [DELETE]
 func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) api.Result {
 	const place = "Logout"
-	if err := auth.DeleteFromHeader(rw, h.AuthClient); err != nil {
+	if err := auth.DeleteFromHeader(r, h.AuthClient); err != nil {
 		api.Warning(err, "Cant delete token in auth service", place)
 	}
 	return api.NewResult(http.StatusOK, place, nil, nil)

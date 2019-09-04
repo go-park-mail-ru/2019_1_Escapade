@@ -9,6 +9,8 @@ import (
 )
 
 func (db *DB) CreateDisease(userID, projectID, sceneID int32, obj *models.Disease) error {
+	obj.UserID = userID
+	obj.SceneID = sceneID
 	return db.workInScene(userID, projectID,
 		func(tx *sqlx.Tx) error {
 			return db.createDisease(tx, sceneID, obj)

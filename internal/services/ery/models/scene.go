@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 )
 
 //easyjson:json
@@ -19,7 +21,24 @@ type Scene struct {
 }
 
 //easyjson:json
-type SceneObjects struct {
+type SceneUpdate struct {
+	Name  *string `json:"name,omitempty"`
+	About *string `json:"about,omitempty"`
+}
+
+func (updated *SceneUpdate) Update(sceneI api.JSONtype) bool {
+	var needUpdate bool
+	switch scene := sceneI.(type) {
+	case *Scene:
+		updateString(&scene.Name, updated.Name, &needUpdate)
+		updateString(&scene.About, updated.About, &needUpdate)
+	}
+	return needUpdate
+}
+
+//easyjson:json
+type SceneWithObjects struct {
+	Scene        Scene         `json:"scene"`
 	Erythrocytes []Erythrocyte `json:"erythrocytes"`
 	Files        []EryObject   `json:"files"`
 	Diseases     []Disease     `json:"diseases"`

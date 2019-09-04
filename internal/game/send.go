@@ -3,7 +3,7 @@ package game
 import (
 	"sync"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 )
 
 // SendPredicate - returns true if the parcel send to that conn
@@ -11,7 +11,7 @@ type SendPredicate func(conn *Connection) bool
 
 // SendToConnections send 'info' to everybody,  whose predicate
 // returns true
-func SendToConnections(info utils.JSONtype,
+func SendToConnections(info api.JSONtype,
 	predicate SendPredicate, groups ...*Connections) {
 
 	waitJobs := &sync.WaitGroup{}

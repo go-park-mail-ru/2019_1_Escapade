@@ -12,6 +12,14 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// параметры пути
+const (
+	USERID    = "user_id"
+	PROJECTID = "project_id"
+	SCENEID   = "scene_id"
+	OBJECTID  = "object_id"
+)
+
 // Router вернуть маршрутизатор путей
 func Router(H *Handler, cors config.CORS, cc config.Cookie,
 	ca config.Auth, client config.AuthClient) *mux.Router {
@@ -33,9 +41,9 @@ func Router(H *Handler, cors config.CORS, cc config.Cookie,
 
 	withAuth.HandleFunc("/user/projects", H.HandleProjects).Methods("POST", "GET", "OPTIONS")
 
-	withAuth.HandleFunc("/user/{user_id}", H.HandleUserID).Methods("GET", "OPTIONS")
+	withAuth.HandleFunc("/users/{user_id}", H.HandleUserID).Methods("GET", "OPTIONS")
 
-	noAuth.HandleFunc("/session", H.HandleSession).Methods("POST", "OPTIONS")
+	noAuth.HandleFunc("/session", H.HandleSession).Methods("GET", "POST", "OPTIONS")
 	withAuth.HandleFunc("/session", H.HandleSession).Methods("DELETE", "PUT")
 
 	withAuth.HandleFunc("/projects", H.HandleProjectsSearch).Methods("GET", "OPTIONS")
@@ -43,15 +51,20 @@ func Router(H *Handler, cors config.CORS, cc config.Cookie,
 
 	withAuth.HandleFunc("/project/{project_id}/members/{user_id}", H.HandleProjectIDMembers).Methods("POST", "DELETE", "PUT", "OPTIONS")
 
-	withAuth.HandleFunc("/project/{project_id}/members/{user_id}/token", H.HandleProjectID).Methods("POST", "DELETE", "PUT", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/members/{user_id}/token", H.HandleProjectIDMembersToken).Methods("POST", "DELETE", "PUT", "OPTIONS")
 
 	withAuth.HandleFunc("/project/{project_id}/scene", H.HandleScene).Methods("POST", "OPTIONS")
 
 	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}", H.HandleSceneID).Methods("GET", "PUT", "DELETE", "OPTIONS")
 
-	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte", H.HandleSceneErythrocyte).Methods("POST", "PUT", "DELETE", "OPTIONS")
-	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte_object", H.HandleSceneErythrocyteObject).Methods("POST", "PUT", "DELETE", "OPTIONS")
-	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/disease", H.HandleSceneDisease).Methods("POST", "PUT", "DELETE", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte", H.HandleSceneErythrocyte).Methods("POST", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte/{object_id}", H.HandleSceneErythrocyteID).Methods("PUT", "DELETE", "OPTIONS")
+
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte_object", H.HandleSceneErythrocyteObject).Methods("POST", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/erythrocyte_object/{object_id}", H.HandleSceneErythrocyteObjectID).Methods("PUT", "DELETE", "OPTIONS")
+
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/disease", H.HandleSceneDisease).Methods("POST", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/scene/{scene_id}/disease/{object_id}", H.HandleSceneDiseaseID).Methods("PUT", "DELETE", "OPTIONS")
 
 	r.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
 	withAuth.Use(mi.Auth(cc, ca, client))

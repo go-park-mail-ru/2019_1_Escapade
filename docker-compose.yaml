@@ -54,7 +54,10 @@ services:
      # - AUTHSERVICE_URL=auth:3333
      # - PORT_API_URL=:3001
     command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
-  
+    logging:
+      options:
+        max-size: 10m
+
   ery:
     build:
       dockerfile: ./cmd/services/ery/Dockerfile
@@ -71,8 +74,12 @@ services:
      # - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
      # - AUTHSERVICE_URL=auth:3333
      # - PORT_API_URL=:3001
-    command: /bin/sh -c "./bin/ery cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
-  
+    command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
+    volumes:
+    - ./:/escapade
+    logging:
+      options:
+        max-size: 10m
 
   chat1:
     container_name: chat1
@@ -86,7 +93,9 @@ services:
     ports:
       - 3060:3060
     command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/chat cmd/services/chat/chat.json 3060 8500"
-  
+    logging:
+      options:
+        max-size: 10m
 
   auth:
     build:
@@ -99,8 +108,11 @@ services:
       - 3003:3003
     environment:
       - CONSUL_ADDRESS=consul
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
-
+    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
+    logging:
+      options:
+        max-size: 10m
+        
   loader:
     build:
       dockerfile: ./cmd/services/configLoader/Dockerfile
@@ -113,6 +125,9 @@ services:
     command: /bin/sh -c "./bin/loader config.json"
     networks: 
       - backend
+    logging:
+      options:
+        max-size: 10m
 
   game:
     build:

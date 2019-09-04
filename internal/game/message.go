@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
@@ -185,7 +185,7 @@ func sendMessages(send Sender, predicate SendPredicate, messages ...*models.Mess
 			Value: message,
 		}
 
-		send(response, predicate)
+		send(&response, predicate)
 	}
 }
 
@@ -200,7 +200,7 @@ func sendMessagesTodelete(send Sender, predicate SendPredicate, messages ...*mod
 			Value: newMessage,
 		}
 
-		send(response, predicate)
+		send(&response, predicate)
 	}
 }
 
@@ -224,5 +224,5 @@ func Messages(conn *Connection, messages *models.Messages,
 		Value: messages,
 	}
 
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }

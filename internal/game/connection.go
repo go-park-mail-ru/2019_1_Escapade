@@ -387,5 +387,5 @@ func sendAccountTaken(conn *Connection) {
 		panic("sendAccountTaken")
 	}
 	utils.Debug(false, "send sendAccountTaken")
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }

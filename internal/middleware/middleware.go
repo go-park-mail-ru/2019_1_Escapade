@@ -74,7 +74,7 @@ func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.Middle
 			}
 			ctx := context.WithValue(r.Context(), api.ContextUserKey, userID)
 
-			utils.Debug(false, "auth end")
+			utils.Debug(false, "auth end", userID, api.ContextUserKey)
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}

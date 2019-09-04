@@ -119,7 +119,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) Result {
 	}
 	fileKey := uuid.NewV4().String()
 
-	err = photo.SaveImageInS3(fileKey, file)
+	err = photo.SaveImageInS3(fileKey, file, handle)
 	if err != nil {
 		return NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}

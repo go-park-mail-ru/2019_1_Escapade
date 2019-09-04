@@ -161,7 +161,7 @@ func (room *Room) SetAndSendNewCell(conn Connection, group *sync.WaitGroup) {
 	room.Players.SetFlag(conn, cell, room.prepareOver)
 
 	response := models.RandomFlagSet(cell)
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }
 
 // dont call as goroutines!!!
@@ -210,19 +210,19 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) b
 	// if user try set flag after game launch
 	if room.Status() != StatusFlagPlacing {
 		response := models.FailFlagSet(cell, re.ErrorBattleAlreadyBegan())
-		conn.SendInformation(response)
+		conn.SendInformation(&response)
 		return false
 	}
 
 	if !room.Field.IsInside(cell) {
 		response := models.FailFlagSet(cell, re.ErrorCellOutside())
-		conn.SendInformation(response)
+		conn.SendInformation(&response)
 		return false
 	}
 
 	if !room.isAlive(conn) {
 		response := models.FailFlagSet(cell, re.ErrorPlayerFinished())
-		conn.SendInformation(response)
+		conn.SendInformation(&response)
 		return false
 	}
 

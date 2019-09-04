@@ -7,8 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/disintegration/imaging"
 
+	"bytes"
+	"fmt"
 	"mime/multipart"
+	"net/http"
 	"time"
 )
 
@@ -37,23 +41,56 @@ func GetImages(users ...*models.UserPublicInfo) {
 }
 
 //SaveImageInS3 save image given by 'key' user
-func SaveImageInS3(key string, file multipart.File) (err error) {
+func SaveImageInS3(key string, file multipart.File, handler *multipart.FileHeader) (err error) {
 	if !_AWS.public.set {
 		utils.Debug(true, "package photo not initialized")
 		return
 	}
 
+	img, err := imaging.Decode(file)
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	err = imaging.Encode(&buf, img, imaging.JPEG)
+	if err != nil {
+		return err
+	}
+
+	fileType := http.DetectContentType(buf.Bytes())
+	fileSize := buf.Len()
+	path := handler.Filename
+	params := &s3.PutObjectInput{
+		Bucket: aws.String(_AWS.public.PlayersAvatarsStorage),
+		Key:    aws.String("artyom/" + path),
+		Body:   bytes.NewReader(buf.Bytes()),
+		ACL:    aws.String("public-read"),
+
+		ContentLength: aws.Int64(int64(fileSize)),
+		ContentType:   aws.String(fileType),
+	}
+
 	sess := session.Must(session.NewSession(_AWS.public.config))
-
-	// Create S3 service client
 	svc := s3.New(sess)
+	resp, err := svc.PutObject(params)
+	if err != nil {
+		return err
+	}
 
-	//snippet-start:[s3.go.put_object.call]
-	_, err = svc.PutObject((&s3.PutObjectInput{}).
-		SetBucket(_AWS.public.PlayersAvatarsStorage).
-		SetKey(key).
-		SetBody(file),
-	)
+	fmt.Println("Done", resp)
+
+	// sess := session.Must(session.NewSession(_AWS.public.config))
+
+	// // Create S3 service client
+	// svc := s3.New(sess)
+
+	// //snippet-start:[s3.go.put_object.call]
+	// _, err = svc.PutObject((&s3.PutObjectInput{}).
+	// 	SetBucket(_AWS.public.PlayersAvatarsStorage).
+	// 	SetKey(key).
+	// 	SetBody(file),
+	// )
 
 	return
 }

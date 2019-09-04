@@ -4,6 +4,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/aws/aws-sdk-go/aws"
+	_ "github.com/aws/aws-sdk-go/aws/session"
 
 	"io/ioutil"
 	"os"
@@ -90,8 +91,11 @@ func initPublic(publicConfigPath string) error {
 		return err
 	}
 	publicAWS.config = &aws.Config{
-		Region:   aws.String(publicAWS.Region),
-		Endpoint: aws.String(publicAWS.Endpoint)}
+		Region: aws.String(publicAWS.Region)}
+	if publicAWS.Endpoint != "" {
+		publicAWS.config.Endpoint = aws.String(publicAWS.Endpoint)
+	}
+
 	publicAWS.set = true
 
 	_AWS.public = *publicAWS
@@ -116,6 +120,8 @@ func initPrivate(path string) error {
 	privateAWS.set = true
 
 	_AWS.private = *privateAWS
+
+	//_AWS.public.config.Credentials = credentials.NewStaticCredentials(privateAWS.AccessKey, privateAWS.SecretKey, "TOKEN")
 
 	os.Setenv(privateAWS.AccessURL, privateAWS.AccessKey)
 	os.Setenv(privateAWS.SecretURL, privateAWS.SecretKey)

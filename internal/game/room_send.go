@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
+	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 )
 
 // sendToAllInRoom send info to those in room, whose predicate
@@ -27,7 +27,7 @@ func (room *Room) sendMessage(text string, predicate SendPredicate) {
 		utils.CatchPanic("room_send.go sendMessage()")
 	}()
 
-	room.send(models.Result{
+	room.send(&models.Result{
 		Message: "Room(" + room.ID() + "):" + text}, predicate)
 }
 
@@ -46,7 +46,7 @@ func (room *Room) sendPlayerPoints(player Player, predicate SendPredicate) {
 		Type:  "RoomPlayerPoints",
 		Value: player,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -80,7 +80,7 @@ func (room *Room) sendGameOver(timer bool, predicate SendPredicate,
 			Timer:   timer,
 		},
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -99,7 +99,7 @@ func (room *Room) sendNewCells(predicate SendPredicate, cells ...Cell) {
 		Type:  "RoomNewCells",
 		Value: cells,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -117,7 +117,7 @@ func (room *Room) sendPlayerEnter(conn *Connection, predicate SendPredicate) {
 		Type:  "RoomPlayerEnter",
 		Value: conn,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -135,7 +135,7 @@ func (room *Room) sendPlayerExit(conn *Connection, predicate SendPredicate) {
 		Type:  "RoomPlayerExit",
 		Value: conn,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -144,7 +144,7 @@ func (room *Room) sendObserverEnter(conn *Connection, predicate SendPredicate) {
 		Type:  "RoomObserverEnter",
 		Value: conn,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -162,7 +162,7 @@ func (room *Room) sendObserverExit(conn *Connection, predicate SendPredicate) {
 		Type:  "RoomObserverExit",
 		Value: conn,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
@@ -201,7 +201,7 @@ func (room *Room) sendStatus(predicate SendPredicate, status int, wg *sync.WaitG
 			Time:   leftTime,
 		},
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 func (room *Room) sendStatusOne(conn *Connection) {
@@ -235,7 +235,7 @@ func (room *Room) sendStatusOne(conn *Connection) {
 			Time:   leftTime,
 		},
 	}
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }
 
 // sendTAIRHistory send actions history to all in room
@@ -253,7 +253,7 @@ func (room *Room) sendAction(pa PlayerAction, predicate SendPredicate) {
 		Type:  "RoomAction",
 		Value: pa,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRHistory send actions history to all in room
@@ -271,7 +271,7 @@ func (room *Room) sendError(err error, conn *Connection) {
 		Type:  "RoomError",
 		Value: err.Error(),
 	}
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }
 
 // sendTAIRField send field to all in room
@@ -289,7 +289,7 @@ func (room *Room) sendField(predicate SendPredicate) {
 		Type:  "RoomField",
 		Value: room.Field,
 	}
-	room.send(response, predicate)
+	room.send(&response, predicate)
 }
 
 // sendTAIRAll send everything to one connection
@@ -336,5 +336,5 @@ func (room *Room) greet(conn *Connection, isPlayer bool) {
 			IsPlayer: isPlayer,
 		},
 	}
-	conn.SendInformation(response)
+	conn.SendInformation(&response)
 }
