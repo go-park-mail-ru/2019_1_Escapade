@@ -87,7 +87,7 @@ func main() {
 
 	// TODO в конфиг
 	var (
-		accessTokenExp    = time.Hour * 2
+		accessTokenExp    = time.Second * 5 //time.Hour * 2
 		refreshTokenExp   = time.Hour * 24 * 14
 		isGenerateRefresh = true
 		jwtSecret         = "00000000"

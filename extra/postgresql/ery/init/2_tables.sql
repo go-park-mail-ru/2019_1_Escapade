@@ -14,7 +14,7 @@ CREATE TABLE Users (
   id SERIAL PRIMARY KEY,
   name text NOT NULL,
   password text NOT NULL,
-  photo_title text default '1.png',
+  photo_title text default 'artyom/1.png',
 	website text default 'не указан',
 	about text default 'информация не указана',
 	email text default 'не указан',
@@ -54,7 +54,7 @@ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION users_trigger_insert_func() RETURNS trigger AS $TRIGGER$ 
 BEGIN 
 		if NEW."photo_title" is NULL or LENGTH(NEW."photo_title") = 0 then
-			NEW."photo_title" = '1.png';
+			NEW."photo_title" = 'artyom/1.png';
 		end if;
 		if NEW."website" is NULL or LENGTH(NEW."website") = 0 then
 			NEW."website" = 'не указан';
@@ -262,6 +262,7 @@ CREATE TABLE Erythrocytes (
   user_id int,
 	texture_id int,
 	form_id int,
+	image_id int,
 	scene_id int,
 	disease_id int,
 

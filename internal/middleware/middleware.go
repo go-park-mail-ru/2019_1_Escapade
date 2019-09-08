@@ -55,7 +55,7 @@ func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.Middle
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			utils.Debug(false, "auth start")
 			var (
-				maxLimit = 3
+				maxLimit = 1
 				userID   string
 				err      error
 			)

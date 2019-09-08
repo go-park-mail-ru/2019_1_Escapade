@@ -147,14 +147,13 @@ func GetImages(objs []models.EryObject) []models.EryObject {
 		return objs
 	}
 	var err error
-	newObjs := make([]models.EryObject, len(objs))
 	for i, object := range objs {
-		newObjs[i].Path, err = photo.GetImageFromS3(object.Path)
+		objs[i].Path, err = photo.GetImageFromS3(object.Path)
 		if err != nil {
 			utils.Debug(false, "catched error", err.Error())
 		}
 	}
-	return newObjs
+	return objs
 }
 
 // 306 -> 132

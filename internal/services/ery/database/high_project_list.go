@@ -100,7 +100,7 @@ func (db *DB) ProjectListGet(userID int32) (models.Projects, error) {
 		if err != nil {
 			break
 		}
-		utils.Debug(false, "list.Projects[i]", i, list.Projects[i].Project.ID, list.Projects[i].Project.Name)
+		utils.Debug(false, "list.Projects[i]", i, list.Projects[i].Project.ID, list.Projects[i].Project.Name, list.Projects[i].Project.ScenesAmount)
 	}
 	if err != nil {
 		return list, err
@@ -149,13 +149,12 @@ func (db *DB) ProjectGet(userID, projectID int32) (models.ProjectWithMembers, er
 	project.MembersAmount = members
 	project.OwnersAmount = owners
 	project.YouOwner = isOwner
-	projectWithMembers.Project = *project
-
 	project.ScenesAmount, err = db.GetScenesInProjectAmount(projectID)
+	utils.Debug(false, "project.ScenesAmount:", project.ScenesAmount)
 	if err != nil {
 		return projectWithMembers, err
 	}
-
+	projectWithMembers.Project = *project
 	if project.PublicAccess || (err == nil && projectWithMembers.You.User.Confirmed()) {
 
 		needTokens := projectWithMembers.You.Token.HasAccessToTokens()

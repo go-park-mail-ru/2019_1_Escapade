@@ -59,6 +59,29 @@ func (h *Handler) HandleUser(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handler) HandleUserImage(rw http.ResponseWriter, r *http.Request) {
+	var result api.Result
+
+	userID, err := api.GetUserIDFromAuthRequest(r)
+	if err != nil {
+		api.SendResult(rw,
+			api.NewResult(http.StatusUnauthorized,
+				"HandleUserImage", nil, re.AuthWrapper(err)))
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPost: // обновить фотографию
+		result = h.postImage(rw, r, userID)
+	case http.MethodOptions:
+		return
+	default:
+		utils.Debug(false, "/ery/user/image wrong request:", r.Method)
+	}
+	api.SendResult(rw, result)
+	return
+}
+
 func (h *Handler) HandleUsers(rw http.ResponseWriter, r *http.Request) {
 	var result api.Result
 
@@ -313,18 +336,19 @@ func (h *Handler) HandleSceneErythrocyte(rw http.ResponseWriter, r *http.Request
 	var result api.Result
 	const place = "HandleSceneErythrocyte"
 
-	ids, err := api.RequestParamsInt32(r, true, USERID, PROJECTID)
+	ids, err := api.RequestParamsInt32(r, true, PROJECTID, SCENEID)
 	if err != nil {
 		api.SendResult(rw, api.NewResult(http.StatusBadRequest, place, nil, err))
 		return
 	}
 	userID, projectID, sceneID := ids[api.UserIDKey], ids[PROJECTID], ids[SCENEID]
+	utils.Debug(false, "HandleSceneErythrocyte ids:", userID, projectID, sceneID)
 
 	switch r.Method {
 	case http.MethodPost: // Создать новый эритроцит
 		result = h.erythrocyteCreate(rw, r, userID, projectID, sceneID)
 	default:
-		utils.Debug(false, "/api/session wrong request:", r.Method)
+		utils.Debug(false, "/ery/project/{project_id}/scene/{scene_id}/erythrocyte wrong request:", r.Method)
 	}
 	api.SendResult(rw, result)
 	return
@@ -337,7 +361,7 @@ func (h *Handler) HandleSceneErythrocyteID(rw http.ResponseWriter, r *http.Reque
 	var result api.Result
 	const place = "HandleSceneErythrocyteID"
 
-	ids, err := api.RequestParamsInt32(r, true, USERID, PROJECTID, OBJECTID)
+	ids, err := api.RequestParamsInt32(r, true, PROJECTID, SCENEID, OBJECTID)
 	if err != nil {
 		api.SendResult(rw, api.NewResult(http.StatusBadRequest, place, nil, err))
 		return
@@ -391,7 +415,7 @@ func (h *Handler) HandleSceneErythrocyteObjectID(rw http.ResponseWriter, r *http
 		return
 	}
 	userID, projectID, sceneID, objectID := ids[api.UserIDKey], ids[PROJECTID], ids[SCENEID], ids[OBJECTID]
-
+	utils.Debug(false, "ids", userID, projectID, sceneID, objectID)
 	switch r.Method {
 	case http.MethodPut: // обновить модель/текстуру/снимок
 		result = h.eryobjectUpdate(rw, r, userID, projectID, sceneID, objectID)

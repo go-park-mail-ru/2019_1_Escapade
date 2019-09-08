@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"strconv"
+
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 //easyjson:json
@@ -83,9 +86,24 @@ func (updated *EryObjectUpdate) Update(eryObjectI api.JSONtype) bool {
 	return needUpdate
 }
 
-func (obj *EryObject) Set(r *http.Request, name, size, ftype, path string) error {
+func (obj *EryObject) Set(r *http.Request, name, size, path string) error {
+	bString := "Байт"
+	sizeInt, _ := strconv.Atoi(size)
+	if sizeInt > 1024 {
+		sizeInt /= 1024
+		bString = "КБайт"
+	}
+	if sizeInt > 1024 {
+		sizeInt /= 1024
+		bString = "МБайт"
+	}
+	if sizeInt > 1024 {
+		sizeInt /= 1024
+		bString = "ГБайт"
+	}
+	size = strconv.Itoa(sizeInt)
 	obj.Name = name
-	obj.About = "Размер файла:" + size + ", Расширение:" + ftype
+	obj.About = "Размер файла:" + size + " " + bString
 	obj.Path = path
 
 	IsFormString := r.FormValue("is_form")
@@ -95,14 +113,17 @@ func (obj *EryObject) Set(r *http.Request, name, size, ftype, path string) error
 	found := 0
 
 	if len(IsFormString) > 0 {
+		utils.Debug(false, "IsFormString", IsFormString)
 		found++
 		obj.IsForm = true
 	}
 	if len(IsTextureString) > 0 {
+		utils.Debug(false, "IsTextureString", IsTextureString)
 		found++
 		obj.IsTexture = true
 	}
 	if len(IsImageString) > 0 {
+		utils.Debug(false, "IsImageString", IsImageString)
 		found++
 		obj.IsImage = true
 	}
@@ -116,6 +137,7 @@ func (obj *EryObject) Set(r *http.Request, name, size, ftype, path string) error
 type Erythrocyte struct {
 	ID        int32 `json:"id" db:"id"`
 	UserID    int32 `json:"user_id" db:"user_id"`
+	ImageID   int32 `json:"image_id" db:"image_id"`
 	TextureID int32 `json:"texture_id" db:"texture_id"`
 	FormID    int32 `json:"form_id" db:"form_id"`
 	SceneID   int32 `json:"scene_id" db:"scene_id"`
@@ -148,6 +170,7 @@ type Erythrocyte struct {
 type ErythrocyteUpdate struct {
 	TextureID *int32 `json:"texture_id,omitempty"`
 	FormID    *int32 `json:"form_id,omitempty"`
+	ImageID   *int32 `json:"image_id,omitempty"`
 	DiseaseID *int32 `json:"disease_id,omitempty"`
 
 	SizeX *float32 `json:"size_x,omitempty"`
@@ -179,23 +202,23 @@ func (updated *ErythrocyteUpdate) Update(erythrocyteI api.JSONtype) bool {
 		updateInt32(&erythrocyte.TextureID, updated.TextureID, &needUpdate)
 		updateInt32(&erythrocyte.FormID, updated.FormID, &needUpdate)
 		updateInt32(&erythrocyte.DiseaseID, updated.DiseaseID, &needUpdate)
-	
-		updateFloat32(&erythrocyte.SizeX, updated.PositionX, &needUpdate)
-		updateFloat32(&erythrocyte.SizeY, updated.PositionY, &needUpdate)
-		updateFloat32(&erythrocyte.SizeZ, updated.PositionZ, &needUpdate)
-	
-		updateFloat32(&erythrocyte.AngleX, updated.PositionX, &needUpdate)
-		updateFloat32(&erythrocyte.AngleY, updated.PositionY, &needUpdate)
-		updateFloat32(&erythrocyte.AngleZ, updated.PositionZ, &needUpdate)
-	
-		updateFloat32(&erythrocyte.ScaleX, updated.PositionX, &needUpdate)
-		updateFloat32(&erythrocyte.ScaleY, updated.PositionY, &needUpdate)
-		updateFloat32(&erythrocyte.ScaleZ, updated.PositionZ, &needUpdate)
-	
+
+		updateFloat32(&erythrocyte.SizeX, updated.SizeX, &needUpdate)
+		updateFloat32(&erythrocyte.SizeY, updated.SizeY, &needUpdate)
+		updateFloat32(&erythrocyte.SizeZ, updated.SizeZ, &needUpdate)
+
+		updateFloat32(&erythrocyte.AngleX, updated.AngleX, &needUpdate)
+		updateFloat32(&erythrocyte.AngleY, updated.AngleY, &needUpdate)
+		updateFloat32(&erythrocyte.AngleZ, updated.AngleZ, &needUpdate)
+
+		updateFloat32(&erythrocyte.ScaleX, updated.ScaleX, &needUpdate)
+		updateFloat32(&erythrocyte.ScaleY, updated.ScaleY, &needUpdate)
+		updateFloat32(&erythrocyte.ScaleZ, updated.ScaleZ, &needUpdate)
+
 		updateFloat32(&erythrocyte.PositionX, updated.PositionX, &needUpdate)
 		updateFloat32(&erythrocyte.PositionY, updated.PositionY, &needUpdate)
 		updateFloat32(&erythrocyte.PositionZ, updated.PositionZ, &needUpdate)
-	
+
 		updateFloat32(&erythrocyte.Form, updated.Form, &needUpdate)
 		updateFloat32(&erythrocyte.Oxygen, updated.Oxygen, &needUpdate)
 		updateFloat32(&erythrocyte.Gemoglob, updated.Gemoglob, &needUpdate)

@@ -7,10 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/disintegration/imaging"
 
 	"bytes"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -47,23 +47,27 @@ func SaveImageInS3(key string, file multipart.File, handler *multipart.FileHeade
 		return
 	}
 
-	img, err := imaging.Decode(file)
-	if err != nil {
-		return err
-	}
-
 	var buf bytes.Buffer
-	err = imaging.Encode(&buf, img, imaging.JPEG)
+	_, err = io.Copy(&buf, file)
+	// img, err := imaging.Decode(file)
+	// if err != nil {
+	// 	utils.Debug(false, "cant decode")
+	// 	_, err = io.Copy(&buf, file)
+	// } else {
+	// 	err = imaging.Encode(&buf, img, imaging.JPEG)
+	// }
+	//utils.Debug(false, "buf:", string(buf.Bytes()))
+
 	if err != nil {
+		utils.Debug(false, "cant encode")
 		return err
 	}
 
 	fileType := http.DetectContentType(buf.Bytes())
 	fileSize := buf.Len()
-	path := handler.Filename
 	params := &s3.PutObjectInput{
 		Bucket: aws.String(_AWS.public.PlayersAvatarsStorage),
-		Key:    aws.String("artyom/" + path),
+		Key:    aws.String(key),
 		Body:   bytes.NewReader(buf.Bytes()),
 		ACL:    aws.String("public-read"),
 
@@ -79,19 +83,6 @@ func SaveImageInS3(key string, file multipart.File, handler *multipart.FileHeade
 	}
 
 	fmt.Println("Done", resp)
-
-	// sess := session.Must(session.NewSession(_AWS.public.config))
-
-	// // Create S3 service client
-	// svc := s3.New(sess)
-
-	// //snippet-start:[s3.go.put_object.call]
-	// _, err = svc.PutObject((&s3.PutObjectInput{}).
-	// 	SetBucket(_AWS.public.PlayersAvatarsStorage).
-	// 	SetKey(key).
-	// 	SetBody(file),
-	// )
-
 	return
 }
 
@@ -107,7 +98,9 @@ func GetImageFromS3(key string) (url string, err error) {
 		return
 	}
 	svc := s3.New(sess)
-
+	if key == "1.png" {
+		key = "artyom/1.png"
+	}
 	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(_AWS.public.PlayersAvatarsStorage),
 		Key:    aws.String(key),

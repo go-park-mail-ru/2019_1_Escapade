@@ -31,7 +31,7 @@ func (db *DB) UpdateEryObject(userID, projectID int32, obj models.EryObject) err
 func (db *DB) DeleteEryObject(userID, projectID, objID int32) error {
 	return db.workInScene(userID, projectID,
 		func(tx *sqlx.Tx) error {
-			return db.deleteScene(tx, objID)
+			return db.deleteEryObject(tx, objID)
 		})
 }
 

@@ -31,6 +31,17 @@ func (db *DB) updateUser(tx *sqlx.Tx, user *models.User) error {
 	return err
 }
 
+// updateUser обновить публичную информацию о пользователе
+func (db *DB) SetNewImage(filekey string, userID int32) error {
+	statement := `
+	UPDATE Users 
+	SET photo_title = $1
+	WHERE id = $2
+		`
+	_, err := db.db.Exec(statement, filekey, userID)
+	return err
+}
+
 // updateUserPassword обновить имя или пароль пользователя
 func (db *DB) updateUserPrivate(tx *sqlx.Tx, oldUser *models.User, newUser *models.User) error {
 	statement := `
@@ -62,7 +73,7 @@ func (db *DB) getOneUser(tx *sqlx.Tx, userID int32) (models.User, error) {
 // Поиск людей в одном проекте реализовать на стороне клиента при получении массива участников
 func (db *DB) searchUsersWithName(tx *sqlx.Tx, name string) ([]models.User, error) {
 	statement := `
-	select id, name, photo_title, about from Users where name ~* $1
+	select * from Users where name ~* $1
 	`
 	rows, err := tx.Queryx(statement, name)
 	if err != nil {
@@ -77,6 +88,7 @@ func (db *DB) searchUsersWithName(tx *sqlx.Tx, name string) ([]models.User, erro
 		if err = rows.StructScan(&user); err != nil {
 			break
 		}
+		user.Password = ""
 		users = append(users, user)
 	}
 	if err != nil {
@@ -87,7 +99,7 @@ func (db *DB) searchUsersWithName(tx *sqlx.Tx, name string) ([]models.User, erro
 
 func (db *DB) getAllUsers(tx *sqlx.Tx) ([]models.User, error) {
 	statement := `
-	select  id, name, photo_title, about from Users
+	select  * from Users
 	`
 	rows, err := tx.Queryx(statement)
 	if err != nil {
@@ -102,6 +114,7 @@ func (db *DB) getAllUsers(tx *sqlx.Tx) ([]models.User, error) {
 		if err = rows.StructScan(&user); err != nil {
 			break
 		}
+		user.Password = ""
 		users = append(users, user)
 	}
 	if err != nil {

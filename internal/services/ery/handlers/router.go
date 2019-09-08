@@ -38,6 +38,7 @@ func Router(H *Handler, cors config.CORS, cc config.Cookie,
 	noAuth.HandleFunc("/users", H.HandleUsers).Methods("GET", "POST")
 	noAuth.HandleFunc("/user", H.HandleUser).Methods("OPTIONS", "POST")
 	withAuth.HandleFunc("/user", H.HandleUser).Methods("DELETE", "PUT", "GET")
+	withAuth.HandleFunc("/user/image", H.HandleUserImage).Methods("POST", "OPTIONS")
 
 	withAuth.HandleFunc("/user/projects", H.HandleProjects).Methods("POST", "GET", "OPTIONS")
 

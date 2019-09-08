@@ -13,8 +13,6 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"mime/multipart"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
@@ -27,7 +25,7 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 		err    error
 	)
 
-	maxFileSize := int64(6000000)
+	maxFileSize := int64(6000000000)
 
 	if err := r.ParseMultipartForm(maxFileSize); err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
@@ -59,42 +57,48 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 		return api.NewResult(http.StatusBadRequest, place, nil,
 			re.ErrorInvalidFileSize(fileSize, maxFileSize))
 	}
+	/*
+		var (
+			fileType         = handle.Header.Get("Content-Type")
+			found            = false
+			allowedFileTypes = make([]string, 0)
+		)
+		utils.Debug(false, "type:", fileType)
 
-	var (
-		fileType         = handle.Header.Get("Content-Type")
-		found            = false
-		allowedFileTypes = make([]string, 0)
-	)
-	allowedFileTypes = append(allowedFileTypes, "image/jpg", "image/jpeg", "image/png", "image/gif", "obj", "")
-	for _, allowed := range allowedFileTypes {
-		if fileType == allowed {
-			found = true
-			break
+		allowedFileTypes = append(allowedFileTypes, "image/jpg", "image/jpeg", "image/png", "image/gif", "obj", "")
+		for _, allowed := range allowedFileTypes {
+			if fileType == allowed {
+				found = true
+				break
+			}
 		}
-	}
-	if !found {
-		return api.NewResult(http.StatusBadRequest, place, nil, re.ErrorInvalidFileFormat(allowedFileTypes))
-	}
+		if !found {
+			return api.NewResult(http.StatusBadRequest, place, nil, re.ErrorInvalidFileFormat(allowedFileTypes))
+		}*/
 
-	fileKey := uuid.NewV4().String()
+	utils.Debug(false, "Set ")
+	//fileKey := uuid.NewV4().String()
 
 	var eryOBJ models.EryObject
-	err = eryOBJ.Set(r, handle.Filename, utils.String32(int32(fileSize)),
-		fileType, fileKey)
+	err = eryOBJ.Set(r, handle.Filename, utils.String32(int32(fileSize)), "artyom/" + handle.Filename)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	err = photo.SaveImageInS3(fileKey, file, handle)
+	utils.Debug(false, "SaveImageInS3")
+	eryOBJ.Path = "artyom/" + handle.Filename
+	err = photo.SaveImageInS3(eryOBJ.Path, file, handle)
 	if err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
 
+	utils.Debug(false, "CreateEryObject")
 	err = h.DB.CreateEryObject(userID, projectID, sceneID, &eryOBJ)
 	if err != nil {
-		photo.DeleteImageFromS3(fileKey)
+		photo.DeleteImageFromS3(eryOBJ.Path)
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
+	eryOBJ.Path, _ = photo.GetImageFromS3(eryOBJ.Path)
 	return api.NewResult(http.StatusCreated, place, &eryOBJ, nil)
 }
 

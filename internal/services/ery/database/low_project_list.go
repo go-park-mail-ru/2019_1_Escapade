@@ -471,11 +471,11 @@ func (db *DB) createErythrocyte(tx *sqlx.Tx, sceneID int32, obj *models.Erythroc
 	obj.SceneID = sceneID
 
 	statement := `
-	INSERT INTO Erythrocytes(user_id, texture_id, form_id, scene_id,
+	INSERT INTO Erythrocytes(user_id, texture_id, form_id, image_id, scene_id,
 		disease_id, size_x, size_y, size_z, angle_x, angle_y,
 		angle_z, scale_x, scale_y, scale_z, position_x, position_y,
 		position_z, form, oxygen, gemoglob) VALUES
-			(:user_id, :texture_id, :form_id, :scene_id, :disease_id,
+			(:user_id, :texture_id, :form_id, :image_id, :scene_id, :disease_id,
 			 :size_x, :size_y, :size_z, :angle_x, :angle_y, :angle_z,
 			 :scale_x, :scale_y, :scale_z, :position_x, :position_y,
 			 :position_z, :form, :oxygen, :gemoglob) returning id;
@@ -490,7 +490,7 @@ func (db *DB) updateErythrocyte(tx *sqlx.Tx, obj *models.Erythrocyte) error {
 
 	statement := `
 	UPDATE Erythrocytes 
-	SET user_id = :user_id, texture_id = :texture_id, form_id = :form_id.
+	SET user_id = :user_id, texture_id = :texture_id, image_id = :image_id, form_id = :form_id,
 	scene_id = :scene_id, disease_id = :disease_id, size_x = :size_x,
 	size_y = :size_y, size_z = :size_z, angle_x = :angle_x, angle_y = :angle_y,
 	angle_z = :angle_z, scale_x = :scale_x, scale_y = :scale_y, scale_z = :scale_z,
@@ -513,6 +513,9 @@ func (db *DB) GetErythrocyte(objectID int32) (*models.Erythrocyte, error) {
 	statement := `select * from Erythrocytes where id=$1`
 	row := db.db.QueryRowx(statement, objectID)
 	err := row.StructScan(&erythrocyte)
+	if err != nil {
+		utils.Debug(false, "GetErythrocyte cant get", err.Error())
+	}
 
 	return &erythrocyte, err
 }

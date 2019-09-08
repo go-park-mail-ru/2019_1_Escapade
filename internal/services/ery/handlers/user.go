@@ -2,6 +2,7 @@ package eryhandlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
@@ -15,6 +16,8 @@ import (
 	// erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
+	"bytes"
+	"mime/multipart"
 	"net/http"
 	//"github.com/gorilla/mux"
 	//"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -55,6 +58,10 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) api.Result
 	if err != nil {
 		api.Warning(err, "Cant create token in auth service", place)
 	}
+	user.PhotoTitle, err = photo.GetImageFromS3(user.PhotoTitle)
+	if err != nil {
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+	}
 
 	return api.NewResult(http.StatusCreated, place, &user, nil)
 }
@@ -78,7 +85,16 @@ func (h *Handler) UpdateUser(rw http.ResponseWriter, r *http.Request) api.Result
 			if !ok {
 				return re.NoUpdate()
 			}
-			return h.DB.UpdateUser(user)
+			err := h.DB.UpdateUser(user)
+			if err != nil {
+				return err
+			}
+
+			user.PhotoTitle, err = photo.GetImageFromS3(user.PhotoTitle)
+			if err != nil {
+				return err
+			}
+			return nil
 		})
 }
 
@@ -98,6 +114,11 @@ func (h *Handler) GetUser(rw http.ResponseWriter, r *http.Request) api.Result {
 	if user, err = h.DB.GetUser(userID); err != nil {
 		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
+	user.PhotoTitle, err = photo.GetImageFromS3(user.PhotoTitle)
+	if err != nil {
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+	}
+	utils.Debug(false, "user.PhotoTitle", user.PhotoTitle)
 
 	return api.NewResult(http.StatusOK, place, &user, nil)
 }
@@ -116,6 +137,9 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) api.Result {
 	if users, err = h.DB.GetUsers(name); err != nil {
 		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
+	for i := range users.Users {
+		users.Users[i].PhotoTitle, _ = photo.GetImageFromS3(users.Users[i].PhotoTitle)
+	}
 
 	return api.NewResult(http.StatusOK, place, &users, nil)
 }
@@ -133,6 +157,68 @@ func (h *Handler) GetUserByID(rw http.ResponseWriter, r *http.Request, userID in
 	}
 
 	return api.NewResult(http.StatusOK, place, &user, nil)
+}
+
+func (h *Handler) postImage(rw http.ResponseWriter, r *http.Request,
+	userID int32) api.Result {
+	const place = "postImage"
+
+	var (
+		file   multipart.File
+		handle *multipart.FileHeader
+		err    error
+	)
+
+	maxFileSize := int64(6000000000)
+
+	if err := r.ParseMultipartForm(maxFileSize); err != nil {
+		return api.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+	}
+
+	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
+
+	if file, handle, err = r.FormFile("File"); err != nil || file == nil || handle == nil {
+		return api.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+	}
+
+	defer file.Close()
+
+	var (
+		buff     bytes.Buffer
+		fileSize int64
+	)
+
+	if fileSize, err = buff.ReadFrom(file); err != nil {
+		return api.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+	}
+
+	if fileSize > maxFileSize {
+		return api.NewResult(http.StatusBadRequest, place, nil,
+			re.ErrorInvalidFileSize(fileSize, maxFileSize))
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return api.NewResult(http.StatusBadRequest, place, nil,
+			re.ErrorInvalidFileSize(fileSize, maxFileSize))
+	}
+
+	path := "artyom/" + utils.String32(userID) + "/" + handle.Filename
+	err = photo.SaveImageInS3(path, file, handle)
+	if err != nil {
+		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
+	}
+
+	err = h.DB.SetNewImage(path, userID)
+	if err != nil {
+		photo.DeleteImageFromS3(path)
+		return api.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
+	}
+	path, _ = photo.GetImageFromS3(path)
+	var user = models.User{
+		ID:         userID,
+		PhotoTitle: path,
+	}
+	return api.NewResult(http.StatusCreated, place, &user, nil)
 }
 
 // 148

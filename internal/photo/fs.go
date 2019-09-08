@@ -48,6 +48,7 @@ func SaveImageInFS(path string, file multipart.File) (err error) {
 	}
 	defer f.Close()
 	_, err = io.Copy(f, file)
+
 	if err != nil {
 		return err
 	}

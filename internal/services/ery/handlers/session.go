@@ -3,6 +3,7 @@ package eryhandlers
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -44,6 +45,11 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) api.Result {
 
 	if user, err = h.DB.GetUser(userID); err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
+	}
+
+	user.PhotoTitle, err = photo.GetImageFromS3(user.PhotoTitle)
+	if err != nil {
+		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	return api.NewResult(http.StatusOK, place, &user, nil)
