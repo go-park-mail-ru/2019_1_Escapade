@@ -155,6 +155,7 @@ func (h *Handler) GetUserByID(rw http.ResponseWriter, r *http.Request, userID in
 	if user, err = h.DB.GetUser(userID); err != nil {
 		return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
+	user.PhotoTitle, _ = photo.GetImageFromS3(user.PhotoTitle)
 
 	return api.NewResult(http.StatusOK, place, &user, nil)
 }

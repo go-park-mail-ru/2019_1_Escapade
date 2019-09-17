@@ -117,6 +117,7 @@ WHERE up.project_id = $1 and user_id = $2
 
 func (db *DB) GetProjectToken(userID, projectID int32) (models.ProjectToken, error) {
 	var token models.ProjectToken
+	utils.Debug(false, "we have these id:", userID, projectID)
 	statement := `
 	select pt.id, pt.owner, pt.edit_name, pt.edit_info, pt.edit_access,
 		pt.edit_scene, pt.edit_members_list, pt.edit_members_token 
@@ -126,6 +127,9 @@ func (db *DB) GetProjectToken(userID, projectID int32) (models.ProjectToken, err
 `
 	row := db.db.QueryRowx(statement, projectID, userID)
 	err := row.StructScan(&token)
+	if err != nil {
+		utils.Debug(false, "we have error", err.Error())
+	}
 
 	return token, err
 }
@@ -573,8 +577,9 @@ func createAndReturnStruct(tx *sqlx.Tx, statement string, obj interface{}) error
 
 func (db *DB) searchProjectsWithName(tx *sqlx.Tx, name string) ([]models.ProjectWithMembers, error) {
 	statement := `
-	select  id, name, public_access, company_access, about from Projects where name ~* $1
-	`
+	select  id, name, public_access, company_access, about, edit, editor_id, add from Projects where 
+	POSITION (lower($1) IN lower(name)) > 0 order by edit DESC;
+	` // name ~* 
 	rows, err := tx.Queryx(statement, name)
 	if err != nil {
 		return nil, err
@@ -598,7 +603,7 @@ func (db *DB) searchProjectsWithName(tx *sqlx.Tx, name string) ([]models.Project
 
 func (db *DB) getAllProjects(tx *sqlx.Tx) ([]models.ProjectWithMembers, error) {
 	statement := `
-	select id, name, public_access, company_access, about, edit, editor_id, add from Projects
+	select id, name, public_access, company_access, about, edit, editor_id, add from Projects order by edit DESC
 	`
 	rows, err := tx.Queryx(statement)
 	if err != nil {

@@ -73,8 +73,9 @@ func (db *DB) getOneUser(tx *sqlx.Tx, userID int32) (models.User, error) {
 // Поиск людей в одном проекте реализовать на стороне клиента при получении массива участников
 func (db *DB) searchUsersWithName(tx *sqlx.Tx, name string) ([]models.User, error) {
 	statement := `
-	select * from Users where name ~* $1
+	select * from Users where POSITION (lower($1) IN lower(name)) > 0;
 	`
+	//name ~* $1
 	rows, err := tx.Queryx(statement, name)
 	if err != nil {
 		return nil, err

@@ -52,7 +52,7 @@ func Router(H *Handler, cors config.CORS, cc config.Cookie,
 
 	withAuth.HandleFunc("/project/{project_id}/members/{user_id}", H.HandleProjectIDMembers).Methods("POST", "DELETE", "PUT", "OPTIONS")
 
-	withAuth.HandleFunc("/project/{project_id}/members/{user_id}/token", H.HandleProjectIDMembersToken).Methods("POST", "DELETE", "PUT", "OPTIONS")
+	withAuth.HandleFunc("/project/{project_id}/members/{user_id}/token", H.HandleProjectIDMembersToken).Methods("PUT", "OPTIONS")
 
 	withAuth.HandleFunc("/project/{project_id}/scene", H.HandleScene).Methods("POST", "OPTIONS")
 

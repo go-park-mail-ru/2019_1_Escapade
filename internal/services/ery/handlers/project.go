@@ -7,6 +7,7 @@ import (
 	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	// 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
@@ -55,6 +56,9 @@ func (H *Handler) projectGet(rw http.ResponseWriter, r *http.Request,
 	project, err := H.DB.ProjectGet(memberID, projectID)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
+	}
+	for i := range project.Members {
+		project.Members[i].PhotoTitle, _ = photo.GetImageFromS3(project.Members[i].PhotoTitle)
 	}
 
 	return api.NewResult(http.StatusOK, place, &project, err)
@@ -118,7 +122,7 @@ func (H *Handler) projectUpdateUserToken(rw http.ResponseWriter, r *http.Request
 	projectID, goalID, memberID int32) api.Result {
 	return api.UpdateModel(r, &models.ProjectTokenUpdate{}, "projectUpdateUserToken", false,
 		func(userID int32) (api.JSONtype, error) {
-			token, err := H.DB.GetProjectToken(userID, projectID)
+			token, err := H.DB.GetProjectToken(goalID, projectID)
 			return &token, err
 		},
 		func(interf api.JSONtype) error {
