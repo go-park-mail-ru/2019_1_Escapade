@@ -22,7 +22,7 @@ import (
 )
 
 // GameRouter return router for game
-func Router(db database.DataBase, c config.Configuration) *mux.Router {
+func Router(db *database.DataBase, c *config.Configuration) *mux.Router {
 	r := mux.NewRouter()
 
 	var game = r.PathPrefix("/game").Subrouter()
@@ -34,7 +34,7 @@ func Router(db database.DataBase, c config.Configuration) *mux.Router {
 	return r
 }
 
-func gameOnline(db database.DataBase, c config.Configuration) func(rw http.ResponseWriter, r *http.Request) {
+func gameOnline(db *database.DataBase, c *config.Configuration) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			return
@@ -44,8 +44,8 @@ func gameOnline(db database.DataBase, c config.Configuration) func(rw http.Respo
 	}
 }
 
-func connect(rw http.ResponseWriter, r *http.Request, db database.DataBase,
-	c config.Configuration) api.Result {
+func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
+	c *config.Configuration) api.Result {
 	const place = "GameOnline"
 	var (
 		err    error

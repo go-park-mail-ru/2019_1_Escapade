@@ -3,5 +3,6 @@
   "data_dir": "/consul/data",
   "log_level": "DEBUG",
   "server": false,
-  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw=="
+  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw==",
+  "retry_join": ["172.20.0.5", "172.20.0.4", "172.20.0.3", "172.20.0.2"]
 }

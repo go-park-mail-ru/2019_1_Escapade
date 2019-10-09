@@ -191,12 +191,9 @@ services:
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
-    # image: progrium/consul
     ports:
       - 8501:8500
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    # volumes:
-    #   - ./extra/consul:/consul/config
     networks: 
       - backend
 
@@ -204,12 +201,9 @@ services:
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
-    # image: progrium/consul
     ports:
       - 8502:8500
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    # volumes:
-    #   - ./extra/consul:/consul/config
     networks: 
       - backend
 
@@ -217,13 +211,10 @@ services:
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
-    #image: progrium/consul
     ports:
       - 8503:8500
       - 8303:8301
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    # volumes:
-    #   - ./extra/consul:/consul/config
     networks: 
       - backend
 
@@ -235,8 +226,6 @@ services:
     ports:
       - 8500:8500
     command: agent -server -bootstrap -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
-    # volumes:
-    #   - ./extra/consul:/consul/config
     networks: 
       - backend
 
