@@ -1,10 +1,9 @@
 {
-  "datacenter": "localhost",
+  "datacenter": "dc1",
   "data_dir": "/consul/data",
   "log_level": "DEBUG",
   "server": true,
   "bootstrap": false,
-  "ui": true,
   "ports": {
     "dns": 53
   },

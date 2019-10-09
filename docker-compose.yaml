@@ -7,7 +7,7 @@ services:
       --api --docker --consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
    
     ports:
-      - "80:80"     # The HTTP port
+      - "79:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
@@ -184,36 +184,96 @@ services:
     ports:
       - 3000:3000
 
-  consul:
-    container_name: consul_server
-    #hostname: localhost
-    build:
-      context: ./extra/consul
-      dockerfile: progrium/Dockerfile
-    ports:
-      - 8500:8500
-    command: -server -bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
-    volumes:
-      - ./extra/consul/config/client/consul-config.json:/consul/config/config.json
-    networks: 
-      - backend
+  ### discovery ###
 
-  consul-client:
-    container_name: consul_agent
+  ## consul servers ##
+  consul-server-1:
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
-    command: agent -join consul -config-file=/consul/config/client/consul-config.json
+    # image: progrium/consul
     ports:
-      - 8499:8500
-    volumes:
-      - ./extra/consul/config/client/consul-config.json:/consul/config/config.json
-    depends_on:
-      - consul
+      - 8501:8500
+    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    # volumes:
+    #   - ./extra/consul:/consul/config
     networks: 
       - backend
-    links:
-      - "consul:consul-server"
+
+  consul-server-2:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    # image: progrium/consul
+    ports:
+      - 8502:8500
+    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    # volumes:
+    #   - ./extra/consul:/consul/config
+    networks: 
+      - backend
+
+  consul-server-3:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    #image: progrium/consul
+    ports:
+      - 8503:8500
+      - 8303:8301
+    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    # volumes:
+    #   - ./extra/consul:/consul/config
+    networks: 
+      - backend
+
+  ## consul bootstrap ##
+  consul:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    ports:
+      - 8500:8500
+    command: agent -server -bootstrap -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
+    # volumes:
+    #   - ./extra/consul:/consul/config
+    networks: 
+      - backend
+
+  ## consul agents ##
+ 
+  consul-agent-1:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    ports:
+      - 8511:8500
+      - 8311:8301
+    command: agent -join consul-server-1 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    networks: 
+      - backend
+
+  consul-agent-2:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    ports:
+      - 8512:8500
+      - 8312:8301
+    command: agent -join consul-server-2 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    networks: 
+      - backend
+
+  consul-agent-3:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    ports:
+      - 8513:8500
+      - 8313:8301
+    command: agent -join consul-server-3 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    networks: 
+      - backend
 
   vault:
     build:
