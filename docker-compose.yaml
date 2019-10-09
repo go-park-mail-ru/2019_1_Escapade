@@ -118,7 +118,7 @@ services:
       dockerfile: ./cmd/services/configLoader/Dockerfile
       context: .
     depends_on:
-      - "consul"
+      - "consul-agent-1"
       - "vault"
     ports:
       - 3007:3007
@@ -193,7 +193,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8501:8500
-    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
     networks: 
       - backend
 
@@ -203,7 +203,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8502:8500
-    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
     networks: 
       - backend
 
@@ -214,7 +214,7 @@ services:
     ports:
       - 8503:8500
       - 8303:8301
-    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
     networks: 
       - backend
 
@@ -225,7 +225,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8500:8500
-    command: agent -server -bootstrap -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
+    command: agent -server -bootstrap -node bootstrap -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
     networks: 
       - backend
 
@@ -238,7 +238,7 @@ services:
     ports:
       - 8511:8500
       - 8311:8301
-    command: agent -join consul-server-1 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    command: agent -join consul-server-1 -node agent1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
     networks: 
       - backend
 
@@ -249,7 +249,7 @@ services:
     ports:
       - 8512:8500
       - 8312:8301
-    command: agent -join consul-server-2 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    command: agent -join consul-server-2 -node agent2 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
     networks: 
       - backend
 
@@ -260,7 +260,7 @@ services:
     ports:
       - 8513:8500
       - 8313:8301
-    command: agent -join consul-server-3 -ui-dir /ui -config-file=/consul/config/client/consul-config.json
+    command: agent -join consul-server-3 -node agent3 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
     networks: 
       - backend
 
@@ -281,7 +281,7 @@ services:
     cap_add:
       - IPC_LOCK
     depends_on:
-      - consul
+      - consul-agent-1
     networks: 
       - backend
 
