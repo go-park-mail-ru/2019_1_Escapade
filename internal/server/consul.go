@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -11,11 +12,13 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
-func ConsulClient(serviceName, host, portString string, portInt int,
+//TODO
+// realize docker, grpc, tcp, http, script check - https://www.consul.io/docs/agent/checks.html
+
+// ConsulClient register service and start healthchecking
+func ConsulClient(serviceName, host, portString string, portInt int, tags []string,
 	consulPort string, ttl time.Duration, check func() (bool, error),
 	finish chan interface{}) (*consulapi.Client, string, error) {
-	// consulPort ":8500" // TODO в конфиг
-	// ttl := time.Second * 10 TODO в конфиг
 	var (
 		config = &consulapi.Config{
 			Address:   host + consulPort,
@@ -36,14 +39,20 @@ func ConsulClient(serviceName, host, portString string, portInt int,
 		host = strings.Replace(host, "https://", "", 1)
 	}
 
+	fmt.Println("tll:", ttl.String())
+
 	agent := consul.Agent()
+	consul.Agent().ServiceDeregister(serviceID)
 	err = agent.ServiceRegister(&consulapi.AgentServiceRegistration{
 		ID:      serviceID,
 		Name:    serviceName,
 		Port:    portInt,
 		Address: host,
+		Tags:    tags,
+		// https://www.consul.io/docs/agent/checks.html
 		Check: &consulapi.AgentServiceCheck{
-			TTL: ttl.String(),
+			TTL:                            ttl.String(),
+			DeregisterCriticalServiceAfter: time.Minute.String(),
 		},
 	})
 	if err != nil {
@@ -57,7 +66,10 @@ func ConsulClient(serviceName, host, portString string, portInt int,
 
 func updateTTL(agent *consulapi.Agent, serviceID string, ttl time.Duration,
 	check func() (bool, error), finish chan interface{}) {
-	ticker := time.NewTicker(ttl / 2)
+	if ttl.Seconds() > 5 {
+		ttl = ttl - 5*time.Second
+	}
+	ticker := time.NewTicker(ttl)
 	defer ticker.Stop()
 	for {
 		select {

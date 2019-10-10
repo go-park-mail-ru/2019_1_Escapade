@@ -1,0 +1,58 @@
+debug = false
+
+logLevel = "ERROR"
+defaultEntryPoints = ["https","http"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+[retry]
+
+[docker]
+exposedByDefault = false
+
+################################################################
+# Consul Catalog configuration backend
+################################################################
+
+# Enable Consul Catalog configuration backend.
+[consulCatalog]
+
+# Consul server endpoint.
+#
+# Required
+# Default: "consul-agent-1:8500"
+#
+endpoint = "consul-agent-1:8500"
+
+# Expose Consul catalog services by default in Traefik.
+#
+# Optional
+# Default: true
+#
+exposedByDefault = false
+
+# Prefix for Consul catalog tags.
+#
+# Optional
+# Default: "traefik"
+#
+prefix = "traefik"
+
+# Default frontEnd Rule for Consul services.
+#
+# The format is a Go Template with:
+# - ".ServiceName", ".Domain" and ".Attributes" available
+# - "getTag(name, tags, defaultValue)", "hasTag(name, tags)" and "getAttribute(name, tags, defaultValue)" functions are available
+# - "getAttribute(...)" function uses prefixed tag names based on "prefix" value
+#
+# Optional
+# Default: "Host:{{.ServiceName}}.{{.Domain}}"
+#
+#frontEndRule = "Host:{{.ServiceName}}.{{Domain}}"

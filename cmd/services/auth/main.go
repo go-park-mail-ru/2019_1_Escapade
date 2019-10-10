@@ -117,7 +117,7 @@ func main() {
 	server := e_server.Server(r, configuration.Server, true, mainPort)
 
 	var (
-		serviceName = "auth"
+		serviceName = os.Getenv("SERVICE_NAME")
 		ttl         = time.Second * 10
 	)
 
@@ -129,8 +129,8 @@ func main() {
 	finishHealthCheck := make(chan interface{}, 1)
 
 	consul, serviceID, err := e_server.ConsulClient(serviceName, consulAddr,
-		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
-		finishHealthCheck)
+		mainPort, mainPortInt, []string{"auth"}, consulPort, ttl,
+		func() (bool, error) { return false, nil }, finishHealthCheck)
 	if err != nil {
 		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")

@@ -75,11 +75,11 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()
 			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
-
+	utils.Debug(false, "Shutdown error4")
 	waitTimeout := time.Duration(serverConfig.WaitTimeoutS) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
 	defer cancel()
-
+	utils.Debug(false, "Shutdown error3")
 	select {
 	case err := <-errChan:
 		utils.Debug(false, "Fatal error: ", err.Error())
@@ -90,6 +90,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()
 			utils.Debug(false, "Shutdown error:", err.Error())
 		}
 	}
+	utils.Debug(false, "Shutdown error2")
 	<-ctx.Done()
 }
 

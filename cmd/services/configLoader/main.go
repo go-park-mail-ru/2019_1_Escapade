@@ -52,37 +52,38 @@ func main() {
 		consul    *consulapi.Client
 		sessionID string
 
-		publicPath  = flag.String("config", "config.json", "public config")
-		privatePath = flag.String("secret", "secret.json", "private config")
-		prefix      = flag.String("consul_prefix", "config/", "prefix for consul kv")
+		publicPath = flag.String("config", "config.json", "public config")
+		//privatePath = flag.String("secret", "secret.json", "private config")
+		prefix = flag.String("consul_prefix", "config/", "prefix for consul kv")
 
 		consulAddr     = flag.String("consul_addr", "consul:8500", "address of consul server")
 		consulCheckKey = flag.String("consul_check_key", "config/loaded",
 			"the key that is used to check whether the data should be filled in(if key's value nil - yes)")
-
-		vaultAddr            = flag.String("vault_addr", "vault:8200", "address of vault server")
-		vaultSecretShares    = flag.Int("vault_secret_shares", 3, "amount of unsealed keys")
-		vaultSecretThreshold = flag.Int("vault_secret_threshold", 2, "minimum of keys to get master key")
+		/*
+			vaultAddr            = flag.String("vault_addr", "vault:8200", "address of vault server")
+			vaultSecretShares    = flag.Int("vault_secret_shares", 3, "amount of unsealed keys")
+			vaultSecretThreshold = flag.Int("vault_secret_threshold", 2, "minimum of keys to get master key")
+		*/
 	)
 
 	/*
 		curl -s --request PUT -d '{"secret_shares": 3,"secret_threshold": 2}' http://127.0.0.1:8200/v1/sys/init
 
 	*/
+	/*
+		log.Println("vaultInit")
+		err := vaultInit(*vaultAddr, *vaultSecretShares, *vaultSecretThreshold)
+		if err != nil {
+			log.Fatal("Error", err.Error())
+		}
 
-	log.Println("vaultInit")
-	err := vaultInit(*vaultAddr, *vaultSecretShares, *vaultSecretThreshold)
-	if err != nil {
-		log.Fatal("Error", err.Error())
-	}
+		log.Println("vaultUnseal")
+		err = vaultUnseal(*vaultAddr, *vaultSecretShares, *vaultSecretThreshold)
+		if err != nil {
+			log.Fatal("Error", err.Error())
+		}
 
-	log.Println("vaultUnseal")
-	err = vaultUnseal(*vaultAddr, *vaultSecretShares, *vaultSecretThreshold)
-	if err != nil {
-		log.Fatal("Error", err.Error())
-	}
-
-	vaultPush(*privatePath, *prefix, *vaultAddr)
+		vaultPush(*privatePath, *prefix, *vaultAddr)*/
 
 	consul, sessionID = check(*consulAddr, *consulCheckKey)
 	if consul == nil {

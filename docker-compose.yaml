@@ -2,17 +2,17 @@ version: '3'
 services:
 
   traefik:
-    image: traefik 
+    image: traefik:v1.7.18
     command: 
-      --api --docker --consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
-   
+      --api #--consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
     ports:
-      - "79:80"     # The HTTP port
+      - "78:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+      - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
   pg:
     build:
@@ -49,10 +49,6 @@ services:
       - 3001:3001
     environment:
       CONSUL_ADDRESS: consul
-    #environment:
-     # - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-     # - AUTHSERVICE_URL=auth:3333
-     # - PORT_API_URL=:3001
     command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
     logging:
       options:
@@ -70,10 +66,6 @@ services:
       - 3100:3100
     environment:
       CONSUL_ADDRESS: consul
-    #environment:
-     # - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-     # - AUTHSERVICE_URL=auth:3333
-     # - PORT_API_URL=:3001
     command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
     volumes:
     - ./:/escapade
@@ -97,6 +89,8 @@ services:
       options:
         max-size: 10m
 
+  ### auth ###
+
   auth:
     build:
       dockerfile: ./cmd/services/auth/Dockerfile
@@ -107,7 +101,42 @@ services:
     ports:
       - 3003:3003
     environment:
-      - CONSUL_ADDRESS=consul
+      - SERVICE_NAME=auth
+      - CONSUL_ADDRESS=consul-agent-1
+    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
+    logging:
+      options:
+        max-size: 10m
+
+  auth-2:
+    build:
+      dockerfile: ./cmd/services/auth/Dockerfile
+      context: .
+    depends_on:
+      - "pg"
+      - "pg-auth"
+    ports:
+      - 3302:3003
+    environment:
+      - SERVICE_NAME=auth-2
+      - CONSUL_ADDRESS=consul-agent-1
+    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
+    logging:
+      options:
+        max-size: 10m
+
+  auth-3:
+    build:
+      dockerfile: ./cmd/services/auth/Dockerfile
+      context: .
+    depends_on:
+      - "pg"
+      - "pg-auth"
+    ports:
+      - 3303:3003
+    environment:
+      - SERVICE_NAME=auth-3
+      - CONSUL_ADDRESS=consul-agent-1
     command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
     logging:
       options:
@@ -123,8 +152,6 @@ services:
     ports:
       - 3007:3007
     command: /bin/sh -c "./bin/loader config.json"
-    networks: 
-      - backend
     logging:
       options:
         max-size: 10m
@@ -161,12 +188,9 @@ services:
 
   prometheus:
     build:
-      #dockerfile: ./Dockerfile
       context: ./extra/prometheus
     image: prom/prometheus:latest
     container_name: prometheus
-    # volumes:
-    #   - './prometheus/:/etc/prometheus/'
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -194,8 +218,6 @@ services:
     ports:
       - 8501:8500
     command: agent -server -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    networks: 
-      - backend
 
   consul-server-2:
     build:
@@ -204,8 +226,6 @@ services:
     ports:
       - 8502:8500
     command: agent -server -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    networks: 
-      - backend
 
   consul-server-3:
     build:
@@ -215,9 +235,7 @@ services:
       - 8503:8500
       - 8303:8301
     command: agent -server -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-    networks: 
-      - backend
-
+ 
   ## consul bootstrap ##
   consul:
     build:
@@ -225,9 +243,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8500:8500
-    command: agent -server -bootstrap -node bootstrap -ui-dir /ui -config-file=/consul/config/bootstrap/consul-config.json
-    networks: 
-      - backend
+    command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
 
   ## consul agents ##
  
@@ -239,8 +255,6 @@ services:
       - 8511:8500
       - 8311:8301
     command: agent -join consul-server-1 -node agent1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
-    networks: 
-      - backend
 
   consul-agent-2:
     build:
@@ -250,9 +264,7 @@ services:
       - 8512:8500
       - 8312:8301
     command: agent -join consul-server-2 -node agent2 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
-    networks: 
-      - backend
-
+ 
   consul-agent-3:
     build:
       context: ./extra/consul
@@ -261,8 +273,6 @@ services:
       - 8513:8500
       - 8313:8301
     command: agent -join consul-server-3 -node agent3 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
-    networks: 
-      - backend
 
   vault:
     build:
@@ -282,61 +292,9 @@ services:
       - IPC_LOCK
     depends_on:
       - consul-agent-1
-    networks: 
-      - backend
 
 networks:
   backend:
     driver: bridge
 
-  # consul:
-  #   container_name: consul_server
-  #   image: progrium/consul
-  #   hostname: localhost
-  #   command: -server -bootstrap -log-level debug -ui-dir /ui
-  #   ports:
-  #     - 8500:8500
-
-  # consul-client:
-  #   container_name: consul_agent
-  #   image: progrium/consul
-  #   hostname: localhost1
-  #   command:  agent -join 172.18.0.2 -log-level debug -ui-dir /ui
-  #   ports:
-  #     - 8498:8500
-  #   depends_on:
-  #     - consul
-
-     # docker run -d --restart always -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8302:8302/udp -p 8302:8302 -p 8400:8400 -p 8500:8500 -p 53:53/udp -h server1 progrium/consul -server -bootstrap -ui-dir /ui -advertise $(dm ip nb-consul)
-
-  # nginx:
-
-  #  build: .
-  #  restart: always
-
-  #  ports:
-  #    - "80:80"
-
-  #  depends_on:
-  #    - api
-  #    - game
-  
-  # nodeexporter:
-  #   image: prom/node-exporter:latest
-  #   container_name: nodeexporter
-  #   volumes:
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #     - /:/rootfs:ro
-  #   command:
-  #     - '--path.procfs=/host/proc'
-  #     - '--path.sysfs=/host/sys'
-  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)'
-  #   restart: unless-stopped
-  #   deploy:
-  #     mode: global
-  #   ports:
-  #     - "9000:9000"
     
-
-
