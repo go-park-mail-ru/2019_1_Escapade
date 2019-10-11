@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net"
 	"strconv"
 	"strings"
 )
@@ -15,7 +16,6 @@ func FixHost(host string) string {
 	return host
 }
 
-
 func FixPort(port string) string {
 	if port[0] != ':' {
 		return ":" + port
@@ -29,4 +29,16 @@ func Port(port string) (string, int, error) {
 		return port, 0, err
 	}
 	return ":" + port, intPort, err
+}
+
+func GetIP() (net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP, nil
 }

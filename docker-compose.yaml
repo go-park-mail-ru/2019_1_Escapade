@@ -2,12 +2,11 @@ version: '3'
 services:
 
   traefik:
-    image: traefik:v1.7.18 #traefik:v2.0
+    image: traefik:v1.7.18
     command: 
-      #   --api.insecure=true --providers.docker
-        --api --web --docker --docker.domain=docker.localhost --consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
+      --api --web --docker --docker.domain=docker.localhost #--consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
     ports:
-      - "80:80"     # The HTTP port
+      - "8081:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
@@ -19,7 +18,7 @@ services:
     # A container that exposes an API to show its IP address
     image: containous/whoami
     labels:
-      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
+      - "traefik.frontend.rule=Host:whoami.docker.localhost"
   
   pg:
     build:
@@ -43,6 +42,8 @@ services:
       context: ./extra/postgresql/ery/
     ports:
       - "5430:5432"   
+
+#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
 
   api:
     build:
@@ -191,7 +192,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8501:8500
-    command: agent -server -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server --bootstrap_expect 1 -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   consul-server-2:
     build:
@@ -199,7 +200,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8502:8500
-    command: agent -server -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server --bootstrap_expect 1 -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   consul-server-3:
     build:
@@ -208,7 +209,7 @@ services:
     ports:
       - 8503:8500
       - 8303:8301
-    command: agent -server -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server --bootstrap_expect 1 -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
  
   ## consul bootstrap ##
   consul:

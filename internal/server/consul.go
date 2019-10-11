@@ -16,7 +16,7 @@ import (
 // realize docker, grpc, tcp, http, script check - https://www.consul.io/docs/agent/checks.html
 
 // ConsulClient register service and start healthchecking
-func ConsulClient(serviceName, host, serviceID string, portInt int, tags []string,
+func ConsulClient(serviceAddress, serviceName, host, serviceID string, portInt int, tags []string,
 	consulPort string, ttl time.Duration, check func() (bool, error),
 	finish chan interface{}) (*consulapi.Client, error) {
 	var (
@@ -46,7 +46,7 @@ func ConsulClient(serviceName, host, serviceID string, portInt int, tags []strin
 		ID:      serviceID,
 		Name:    serviceName,
 		Port:    portInt,
-		Address: host,
+		Address: serviceAddress,
 		Tags:    tags,
 		// https://www.consul.io/docs/agent/checks.html
 		Check: &consulapi.AgentServiceCheck{

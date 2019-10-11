@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
@@ -42,6 +45,10 @@ func APIRouter(API *api.Handler, cors config.CORS, cc config.Cookie,
 	api.HandleFunc("/users/pages", API.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages_amount", API.HandleUsersPageAmount).Methods("GET")
 
+	r.PathPrefix("/").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		fmt.Println("fun")
+	})
 	r.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
 	apiWithAuth.Use(mi.Auth(cc, ca, client))
 

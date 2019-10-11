@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -93,6 +94,8 @@ func main() {
 		ttl         = time.Second * 10
 	)
 
+	// /sbin/ip route|awk ' { print $7 }'
+
 	consulAddr := os.Getenv("CONSUL_ADDRESS")
 	if consulAddr == "" {
 		consulAddr = configuration.Server.Host
@@ -100,10 +103,14 @@ func main() {
 
 	finishHealthCheck := make(chan interface{}, 1)
 	serviceID := e_server.ServiceID(serviceName)
+	var serviceAddr net.IP
+	serviceAddr, err = e_server.GetIP()
+
 	newTags := []string{"api", "traefik.enable=true",
 		"traefik.frontend.entryPoints=http",
 		"traefik.frontend.rule=Host:api.consul.localhost"}
-	consul, err := e_server.ConsulClient(serviceName, consulAddr,
+	consul, err := e_server.ConsulClient(serviceAddr.String(),
+		serviceName, consulAddr,
 		serviceID, mainPortInt, newTags, consulPort, ttl,
 		func() (bool, error) { return false, nil }, finishHealthCheck)
 	if err != nil {

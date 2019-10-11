@@ -102,7 +102,7 @@ func main() {
 	finishHealthCheck := make(chan interface{}, 1)
 
 	serviceID := server.ServiceID(serviceName)
-	consul, err := server.ConsulClient(serviceName, consulAddr,
+	consul, err := server.ConsulClient("127.0.0.1", serviceName, consulAddr,
 		serviceID, mainPortInt, []string{"game"}, consulPort, ttl,
 		func() (bool, error) { return false, nil }, finishHealthCheck)
 

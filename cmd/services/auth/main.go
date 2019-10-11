@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -16,6 +17,9 @@ import (
 	"gopkg.in/oauth2.v3/models"
 )
 
+/*
+curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
+*/
 func main() {
 
 	var (
@@ -133,8 +137,10 @@ func main() {
 		"traefik.frontend.entryPoints=http",
 		"traefik.frontend.rule=Host:localhost"}
 
+	fmt.Println("!!!!IP:", os.Getenv("IP"))
+
 	serviceID := e_server.ServiceID(serviceName)
-	consul, err := e_server.ConsulClient(serviceName, consulAddr,
+	consul, err := e_server.ConsulClient(serviceName, serviceName, consulAddr,
 		serviceID, mainPortInt, newTags, consulPort, ttl,
 		func() (bool, error) { return false, nil }, finishHealthCheck)
 	if err != nil {

@@ -79,7 +79,7 @@ func main() {
 	utils.Debug(false, "consulAddr", consulAddr)
 
 	serviceID := server.ServiceID(serviceName)
-	consul, err := server.ConsulClient(serviceName, consulAddr,
+	consul, err := server.ConsulClient(serviceName, serviceName, consulAddr,
 		serviceID, mainPortInt, []string{"chat"}, consulPort, ttl,
 		service.Check, finishHealthCheck)
 
