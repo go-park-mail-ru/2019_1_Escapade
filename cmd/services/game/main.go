@@ -92,6 +92,7 @@ func main() {
 	var (
 		serviceName = "game"
 		ttl         = time.Second * 10
+		maxConn     = 40
 	)
 
 	consulAddr := os.Getenv("CONSUL_ADDRESS")
@@ -132,7 +133,7 @@ func main() {
 	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
 
-	server.LaunchHTTP(srv, configuration.Server, func() {
+	server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		finishChan <- nil
 		finishHealthCheck <- nil
 		game.GetLobby().Stop()

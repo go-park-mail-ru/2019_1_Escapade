@@ -75,8 +75,16 @@ func main() {
 		utils.Debug(false, "ERROR with photo configuration:", err.Error())
 		return
 	}
+	defer API.Close()
 
 	metrics.InitApi()
+
+	// в конфиг
+	var (
+		serviceName = "api"
+		ttl         = time.Second * 10
+		maxConn     = 10
+	)
 
 	//API.RandomUsers(10) // create 10 users for tests
 
@@ -88,12 +96,6 @@ func main() {
 
 	srv := e_server.Server(r, configuration.Server, true, mainPort)
 
-	// в конфиг
-	var (
-		serviceName = "api"
-		ttl         = time.Second * 10
-	)
-
 	// /sbin/ip route|awk ' { print $7 }'
 
 	consulAddr := os.Getenv("CONSUL_ADDRESS")
@@ -101,35 +103,54 @@ func main() {
 		consulAddr = configuration.Server.Host
 	}
 
-	finishHealthCheck := make(chan interface{}, 1)
 	serviceID := e_server.ServiceID(serviceName)
 	var serviceAddr net.IP
 	serviceAddr, err = e_server.GetIP()
+	if err != nil {
+		utils.Debug(false, "ERROR cant get ip:", err.Error())
+		return
+	}
 
 	newTags := []string{"api", "traefik.enable=true",
 		"traefik.frontend.entryPoints=http",
 		"traefik.frontend.rule=Host:api.consul.localhost"}
-	consul, err := e_server.ConsulClient(serviceAddr.String(),
-		serviceName, consulAddr,
-		serviceID, mainPortInt, newTags, consulPort, ttl,
-		func() (bool, error) { return false, nil }, finishHealthCheck)
+
+	consul := e_server.InitConsulService(serviceID, serviceName,
+		serviceAddr.String(), mainPortInt, newTags, ttl, maxConn,
+		os.Getenv("PRIMARY") != "",
+		func() (bool, error) { return false, nil })
+
+	err = consul.InitAgent(consulAddr, consulPort)
 	if err != nil {
-		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")
+		return
 	}
+	consul.AddHTTPCheck("http", "/health")
+
+	err = consul.Run()
+	if err != nil {
+		utils.Debug(false, "ERROR when register service")
+		return
+	}
+	defer consul.Close()
+
+	/*
+		finishHealthCheck := make(chan interface{}, 1)
+
+		consul, err := e_server.ConsulClient(serviceAddr.String(),
+			serviceName, consulAddr,
+			serviceID, mainPortInt, newTags, consulPort, ttl,
+			func() (bool, error) { return false, nil }, finishHealthCheck)
+		if err != nil {
+			close(finishHealthCheck)
+			utils.Debug(false, "ERROR while connecting to consul")
+		}
+	*/
 
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
 
-	e_server.LaunchHTTP(srv, configuration.Server, func() {
-		finishHealthCheck <- nil
-		API.Close()
-		err := consul.Agent().ServiceDeregister(serviceID)
-		if err != nil {
-			utils.Debug(false, "Consul error while deregistering:", err.Error())
-			return
-		}
+	e_server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
-	os.Exit(0)
 }

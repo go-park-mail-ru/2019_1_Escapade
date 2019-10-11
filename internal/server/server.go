@@ -45,7 +45,8 @@ func Server(r *mux.Router, serverConfig config.Server, isHTTP bool,
 	return srv
 }
 
-func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()) {
+func LaunchHTTP(server *http.Server, serverConfig config.Server, maxConn int,
+	lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 	defer func() {
@@ -56,8 +57,6 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()
 
 	signal.Notify(stopChan, os.Interrupt)
 
-	connectionCount := 20 // TODO в конфиг
-
 	l, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		utils.Debug(true, "Listen error", err.Error())
@@ -66,7 +65,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, lastFunc func()
 
 	defer l.Close()
 
-	l = netutil.LimitListener(l, connectionCount)
+	l = netutil.LimitListener(l, maxConn)
 
 	go func() {
 		utils.Debug(false, "✔✔✔ GO ✔✔✔")

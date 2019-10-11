@@ -123,6 +123,7 @@ func main() {
 	var (
 		serviceName = "auth"
 		ttl         = time.Second * 10
+		maxConn     = 10
 	)
 
 	consulAddr := os.Getenv("CONSUL_ADDRESS")
@@ -151,7 +152,7 @@ func main() {
 	utils.Debug(false, "✔✔✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
 
-	e_server.LaunchHTTP(server, configuration.Server, func() {
+	e_server.LaunchHTTP(server, configuration.Server, maxConn, func() {
 		finishHealthCheck <- nil
 		db.Db.Close()
 		tokenStore.Close()

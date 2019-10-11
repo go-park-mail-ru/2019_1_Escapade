@@ -100,6 +100,7 @@ func main() {
 	var (
 		serviceName = "ery"
 		ttl         = time.Second * 10
+		maxConn     = 100
 	)
 
 	consulAddr := os.Getenv("CONSUL_ADDRESS")
@@ -121,7 +122,7 @@ func main() {
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
 
-	server.LaunchHTTP(srv, configuration.Server, func() {
+	server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		finishHealthCheck <- nil
 		H.Close()
 		err := consul.Agent().ServiceDeregister(serviceID)

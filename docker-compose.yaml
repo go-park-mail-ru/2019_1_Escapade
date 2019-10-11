@@ -44,6 +44,10 @@ services:
       - "5430:5432"   
 
 #sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
+#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
+#curl -H Host:api.consul.localhost http://127.0.0.1:8081
+# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
+# sudo docker-compose up --scale api=5 api
 
   api:
     build:
@@ -54,7 +58,7 @@ services:
       - "consul"
       - "auth"
     ports:
-      - 3001:3001
+      - 3001-3010:3001
     environment:
       - CONSUL_ADDRESS=consul-agent-1
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
@@ -192,7 +196,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8501:8500
-    command: agent -server --bootstrap_expect 1 -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   consul-server-2:
     build:
@@ -200,7 +204,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8502:8500
-    command: agent -server --bootstrap_expect 1 -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   consul-server-3:
     build:
@@ -209,7 +213,7 @@ services:
     ports:
       - 8503:8500
       - 8303:8301
-    command: agent -server --bootstrap_expect 1 -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
  
   ## consul bootstrap ##
   consul:

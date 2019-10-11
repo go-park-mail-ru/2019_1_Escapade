@@ -45,9 +45,18 @@ func APIRouter(API *api.Handler, cors config.CORS, cc config.Cookie,
 	api.HandleFunc("/users/pages", API.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages_amount", API.HandleUsersPageAmount).Methods("GET")
 
+	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
+		v, _ := GetIP()
+		fmt.Println("fun:", v)
+		rw.Write([]byte("all ok " + v.String()))
+	})
+
 	r.PathPrefix("/").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.WriteHeader(http.StatusOK)
-		fmt.Println("fun")
+
+		v, _ := GetIP()
+		fmt.Println("fun:", v)
+		rw.Write([]byte("all ok " + v.String()))
 	})
 	r.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
 	apiWithAuth.Use(mi.Auth(cc, ca, client))
