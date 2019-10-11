@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"strings"
+	"os"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -16,9 +16,9 @@ import (
 // realize docker, grpc, tcp, http, script check - https://www.consul.io/docs/agent/checks.html
 
 // ConsulClient register service and start healthchecking
-func ConsulClient(serviceName, host, portString string, portInt int, tags []string,
+func ConsulClient(serviceName, host, serviceID string, portInt int, tags []string,
 	consulPort string, ttl time.Duration, check func() (bool, error),
-	finish chan interface{}) (*consulapi.Client, string, error) {
+	finish chan interface{}) (*consulapi.Client, error) {
 	var (
 		config = &consulapi.Config{
 			Address:   host + consulPort,
@@ -26,20 +26,19 @@ func ConsulClient(serviceName, host, portString string, portInt int, tags []stri
 			Transport: cleanhttp.DefaultPooledTransport(),
 		}
 		consul, err = consulapi.NewClient(config)
-		serviceID   = serviceName + portString
 	)
 	if err != nil {
-		return consul, serviceID, err
+		return consul, err
 	}
-	host = FixHost(host)
-	if strings.Contains(host, "http://") {
-		host = strings.Replace(host, "http://", "", 1)
-	}
-	if strings.Contains(host, "https://") {
-		host = strings.Replace(host, "https://", "", 1)
-	}
+	// host = FixHost(host)
+	// if strings.Contains(host, "http://") {
+	// 	host = strings.Replace(host, "http://", "", 1)
+	// }
+	// if strings.Contains(host, "https://") {
+	// 	host = strings.Replace(host, "https://", "", 1)
+	// }
 
-	fmt.Println("tll:", ttl.String())
+	fmt.Println("tll:" + serviceID)
 
 	agent := consul.Agent()
 	consul.Agent().ServiceDeregister(serviceID)
@@ -54,14 +53,23 @@ func ConsulClient(serviceName, host, portString string, portInt int, tags []stri
 			TTL:                            ttl.String(),
 			DeregisterCriticalServiceAfter: time.Minute.String(),
 		},
+		Weights: &consulapi.AgentWeights{
+			Passing: 100,
+			Warning: 1,
+		},
 	})
 	if err != nil {
 		utils.Debug(false, "cant add service to consul", err)
-		return consul, serviceID, err
+		return consul, err
 	}
 
 	go updateTTL(agent, serviceID, ttl, check, finish)
-	return consul, serviceID, nil
+	return consul, nil
+}
+
+// ServiceID return id of service
+func ServiceID(serviceName string) string {
+	return serviceName + "-" + os.Getenv("HOSTNAME")
 }
 
 func updateTTL(agent *consulapi.Agent, serviceID string, ttl time.Duration,

@@ -41,7 +41,7 @@ func CORS(cc config.CORS) mux.MiddlewareFunc {
 				return
 			}
 
-			utils.Debug(false, "cors allow!")
+			//utils.Debug(false, "cors allow!")
 			cors.SetCORS(rw, cc, origin)
 			next.ServeHTTP(rw, r)
 			return

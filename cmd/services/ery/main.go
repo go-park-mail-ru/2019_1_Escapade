@@ -108,9 +108,11 @@ func main() {
 	}
 
 	finishHealthCheck := make(chan interface{}, 1)
-	consul, serviceID, err := server.ConsulClient(serviceName, consulAddr,
-		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
-		finishHealthCheck)
+	serviceID := server.ServiceID(serviceName)
+	consul, err := server.ConsulClient(serviceName, consulAddr,
+		serviceID, mainPortInt, []string{"ery"}, consulPort, ttl,
+		func() (bool, error) { return false, nil }, finishHealthCheck)
+
 	if err != nil {
 		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")

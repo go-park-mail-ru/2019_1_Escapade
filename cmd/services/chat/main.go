@@ -78,8 +78,9 @@ func main() {
 
 	utils.Debug(false, "consulAddr", consulAddr)
 
-	consul, serviceID, err := server.ConsulClient(serviceName,
-		consulAddr, mainPort, mainPortInt, consulPort, ttl,
+	serviceID := server.ServiceID(serviceName)
+	consul, err := server.ConsulClient(serviceName, consulAddr,
+		serviceID, mainPortInt, []string{"chat"}, consulPort, ttl,
 		service.Check, finishHealthCheck)
 
 	if err != nil {

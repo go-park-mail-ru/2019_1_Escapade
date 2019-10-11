@@ -2,11 +2,12 @@ version: '3'
 services:
 
   traefik:
-    image: traefik:v1.7.18
+    image: traefik:v1.7.18 #traefik:v2.0
     command: 
-      --api #--consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
+      #   --api.insecure=true --providers.docker
+        --api --web --docker --docker.domain=docker.localhost --consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
     ports:
-      - "78:80"     # The HTTP port
+      - "80:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
@@ -14,6 +15,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
+  whoami:
+    # A container that exposes an API to show its IP address
+    image: containous/whoami
+    labels:
+      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
+  
   pg:
     build:
       dockerfile: Dockerfile
@@ -48,8 +55,8 @@ services:
     ports:
       - 3001:3001
     environment:
-      CONSUL_ADDRESS: consul
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
+      - CONSUL_ADDRESS=consul-agent-1
+    command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
     logging:
       options:
         max-size: 10m
@@ -65,7 +72,7 @@ services:
     ports:
       - 3100:3100
     environment:
-      CONSUL_ADDRESS: consul
+      - CONSUL_ADDRESS=consul-agent-1
     command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
     volumes:
     - ./:/escapade
@@ -73,15 +80,14 @@ services:
       options:
         max-size: 10m
 
-  chat1:
-    container_name: chat1
+  chat:
     build:
       dockerfile: ./cmd/services/chat/Dockerfile
       context: .
     depends_on:
       - "pg"
     environment:
-      - CONSUL_ADDRESS=consul
+      - CONSUL_ADDRESS=consul-agent-1
     ports:
       - 3060:3060
     command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/chat cmd/services/chat/chat.json 3060 8500"
@@ -98,63 +104,31 @@ services:
     depends_on:
       - "pg"
       - "pg-auth"
-    ports:
-      - 3003:3003
+    #ports:
+    #  - 3003:3003
     environment:
-      - SERVICE_NAME=auth
       - CONSUL_ADDRESS=consul-agent-1
     command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
-    logging:
-      options:
-        max-size: 10m
-
-  auth-2:
-    build:
-      dockerfile: ./cmd/services/auth/Dockerfile
-      context: .
-    depends_on:
-      - "pg"
-      - "pg-auth"
-    ports:
-      - 3302:3003
-    environment:
-      - SERVICE_NAME=auth-2
-      - CONSUL_ADDRESS=consul-agent-1
-    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
-    logging:
-      options:
-        max-size: 10m
-
-  auth-3:
-    build:
-      dockerfile: ./cmd/services/auth/Dockerfile
-      context: .
-    depends_on:
-      - "pg"
-      - "pg-auth"
-    ports:
-      - 3303:3003
-    environment:
-      - SERVICE_NAME=auth-3
-      - CONSUL_ADDRESS=consul-agent-1
-    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
+    labels:
+      - "traefik.backend=machine-echo"
+      - "traefik.frontend.rule=Host:machine-echo.example.com"
     logging:
       options:
         max-size: 10m
         
-  loader:
-    build:
-      dockerfile: ./cmd/services/configLoader/Dockerfile
-      context: .
-    depends_on:
-      - "consul-agent-1"
-      - "vault"
-    ports:
-      - 3007:3007
-    command: /bin/sh -c "./bin/loader config.json"
-    logging:
-      options:
-        max-size: 10m
+  # loader:
+  #   build:
+  #     dockerfile: ./cmd/services/configLoader/Dockerfile
+  #     context: .
+  #   depends_on:
+  #     - "consul-agent-1"
+  #     - "vault"
+  #   ports:
+  #     - 3007:3007
+  #   command: /bin/sh -c "./bin/loader config.json"
+  #   logging:
+  #     options:
+  #       max-size: 10m
 
   game:
     build:
@@ -165,26 +139,26 @@ services:
     ports:
       - 3002:3002
     environment:
-      - CONSUL_ADDRESS=consul
+      - CONSUL_ADDRESS=consul-agent-1
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
     command: /bin/sh -c "./bin/game cmd/services/game/game.json internal/photo/photo.json secret.json internal/constants/field.json internal/constants/room.json 3002 8500"
 
-  history:
-    build:
-      dockerfile: ./history/Dockerfile
-      context: .
-    depends_on:
-      - "pg"
-      - "auth"
-    ports:
-      - 3004:3004
-    environment:
-      - CONSUL_ADDRESS=consul
-      - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-      - AUTHSERVICE_URL=auth:3333
-      - PORT_HISTORY_URL=:3004
-    command: /bin/sh -c "./bin/history"
+  # history:
+  #   build:
+  #     dockerfile: ./history/Dockerfile
+  #     context: .
+  #   depends_on:
+  #     - "pg"
+  #     - "auth"
+  #   ports:
+  #     - 3004:3004
+  #   environment:
+  #     - CONSUL_ADDRESS=consul
+  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
+  #     - AUTHSERVICE_URL=auth:3333
+  #     - PORT_HISTORY_URL=:3004
+  #   command: /bin/sh -c "./bin/history"
 
   prometheus:
     build:
@@ -242,7 +216,9 @@ services:
       context: ./extra/consul
       dockerfile: Dockerfile
     ports:
+      - 8400:8400
       - 8500:8500
+      - 8600:53/udp
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
 
   ## consul agents ##
@@ -297,4 +273,3 @@ networks:
   backend:
     driver: bridge
 
-    

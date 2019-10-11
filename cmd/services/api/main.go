@@ -7,7 +7,7 @@ import (
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
@@ -47,12 +47,12 @@ func main() {
 		mainPortInt       int
 	)
 
-	mainPort, mainPortInt, err = server.Port(mainPort)
+	mainPort, mainPortInt, err = e_server.Port(mainPort)
 	if err != nil {
 		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
 		return
 	}
-	consulPort = server.FixPort(consulPort)
+	consulPort = e_server.FixPort(consulPort)
 
 	utils.Debug(false, "✔")
 	utils.Debug(false, "2. Setting the environment")
@@ -82,10 +82,10 @@ func main() {
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Set the settings of our server and associate it with third-party")
 
-	r := server.APIRouter(API, configuration.Cors, configuration.Cookie,
+	r := e_server.APIRouter(API, configuration.Cors, configuration.Cookie,
 		configuration.Auth, configuration.AuthClient)
 
-	srv := server.Server(r, configuration.Server, true, mainPort)
+	srv := e_server.Server(r, configuration.Server, true, mainPort)
 
 	// в конфиг
 	var (
@@ -99,9 +99,13 @@ func main() {
 	}
 
 	finishHealthCheck := make(chan interface{}, 1)
-	consul, serviceID, err := server.ConsulClient(serviceName, consulAddr,
-		mainPort, mainPortInt, consulPort, ttl, func() (bool, error) { return false, nil },
-		finishHealthCheck)
+	serviceID := e_server.ServiceID(serviceName)
+	newTags := []string{"api", "traefik.enable=true",
+		"traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:api.consul.localhost"}
+	consul, err := e_server.ConsulClient(serviceName, consulAddr,
+		serviceID, mainPortInt, newTags, consulPort, ttl,
+		func() (bool, error) { return false, nil }, finishHealthCheck)
 	if err != nil {
 		close(finishHealthCheck)
 		utils.Debug(false, "ERROR while connecting to consul")
@@ -110,7 +114,7 @@ func main() {
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
 
-	server.LaunchHTTP(srv, configuration.Server, func() {
+	e_server.LaunchHTTP(srv, configuration.Server, func() {
 		finishHealthCheck <- nil
 		API.Close()
 		err := consul.Agent().ServiceDeregister(serviceID)

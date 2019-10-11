@@ -29,7 +29,7 @@ exposedByDefault = false
 # Required
 # Default: "consul-agent-1:8500"
 #
-endpoint = "consul-agent-1:8500"
+endpoint = "consul:8500"
 
 # Expose Consul catalog services by default in Traefik.
 #
@@ -45,6 +45,7 @@ exposedByDefault = false
 #
 prefix = "traefik"
 
+domain = "consul.localhost"
 # Default frontEnd Rule for Consul services.
 #
 # The format is a Go Template with:

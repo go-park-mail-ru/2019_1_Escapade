@@ -117,7 +117,7 @@ func main() {
 	server := e_server.Server(r, configuration.Server, true, mainPort)
 
 	var (
-		serviceName = os.Getenv("SERVICE_NAME")
+		serviceName = "auth"
 		ttl         = time.Second * 10
 	)
 
@@ -128,8 +128,14 @@ func main() {
 
 	finishHealthCheck := make(chan interface{}, 1)
 
-	consul, serviceID, err := e_server.ConsulClient(serviceName, consulAddr,
-		mainPort, mainPortInt, []string{"auth"}, consulPort, ttl,
+	//oldTags :=[]string{"auth", "traefik.frontends.foo.rule=Host:api.service.consul", "traefik.frontends.bar.rule=PathPrefixStrip:/api"}
+	newTags := []string{"auth", "traefik.enable=true",
+		"traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:localhost"}
+
+	serviceID := e_server.ServiceID(serviceName)
+	consul, err := e_server.ConsulClient(serviceName, consulAddr,
+		serviceID, mainPortInt, newTags, consulPort, ttl,
 		func() (bool, error) { return false, nil }, finishHealthCheck)
 	if err != nil {
 		close(finishHealthCheck)
