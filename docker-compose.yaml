@@ -14,12 +14,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
-  whoami:
-    # A container that exposes an API to show its IP address
-    image: containous/whoami
-    labels:
-      - "traefik.frontend.rule=Host:whoami.docker.localhost"
-  
   pg:
     build:
       dockerfile: Dockerfile
@@ -49,6 +43,8 @@ services:
 # ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
 # sudo docker-compose up --scale api=5 api
 
+#http://api.consul.localhost:8081/health
+
   api:
     build:
       dockerfile: ./cmd/services/api/Dockerfile
@@ -60,8 +56,10 @@ services:
     ports:
       - 3001-3010:3001
     environment:
-      - CONSUL_ADDRESS=consul-agent-1
+      - CONSUL_ADDRESS=consul-agent
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
+    labels:
+      - "traefik.enable=false"
     logging:
       options:
         max-size: 10m
@@ -225,8 +223,21 @@ services:
       - 8500:8500
       - 8600:53/udp
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
-
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
   ## consul agents ##
+
+  consul-agent:
+    build:
+      context: ./extra/consul
+      dockerfile: Dockerfile
+    ports:
+      - 8550-8570:8500
+      - 8350-8370:8301
+    command: agent -join consul-server-1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
+    labels:
+      - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
   consul-agent-1:
     build:
@@ -235,7 +246,7 @@ services:
     ports:
       - 8511:8500
       - 8311:8301
-    command: agent -join consul-server-1 -node agent1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
+    command: agent -join consul-server-1 -node agent1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json    
 
   consul-agent-2:
     build:
@@ -255,24 +266,24 @@ services:
       - 8313:8301
     command: agent -join consul-server-3 -node agent3 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
 
-  vault:
-    build:
-      context: ./extra/vault
-      dockerfile: Dockerfile
-    ports:
-      - 8200:8200
-    volumes:
-      - ./extra/vault/config:/vault/config
-      - ./extra/vault/policies:/vault/policies
-      - ./extra/vault/data:/vault/data
-      - ./extra/vault/logs:/vault/logs
-    environment:
-      - VAULT_ADDR=http://127.0.0.1:8200
-    command: server -config=config/vault-config.json
-    cap_add:
-      - IPC_LOCK
-    depends_on:
-      - consul-agent-1
+  # vault:
+  #   build:
+  #     context: ./extra/vault
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 8200:8200
+  #   volumes:
+  #     - ./extra/vault/config:/vault/config
+  #     - ./extra/vault/policies:/vault/policies
+  #     - ./extra/vault/data:/vault/data
+  #     - ./extra/vault/logs:/vault/logs
+  #   environment:
+  #     - VAULT_ADDR=http://127.0.0.1:8200
+  #   command: server -config=config/vault-config.json
+  #   cap_add:
+  #     - IPC_LOCK
+  #   depends_on:
+  #     - consul-agent-1
 
 networks:
   backend:

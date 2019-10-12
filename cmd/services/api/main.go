@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -103,52 +102,28 @@ func main() {
 		consulAddr = configuration.Server.Host
 	}
 
-	serviceID := e_server.ServiceID(serviceName)
-	var serviceAddr net.IP
-	serviceAddr, err = e_server.GetIP()
+	newTags := []string{"api", "traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:api.consul.localhost"}
+
+	consul, err := e_server.InitConsulService(serviceName,
+		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
+		func() (bool, error) { return false, nil }, true)
 	if err != nil {
 		utils.Debug(false, "ERROR cant get ip:", err.Error())
 		return
 	}
 
-	newTags := []string{"api", "traefik.enable=true",
-		"traefik.frontend.entryPoints=http",
-		"traefik.frontend.rule=Host:api.consul.localhost"}
-
-	consul := e_server.InitConsulService(serviceID, serviceName,
-		serviceAddr.String(), mainPortInt, newTags, ttl, maxConn,
-		os.Getenv("PRIMARY") != "",
-		func() (bool, error) { return false, nil })
-
-	err = consul.InitAgent(consulAddr, consulPort)
-	if err != nil {
-		utils.Debug(false, "ERROR while connecting to consul")
-		return
-	}
 	consul.AddHTTPCheck("http", "/health")
 
 	err = consul.Run()
 	if err != nil {
-		utils.Debug(false, "ERROR when register service")
+		utils.Debug(false, "ERROR when register service ", err.Error())
 		return
 	}
 	defer consul.Close()
 
-	/*
-		finishHealthCheck := make(chan interface{}, 1)
-
-		consul, err := e_server.ConsulClient(serviceAddr.String(),
-			serviceName, consulAddr,
-			serviceID, mainPortInt, newTags, consulPort, ttl,
-			func() (bool, error) { return false, nil }, finishHealthCheck)
-		if err != nil {
-			close(finishHealthCheck)
-			utils.Debug(false, "ERROR while connecting to consul")
-		}
-	*/
-
 	utils.Debug(false, "✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+	utils.Debug(false, "Service", serviceName, "with id:", e_server.ServiceID(serviceName), "ready to go on", configuration.Server.Host+mainPort)
 
 	e_server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
