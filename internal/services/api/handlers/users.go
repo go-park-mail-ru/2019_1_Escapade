@@ -1,9 +1,10 @@
-package api
+package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
 	"net/http"
@@ -16,7 +17,7 @@ import (
 // @Success 200 {object} models.Pages "Get successfully"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/pages_amount [GET]
-func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetUsersPageAmount"
 
 	var (
@@ -28,10 +29,10 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) Re
 	perPage = h.getPerPage(r)
 
 	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
-		return NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
+		return ih.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
 
-	return NewResult(http.StatusOK, place, &pages, nil)
+	return ih.NewResult(http.StatusOK, place, &pages, nil)
 }
 
 // GetUsers get users list
@@ -43,7 +44,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) Re
 // @Failure 404 {object} models.Result "Users not found"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/{page} [GET]
-func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetUsers"
 	var (
 		err       error
@@ -60,10 +61,10 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) Result {
 	difficult = h.getDifficult(r)
 
 	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
-		return NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	photo.GetImages(users...)
 
-	return NewResult(http.StatusOK, place, &models.UsersPublicInfo{users}, nil)
+	return ih.NewResult(http.StatusOK, place, &models.UsersPublicInfo{users}, nil)
 }

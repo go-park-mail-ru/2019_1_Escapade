@@ -10,7 +10,9 @@ import (
 )
 
 // createPlayer create player
-func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id int, err error) {
+func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (int, error) {
+	utils.Debug(false, "name:", user.Name)
+	utils.Debug(false, "Password:", user.Password)
 	sqlInsert := `
 	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
 		($1, $2, $3, $4)
@@ -20,11 +22,20 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (id i
 	row := tx.QueryRow(sqlInsert, user.Name,
 		user.Password, t, t)
 
+	var (
+		id  int
+		err error
+	)
 	err = row.Scan(&id)
-	return
+	if err != nil {
+		utils.Debug(false, "err is :", err.Error())
+	} else {
+		utils.Debug(false, "no err")
+	}
+	return id, err
 }
 
-func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo) (err error) {
+func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -34,27 +45,28 @@ func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivat
 
 	row := tx.QueryRow(sqlStatement, user.Name,
 		user.Password, time.Now(), user.ID)
-	err = row.Scan(&user.ID)
+	err := row.Scan(&user.ID)
 	if err != nil {
 		err = re.ErrorUserIsExist()
 	}
 
-	return
+	return err
 }
 
 // updatePlayerLastSeen update users last date seen
-func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) (err error) {
+func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET lastSeen = $1
 			WHERE id = $2
 		`
 
+	var err error
 	_, err = tx.Exec(sqlStatement, time.Now(), id)
 	if err != nil {
 		utils.Debug(true, "cant update players's last seen")
 	}
-	return
+	return err
 }
 
 func (db DataBase) checkBunch(tx *sql.Tx, field string, password string) (id int32, user *models.UserPublicInfo, err error) {

@@ -1,22 +1,25 @@
-package server
+package handlers
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
+	server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	//
+	_ "net/http/pprof"
+
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 	"github.com/gorilla/mux"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// APIRouter return router for api
-func APIRouter(API *api.Handler, cors config.CORS, cc config.Cookie,
+// Router return router of api operations
+func Router(API *Handler, cors config.CORS, cc config.Cookie,
 	ca config.Auth, client config.AuthClient) *mux.Router {
 
 	r := mux.NewRouter()
@@ -46,21 +49,20 @@ func APIRouter(API *api.Handler, cors config.CORS, cc config.Cookie,
 	api.HandleFunc("/users/pages_amount", API.HandleUsersPageAmount).Methods("GET")
 
 	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-
-		v, _ := GetIP()
+		v, _ := server.GetIP()
 		fmt.Println("fun:", v)
 		rw.Write([]byte("all ok " + v.String()))
 	})
 
-	r.PathPrefix("/").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-
-		v, _ := GetIP()
-		fmt.Println("fun:", v)
-		rw.Write([]byte("all ok " + v.String()))
+	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	})
-	r.Use(mi.Recover, mi.CORS(cors), mi.Metrics)
+	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	router.Use(r, mi.CORS(cors))
 	apiWithAuth.Use(mi.Auth(cc, ca, client))
-
 	return r
 }
 

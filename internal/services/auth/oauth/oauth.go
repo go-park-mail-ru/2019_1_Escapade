@@ -106,29 +106,25 @@ func Server(db *database.DataBase, eryDB *erydb.DB, manager *manage.Manager) *se
 
 	srv.SetPasswordAuthorizationHandler(func(username, password string) (string, error) {
 		var (
-			intUserID    int32
-			stringUserID string
-			err          error
+			intUserID int32
+			err       error
 		)
-		fmt.Println("try password!")
+		fmt.Println("try password!", username, password)
 		if db != nil {
 			if intUserID, err = db.Login(username, password); err != nil {
 				utils.Debug(false, "exp password check error ", re.NoUserWrapper(err))
 			}
 		}
-		if eryDB != nil {
+		if eryDB != nil && (intUserID == 0) {
 			if intUserID, err = eryDB.GetUserID(username, password); err != nil {
 				utils.Debug(false, "ery password check error", re.NoUserWrapper(err))
 			}
 		}
-		if err != nil {
-			return stringUserID, re.NoUserWrapper(err)
-		}
-		if intUserID == 0 {
-			return stringUserID, re.ErrorUserNotFound()
+		if intUserID == 0 || err != nil {
+			return "", re.ErrorUserNotFound()
 		}
 
-		stringUserID = utils.String32(intUserID)
+		stringUserID := utils.String32(intUserID)
 		utils.Debug(false, "userID", stringUserID, intUserID)
 		return stringUserID, nil
 	})

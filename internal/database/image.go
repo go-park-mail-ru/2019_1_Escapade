@@ -1,49 +1,49 @@
 package database
 
 import (
-	"database/sql"
-
-	//
-	_ "github.com/lib/pq"
+	"fmt"
 )
 
-// DataBase consists of *sql.DB
-// Support methods Login, Register
-type DataBase struct {
-	Db        *sql.DB
-	PageGames int
-	PageUsers int
-}
-
-// Logout delete session_id row  from session table
-// func (db *DataBase) Logout(sessionCode string) (err error) {
-// 	err = db.deleteSession(sessionCode)
-// 	return
-// }
-
 // PostImage set filename of avatar to relation Player
-func (db *DataBase) PostImage(filename string, userID int32) (err error) {
+func (db *DataBase) PostImage(filename string, userID int32) error {
 	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE id = $2;`
 
+	var err error
 	_, err = db.Db.Exec(sqlStatement, filename, userID)
 
-	if err != nil {
-		return
-	}
-	return
+	return err
 }
 
-// GetImage Get avatar - filename of player image
-func (db *DataBase) GetImage(name string) (filename string, err error) {
-	sqlStatement := `
-	SELECT photo_title
-		FROM Player as P 
-		WHERE P.name like $1 
-`
+// GetImageByName Get avatar - filename of player image by his name
+func (db *DataBase) GetImageByName(name string) (string, error) {
+	fmt.Println("name is ", name)
+	sqlStatement := `SELECT photo_title FROM Player WHERE name like $1`
 	row := db.Db.QueryRow(sqlStatement, name)
 
-	if err = row.Scan(&filename); err != nil {
-		return
+	var filename string
+	err := row.Scan(&filename)
+
+	if err != nil {
+		fmt.Println("GetImageByName err", err.Error())
+		return filename, err
 	}
-	return
+	fmt.Println("GetImageByName")
+	return filename, err
+}
+
+// GetImageByID Get avatar - filename of player image by his id
+func (db *DataBase) GetImageByID(id int32) (string, error) {
+	fmt.Println("id is ", id)
+	sqlStatement := `SELECT photo_title FROM Player WHERE id=$1`
+	row := db.Db.QueryRow(sqlStatement, id)
+
+	var filename string
+	err := row.Scan(&filename)
+
+	if err != nil {
+		fmt.Println("GetImageByID err", err.Error())
+		return filename, err
+	}
+	fmt.Println("GetImageByID")
+	return filename, err
 }

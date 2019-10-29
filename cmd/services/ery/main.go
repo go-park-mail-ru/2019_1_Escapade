@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	erydatabase "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	eryhandlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/handlers"

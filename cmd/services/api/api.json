@@ -17,6 +17,12 @@
 		"PageGames": 2,
 		"PageUsers": 100
 	},
+	"session": {
+		"path": "/",
+		"length": 16,
+		"lifetime_hours": 604800,
+		"httpOnly": true
+	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
 		"id": "1",
@@ -54,12 +60,5 @@
 			"GET", "POST", "DELETE", "PUT", "OPTIONS"
 		],
 		"credentials": "true"
-	},
-	"session": {
-		"name": "sessionid",
-		"path": "/",
-		"length": 16,
-		"lifetime": 604800,
-		"httpOnly": true
 	}
 }

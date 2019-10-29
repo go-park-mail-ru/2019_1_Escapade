@@ -37,27 +37,8 @@ var (
 	RoomsReconnections prometheus.Counter
 )
 
-// api vars
-var (
-	// Hits hits
-	Hits *prometheus.CounterVec
-	// Users - registered users
-	Users *prometheus.GaugeVec
-)
-
-func InitApi() {
-	var (
-		subsystem = "api"
-	)
-	Hits = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name:      "api",
-		Subsystem: subsystem,
-	}, []string{"status", "path", "method"})
-
-	prometheus.MustRegister(Hits)
-}
-
-func InitGame() {
+// Init prometheus metrics variables
+func Init() {
 
 	var (
 		subsystem      = "game"

@@ -17,7 +17,7 @@ done=0
 #apt install golang-easyjson
 #go mod tidy
 #go get -u
-#go mod vendor
+go mod vendor
 
 echo "  1. Copy project to GOPATH"
 # we need THISDIR to return back at the end

@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"encoding/json"
@@ -84,7 +84,7 @@ func RequestParamsInt32(r *http.Request, withAuth bool, names ...string) (map[st
 	return values, err
 }
 
-func GetStringFromPath(r *http.Request, name string, defaultValue string) (str string) {
+func StringFromPath(r *http.Request, name string, defaultValue string) (str string) {
 	str = defaultValue
 	vals := r.URL.Query()
 	keys, ok := vals[name]
@@ -96,10 +96,10 @@ func GetStringFromPath(r *http.Request, name string, defaultValue string) (str s
 	return
 }
 
-func getIntFromPath(r *http.Request, name string,
+func IntFromPath(r *http.Request, name string,
 	defaultVelue int, expected error) (val int, err error) {
 	var str string
-	if str = GetStringFromPath(r, name, ""); str == "" {
+	if str = StringFromPath(r, name, ""); str == "" {
 		err = expected
 		return
 	}
@@ -112,69 +112,6 @@ func getIntFromPath(r *http.Request, name string,
 	if val < 0 {
 		err = expected
 		return
-	}
-	return
-}
-
-func (h *Handler) getUserID(r *http.Request) (id int, err error) {
-
-	id, err = getIntFromPath(r, "id", 1, re.ErrorInvalidUserID())
-	return
-}
-
-func (h *Handler) getPage(r *http.Request) int {
-
-	page, _ := getIntFromPath(r, "page", 1, nil)
-	return page
-}
-
-func (h *Handler) getPerPage(r *http.Request) int {
-
-	page, _ := getIntFromPath(r, "per_page", 100, nil)
-	return page
-}
-
-func (h *Handler) getDifficult(r *http.Request) int {
-
-	diff, _ := getIntFromPath(r, "difficult", 0, nil)
-	if diff > 3 {
-		diff = 3
-	}
-	return diff
-}
-
-func (h *Handler) getSort(r *http.Request) string {
-
-	return GetStringFromPath(r, "getStringFromPath", "time")
-}
-
-func (h *Handler) getName(r *http.Request) (username string, err error) {
-
-	vars := mux.Vars(r)
-
-	if username = vars["name"]; username == "" {
-		return "", re.ErrorInvalidName()
-	}
-
-	return
-}
-
-func (h *Handler) getNameAndPage(r *http.Request) (page int, username string, err error) {
-	vars := mux.Vars(r)
-
-	if username = vars["name"]; username == "" {
-		return 0, "", re.ErrorInvalidName()
-	}
-
-	if vars["page"] == "" {
-		page = 1
-	} else {
-		if page, err = strconv.Atoi(vars["page"]); err != nil {
-			return 0, username, re.ErrorInvalidPage()
-		}
-		if page < 1 {
-			page = 1
-		}
 	}
 	return
 }

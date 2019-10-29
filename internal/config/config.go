@@ -17,7 +17,7 @@ type Configuration struct {
 	Cors       CORS       `json:"cors"`
 	DataBase   Database   `json:"dataBase"`
 	Game       Game       `json:"game"`
-	Cookie     Cookie     `json:"cookie"`
+	Cookie     Cookie     `json:"session"`
 	WebSocket  WebSocket  `json:"websocket"`
 	Service    Service    `json:"service"`
 	Auth       Auth       `json:"auth"`
@@ -119,9 +119,9 @@ type Service struct {
 type Cookie struct {
 	Path          string     `json:"path"`
 	Length        int        `json:"length"`
-	LifetimeHours int        `json:"lifetime"`
+	LifetimeHours int        `json:"lifetime_hours"`
 	HTTPOnly      bool       `json:"httpOnly"`
-	Auth          AuthCookie `json:"authCookie"`
+	Auth          AuthCookie `json:"-"`
 }
 
 //easyjson:json
@@ -179,6 +179,7 @@ func Init(path string) (conf *Configuration, err error) {
 	if err = conf.UnmarshalJSON(data); err != nil {
 		return
 	}
+	utils.Debug(false, "cookie settings", conf.Cookie.Path, conf.Cookie.LifetimeHours)
 	conf.AuthClient.Config = oauth2.Config{
 		ClientID:     conf.AuthClient.ClientID,
 		ClientSecret: conf.AuthClient.ClientSecret,

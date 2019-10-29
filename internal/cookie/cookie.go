@@ -1,6 +1,7 @@
 package cookie
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func SetCookie(w http.ResponseWriter, name string, value string, cc config.Cookie) {
+	fmt.Println("cookie:", time.Duration(cc.LifetimeHours), cc.Path)
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    value,

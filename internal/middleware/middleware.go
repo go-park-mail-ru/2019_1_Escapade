@@ -5,12 +5,13 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/cookie"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/cors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"strconv"
@@ -35,13 +36,13 @@ func CORS(cc config.CORS) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			origin := cors.GetOrigin(r)
+			utils.Debug(false, "cors check")
 			if !cors.IsAllowed(origin, cc.Origins) {
-				api.SendResult(rw, api.NewResult(http.StatusForbidden, "cors", nil, re.CORS(origin)))
+				ih.SendResult(rw, ih.NewResult(http.StatusForbidden, "cors", nil, re.CORS(origin)))
 				utils.Debug(false, "cors no!!!!!!!!!!")
 				return
 			}
-
-			//utils.Debug(false, "cors allow!")
+			utils.Debug(false, "cors allow!")
 			cors.SetCORS(rw, cc, origin)
 			next.ServeHTTP(rw, r)
 			return
@@ -69,12 +70,12 @@ func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.Middle
 			}
 			if err != nil {
 				const place = "middleware/Auth"
-				api.SendResult(rw, api.NewResult(http.StatusUnauthorized, place, nil, err))
+				ih.SendResult(rw, ih.NewResult(http.StatusUnauthorized, place, nil, err))
 				return
 			}
-			ctx := context.WithValue(r.Context(), api.ContextUserKey, userID)
+			ctx := context.WithValue(r.Context(), ih.ContextUserKey, userID)
 
-			utils.Debug(false, "auth end", userID, api.ContextUserKey)
+			utils.Debug(false, "auth end", userID, ih.ContextUserKey)
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
@@ -83,9 +84,16 @@ func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.Middle
 //Recover catch panic
 func Recover(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-
 		defer utils.CatchPanic("middleware.go Recover()")
+		next.ServeHTTP(rw, r)
+	})
+}
 
+//Logger log request
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		ip, _ := e_server.GetIP()
+		utils.Debug(false, "listen for you on "+ip.String())
 		next.ServeHTTP(rw, r)
 	})
 }

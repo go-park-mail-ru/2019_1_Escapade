@@ -1,7 +1,8 @@
-package api
+package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -18,7 +19,7 @@ import (
 // @Failure 404 {object} models.Result "user not found"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /session [POST]
-func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Login"
 	var (
 		user       models.UserPrivateInfo
@@ -27,26 +28,26 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) Result {
 		userID     int32
 	)
 
-	err = GetUser(r, h.Auth.Salt, &user)
+	err = ih.GetUser(r, h.Auth.Salt, &user)
 	if err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
 	userID, err = h.DB.Login(user.Name, user.Password)
 	if err != nil {
-		return NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	err = auth.CreateTokenInCookies(rw, user.Name, user.Password, h.AuthClient.Config, h.Cookie)
 	if err != nil {
-		Warning(err, "Cant create token in auth service", place)
+		ih.Warning(err, "Cant create token in auth service", place)
 	}
 
 	if publicUser, err = h.DB.GetUser(userID, 0); err != nil {
-		return NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
-	return NewResult(http.StatusOK, place, publicUser, nil)
+	return ih.NewResult(http.StatusOK, place, publicUser, nil)
 }
 
 // Logout logout
@@ -56,12 +57,12 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) Result {
 // @Success 200 {object} models.Result "Get successfully"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [DELETE]
-func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Logout"
 	if err := auth.DeleteToken(rw, r, h.Cookie, h.AuthClient); err != nil {
-		Warning(err, "Cant delete token in auth service", place)
+		ih.Warning(err, "Cant delete token in auth service", place)
 	}
-	return NewResult(http.StatusOK, place, nil, nil)
+	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 
 // 85 -> 67

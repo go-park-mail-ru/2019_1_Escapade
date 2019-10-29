@@ -3,7 +3,7 @@
 CREATE TABLE Player (
   id SERIAL PRIMARY KEY,
   name varchar(30) NOT NULL,
-  password varchar(30) NOT NULL,
+  password varchar(100) NOT NULL,
   photo_title varchar(50) default '1.png',
   firstSeen TIMESTAMPTZ,
   lastSeen TIMESTAMPTZ

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -78,6 +77,7 @@ func main() {
 		utils.Debug(false, "ERROR with user database:", err.Error())
 		return
 	}
+	defer db.Db.Close()
 
 	anotherDB, err = erydb.Init("postgres://eryuser:nopassword@pg-ery:5432/erybase?sslmode=disable",
 		20, 20, time.Hour)
@@ -85,13 +85,14 @@ func main() {
 		utils.Debug(false, "ERROR with ery database:", err.Error())
 		return
 	}
+	defer anotherDB.Close()
 
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "4. Connect to tokens and clients storage")
 
 	// TODO в конфиг
 	var (
-		accessTokenExp    = time.Second * 5 //time.Hour * 2
+		accessTokenExp    = time.Hour * 24 * 14
 		refreshTokenExp   = time.Hour * 24 * 14
 		isGenerateRefresh = true
 		jwtSecret         = "00000000"
@@ -102,16 +103,16 @@ func main() {
 	clients[0] = &models.Client{
 		ID:     "1",
 		Secret: "1",
-		Domain: configuration.Server.Host + ":3001",
+		Domain: "api.consul.localhost",
 	}
 
 	manager, tokenStore, err := e_oauth.Init(accessTokenExp, refreshTokenExp,
 		isGenerateRefresh, jwtSecret, link, clients)
 	if err != nil {
 		utils.Debug(false, "ERROR with oauth2 equipment", err.Error())
-		db.Db.Close()
 		return
 	}
+	defer tokenStore.Close()
 
 	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "5. Set the settings of server and register in Consul")
@@ -131,37 +132,29 @@ func main() {
 		consulAddr = configuration.Server.Host
 	}
 
-	finishHealthCheck := make(chan interface{}, 1)
-
-	//oldTags :=[]string{"auth", "traefik.frontends.foo.rule=Host:api.service.consul", "traefik.frontends.bar.rule=PathPrefixStrip:/api"}
-	newTags := []string{"auth", "traefik.enable=true",
-		"traefik.frontend.entryPoints=http",
-		"traefik.frontend.rule=Host:localhost"}
-
-	fmt.Println("!!!!IP:", os.Getenv("IP"))
-
-	serviceID := e_server.ServiceID(serviceName)
-	consul, err := e_server.ConsulClient(serviceName, serviceName, consulAddr,
-		serviceID, mainPortInt, newTags, consulPort, ttl,
-		func() (bool, error) { return false, nil }, finishHealthCheck)
+	newTags := []string{"auth", "traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:auth.consul.localhost"}
+	consul, err := e_server.InitConsulService(serviceName,
+		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
+		func() (bool, error) { return false, nil }, true)
 	if err != nil {
-		close(finishHealthCheck)
-		utils.Debug(false, "ERROR while connecting to consul")
+		utils.Debug(false, "ERROR cant get ip:", err.Error())
+		return
 	}
 
+	err = consul.Run()
+	if err != nil {
+		utils.Debug(false, "ERROR when register service ", err)
+		return
+	}
+	defer consul.Close()
+
 	utils.Debug(false, "✔✔✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+	utils.Debug(false, "Service", serviceName, "with id:",
+		e_server.ServiceID(serviceName), "ready to go on",
+		configuration.Server.Host+mainPort)
 
 	e_server.LaunchHTTP(server, configuration.Server, maxConn, func() {
-		finishHealthCheck <- nil
-		db.Db.Close()
-		tokenStore.Close()
-		err := consul.Agent().ServiceDeregister(serviceID)
-		if err != nil {
-			utils.Debug(false, "Consul error while deregistering:", err.Error())
-			return
-		}
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
-
 }

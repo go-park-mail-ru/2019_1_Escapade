@@ -1,8 +1,10 @@
-package api
+package handlers
 
 import (
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -13,24 +15,24 @@ import (
 )
 
 // OfflineSave save only records
-func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "OfflineSave"
 	var (
 		err    error
 		userID int32
 		record models.Record
 	)
-	if userID, err = GetUserIDFromAuthRequest(r); err != nil {
-		return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
+	if userID, err = ih.GetUserIDFromAuthRequest(r); err != nil {
+		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
-	if err = ModelFromRequest(r, &record); err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+	if err = ih.ModelFromRequest(r, &record); err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 	if err = h.DB.UpdateRecords(userID, &record); err != nil {
-		return NewResult(http.StatusInternalServerError, place, nil, err)
+		return ih.NewResult(http.StatusInternalServerError, place, nil, err)
 	}
-	return NewResult(http.StatusOK, place, nil, nil)
+	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 
 // GameOnline launch multiplayer

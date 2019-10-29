@@ -189,6 +189,7 @@ func DeleteToken(rw http.ResponseWriter, r *http.Request,
 
 func CreateTokenInCookies(rw http.ResponseWriter, name, password string,
 	config oauth2.Config, cc config.Cookie) error {
+	utils.Debug(false, "try create tokens")
 	token, err := config.PasswordCredentialsToken(context.Background(), name, password)
 	if err != nil {
 		return err

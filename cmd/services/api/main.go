@@ -3,14 +3,13 @@ package main
 import (
 	"time"
 
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 
 	"os"
 )
@@ -76,7 +75,7 @@ func main() {
 	}
 	defer API.Close()
 
-	metrics.InitApi()
+	metrics.Init()
 
 	// в конфиг
 	var (
@@ -90,7 +89,9 @@ func main() {
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Set the settings of our server and associate it with third-party")
 
-	r := e_server.APIRouter(API, configuration.Cors, configuration.Cookie,
+	configuration.AuthClient.Address = os.Getenv("AUTH_ADDRESS")
+
+	r := api.Router(API, configuration.Cors, configuration.Cookie,
 		configuration.Auth, configuration.AuthClient)
 
 	srv := e_server.Server(r, configuration.Server, true, mainPort)
@@ -117,13 +118,15 @@ func main() {
 
 	err = consul.Run()
 	if err != nil {
-		utils.Debug(false, "ERROR when register service ", err.Error())
+		utils.Debug(false, "ERROR when register service ", err)
 		return
 	}
 	defer consul.Close()
 
 	utils.Debug(false, "✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:", e_server.ServiceID(serviceName), "ready to go on", configuration.Server.Host+mainPort)
+	utils.Debug(false, "Service", serviceName, "with id:",
+		e_server.ServiceID(serviceName), "ready to go on",
+		configuration.Server.Host+mainPort)
 
 	e_server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")

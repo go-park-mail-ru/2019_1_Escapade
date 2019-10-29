@@ -11,6 +11,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// DataBase consists of *sql.DB
+// Support methods Login, Register
+type DataBase struct {
+	Db        *sql.DB
+	PageGames int
+	PageUsers int
+}
+
 // Init try to connect to DataBase.
 // If success - return instance of DataBase
 // if failed - return error

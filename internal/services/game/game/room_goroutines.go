@@ -1,7 +1,7 @@
 package game
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"time"

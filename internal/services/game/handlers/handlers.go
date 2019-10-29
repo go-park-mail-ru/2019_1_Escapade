@@ -3,36 +3,20 @@ package handlers
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/game"
 
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"math/rand"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
-
-// GameRouter return router for game
-func Router(db *database.DataBase, c *config.Configuration) *mux.Router {
-	r := mux.NewRouter()
-
-	var game = r.PathPrefix("/game").Subrouter()
-
-	game.Use(mi.Recover, mi.CORS(c.Cors))
-
-	game.HandleFunc("/ws", gameOnline(db, c))
-	game.Handle("/metrics", promhttp.Handler())
-	return r
-}
 
 func gameOnline(db *database.DataBase, c *config.Configuration) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -61,7 +45,7 @@ func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
 
-	roomID = api.GetStringFromPath(r, "id", "")
+	roomID = api.StringFromPath(r, "id", "")
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  c.WebSocket.ReadBufferSize,

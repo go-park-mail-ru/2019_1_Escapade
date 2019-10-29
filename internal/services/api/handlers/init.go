@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"

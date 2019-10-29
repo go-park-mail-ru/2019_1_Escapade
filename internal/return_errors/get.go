@@ -13,3 +13,7 @@ func ErrorNoBody() error {
 func ErrorInvalidJSON() error {
 	return errors.New("Found invalid json")
 }
+
+func ErrorMethodNotAllowed() error {
+	return errors.New("Method not allowed")
+}

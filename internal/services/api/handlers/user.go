@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 
@@ -32,13 +33,13 @@ import (
 // @Header 201 {string} Token "qwerty"
 // @Failure 401 {object} models.Result "Invalid information"
 // @Router /user [GET]
-func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 
 	const place = "GetMyProfile"
 
-	userID, err := GetUserIDFromAuthRequest(r)
+	userID, err := ih.GetUserIDFromAuthRequest(r)
 	if err != nil {
-		return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
+		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
 	return h.getUser(rw, r, userID, place)
@@ -56,29 +57,29 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) Result {
 // @Header 201 {string} Token "qwerty"
 // @Failure 400 {object} models.Result "Invalid information"
 // @Router /user [POST]
-func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "CreateUser"
 
 	var user models.UserPrivateInfo
-	err := GetUserWithAllFields(r, h.Auth.Salt, &user)
+	err := ih.GetUserWithAllFields(r, h.Auth.Salt, &user)
 	if err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	if err = ValidateUser(&user); err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+	if err = ih.ValidateUser(&user); err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
 	if _, err = h.DB.Register(&user); err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, re.UserExistWrapper(err))
+		return ih.NewResult(http.StatusBadRequest, place, nil, re.UserExistWrapper(err))
 	}
 
 	err = auth.CreateTokenInCookies(rw, user.Name, user.Password, h.AuthClient.Config, h.Cookie)
 	if err != nil {
-		Warning(err, "Cant create token in auth service", place)
+		ih.Warning(err, "Cant create token in auth service", place)
 	}
 
-	return NewResult(http.StatusCreated, place, nil, nil)
+	return ih.NewResult(http.StatusCreated, place, nil, nil)
 }
 
 // UpdateProfile godoc
@@ -90,7 +91,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) Result {
 // @Failure 401 {object} models.Result "need authorization"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /user [PUT]
-func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "UpdateProfile"
 
 	var (
@@ -99,19 +100,19 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) Result 
 		userID int32
 	)
 
-	if err = GetUser(r, h.Auth.Salt, &user); err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+	if err = ih.GetUser(r, h.Auth.Salt, &user); err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	if userID, err = GetUserIDFromAuthRequest(r); err != nil {
-		return NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
+	if userID, err = ih.GetUserIDFromAuthRequest(r); err != nil {
+		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
 	if err = h.DB.UpdatePlayerPersonalInfo(userID, &user); err != nil {
-		return NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
-	return NewResult(http.StatusOK, place, nil, nil)
+	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 
 // DeleteUser delete account
@@ -122,7 +123,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) Result 
 // @Failure 400 {object} models.Result "invalid input"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /user [DELETE]
-func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Result {
 
 	const place = "DeleteUser"
 	var (
@@ -130,19 +131,19 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) Result {
 		err  error
 	)
 
-	if err = GetUserWithAllFields(r, h.Auth.Salt, &user); err != nil {
-		return NewResult(http.StatusBadRequest, place, nil, err)
+	if err = ih.GetUserWithAllFields(r, h.Auth.Salt, &user); err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
 	if err = h.deleteUserInDB(context.Background(), &user, ""); err != nil {
-		return NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
 	if err := auth.DeleteToken(rw, r, h.Cookie, h.AuthClient); err != nil {
-		Warning(err, "Cant delete token in auth service", place)
+		ih.Warning(err, "Cant delete token in auth service", place)
 	}
 
-	return NewResult(http.StatusOK, place, nil, nil)
+	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 
 // GetProfile godoc
@@ -156,19 +157,19 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) Result {
 // @Failure 400 {object} models.Result "Invalid username"
 // @Failure 404 {object} models.Result "User not found"
 // @Router /users/{name}/profile [GET]
-func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) Result {
+func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetProfile"
 
 	userID, err := h.getUserID(r)
 	if err != nil {
-		return NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	return h.getUser(rw, r, int32(userID), place)
 }
 
 func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
-	userID int32, place string) Result {
+	userID int32, place string) ih.Result {
 
 	var (
 		err       error
@@ -179,12 +180,12 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
 	difficult = h.getDifficult(r)
 
 	if user, err = h.DB.GetUser(userID, difficult); err != nil {
-		return NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
+		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
 	photo.GetImages(user)
 
-	return NewResult(http.StatusOK, place, user, nil)
+	return ih.NewResult(http.StatusOK, place, user, nil)
 }
 
 func (h *Handler) deleteUserInDB(ctx context.Context,

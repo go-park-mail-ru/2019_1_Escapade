@@ -10,6 +10,8 @@ services:
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
+    # networks: 
+    #   - backend
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
@@ -18,6 +20,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/main/
+    # networks: 
+    #   - backend
     ports:
       - "5429:5432"    
 
@@ -27,6 +31,8 @@ services:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
       POSTGRES_DB: 'authbase'
+    # networks: 
+    #   - backend
     ports:
       - "5431:5432"    
 
@@ -34,6 +40,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/ery/
+    # networks: 
+    #   - backend
     ports:
       - "5430:5432"   
 
@@ -54,12 +62,16 @@ services:
       - "consul"
       - "auth"
     ports:
-      - 3001-3010:3001
+      - 3001-3021:3001
     environment:
       - CONSUL_ADDRESS=consul-agent
+      - AUTH_ADDRESS=auth.consul.localhost
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
     labels:
       - "traefik.enable=false"
+    #dns: traefik 
+    #network_mode: "host"
+    restart: on-failure
     logging:
       options:
         max-size: 10m
@@ -107,10 +119,14 @@ services:
     depends_on:
       - "pg"
       - "pg-auth"
+      - "pg-ery"
     #ports:
     #  - 3003:3003
+    #dns: 127.0.0.1 
+    # networks: 
+    #   - backend
     environment:
-      - CONSUL_ADDRESS=consul-agent-1
+      - CONSUL_ADDRESS=consul-agent
     command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
     labels:
       - "traefik.backend=machine-echo"
@@ -188,31 +204,17 @@ services:
   ### discovery ###
 
   ## consul servers ##
-  consul-server-1:
+  consul-server:
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
     ports:
-      - 8501:8500
-    command: agent -server -join consul -node server1 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+      - 8529-8549:8500
+      - 8329-8349:8301
+    # networks: 
+    #   - backend
+    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
-  consul-server-2:
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-    ports:
-      - 8502:8500
-    command: agent -server -join consul -node server2 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
-
-  consul-server-3:
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-    ports:
-      - 8503:8500
-      - 8303:8301
-    command: agent -server -join consul -node server3 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
- 
   ## consul bootstrap ##
   consul:
     build:
@@ -222,12 +224,13 @@ services:
       - 8400:8400
       - 8500:8500
       - 8600:53/udp
+    # networks: 
+    #   - backend
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   
   ## consul agents ##
-
   consul-agent:
     build:
       context: ./extra/consul
@@ -235,37 +238,12 @@ services:
     ports:
       - 8550-8570:8500
       - 8350-8370:8301
-    command: agent -join consul-server-1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
+    # networks: 
+    #   - backend
+    command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
-  consul-agent-1:
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-    ports:
-      - 8511:8500
-      - 8311:8301
-    command: agent -join consul-server-1 -node agent1 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json    
-
-  consul-agent-2:
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-    ports:
-      - 8512:8500
-      - 8312:8301
-    command: agent -join consul-server-2 -node agent2 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
- 
-  consul-agent-3:
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-    ports:
-      - 8513:8500
-      - 8313:8301
-    command: agent -join consul-server-3 -node agent3 -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json
-
   # vault:
   #   build:
   #     context: ./extra/vault
