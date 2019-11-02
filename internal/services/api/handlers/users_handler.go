@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 
@@ -10,6 +12,44 @@ import (
 	"net/http"
 )
 
+type UsersHandler struct {
+	Handler
+	user database.UserUseCaseI
+}
+
+func (h *UsersHandler) Init(c *config.Configuration, DB database.DatabaseI,
+	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
+	h.Handler.Init(c)
+
+	h.user = &database.UserUseCase{}
+	h.user.Init(userDB, recordDB)
+	err := h.user.Use(DB)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *UsersHandler) Close() {
+	h.user.Close()
+}
+
+// HandleUsersPages process any operation associated with users
+// list: receive
+func (h *UsersHandler) HandleUsersPages(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodGet:     h.GetUsers,
+		http.MethodOptions: nil})
+}
+
+// HandleUsersPageAmount process any operation associated with
+// amount of pages in user list: receive
+func (h *UsersHandler) HandleUsersPageAmount(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodGet:     h.GetUsersPageAmount,
+		http.MethodOptions: nil})
+}
+
 // GetUsersPageAmount get amount of users list page
 // @Summary amount of users list page
 // @Description Get amount of users list page
@@ -17,7 +57,7 @@ import (
 // @Success 200 {object} models.Pages "Get successfully"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/pages_amount [GET]
-func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UsersHandler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetUsersPageAmount"
 
 	var (
@@ -28,7 +68,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih
 
 	perPage = h.getPerPage(r)
 
-	if pages.Amount, err = h.Db.user.PagesCount(perPage); err != nil {
+	if pages.Amount, err = h.user.PagesCount(perPage); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
 
@@ -44,7 +84,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih
 // @Failure 404 {object} models.Result "Users not found"
 // @Failure 500 {object} models.Result "Server error"
 // @Router /users/{page} [GET]
-func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UsersHandler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetUsers"
 	var (
 		err       error
@@ -60,7 +100,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Result {
 	page = h.getPage(r)
 	difficult = h.getDifficult(r)
 
-	if users, err = h.Db.user.FetchAll(difficult, page, perPage, sort); err != nil {
+	if users, err = h.user.FetchAll(difficult, page, perPage, sort); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 

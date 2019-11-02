@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
@@ -13,6 +16,37 @@ import (
 	"net/http"
 	//"github.com/gorilla/websocket"
 )
+
+type GameHandler struct {
+	Handler
+	record database.RecordUseCaseI
+}
+
+func (h *GameHandler) Init(c *config.Configuration, DB database.DatabaseI,
+	recordDB database.RecordRepositoryI) error {
+	h.Handler.Init(c)
+
+	h.record = &database.RecordUseCase{}
+	h.record.Init(recordDB)
+	err := h.record.Use(DB)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *GameHandler) Close() {
+	h.record.Close()
+}
+
+// TODO add fetch
+// HandleOfflineGame process any operation associated with offline
+// games: save
+func (h *GameHandler) Handle(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodPost:    h.OfflineSave,
+		http.MethodOptions: nil})
+}
 
 // OfflineSave save offline game results
 // @Summary Save offline game
@@ -26,7 +60,7 @@ import (
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 404 {object} models.Result "Avatar not found"
 // @Router /game [POST]
-func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *GameHandler) OfflineSave(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "OfflineSave"
 	var (
 		err    error
@@ -40,7 +74,7 @@ func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) ih.Result
 	if err = ih.ModelFromRequest(r, &record); err != nil {
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
-	if err = h.Db.record.Update(userID, &record); err != nil {
+	if err = h.record.Update(userID, &record); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, err)
 	}
 	return ih.NewResult(http.StatusOK, place, nil, nil)

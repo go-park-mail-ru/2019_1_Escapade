@@ -3,6 +3,8 @@ package handlers
 import (
 	"bytes"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 
@@ -15,6 +17,38 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type ImageHandler struct {
+	Handler
+	image database.ImageUseCaseI
+}
+
+func (h *ImageHandler) Init(c *config.Configuration, DB database.DatabaseI,
+	imageDB database.ImageRepositoryI) error {
+	h.Handler.Init(c)
+
+	h.image = &database.ImageUseCase{}
+	h.image.Init(imageDB)
+	err := h.image.Use(DB)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *ImageHandler) Close() {
+	h.image.Close()
+}
+
+// TODO add deleting
+// HandleAvatar process any operation associated with user
+// avatar: load and get
+func (h *ImageHandler) Handle(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodPost:    h.PostImage,
+		http.MethodGet:     h.GetImage,
+		http.MethodOptions: nil})
+}
+
 // GetImage returns user avatar
 // @Summary Get user avatar
 // @Description Get user avatar
@@ -23,7 +57,7 @@ import (
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 404 {object} models.Result "Avatar not found"
 // @Router /avatar [GET]
-func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *ImageHandler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetImage"
 	var (
 		err     error
@@ -36,9 +70,9 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 		if err != nil {
 			return ih.NewResult(http.StatusBadRequest, place, nil, re.AuthWrapper(err))
 		}
-		fileKey, err = h.Db.image.FetchByID(id)
+		fileKey, err = h.image.FetchByID(id)
 	} else {
-		fileKey, err = h.Db.image.FetchByName(name)
+		fileKey, err = h.image.FetchByName(name)
 	}
 
 	if err != nil {
@@ -61,7 +95,7 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "Avatar not found"
 // @Router /avatar [POST]
-func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *ImageHandler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "PostImage"
 
 	var (
@@ -89,7 +123,7 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 	return ih.NewResult(http.StatusCreated, place, &url, nil)
 }
 
-func (h *Handler) getFileFromRequst(rw http.ResponseWriter, r *http.Request) (multipart.File, error) {
+func (h *ImageHandler) getFileFromRequst(rw http.ResponseWriter, r *http.Request) (multipart.File, error) {
 	maxFileSize := photo.MaxFileSize()
 
 	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
@@ -137,7 +171,7 @@ func (h *Handler) getFileFromRequst(rw http.ResponseWriter, r *http.Request) (mu
 
 }
 
-func (h *Handler) checkFileType(fileType string) error {
+func (h *ImageHandler) checkFileType(fileType string) error {
 	var (
 		found            = false
 		allowedFileTypes = photo.AllowedFileTypes()
@@ -154,7 +188,7 @@ func (h *Handler) checkFileType(fileType string) error {
 	return nil
 }
 
-func (h *Handler) saveFile(file multipart.File, userID int32) (models.Avatar, error) {
+func (h *ImageHandler) saveFile(file multipart.File, userID int32) (models.Avatar, error) {
 	var (
 		fileKey = uuid.NewV4().String()
 		url     models.Avatar
@@ -165,7 +199,7 @@ func (h *Handler) saveFile(file multipart.File, userID int32) (models.Avatar, er
 		return url, re.ServerWrapper(err)
 	}
 
-	if err = h.Db.image.Update(fileKey, userID); err != nil {
+	if err = h.image.Update(fileKey, userID); err != nil {
 		photo.DeleteImageFromS3(fileKey)
 		return url, re.DatabaseWrapper(err)
 	}

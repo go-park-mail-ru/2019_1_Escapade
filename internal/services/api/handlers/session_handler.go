@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
@@ -9,6 +11,37 @@ import (
 
 	"net/http"
 )
+
+type SessionHandler struct {
+	Handler
+	user database.UserUseCaseI
+}
+
+func (h *SessionHandler) Init(c *config.Configuration, DB database.DatabaseI,
+	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
+	h.Handler.Init(c)
+
+	h.user = &database.UserUseCase{}
+	h.user.Init(userDB, recordDB)
+	err := h.user.Use(DB)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *SessionHandler) Close() {
+	h.user.Close()
+}
+
+// Handle process any operation associated with user
+// authorization: enter and exit
+func (h *SessionHandler) Handle(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodPost:    h.Login,
+		http.MethodDelete:  h.Logout,
+		http.MethodOptions: nil})
+}
 
 // Login login
 // @Summary login
@@ -19,7 +52,7 @@ import (
 // @Failure 404 {object} models.Result "user not found"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /session [POST]
-func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *SessionHandler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Login"
 	var (
 		user       models.UserPrivateInfo
@@ -33,7 +66,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	userID, err = h.Db.user.EnterAccount(user.Name, user.Password)
+	userID, err = h.user.EnterAccount(user.Name, user.Password)
 	if err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
@@ -43,7 +76,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 		ih.Warning(err, "Cant create token in auth service", place)
 	}
 
-	if publicUser, err = h.Db.user.FetchOne(userID, 0); err != nil {
+	if publicUser, err = h.user.FetchOne(userID, 0); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
@@ -57,7 +90,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 // @Success 200 {object} models.Result "Get successfully"
 // @Failure 500 {object} models.Result "server error"
 // @Router /session [DELETE]
-func (h *Handler) Logout(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *SessionHandler) Logout(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Logout"
 	if err := auth.DeleteToken(rw, r, h.Cookie, h.AuthClient); err != nil {
 		ih.Warning(err, "Cant delete token in auth service", place)

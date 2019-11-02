@@ -1,16 +1,11 @@
 package database
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"database/sql"
-	"os"
-
 	//
 	_ "github.com/lib/pq"
 )
 
+/*
 // DataBase consists of *sql.DB
 // Support methods Login, Register
 type DataBase struct {
@@ -46,4 +41,4 @@ func Init(CDB config.Database) (db *DataBase, err error) {
 	utils.Debug(false, place, "success!")
 
 	return
-}
+}*/

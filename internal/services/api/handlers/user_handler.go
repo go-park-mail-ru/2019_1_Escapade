@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -18,6 +20,48 @@ import (
 	ran "math/rand"
 )
 
+type UserHandler struct {
+	Handler
+	user   database.UserUseCaseI
+	record database.RecordUseCaseI
+}
+
+func (h *UserHandler) Init(c *config.Configuration, DB database.DatabaseI,
+	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
+	h.Handler.Init(c)
+
+	h.user = &database.UserUseCase{}
+	h.user.Init(userDB, recordDB)
+	err := h.user.Use(DB)
+	if err != nil {
+		return err
+	}
+
+	h.record = &database.RecordUseCase{}
+	h.record.Init(recordDB)
+	err = h.record.Use(DB)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *UserHandler) Close() {
+	h.user.Close()
+	h.record.Close()
+}
+
+// Handle process any operation associated with user
+// profile: create, receive, update, and delete
+func (h *UserHandler) Handle(rw http.ResponseWriter, r *http.Request) {
+	ih.Route(rw, r, ih.MethodHandlers{
+		http.MethodPost:    h.CreateUser,
+		http.MethodGet:     h.GetMyProfile,
+		http.MethodDelete:  h.DeleteUser,
+		http.MethodPut:     h.UpdateProfile,
+		http.MethodOptions: nil})
+}
+
 // GetMyProfile godoc
 // @Summary get public information about that user
 // @Description get public information about that user
@@ -33,7 +77,7 @@ import (
 // @Header 201 {string} Token "qwerty"
 // @Failure 401 {object} models.Result "Invalid information"
 // @Router /user [GET]
-func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UserHandler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 
 	const place = "GetMyProfile"
 
@@ -57,7 +101,7 @@ func (h *Handler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.Resul
 // @Header 201 {string} Token "qwerty"
 // @Failure 400 {object} models.Result "Invalid information"
 // @Router /user [POST]
-func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "CreateUser"
 
 	var user models.UserPrivateInfo
@@ -70,7 +114,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result 
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	if _, err = h.Db.user.CreateAccount(&user); err != nil {
+	if _, err = h.user.CreateAccount(&user); err != nil {
 		return ih.NewResult(http.StatusBadRequest, place, nil, re.UserExistWrapper(err))
 	}
 
@@ -91,7 +135,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result 
 // @Failure 401 {object} models.Result "need authorization"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /user [PUT]
-func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UserHandler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "UpdateProfile"
 
 	var (
@@ -108,7 +152,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Resu
 		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
-	if err = h.Db.user.UpdateAccount(userID, &user); err != nil {
+	if err = h.user.UpdateAccount(userID, &user); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
@@ -123,7 +167,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Resu
 // @Failure 400 {object} models.Result "invalid input"
 // @Failure 500 {object} models.Result "error with database"
 // @Router /user [DELETE]
-func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Result {
 
 	const place = "DeleteUser"
 	var (
@@ -157,7 +201,7 @@ func (h *Handler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Result 
 // @Failure 400 {object} models.Result "Invalid username"
 // @Failure 404 {object} models.Result "User not found"
 // @Router /users/{name}/profile [GET]
-func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
+func (h *UserHandler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetProfile"
 
 	userID, err := h.getUserID(r)
@@ -168,7 +212,7 @@ func (h *Handler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result 
 	return h.getUser(rw, r, int32(userID), place)
 }
 
-func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
+func (h *UserHandler) getUser(rw http.ResponseWriter, r *http.Request,
 	userID int32, place string) ih.Result {
 
 	var (
@@ -179,7 +223,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
 
 	difficult = h.getDifficult(r)
 
-	if user, err = h.Db.user.FetchOne(userID, difficult); err != nil {
+	if user, err = h.user.FetchOne(userID, difficult); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
@@ -188,10 +232,10 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
 	return ih.NewResult(http.StatusOK, place, user, nil)
 }
 
-func (h *Handler) deleteUserInDB(ctx context.Context,
+func (h *UserHandler) deleteUserInDB(ctx context.Context,
 	user *models.UserPrivateInfo, sessionID string) (err error) {
 
-	if err = h.Db.user.DeleteAccount(user); err != nil {
+	if err = h.user.DeleteAccount(user); err != nil {
 		return
 	}
 
@@ -204,7 +248,7 @@ func (h *Handler) deleteUserInDB(ctx context.Context,
 }
 
 // RandomUsers create n random users
-func (h *Handler) RandomUsers(limit int) {
+func (h *UserHandler) RandomUsers(limit int) {
 
 	n := 16
 	for i := 0; i < limit; i++ {
@@ -212,7 +256,7 @@ func (h *Handler) RandomUsers(limit int) {
 		user := &models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		userID, err := h.Db.user.CreateAccount(user)
+		userID, err := h.user.CreateAccount(user)
 		if err != nil {
 			utils.Debug(true, "cant register random")
 			return
@@ -227,7 +271,7 @@ func (h *Handler) RandomUsers(limit int) {
 				OnlineTotal: ran.Intn(2),
 				SingleWin:   ran.Intn(2),
 				OnlineWin:   ran.Intn(2)}
-			h.Db.record.Update(int32(userID), record)
+			h.record.Update(int32(userID), record)
 		}
 
 	}

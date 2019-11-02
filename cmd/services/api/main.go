@@ -25,7 +25,7 @@ import (
 func main() {
 	var (
 		configuration *config.Configuration
-		API           = &api.Handler{}
+		API           = &api.Handlers{}
 		err           error
 	)
 
@@ -69,8 +69,9 @@ func main() {
 	}
 
 	//var API api.Handler
-	API.NEW_Init(configuration)
-	err = API.NEW_SetPostreSQL(configuration.DataBase)
+	err = API.InitWithPostgreSQL(configuration)
+	//API.NEW_Init(configuration)
+	//err = API.NEW_SetPostreSQL(configuration.DataBase)
 	//API, err = api.GetHandler(configuration)
 	if err != nil {
 		utils.Debug(false, "ERROR with photo configuration:", err.Error())
@@ -94,8 +95,9 @@ func main() {
 
 	configuration.AuthClient.Address = os.Getenv("AUTH_ADDRESS")
 
-	r := api.Router(API, configuration.Cors, configuration.Cookie,
-		configuration.Auth, configuration.AuthClient)
+	r := API.Router()
+	//r := api.Router(API, configuration.Cors, configuration.Cookie,
+	//		configuration.Auth, configuration.AuthClient)
 
 	srv := e_server.Server(r, configuration.Server, true, mainPort)
 

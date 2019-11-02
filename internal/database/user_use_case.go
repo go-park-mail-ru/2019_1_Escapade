@@ -143,7 +143,14 @@ func (db *UserUseCase) FetchAll(difficult int, page int, perPage int,
 		}
 	}
 
-	if players, err = db.user.fetchAll(tx, difficult, offset, limit, sort); err != nil {
+	params := UsersSelectParams{
+		Difficult: difficult,
+		Offset:    offset,
+		Limit:     limit,
+		Sort:      sort,
+	}
+
+	if players, err = db.user.fetchAll(tx, params); err != nil {
 		return
 	}
 

@@ -204,7 +204,7 @@ func (h *Handler) postImage(rw http.ResponseWriter, r *http.Request,
 	}
 
 	path := "artyom/" + utils.String32(userID) + "/" + handle.Filename
-	err = photo.SaveImageInS3(path, file, handle)
+	err = photo.SaveImageInS3(path, file)
 	if err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}

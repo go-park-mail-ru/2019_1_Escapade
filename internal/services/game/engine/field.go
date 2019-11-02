@@ -302,12 +302,9 @@ func (field *Field) SetMines(flags []Flag, deathmatch bool) {
 		} else if probability < minProbability {
 			probability = minProbability
 		}
-		utils.Debug(false, "we have %d flags, area size %f; probability %d;;;;%f\n", len(flags), gip/field.Difficult/2000.0, probability, field.Difficult)
-
 		for _, flag := range flags {
 			x := flag.Cell.X
 			y := flag.Cell.Y
-			utils.Debug(false, "flag[%d, %d] - %d\n", x, y, flag.Cell.PlayerID)
 			var i, j int32
 			for i = x - areaSizeINT; i <= x+areaSizeINT; i++ {
 				if i >= 0 && i < width {

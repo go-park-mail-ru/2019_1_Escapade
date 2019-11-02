@@ -85,8 +85,7 @@ type UserRepositoryI interface {
 
 	updateLastSeen(tx transactionI, id int) error
 
-	fetchAll(tx transactionI, difficult int, offset int, limit int,
-		sort string) ([]*models.UserPublicInfo, error)
+	fetchAll(tx transactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error)
 	fetchOne(tx transactionI, userID int32,
 		difficult int) (*models.UserPublicInfo, error)
 

@@ -13,6 +13,13 @@ import (
 // UserRepositoryPQ implements the interface UserRepositoryI using the sql postgres driver
 type UserRepositoryPQ struct{}
 
+type UsersSelectParams struct {
+	Difficult int
+	Offset    int
+	Limit     int
+	Sort      string
+}
+
 func (db *UserRepositoryPQ) create(tx transactionI, user *models.UserPrivateInfo) (int, error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
@@ -108,8 +115,7 @@ func (db *UserRepositoryPQ) updateLastSeen(tx transactionI, id int) error {
 
 // fetchAll returns information about users
 // for leaderboard
-func (db *UserRepositoryPQ) fetchAll(tx transactionI, difficult int, offset int,
-	limit int, sort string) ([]*models.UserPublicInfo, error) {
+func (db *UserRepositoryPQ) fetchAll(tx transactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -119,15 +125,16 @@ func (db *UserRepositoryPQ) fetchAll(tx transactionI, difficult int, offset int,
 	on R.player_id = P.id
 	where r.difficult = $1  
 	`
-	if sort == "score" {
+	if params.Sort == "score" {
 		sqlStatement += ` ORDER BY (score) desc `
 	} else {
 		sqlStatement += ` ORDER BY (time) `
 	}
 	sqlStatement += ` OFFSET $2 Limit $3 `
 
-	players := make([]*models.UserPublicInfo, 0, limit)
-	rows, err := tx.Query(sqlStatement, difficult, offset, limit)
+	players := make([]*models.UserPublicInfo, 0, params.Limit)
+	rows, err := tx.Query(sqlStatement, params.Difficult, params.Offset,
+		params.Limit)
 	if err != nil {
 		return players, err
 	}
@@ -174,14 +181,23 @@ func (db *UserRepositoryPQ) pagesCount(dbI DatabaseI, perPage int) (amount int, 
 	if err = row.Scan(&amount); err != nil {
 		return
 	}
-
 	pageUsers := 10 // в конфиг
-	if amount > pageUsers {
-		amount = pageUsers
-	}
-	if perPage == 0 {
-		perPage = 1
-	}
+	amount = db.fixAmount(amount, pageUsers)
+	perPage = db.fixPerPage(perPage)
 	amount = int(math.Ceil(float64(amount) / float64(perPage)))
 	return
+}
+
+func (db *UserRepositoryPQ) fixAmount(amount, pageUsers int) int {
+	if amount > pageUsers {
+		return pageUsers
+	}
+	return amount
+}
+
+func (db *UserRepositoryPQ) fixPerPage(perPage int) int {
+	if perPage <= 0 {
+		perPage = 1
+	}
+	return perPage
 }

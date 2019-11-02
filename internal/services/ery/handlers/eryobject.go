@@ -80,14 +80,14 @@ func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,
 	//fileKey := uuid.NewV4().String()
 
 	var eryOBJ models.EryObject
-	err = eryOBJ.Set(r, handle.Filename, utils.String32(int32(fileSize)), "artyom/" + handle.Filename)
+	err = eryOBJ.Set(r, handle.Filename, utils.String32(int32(fileSize)), "artyom/"+handle.Filename)
 	if err != nil {
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
 	utils.Debug(false, "SaveImageInS3")
 	eryOBJ.Path = "artyom/" + handle.Filename
-	err = photo.SaveImageInS3(eryOBJ.Path, file, handle)
+	err = photo.SaveImageInS3(eryOBJ.Path, file)
 	if err != nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
