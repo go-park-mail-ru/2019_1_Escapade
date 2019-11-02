@@ -25,7 +25,7 @@ import (
 func main() {
 	var (
 		configuration *config.Configuration
-		API           *api.Handler
+		API           = &api.Handler{}
 		err           error
 	)
 
@@ -68,7 +68,10 @@ func main() {
 		return
 	}
 
-	API, err = api.GetHandler(configuration)
+	//var API api.Handler
+	API.NEW_Init(configuration)
+	err = API.NEW_SetPostreSQL(configuration.DataBase)
+	//API, err = api.GetHandler(configuration)
 	if err != nil {
 		utils.Debug(false, "ERROR with photo configuration:", err.Error())
 		return

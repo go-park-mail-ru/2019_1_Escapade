@@ -70,7 +70,7 @@ func (h *Handler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result 
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	if _, err = h.DB.Register(&user); err != nil {
+	if _, err = h.Db.user.CreateAccount(&user); err != nil {
 		return ih.NewResult(http.StatusBadRequest, place, nil, re.UserExistWrapper(err))
 	}
 
@@ -108,7 +108,7 @@ func (h *Handler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Resu
 		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
-	if err = h.DB.UpdatePlayerPersonalInfo(userID, &user); err != nil {
+	if err = h.Db.user.UpdateAccount(userID, &user); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 
@@ -179,7 +179,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
 
 	difficult = h.getDifficult(r)
 
-	if user, err = h.DB.GetUser(userID, difficult); err != nil {
+	if user, err = h.Db.user.FetchOne(userID, difficult); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
@@ -191,7 +191,7 @@ func (h *Handler) getUser(rw http.ResponseWriter, r *http.Request,
 func (h *Handler) deleteUserInDB(ctx context.Context,
 	user *models.UserPrivateInfo, sessionID string) (err error) {
 
-	if err = h.DB.DeleteAccount(user); err != nil {
+	if err = h.Db.user.DeleteAccount(user); err != nil {
 		return
 	}
 
@@ -212,7 +212,7 @@ func (h *Handler) RandomUsers(limit int) {
 		user := &models.UserPrivateInfo{
 			Name:     utils.RandomString(n),
 			Password: utils.RandomString(n)}
-		userID, err := h.DB.Register(user)
+		userID, err := h.Db.user.CreateAccount(user)
 		if err != nil {
 			utils.Debug(true, "cant register random")
 			return
@@ -227,7 +227,7 @@ func (h *Handler) RandomUsers(limit int) {
 				OnlineTotal: ran.Intn(2),
 				SingleWin:   ran.Intn(2),
 				OnlineWin:   ran.Intn(2)}
-			h.DB.UpdateRecords(int32(userID), record)
+			h.Db.record.Update(int32(userID), record)
 		}
 
 	}

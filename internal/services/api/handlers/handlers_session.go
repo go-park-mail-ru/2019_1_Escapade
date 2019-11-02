@@ -33,7 +33,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	userID, err = h.DB.Login(user.Name, user.Password)
+	userID, err = h.Db.user.EnterAccount(user.Name, user.Password)
 	if err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
@@ -43,7 +43,7 @@ func (h *Handler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 		ih.Warning(err, "Cant create token in auth service", place)
 	}
 
-	if publicUser, err = h.DB.GetUser(userID, 0); err != nil {
+	if publicUser, err = h.Db.user.FetchOne(userID, 0); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoUserWrapper(err))
 	}
 

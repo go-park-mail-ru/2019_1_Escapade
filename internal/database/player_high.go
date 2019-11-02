@@ -10,27 +10,29 @@ import (
 
 // Register check sql-injections and is name unique
 // Then add cookie to database and returns session_id
-func (db *DataBase) Register(user *models.UserPrivateInfo) (userID int, err error) {
+func (db *DataBase) Register(user *models.UserPrivateInfo) (int, error) {
 
 	var (
-		tx *sql.Tx
+		userID int
+		err    error
+		tx     *sql.Tx
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
-		return
+		return userID, err
 	}
 	defer tx.Rollback()
 
 	if userID, err = db.createPlayer(tx, user); err != nil {
-		return
+		return userID, err
 	}
 
 	if err = db.createRecords(tx, userID); err != nil {
-		return
+		return userID, err
 	}
 
 	err = tx.Commit()
-	return
+	return userID, err
 }
 
 // Login check sql-injections and is password right
@@ -58,29 +60,30 @@ func (db *DataBase) Login(name, password string) (int32, error) {
 
 // UpdatePlayerPersonalInfo gets name of Player from
 // relation Session, cause we know that user has session
-func (db *DataBase) UpdatePlayerPersonalInfo(userID int32, user *models.UserPrivateInfo) (err error) {
+func (db *DataBase) UpdatePlayerPersonalInfo(userID int32, user *models.UserPrivateInfo) error {
 	var (
 		confirmedUser *models.UserPrivateInfo
 		tx            *sql.Tx
+		err           error
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
-		return
+		return err
 	}
 	defer tx.Rollback()
 
 	if confirmedUser, err = db.getPrivateInfo(tx, userID); err != nil {
-		return
+		return err
 	}
 
 	confirmedUser.Update(user)
 
 	if err = db.updatePlayerPersonalInfo(tx, user); err != nil {
-		return
+		return err
 	}
 
 	err = tx.Commit()
-	return
+	return err
 }
 
 // GetUsers get users

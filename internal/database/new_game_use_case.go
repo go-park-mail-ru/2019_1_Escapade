@@ -1,18 +1,27 @@
 package database
 
 import (
+	"context"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
-
-	"context"
-	"database/sql"
 )
 
-func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
+// GameuseCasePQ implements the interface GameuseCaseI
+type GameUseCase struct {
+	UseCaseBase
+	game GameRepositoryI
+}
+
+func (db *GameUseCase) Init(game GameRepositoryI) {
+	db.game = game
+}
+
+func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
 
 	var (
-		tx       *sql.Tx
+		tx       transactionI
 		roomID   int32
 		pbChatID *chat.ChatID
 		err      error
@@ -22,7 +31,7 @@ func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
 		return 0, 0, err
 	}
 	defer tx.Rollback()
-	if roomID, err = db.createGame(tx, game); err != nil {
+	if roomID, err = db.game.createGame(tx, game); err != nil {
 		return 0, 0, err
 	}
 
@@ -40,9 +49,9 @@ func (db *DataBase) CreateGame(game *models.Game) (int32, int32, error) {
 }
 
 // SaveGame save game to database
-func (db *DataBase) SaveGame(info models.GameInformation) error {
+func (db *GameUseCase) Save(info models.GameInformation) error {
 	var (
-		tx              *sql.Tx
+		tx              transactionI
 		gameID, fieldID int32
 		err             error
 	)
@@ -52,7 +61,7 @@ func (db *DataBase) SaveGame(info models.GameInformation) error {
 	}
 	defer tx.Rollback()
 
-	if err = db.updateGame(tx, &info.Game); err != nil {
+	if err = db.game.updateGame(tx, &info.Game); err != nil {
 		return err
 	}
 
@@ -65,19 +74,19 @@ func (db *DataBase) SaveGame(info models.GameInformation) error {
 		}
 	*/
 
-	if err = db.createGamers(tx, gameID, info.Gamers); err != nil {
+	if err = db.game.createGamers(tx, gameID, info.Gamers); err != nil {
 		return err
 	}
 
-	if fieldID, err = db.createField(tx, gameID, info.Field); err != nil {
+	if fieldID, err = db.game.createField(tx, gameID, info.Field); err != nil {
 		return err
 	}
 
-	if err = db.createActions(tx, gameID, info.Actions); err != nil {
+	if err = db.game.createActions(tx, gameID, info.Actions); err != nil {
 		return err
 	}
 
-	if err = db.createCells(tx, fieldID, info.Cells); err != nil {
+	if err = db.game.createCells(tx, fieldID, info.Cells); err != nil {
 		return err
 	}
 
@@ -86,9 +95,9 @@ func (db *DataBase) SaveGame(info models.GameInformation) error {
 }
 
 // GetGames get list of games
-func (db *DataBase) GetGames(userID int32) ([]models.GameInformation, error) {
+func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, error) {
 	var (
-		tx    *sql.Tx
+		tx    transactionI
 		URLs  []string
 		games []models.GameInformation
 		err   error
@@ -99,14 +108,14 @@ func (db *DataBase) GetGames(userID int32) ([]models.GameInformation, error) {
 	}
 	defer tx.Rollback()
 
-	if URLs, err = db.getGamesURL(tx, userID); err != nil {
+	if URLs, err = db.game.fetchAllRoomsID(tx, userID); err != nil {
 		return games, err
 	}
 
 	games = make([]models.GameInformation, 0)
 	for _, URL := range URLs {
 		var info models.GameInformation
-		if info, err = db.GetGame(URL); err != nil {
+		if info, err = db.FetchOneGame(URL); err != nil {
 			break
 		}
 		games = append(games, info)
@@ -117,9 +126,9 @@ func (db *DataBase) GetGames(userID int32) ([]models.GameInformation, error) {
 }
 
 // GetGamesURL get games url
-func (db *DataBase) GetGamesURL(userID int32) ([]string, error) {
+func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 	var (
-		tx   *sql.Tx
+		tx   transactionI
 		URLs []string
 		err  error
 	)
@@ -129,7 +138,7 @@ func (db *DataBase) GetGamesURL(userID int32) ([]string, error) {
 	}
 	defer tx.Rollback()
 
-	if URLs, err = db.getGamesURL(tx, userID); err != nil {
+	if URLs, err = db.game.fetchAllRoomsID(tx, userID); err != nil {
 		return URLs, err
 	}
 
@@ -139,9 +148,9 @@ func (db *DataBase) GetGamesURL(userID int32) ([]string, error) {
 
 // GetGame get all information about game:
 // game, gamers, field, history of cells and actions
-func (db *DataBase) GetGame(roomID string) (models.GameInformation, error) {
+func (db *GameUseCase) FetchOneGame(roomID string) (models.GameInformation, error) {
 	var (
-		tx              *sql.Tx
+		tx              transactionI
 		gameInformation models.GameInformation
 		err             error
 	)
@@ -151,28 +160,28 @@ func (db *DataBase) GetGame(roomID string) (models.GameInformation, error) {
 	}
 	defer tx.Rollback()
 
-	game, err := db.getGame(tx, roomID)
+	game, err := db.game.fetchOneGame(tx, roomID)
 	if err != nil {
 		return gameInformation, err
 	}
 	gameID := game.ID
 
-	gamers, err := db.getGamers(tx, gameID)
+	gamers, err := db.game.fetchAllGamers(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	fieldID, field, err := db.getField(tx, gameID)
+	fieldID, field, err := db.game.fetchOneField(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	actions, err := db.getActions(tx, gameID)
+	actions, err := db.game.fetchAllActions(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	cells, err := db.getCells(tx, fieldID)
+	cells, err := db.game.fetchAllCells(tx, fieldID)
 	if err != nil {
 		return gameInformation, err
 	}

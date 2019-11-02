@@ -9,7 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"math/rand"
 	"net/http"
@@ -18,61 +17,37 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func gameOnline(db *database.DataBase, c *config.Configuration) func(rw http.ResponseWriter, r *http.Request) {
+func gameOnline(db *database.DataBase, c *config.Configuration, upgraderWS websocket.Upgrader) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			return
 		}
-		result := connect(rw, r, db, c)
+		result := connect(rw, r, db, c, upgraderWS)
 		api.SendResult(rw, result)
 	}
 }
 
 func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
-	c *config.Configuration) api.Result {
+	c *config.Configuration, upgraderWS websocket.Upgrader) api.Result {
 	const place = "GameOnline"
 	var (
-		err    error
-		userID int32
-		ws     *websocket.Conn
-		user   *models.UserPublicInfo
-		roomID string
+		ws   *websocket.Conn
+		user *models.UserPublicInfo
 	)
 
-	utils.Debug(false, "GameOnline")
+	roomID := api.StringFromPath(r, "id", "")
+
 	lobby := engine.GetLobby()
 	if lobby == nil {
-		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
+		return api.NewResult(http.StatusInternalServerError, place, nil, re.ErrorServer())
 	}
 
-	roomID = api.StringFromPath(r, "id", "")
-
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  c.WebSocket.ReadBufferSize,
-		WriteBufferSize: c.WebSocket.WriteBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+	err := prepareUser(r, db, lobby)
+	if err != nil {
+		return api.NewResult(http.StatusInternalServerError, place, nil, err)
 	}
 
-	if userID, err = api.GetUserIDFromAuthRequest(r); err != nil {
-		userID = lobby.Anonymous()
-	}
-
-	if userID < 0 {
-		user = &models.UserPublicInfo{
-			Name:    "Anonymous" + strconv.Itoa(rand.Intn(10000)),
-			ID:      int32(userID),
-			FileKey: photo.GetDefaultAvatar(),
-		}
-	} else {
-		if user, err = db.GetUser(userID, 0); err != nil {
-			return api.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
-		}
-	}
-	photo.GetImages(user)
-
-	if ws, err = upgrader.Upgrade(rw, r, rw.Header()); err != nil {
+	if ws, err = upgraderWS.Upgrade(rw, r, rw.Header()); err != nil {
 		if _, ok := err.(websocket.HandshakeError); ok {
 			err = re.ErrorHandshake()
 		} else {
@@ -83,6 +58,35 @@ func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
 
 	conn := engine.NewConnection(ws, user, lobby)
 	conn.Launch(c.WebSocket, roomID)
-
+	// code 0 mean nothing to send to client
 	return api.NewResult(0, place, nil, nil)
+}
+
+func prepareUser(r *http.Request, db *database.DataBase, lobby *engine.Lobby) error {
+	var (
+		userID int32
+		err    error
+		user   *models.UserPublicInfo
+	)
+	if userID, err = api.GetUserIDFromAuthRequest(r); err != nil {
+		userID = lobby.Anonymous()
+	}
+
+	if userID < 0 {
+		user = anonymousUser(userID)
+	} else {
+		if user, err = db.GetUser(userID, 0); err != nil {
+			return re.NoUserWrapper(err)
+		}
+	}
+	photo.GetImages(user)
+	return nil
+}
+
+func anonymousUser(userID int32) *models.UserPublicInfo {
+	return &models.UserPublicInfo{
+		Name:    "Anonymous" + strconv.Itoa(rand.Intn(10000)), // в конфиг
+		ID:      int32(userID),
+		FileKey: photo.GetDefaultAvatar(),
+	}
 }

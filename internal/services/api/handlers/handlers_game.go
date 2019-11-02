@@ -40,7 +40,7 @@ func (h *Handler) OfflineSave(rw http.ResponseWriter, r *http.Request) ih.Result
 	if err = ih.ModelFromRequest(r, &record); err != nil {
 		return ih.NewResult(http.StatusBadRequest, place, nil, err)
 	}
-	if err = h.DB.UpdateRecords(userID, &record); err != nil {
+	if err = h.Db.record.Update(userID, &record); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, err)
 	}
 	return ih.NewResult(http.StatusOK, place, nil, nil)

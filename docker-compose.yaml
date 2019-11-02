@@ -68,7 +68,8 @@ services:
       - 3001-3021:3001
     environment:
       - CONSUL_ADDRESS=consul-agent
-      - AUTH_ADDRESS=http://auth.consul.localhost:8081 #.consul.localhost
+      - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
+      #.consul.localhost
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
     labels:
       - "traefik.enable=false"
@@ -251,8 +252,11 @@ services:
       context: ./extra/consul
       dockerfile: Dockerfile
     ports:
-      - 8550-8570:8500
-      - 8350-8370:8301
+     # - 8550-8570:8500
+      - 8501:8500
+      - 8300:8300
+      - 8301:8301
+      #- 8350-8370:8301
     networks: 
       - backend
     command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   

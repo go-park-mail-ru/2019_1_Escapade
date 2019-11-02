@@ -1,16 +1,19 @@
 package database
 
 import (
+	"math"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"database/sql"
 	"time"
 )
 
-// createPlayer create player
-func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (int, error) {
+// UserRepositoryPQ implements the interface UserRepositoryI using the sql postgres driver
+type UserRepositoryPQ struct{}
+
+func (db *UserRepositoryPQ) create(tx transactionI, user *models.UserPrivateInfo) (int, error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
 		($1, $2, $3, $4)
@@ -20,15 +23,28 @@ func (db *DataBase) createPlayer(tx *sql.Tx, user *models.UserPrivateInfo) (int,
 	row := tx.QueryRow(sqlInsert, user.Name,
 		user.Password, t, t)
 
-	var (
-		id  int
-		err error
-	)
-	err = row.Scan(&id)
+	var id int
+	err := row.Scan(&id)
 	return id, err
 }
 
-func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivateInfo) error {
+// deletePlayer delete all information about user
+func (db *UserRepositoryPQ) delete(tx transactionI, user *models.UserPrivateInfo) error {
+	sqlStatement := `
+	DELETE FROM Player where name=$1 and password=$2
+	RETURNING ID
+		`
+	row := tx.QueryRow(sqlStatement, user.Name, user.Password)
+
+	err := row.Scan(&user.ID)
+	if err != nil {
+		utils.Debug(true, "cant delete player")
+	}
+
+	return err
+}
+
+func (db *UserRepositoryPQ) updateNamePassword(tx transactionI, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -46,21 +62,7 @@ func (db *DataBase) updatePlayerPersonalInfo(tx *sql.Tx, user *models.UserPrivat
 	return err
 }
 
-// updatePlayerLastSeen update users last date seen
-func (db *DataBase) updatePlayerLastSeen(tx *sql.Tx, id int) error {
-	var (
-		sqlStatement = `
-			UPDATE Player 
-			SET lastSeen = $1
-			WHERE id = $2
-		`
-		err error
-	)
-	_, err = tx.Exec(sqlStatement, time.Now(), id)
-	return err
-}
-
-func (db DataBase) checkBunch(tx *sql.Tx, name string, password string) (int32, *models.UserPublicInfo, error) {
+func (db *UserRepositoryPQ) checkNamePassword(tx transactionI, name string, password string) (int32, *models.UserPublicInfo, error) {
 	var (
 		sqlStatement = `
 			SELECT pl.id, pl.name, r.score, r.time, r.difficult
@@ -77,11 +79,10 @@ func (db DataBase) checkBunch(tx *sql.Tx, name string, password string) (int32, 
 	return id, user, err
 }
 
-// GetPrivateInfo get player's personal info
-func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int32) (*models.UserPrivateInfo, error) {
+// fetchNamePassword get player's personal info
+func (db *UserRepositoryPQ) fetchNamePassword(tx transactionI, userID int32) (*models.UserPrivateInfo, error) {
 
-	sqlStatement := "SELECT name, password " +
-		"FROM Player where id = $1"
+	sqlStatement := "SELECT name, password FROM Player where id = $1"
 
 	row := tx.QueryRow(sqlStatement, userID)
 	user := &models.UserPrivateInfo{}
@@ -91,10 +92,24 @@ func (db DataBase) getPrivateInfo(tx *sql.Tx, userID int32) (*models.UserPrivate
 	return user, err
 }
 
-// GetUsers returns information about users
+// updateLastSeen update users last date seen
+func (db *UserRepositoryPQ) updateLastSeen(tx transactionI, id int) error {
+	var (
+		sqlStatement = `
+			UPDATE Player 
+			SET lastSeen = $1
+			WHERE id = $2
+		`
+		err error
+	)
+	_, err = tx.Exec(sqlStatement, time.Now(), id)
+	return err
+}
+
+// fetchAll returns information about users
 // for leaderboard
-func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
-	sort string) ([]*models.UserPublicInfo, error) {
+func (db *UserRepositoryPQ) fetchAll(tx transactionI, difficult int, offset int,
+	limit int, sort string) ([]*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -131,8 +146,9 @@ func (db *DataBase) getUsers(tx *sql.Tx, difficult int, offset int, limit int,
 	return players, err
 }
 
-// GetUser returns information about user
-func (db *DataBase) getUser(tx *sql.Tx, userID int32, difficult int) (*models.UserPublicInfo, error) {
+// fetchOne returns information about user
+func (db *UserRepositoryPQ) fetchOne(tx transactionI, userID int32,
+	difficult int) (*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -152,18 +168,20 @@ func (db *DataBase) getUser(tx *sql.Tx, userID int32, difficult int) (*models.Us
 	return player, err
 }
 
-// deletePlayer delete all information about user
-func (db *DataBase) deletePlayer(tx *sql.Tx, user *models.UserPrivateInfo) error {
-	sqlStatement := `
-	DELETE FROM Player where name=$1 and password=$2
-	RETURNING ID
-		`
-	row := tx.QueryRow(sqlStatement, user.Name, user.Password)
-
-	err := row.Scan(&user.ID)
-	if err != nil {
-		utils.Debug(true, "cant delete player")
+func (db *UserRepositoryPQ) pagesCount(dbI DatabaseI, perPage int) (amount int, err error) {
+	sqlStatement := `SELECT count(1) FROM Player`
+	row := dbI.QueryRow(sqlStatement)
+	if err = row.Scan(&amount); err != nil {
+		return
 	}
 
-	return err
+	pageUsers := 10 // в конфиг
+	if amount > pageUsers {
+		amount = pageUsers
+	}
+	if perPage == 0 {
+		perPage = 1
+	}
+	amount = int(math.Ceil(float64(amount) / float64(perPage)))
+	return
 }

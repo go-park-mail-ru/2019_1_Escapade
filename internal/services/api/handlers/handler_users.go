@@ -28,7 +28,7 @@ func (h *Handler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Request) ih
 
 	perPage = h.getPerPage(r)
 
-	if pages.Amount, err = h.DB.GetUsersPageAmount(perPage); err != nil {
+	if pages.Amount, err = h.Db.user.PagesCount(perPage); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
 	}
 
@@ -60,7 +60,7 @@ func (h *Handler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Result {
 	page = h.getPage(r)
 	difficult = h.getDifficult(r)
 
-	if users, err = h.DB.GetUsers(difficult, page, perPage, sort); err != nil {
+	if users, err = h.Db.user.FetchAll(difficult, page, perPage, sort); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 

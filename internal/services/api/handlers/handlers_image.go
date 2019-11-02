@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -37,9 +36,9 @@ func (h *Handler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 		if err != nil {
 			return ih.NewResult(http.StatusBadRequest, place, nil, re.AuthWrapper(err))
 		}
-		fileKey, err = h.DB.GetImageByID(id)
+		fileKey, err = h.Db.image.FetchByID(id)
 	} else {
-		fileKey, err = h.DB.GetImageByName(name)
+		fileKey, err = h.Db.image.FetchByName(name)
 	}
 
 	if err != nil {
@@ -69,7 +68,6 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 		err    error
 		file   multipart.File
 		userID int32
-		handle *multipart.FileHeader
 		url    models.Avatar
 	)
 
@@ -77,44 +75,70 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 		return ih.NewResult(http.StatusUnauthorized, place, nil, re.AuthWrapper(err))
 	}
 
+	file, err = h.getFileFromRequst(rw, r)
+	if err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, err)
+	}
+	defer file.Close()
+
+	url, err = h.saveFile(file, userID)
+	if err != nil {
+		return ih.NewResult(http.StatusInternalServerError, place, nil, err)
+	}
+
+	return ih.NewResult(http.StatusCreated, place, &url, nil)
+}
+
+func (h *Handler) getFileFromRequst(rw http.ResponseWriter, r *http.Request) (multipart.File, error) {
 	maxFileSize := photo.MaxFileSize()
 
 	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
 
-	utils.Debug(false, "ParseMultipartForm")
 	if err := r.ParseMultipartForm(maxFileSize); err != nil {
-		return ih.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+		return nil, re.FileWrapper(err)
 	}
 
-	utils.Debug(false, "FormFile")
+	var (
+		err    error
+		file   multipart.File
+		handle *multipart.FileHeader
+	)
+
 	if file, handle, err = r.FormFile("file"); err != nil || file == nil || handle == nil {
-		return ih.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+		return nil, re.FileWrapper(err)
 	}
-
-	defer file.Close()
 
 	var (
 		buff     bytes.Buffer
 		fileSize int64
 	)
-	utils.Debug(false, "ReadFrom")
 	if fileSize, err = buff.ReadFrom(file); err != nil {
-		return ih.NewResult(http.StatusBadRequest, place, nil, re.FileWrapper(err))
+		file.Close()
+		return nil, re.FileWrapper(err)
 	}
 
 	if fileSize > maxFileSize {
-		return ih.NewResult(http.StatusBadRequest, place, nil,
-			re.ErrorInvalidFileSize(fileSize, maxFileSize))
+		file.Close()
+		return nil, re.ErrorInvalidFileSize(fileSize, maxFileSize)
 	}
 
-	utils.Debug(false, "Seek")
 	if _, err := file.Seek(0, 0); err != nil {
-		return ih.NewResult(http.StatusBadRequest, place, nil,
-			re.ErrorInvalidFileSize(fileSize, maxFileSize))
+		file.Close()
+		return nil, re.ErrorInvalidFileSize(fileSize, maxFileSize)
 	}
 
+	err = h.checkFileType(handle.Header.Get("Content-Type"))
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	return file, nil
+
+}
+
+func (h *Handler) checkFileType(fileType string) error {
 	var (
-		fileType         = handle.Header.Get("Content-Type")
 		found            = false
 		allowedFileTypes = photo.AllowedFileTypes()
 	)
@@ -125,26 +149,32 @@ func (h *Handler) PostImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 		}
 	}
 	if !found {
-		return ih.NewResult(http.StatusBadRequest, place, nil, re.ErrorInvalidFileFormat(allowedFileTypes))
+		return re.ErrorInvalidFileFormat(allowedFileTypes)
 	}
+	return nil
+}
 
-	fileKey := uuid.NewV4().String()
+func (h *Handler) saveFile(file multipart.File, userID int32) (models.Avatar, error) {
+	var (
+		fileKey = uuid.NewV4().String()
+		url     models.Avatar
+	)
 
-	err = photo.SaveImageInS3(fileKey, file)
+	err := photo.SaveImageInS3(fileKey, file)
 	if err != nil {
-		return ih.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
+		return url, re.ServerWrapper(err)
 	}
 
-	if err = h.DB.PostImage(fileKey, userID); err != nil {
+	if err = h.Db.image.Update(fileKey, userID); err != nil {
 		photo.DeleteImageFromS3(fileKey)
-		return ih.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
+		return url, re.DatabaseWrapper(err)
 	}
 
 	if url.URL, err = photo.GetImageFromS3(fileKey); err != nil {
-		return ih.NewResult(http.StatusInternalServerError, place, nil, re.NoAvatarWrapper(err))
+		return url, re.NoAvatarWrapper(err)
 	}
 
-	return ih.NewResult(http.StatusCreated, place, &url, nil)
+	return url, nil
 }
 
-// 192 -> 141
+// 192 -> 141 -> 180
