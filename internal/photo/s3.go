@@ -41,7 +41,7 @@ func GetImages(users ...*models.UserPublicInfo) {
 }
 
 //SaveImageInS3 save image given by 'key' user
-func SaveImageInS3(key string, file multipart.File, handler *multipart.FileHeader) (err error) {
+func SaveImageInS3(key string, file multipart.File) (err error) {
 	if !_AWS.public.set {
 		utils.Debug(true, "package photo not initialized")
 		return
@@ -85,6 +85,52 @@ func SaveImageInS3(key string, file multipart.File, handler *multipart.FileHeade
 	fmt.Println("Done", resp)
 	return
 }
+
+/*
+func SaveImageInS3RAW(key string, buf *bufio.Reader) (err error) {
+	if !_AWS.public.set {
+		utils.Debug(true, "package photo not initialized")
+		return
+	}
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, file)
+	// img, err := imaging.Decode(file)
+	// if err != nil {
+	// 	utils.Debug(false, "cant decode")
+	// 	_, err = io.Copy(&buf, file)
+	// } else {
+	// 	err = imaging.Encode(&buf, img, imaging.JPEG)
+	// }
+	//utils.Debug(false, "buf:", string(buf.Bytes()))
+
+	if err != nil {
+		utils.Debug(false, "cant encode")
+		return err
+	}
+
+	fileType := http.DetectContentType(buf.Bytes())
+	fileSize := buf.Len()
+	params := &s3.PutObjectInput{
+		Bucket: aws.String(_AWS.public.PlayersAvatarsStorage),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader(buf.Bytes()),
+		ACL:    aws.String("public-read"),
+
+		ContentLength: aws.Int64(int64(fileSize)),
+		ContentType:   aws.String(fileType),
+	}
+
+	sess := session.Must(session.NewSession(_AWS.public.config))
+	svc := s3.New(sess)
+	resp, err := svc.PutObject(params)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Done", resp)
+	return
+}*/
 
 //GetImageFromS3 get image by its key
 func GetImageFromS3(key string) (url string, err error) {

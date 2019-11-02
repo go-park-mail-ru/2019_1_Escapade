@@ -17,7 +17,7 @@ done=0
 #apt install golang-easyjson
 #go mod tidy
 #go get -u
-go mod vendor
+#go mod vendor
 
 echo "  1. Copy project to GOPATH"
 # we need THISDIR to return back at the end
@@ -59,10 +59,10 @@ easyjson . && \
 cp $PHOTOPATH/photo_easyjson.go $PROJECT/internal/photo && \
 
 echo "  2.5 Apply easyjson to game" && \
-export GAMEPATH=$GPROJECTDIR/internal/game && \
+export GAMEPATH=$GPROJECTDIR/internal/services/game/game && \
 cd $GAMEPATH && \
 easyjson . && \
-cp $GAMEPATH/game_easyjson.go $PROJECT/internal/game && \
+cp $GAMEPATH/game_easyjson.go $PROJECT/internal/services/game/game && \
 done=1
 
 echo "  3. Remove project from GOPATH"

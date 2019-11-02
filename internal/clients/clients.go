@@ -17,15 +17,18 @@ import (
 )
 
 type Clients struct {
-	chatM *sync.RWMutex
-	_chat pChat.ChatServiceClient
+	chatM  *sync.RWMutex
+	_chat  pChat.ChatServiceClient
+	consul *consulapi.Client
 }
 
 var ALL Clients
 
 func (clients *Clients) Init(consulAddr string, ready chan error,
 	finish chan interface{}, conf config.Service) {
+
 	clients.chatM = &sync.RWMutex{}
+
 	for _, client := range conf.DependsOn {
 		utils.Debug(false, "client name ", client)
 		if client == "chat" {
@@ -36,7 +39,6 @@ func (clients *Clients) Init(consulAddr string, ready chan error,
 }
 
 func (clients *Clients) InitChat(name string, consulAddr string, ready chan error, finish chan interface{}) {
-
 	config := consulapi.DefaultConfig()
 	config.Address = consulAddr
 	consul, err := consulapi.NewClient(config)

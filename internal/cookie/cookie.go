@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"golang.org/x/oauth2"
 )
 
 func SetCookie(w http.ResponseWriter, name string, value string, cc config.Cookie) {
-	fmt.Println("cookie:", time.Duration(cc.LifetimeHours), cc.Path)
+	fmt.Println("cookie:", name, value, time.Hour*time.Duration(cc.LifetimeHours), cc.Path)
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    value,
@@ -34,6 +35,7 @@ func DeleteCookie(w http.ResponseWriter, name string, cc config.Cookie) {
 }
 
 func GetCookie(r *http.Request, key string) (string, error) {
+	utils.Debug(false, "look for key ", key)
 	cookie, err := r.Cookie(key)
 	if err != nil || cookie == nil {
 		return "", http.ErrNoCookie
@@ -47,7 +49,7 @@ func GetToken(r *http.Request, cc config.Cookie, isReserve bool) (oauth2.Token, 
 		token        oauth2.Token
 		expireString string
 		err          error
-		aKey         = cc.Auth.TokenType
+		aKey         = cc.Auth.AccessToken
 		tKey         = cc.Auth.TokenType
 		rKey         = cc.Auth.RefreshToken
 		eKey         = cc.Auth.Expire
@@ -82,7 +84,7 @@ func GetToken(r *http.Request, cc config.Cookie, isReserve bool) (oauth2.Token, 
 func SetToken(rw http.ResponseWriter, isReserve bool, token oauth2.Token, cc config.Cookie) {
 
 	var (
-		aKey = cc.Auth.TokenType
+		aKey = cc.Auth.AccessToken
 		tKey = cc.Auth.TokenType
 		rKey = cc.Auth.RefreshToken
 		eKey = cc.Auth.Expire

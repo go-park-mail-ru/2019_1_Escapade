@@ -149,10 +149,8 @@ func (h *Handler) HandleSession(rw http.ResponseWriter, r *http.Request) {
 	utils.Debug(false, "method", r.Method)
 	switch r.Method {
 	case http.MethodGet: //✔ Получить токен
-		utils.Debug(false, "get method")
 		result = h.GetToken(rw, r)
 	case http.MethodPost: //✔ войти в аккаунт
-		utils.Debug(false, "post method")
 		result = h.Login(rw, r)
 	case http.MethodDelete: //✔ выйти из аккаунта
 		result = h.Logout(rw, r)

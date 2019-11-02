@@ -56,11 +56,17 @@ func Check(rw http.ResponseWriter, r *http.Request,
 	)
 	// token given in cookie
 	if !(cc.Length == 0 && cc.LifetimeHours == 0) {
+		utils.Debug(false, "look in cookies")
 		isReserve := false
 		token, err = cookie.GetToken(r, cc, isReserve)
 		if err != nil {
 			isReserve = true
 			token, err = cookie.GetToken(r, cc, isReserve)
+		}
+		if err == nil {
+			utils.Debug(false, "all ok")
+		} else {
+			utils.Debug(false, "error catched", err.Error())
 		}
 		accessToken, token, updated, err = check(rw, r, false, token, ca, client)
 		if err == nil {
@@ -135,11 +141,14 @@ func check(rw http.ResponseWriter, r *http.Request, isReserve bool,
 	// }
 	//accessToken = token.AccessToken
 
+	utils.Debug(false, "look at access ", token.AccessToken)
+	utils.Debug(false, "look at type ", token.TokenType)
+	utils.Debug(false, "look at expiry ", token.Expiry)
+	utils.Debug(false, "look at refresh", token.RefreshToken)
 	var updated bool
 	resp, err := http.Get(fmt.Sprintf("%s/auth/test?access_token=%s",
 		client.Address, token.AccessToken))
 	if err != nil {
-
 		token, err = update(rw, token, client.Config)
 		resp, err = http.Get(fmt.Sprintf("%s/auth/test?access_token=%s",
 			client.Address, token.AccessToken))

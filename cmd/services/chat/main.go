@@ -58,15 +58,15 @@ func main() {
 	if db, err = database.Init(configuration.DataBase); err != nil {
 		return
 	}
+	defer db.Db.Close()
 
 	service := chat.NewService(db.Db, mainPortInt)
 
 	var (
 		serviceName = "chat"
 		ttl         = time.Second * 10
+		maxConn     = 40
 	)
-
-	finishHealthCheck := make(chan interface{}, 1)
 
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Register in Consul")
@@ -78,13 +78,25 @@ func main() {
 
 	utils.Debug(false, "consulAddr", consulAddr)
 
-	serviceID := server.ServiceID(serviceName)
-	consul, err := server.ConsulClient(serviceName, serviceName, consulAddr,
-		serviceID, mainPortInt, []string{"chat"}, consulPort, ttl,
-		service.Check, finishHealthCheck)
+	newTags := []string{"api", "traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:api.consul.localhost"}
+
+	consul, err := server.InitConsulService(serviceName,
+		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
+		func() (bool, error) { return false, nil }, true)
+	if err != nil {
+		utils.Debug(false, "ERROR cant get ip:", err.Error())
+		return
+	}
+
+	err = consul.Run()
+	if err != nil {
+		utils.Debug(false, "ERROR when register service ", err)
+		return
+	}
+	defer consul.Close()
 
 	if err != nil {
-		close(finishHealthCheck)
 		return
 	}
 
@@ -93,16 +105,12 @@ func main() {
 	chat.RegisterChatServiceServer(grpcServer, service)
 
 	utils.Debug(false, "✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+	utils.Debug(false, "Service", serviceName, "with id:",
+		server.ServiceID(serviceName), "ready to go on",
+		configuration.Server.Host+mainPort)
 
 	server.LaunchGRPC(grpcServer, mainPort, func() {
-		finishHealthCheck <- nil
 		service.Close()
-		err := consul.Agent().ServiceDeregister(serviceID)
-		if err != nil {
-			utils.Debug(false, "Consul error while deregistering:", err.Error())
-			return
-		}
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 	os.Exit(0)

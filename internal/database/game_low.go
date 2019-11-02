@@ -61,7 +61,7 @@ func (db *DataBase) createGamers(tx *sql.Tx, GameID int32, gamers []models.Gamer
 
 func (db *DataBase) createField(tx *sql.Tx, gameID int32, field models.Field) (id int32, err error) {
 	sqlInsert := `
-	INSERT INTO Field(game_id, width, height, cellsLeft, difficult,
+	INSERT INTO Field(game_id, width, height, cells_left, difficult,
 		mines) VALUES
 		($1, $2, $3, $4, $5, $6)
 		RETURNING id
@@ -191,7 +191,7 @@ func (db *DataBase) GetGameInformation(tx *sql.Tx, roomID string) (gameInformati
 	}
 
 	getField := `
-	SELECT id, width, height, cellsLeft, difficult, mines
+	SELECT id, width, height, cells_left, difficult, mines
 		from Field where game_id = $1
 	`
 

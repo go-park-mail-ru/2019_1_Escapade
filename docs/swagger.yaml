@@ -5,6 +5,29 @@ definitions:
       amount:
         type: integer
     type: object
+  models.Record:
+    properties:
+      difficult:
+        minimum: 0
+        type: integer
+      onlineTotal:
+        minimum: 0
+        type: integer
+      onlineWin:
+        minimum: 0
+        type: integer
+      score:
+        minimum: 0
+        type: integer
+      singleTotal:
+        minimum: 0
+        type: integer
+      singleWin:
+        minimum: 0
+        type: integer
+      time:
+        type: number
+    type: object
   models.Result:
     properties:
       message:
@@ -63,17 +86,14 @@ paths:
           description: Avatar found successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Get user avatar
     post:
       description: Create user avatar
@@ -83,18 +103,49 @@ paths:
           description: Avatar created successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Required authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: Avatar not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Create user avatar
+  /game:
+    post:
+      consumes:
+      - application/json
+      description: Save offline game results
+      operationId: OfflineSave
+      parameters:
+      - description: Results of offline game
+        in: body
+        name: record
+        required: true
+        schema:
+          $ref: '#/definitions/models.Record'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Done
+          schema:
+            $ref: '#/definitions/models.Result'
+        "400":
+          description: Wrong input data
+          schema:
+            $ref: '#/definitions/models.Result'
+        "401":
+          description: Required authorization
+          schema:
+            $ref: '#/definitions/models.Result'
+        "404":
+          description: Avatar not found
+          schema:
+            $ref: '#/definitions/models.Result'
+      summary: Save offline game
   /session:
     delete:
       description: logout
@@ -104,17 +155,10 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
-        "401":
-          description: Require authorization
-          schema:
-            $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: logout
     post:
       description: login
@@ -124,17 +168,18 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
-            type: object
         "400":
           description: invalid name or password
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
-        "500":
-          description: server error
+        "404":
+          description: user not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
+        "500":
+          description: error with database
+          schema:
+            $ref: '#/definitions/models.Result'
       summary: login
   /user:
     delete:
@@ -145,17 +190,14 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: invalid input
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
-          description: server error
+          description: error with database
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: delete account
     get:
       description: get public information about that user
@@ -213,12 +255,10 @@ paths:
               type: string
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: get public information about that user
     post:
       consumes:
@@ -226,7 +266,7 @@ paths:
       description: create new user
       operationId: Register
       parameters:
-      - description: User ingo1
+      - description: User info1
         in: body
         name: name
         required: true
@@ -244,12 +284,10 @@ paths:
               type: string
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: Invalid information
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: create new user
     put:
       description: update public info
@@ -259,17 +297,18 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "400":
           description: invalid info
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "401":
           description: need authorization
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
+        "500":
+          description: error with database
+          schema:
+            $ref: '#/definitions/models.Result'
       summary: update user information
   /users/{name}/profile:
     get:
@@ -290,17 +329,14 @@ paths:
           description: Profile found successfully
           schema:
             $ref: '#/definitions/models.UserPublicInfo'
-            type: object
         "400":
           description: Invalid username
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: User not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Get public user inforamtion
   /users/{page}:
     get:
@@ -317,17 +353,14 @@ paths:
           description: Invalid pade
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "404":
           description: Users not found
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: Get users list
   /users/pages_amount:
     get:
@@ -338,11 +371,9 @@ paths:
           description: Get successfully
           schema:
             $ref: '#/definitions/models.Pages'
-            type: object
         "500":
           description: Server error
           schema:
             $ref: '#/definitions/models.Result'
-            type: object
       summary: amount of users list page
 swagger: "2.0"

@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	erydatabase "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	eryhandlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/handlers"
 
@@ -84,7 +84,7 @@ func main() {
 		return
 	}
 
-	metrics.InitApi()
+	metrics.Init()
 
 	//API.RandomUsers(10) // create 10 users for tests
 

@@ -21,7 +21,14 @@
 		"path": "/",
 		"length": 16,
 		"lifetime_hours": 604800,
-		"httpOnly": true
+		"httpOnly": true,
+		"keys": {
+			"accessToken": "at",
+			"tokenType": "tt",
+			"refreshToken": "rt",
+			"expire": "e",
+			"reservePrefix": "re"
+		}
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",

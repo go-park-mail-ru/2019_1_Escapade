@@ -7,11 +7,12 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	ametrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/handlers"
+	gmetrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"os"
@@ -83,8 +84,8 @@ func main() {
 		return
 	}
 
-	metrics.InitApi()
-	metrics.InitGame()
+	ametrics.Init()
+	gmetrics.Init()
 
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Register in consul")
@@ -100,50 +101,54 @@ func main() {
 		consulAddr = configuration.Server.Host
 	}
 
-	finishHealthCheck := make(chan interface{}, 1)
+	newTags := []string{"game", "traefik.frontend.entryPoints=http",
+		"traefik.frontend.rule=Host:game.consul.localhost"}
 
-	serviceID := server.ServiceID(serviceName)
-	consul, err := server.ConsulClient("127.0.0.1", serviceName, consulAddr,
-		serviceID, mainPortInt, []string{"game"}, consulPort, ttl,
-		func() (bool, error) { return false, nil }, finishHealthCheck)
-
+	consul, err := server.InitConsulService(serviceName,
+		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
+		func() (bool, error) { return false, nil }, true)
 	if err != nil {
-		utils.Debug(false, "ERROR while connecting to consul")
+		utils.Debug(false, "ERROR cant get ip:", err.Error())
+		return
 	}
+
+	err = consul.Run()
+	if err != nil {
+		utils.Debug(false, "ERROR when register service ", err)
+		return
+	}
+	defer consul.Close()
 
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "3. Connect to grpc servers")
 
 	readyChan := make(chan error)
+	defer close(readyChan)
 	finishChan := make(chan interface{})
+	defer close(finishChan)
 
+	clients.ALL = clients.Clients{}
 	clients.ALL.Init(consulAddr+consulPort, readyChan,
 		finishChan, configuration.Service)
 
-	utils.Debug(false, "✔✔✔")
+	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "4. Launch the game lobby")
 
-	game.Launch(&configuration.Game, db, photo.GetImages)
+	engine.Launch(&configuration.Game, db, photo.GetImages)
+	defer engine.GetLobby().Stop()
 
 	var (
 		r   = handlers.Router(db, configuration)
 		srv = server.Server(r, configuration.Server, false, mainPort)
 	)
 
-	utils.Debug(false, "✔✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:", serviceID, "ready to go on", configuration.Server.Host+mainPort)
+	utils.Debug(false, "✔✔✔✔✔")
+	utils.Debug(false, "Service", serviceName, "with id:",
+		server.ServiceID(serviceName), "ready to go on",
+		configuration.Server.Host+mainPort)
 
 	server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
 		finishChan <- nil
-		finishHealthCheck <- nil
-		game.GetLobby().Stop()
-		close(readyChan)
-		close(finishChan)
-		err := consul.Agent().ServiceDeregister(serviceID)
-		if err != nil {
-			utils.Debug(false, "Consul error while deregistering:", err.Error())
-			return
-		}
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 	os.Exit(0)

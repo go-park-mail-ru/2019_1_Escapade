@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/game"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
 
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -40,7 +40,7 @@ func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
 	)
 
 	utils.Debug(false, "GameOnline")
-	lobby := game.GetLobby()
+	lobby := engine.GetLobby()
 	if lobby == nil {
 		return api.NewResult(http.StatusInternalServerError, place, nil, re.ServerWrapper(err))
 	}
@@ -81,7 +81,7 @@ func connect(rw http.ResponseWriter, r *http.Request, db *database.DataBase,
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
 
-	conn := game.NewConnection(ws, user, lobby)
+	conn := engine.NewConnection(ws, user, lobby)
 	conn.Launch(c.WebSocket, roomID)
 
 	return api.NewResult(0, place, nil, nil)

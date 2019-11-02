@@ -10,8 +10,11 @@ services:
       - "8079:8080" # The Web UI (enabled by --api)
     #network_mode: "host"
     #hostname: localhost
-    # networks: 
-    #   - backend
+    labels:
+      - traefik.docker.network=backend
+      - traefik.port=8080
+    networks: 
+      - backend
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
@@ -20,8 +23,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/main/
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     ports:
       - "5429:5432"    
 
@@ -31,8 +34,8 @@ services:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
       POSTGRES_DB: 'authbase'
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     ports:
       - "5431:5432"    
 
@@ -40,8 +43,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/ery/
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     ports:
       - "5430:5432"   
 
@@ -65,12 +68,14 @@ services:
       - 3001-3021:3001
     environment:
       - CONSUL_ADDRESS=consul-agent
-      - AUTH_ADDRESS=auth.consul.localhost
+      - AUTH_ADDRESS=http://auth.consul.localhost:8081 #.consul.localhost
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001 8500"
     labels:
       - "traefik.enable=false"
     #dns: traefik 
     #network_mode: "host"
+    networks: 
+      - backend
     restart: on-failure
     logging:
       options:
@@ -102,10 +107,12 @@ services:
     depends_on:
       - "pg"
     environment:
-      - CONSUL_ADDRESS=consul-agent-1
+      - CONSUL_ADDRESS=consul-agent
     ports:
-      - 3060:3060
-    command: /bin/sh -c "./wait-for-it.sh pg:5432 && ./bin/chat cmd/services/chat/chat.json 3060 8500"
+      - 3066-3087:3060
+    networks: 
+      - backend
+    command: /bin/sh -c "./bin/chat cmd/services/chat/chat.json 3060 8500"
     logging:
       options:
         max-size: 10m
@@ -120,17 +127,19 @@ services:
       - "pg"
       - "pg-auth"
       - "pg-ery"
-    #ports:
-    #  - 3003:3003
+    ports:
+      - 3022-3043:3003
     #dns: 127.0.0.1 
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     environment:
       - CONSUL_ADDRESS=consul-agent
     command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003 8500 2345"
     labels:
-      - "traefik.backend=machine-echo"
-      - "traefik.frontend.rule=Host:machine-echo.example.com"
+      - "traefik.port=80"
+      - "traefik.backend=auth"
+      - "traefik.frontend.rule=Host:auth.domain.localhost"
+      - "traefik.docker.network=backend"
     logging:
       options:
         max-size: 10m
@@ -156,9 +165,11 @@ services:
     depends_on:
        - "pg"
     ports:
-      - 3002:3002
+      - 3044-3055:3002
+    networks: 
+      - backend
     environment:
-      - CONSUL_ADDRESS=consul-agent-1
+      - CONSUL_ADDRESS=consul-agent
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
     command: /bin/sh -c "./bin/game cmd/services/game/game.json internal/photo/photo.json secret.json internal/constants/field.json internal/constants/room.json 3002 8500"
@@ -187,12 +198,16 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+    networks: 
+      - backend
     ports:
       - "9090:9090"
     
   grafana:
     image: grafana/grafana
     container_name: grafana
+    networks: 
+      - backend
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -211,8 +226,8 @@ services:
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   ## consul bootstrap ##
@@ -224,8 +239,8 @@ services:
       - 8400:8400
       - 8500:8500
       - 8600:53/udp
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -238,8 +253,8 @@ services:
     ports:
       - 8550-8570:8500
       - 8350-8370:8301
-    # networks: 
-    #   - backend
+    networks: 
+      - backend
     command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"

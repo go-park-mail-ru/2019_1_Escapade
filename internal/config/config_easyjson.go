@@ -241,7 +241,7 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig2(in 
 		switch key {
 		case "accessToken":
 			out.AccessToken = string(in.String())
-		case "rokenType":
+		case "tokenType":
 			out.TokenType = string(in.String())
 		case "refreshToken":
 			out.RefreshToken = string(in.String())
@@ -269,7 +269,7 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig2(out
 		out.String(string(in.AccessToken))
 	}
 	{
-		const prefix string = ",\"rokenType\":"
+		const prefix string = ",\"tokenType\":"
 		out.RawString(prefix)
 		out.String(string(in.TokenType))
 	}
@@ -337,14 +337,12 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig3(in 
 			out.Path = string(in.String())
 		case "length":
 			out.Length = int(in.Int())
-		case "lifetime":
+		case "lifetime_hours":
 			out.LifetimeHours = int(in.Int())
 		case "httpOnly":
 			out.HTTPOnly = bool(in.Bool())
-		case "authCookie":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Auth).UnmarshalJSON(data))
-			}
+		case "keys":
+			(out.Auth).UnmarshalEasyJSON(in)
 		default:
 			in.SkipRecursive()
 		}
@@ -370,7 +368,7 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig3(out
 		out.Int(int(in.Length))
 	}
 	{
-		const prefix string = ",\"lifetime\":"
+		const prefix string = ",\"lifetime_hours\":"
 		out.RawString(prefix)
 		out.Int(int(in.LifetimeHours))
 	}
@@ -380,9 +378,9 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig3(out
 		out.Bool(bool(in.HTTPOnly))
 	}
 	{
-		const prefix string = ",\"authCookie\":"
+		const prefix string = ",\"keys\":"
 		out.RawString(prefix)
-		out.Raw((in.Auth).MarshalJSON())
+		(in.Auth).MarshalEasyJSON(out)
 	}
 	out.RawByte('}')
 }
@@ -799,9 +797,7 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig7(in 
 				if out.Field == nil {
 					out.Field = new(Field)
 				}
-				if data := in.Raw(); in.Ok() {
-					in.AddError((*out.Field).UnmarshalJSON(data))
-				}
+				(*out.Field).UnmarshalEasyJSON(in)
 			}
 		default:
 			in.SkipRecursive()
@@ -848,7 +844,7 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig7(out
 		if in.Field == nil {
 			out.RawString("null")
 		} else {
-			out.Raw((*in.Field).MarshalJSON())
+			(*in.Field).MarshalEasyJSON(out)
 		}
 	}
 	out.RawByte('}')
@@ -1390,37 +1386,21 @@ func easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig12(in
 		}
 		switch key {
 		case "server":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Server).UnmarshalJSON(data))
-			}
+			(out.Server).UnmarshalEasyJSON(in)
 		case "cors":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Cors).UnmarshalJSON(data))
-			}
+			(out.Cors).UnmarshalEasyJSON(in)
 		case "dataBase":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.DataBase).UnmarshalJSON(data))
-			}
+			(out.DataBase).UnmarshalEasyJSON(in)
 		case "game":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Game).UnmarshalJSON(data))
-			}
-		case "cookie":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Cookie).UnmarshalJSON(data))
-			}
+			(out.Game).UnmarshalEasyJSON(in)
+		case "session":
+			(out.Cookie).UnmarshalEasyJSON(in)
 		case "websocket":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.WebSocket).UnmarshalJSON(data))
-			}
+			(out.WebSocket).UnmarshalEasyJSON(in)
 		case "service":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Service).UnmarshalJSON(data))
-			}
+			(out.Service).UnmarshalEasyJSON(in)
 		case "auth":
-			if data := in.Raw(); in.Ok() {
-				in.AddError((out.Auth).UnmarshalJSON(data))
-			}
+			(out.Auth).UnmarshalEasyJSON(in)
 		case "authClient":
 			easyjson6615c02eDecodeGithubComGoParkMailRu20191EscapadeInternalConfig6(in, &out.AuthClient)
 		default:
@@ -1440,42 +1420,42 @@ func easyjson6615c02eEncodeGithubComGoParkMailRu20191EscapadeInternalConfig12(ou
 	{
 		const prefix string = ",\"server\":"
 		out.RawString(prefix[1:])
-		out.Raw((in.Server).MarshalJSON())
+		(in.Server).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"cors\":"
 		out.RawString(prefix)
-		out.Raw((in.Cors).MarshalJSON())
+		(in.Cors).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"dataBase\":"
 		out.RawString(prefix)
-		out.Raw((in.DataBase).MarshalJSON())
+		(in.DataBase).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"game\":"
 		out.RawString(prefix)
-		out.Raw((in.Game).MarshalJSON())
+		(in.Game).MarshalEasyJSON(out)
 	}
 	{
-		const prefix string = ",\"cookie\":"
+		const prefix string = ",\"session\":"
 		out.RawString(prefix)
-		out.Raw((in.Cookie).MarshalJSON())
+		(in.Cookie).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"websocket\":"
 		out.RawString(prefix)
-		out.Raw((in.WebSocket).MarshalJSON())
+		(in.WebSocket).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"service\":"
 		out.RawString(prefix)
-		out.Raw((in.Service).MarshalJSON())
+		(in.Service).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"auth\":"
 		out.RawString(prefix)
-		out.Raw((in.Auth).MarshalJSON())
+		(in.Auth).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"authClient\":"

@@ -87,6 +87,8 @@ func InitConsulService(name string, port int,
 	if enableTraefik {
 		tags = append(tags,
 			"traefik.enable=true",
+			"traefik.port=80",
+			"traefik.docker.network=backend",
 			"traefik.backend.loadbalancer=drr",
 			"traefik.backend.maxconn.amount="+utils.String(maxConn),
 			"traefik.backend.maxconn.extractorfunc=client.ip")
@@ -379,3 +381,26 @@ func update(agent *consulapi.Agent, serviceID string, check func() (bool, error)
 		utils.Debug(false, "agent of", serviceID, " UpdateTTL error:", err.Error())
 	}
 }
+
+// func (cs *ConsulService) WatchForService(service, tags string) error {
+// 	health, _, err := cs.client().Health().Service(service, tags, true, nil)
+// 	if err != nil {
+// 		utils.Debug(false, "cant get alive services")
+// 	}
+
+// 	servers := []string{}
+// 	for _, item := range health {
+// 		//item.Service.Address
+// 		addr := "chat1" +
+// 			":" + strconv.Itoa(item.Service.Port)
+// 		servers = append(servers, addr)
+// 	}
+
+// 	nameResolver := &testNameResolver{}
+// 	if len(servers) == 0 {
+// 		utils.Debug(false, "cant get alive services")
+// 		nameResolver.addr = ":0000"
+// 	} else {
+// 		nameResolver.addr = servers[0]
+// 	}
+// }

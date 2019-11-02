@@ -65,7 +65,10 @@ func Auth(cc config.Cookie, ca config.Auth, client config.AuthClient) mux.Middle
 				userID, err = auth.Check(rw, r, cc, ca, client)
 				utils.Debug(false, "auth check end")
 				if err == nil {
+					utils.Debug(false, "no error auth")
 					break
+				} else {
+					utils.Debug(false, "error auth", err.Error())
 				}
 			}
 			if err != nil {

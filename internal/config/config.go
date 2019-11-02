@@ -121,13 +121,13 @@ type Cookie struct {
 	Length        int        `json:"length"`
 	LifetimeHours int        `json:"lifetime_hours"`
 	HTTPOnly      bool       `json:"httpOnly"`
-	Auth          AuthCookie `json:"-"`
+	Auth          AuthCookie `json:"keys"`
 }
 
 //easyjson:json
 type AuthCookie struct {
 	AccessToken   string `json:"accessToken"`
-	TokenType     string `json:"rokenType"`
+	TokenType     string `json:"tokenType"`
 	RefreshToken  string `json:"refreshToken"`
 	Expire        string `json:"expire"`
 	ReservePrefix string `json:"reservePrefix"`

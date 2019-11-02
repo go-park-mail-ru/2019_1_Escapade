@@ -19,21 +19,18 @@
                     "200": {
                         "description": "Avatar found successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "401": {
                         "description": "Required authorization",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "404": {
                         "description": "Avatar not found",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -47,21 +44,69 @@
                     "201": {
                         "description": "Avatar created successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "401": {
                         "description": "Required authorization",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "500": {
                         "description": "Avatar not found",
                         "schema": {
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/game": {
+            "post": {
+                "description": "Save offline game results",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Save offline game",
+                "operationId": "OfflineSave",
+                "parameters": [
+                    {
+                        "description": "Results of offline game",
+                        "name": "record",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
                             "type": "object",
+                            "$ref": "#/definitions/models.Record"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Done",
+                        "schema": {
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "Wrong input data",
+                        "schema": {
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Required authorization",
+                        "schema": {
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "Avatar not found",
+                        "schema": {
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -77,21 +122,24 @@
                     "200": {
                         "description": "Get successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPublicInfo"
                         }
                     },
                     "400": {
                         "description": "invalid name or password",
                         "schema": {
-                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "404": {
+                        "description": "user not found",
+                        "schema": {
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "500": {
-                        "description": "server error",
+                        "description": "error with database",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -105,21 +153,12 @@
                     "200": {
                         "description": "Get successfully",
                         "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/models.Result"
-                        }
-                    },
-                    "401": {
-                        "description": "Require authorization",
-                        "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "500": {
                         "description": "server error",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -196,7 +235,6 @@
                     "201": {
                         "description": "Create user successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         },
                         "headers": {
@@ -209,7 +247,6 @@
                     "401": {
                         "description": "Invalid information",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -223,21 +260,24 @@
                     "200": {
                         "description": "Get successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "400": {
                         "description": "invalid info",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "401": {
                         "description": "need authorization",
                         "schema": {
-                            "type": "object",
+                            "$ref": "#/definitions/models.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "error with database",
+                        "schema": {
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -255,7 +295,7 @@
                 "operationId": "Register",
                 "parameters": [
                     {
-                        "description": "User ingo1",
+                        "description": "User info1",
                         "name": "name",
                         "in": "body",
                         "required": true,
@@ -269,7 +309,6 @@
                     "201": {
                         "description": "Create user successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         },
                         "headers": {
@@ -282,7 +321,6 @@
                     "400": {
                         "description": "Invalid information",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -296,21 +334,18 @@
                     "200": {
                         "description": "Get successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "400": {
                         "description": "invalid input",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "500": {
-                        "description": "server error",
+                        "description": "error with database",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -326,14 +361,12 @@
                     "200": {
                         "description": "Get successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Pages"
                         }
                     },
                     "500": {
                         "description": "Server error",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -363,21 +396,18 @@
                     "200": {
                         "description": "Profile found successfully",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPublicInfo"
                         }
                     },
                     "400": {
                         "description": "Invalid username",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -402,21 +432,18 @@
                     "400": {
                         "description": "Invalid pade",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "404": {
                         "description": "Users not found",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     },
                     "500": {
                         "description": "Server error",
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Result"
                         }
                     }
@@ -430,6 +457,38 @@
             "properties": {
                 "amount": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.Record": {
+            "type": "object",
+            "properties": {
+                "difficult": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "onlineTotal": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "onlineWin": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "score": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "singleTotal": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "singleWin": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "time": {
+                    "type": "number"
                 }
             }
         },
