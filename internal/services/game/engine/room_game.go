@@ -245,15 +245,6 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) b
 	return true
 }
 
-// setFlags set players flags to field
-// call it if game has already begun
-func (room *Room) setFlags() {
-	flags := room.Players.Flags()
-	for _, cell := range flags {
-		room.Field.SetFlag(&cell.Cell)
-	}
-}
-
 // FillField set flags and mines
 func (room *Room) FillField() {
 	if room.done() {
@@ -264,13 +255,7 @@ func (room *Room) FillField() {
 		room.wGroup.Done()
 	}()
 
-	room.Field.Zero()
-	if room.Settings.Deathmatch {
-		utils.Debug(false, "FillField")
-		room.setFlags()
-	}
-	room.Field.SetMines(room.Players.Flags(), room.Settings.Deathmatch)
-	room.Field.SetMinesCounters()
+	room.Field.Fill(room.Players.Flags(), room.Settings.Deathmatch)
 }
 
 // addAction creates an action and passes it on appendAction()
