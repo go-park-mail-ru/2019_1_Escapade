@@ -169,9 +169,9 @@ func (room *Room) applyAction(conn *Connection, cell *Cell) {
 
 	switch {
 	case cell.Value < CellMine:
-		room.Players.IncreasePlayerPoints(index, 1000*float64(cell.Value)/float64(room.Settings.Width*room.Settings.Height))
+		room.Players.m.IncreasePlayerPoints(index, 1000*float64(cell.Value)/float64(room.Settings.Width*room.Settings.Height))
 	case cell.Value == CellMine:
-		room.Players.IncreasePlayerPoints(index, float64(-1000))
+		room.Players.m.IncreasePlayerPoints(index, float64(-1000))
 		room.Kill(conn, ActionExplode)
 	case cell.Value > CellIncrement:
 		room.FlagFound(*conn, cell)
@@ -210,7 +210,7 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell, group *sync.WaitGroup) 
 	}
 
 	if len(cells) > 0 {
-		go room.sendPlayerPoints(room.Players.Player(conn.Index()), room.All)
+		go room.sendPlayerPoints(room.Players.m.Player(conn.Index()), room.All)
 		go room.sendNewCells(room.All, cells...)
 	}
 	if room.Field.IsCleared() {
@@ -377,7 +377,7 @@ func (room *Room) FinishGame(timer bool) {
 	go room.Save(saveAndSendGroup)
 
 	saveAndSendGroup.Add(1)
-	go room.Players.Finish(saveAndSendGroup)
+	go room.Players.m.Finish(saveAndSendGroup)
 	saveAndSendGroup.Wait()
 
 	go room.metricsRoom(room.lobby.config().Metrics, false)

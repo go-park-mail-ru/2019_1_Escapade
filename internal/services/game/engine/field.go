@@ -122,27 +122,30 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 // openCellArea open cell area, if there is no mines around
 // in this cell
 func (field *Field) openCellArea(x, y, ID int32, cells *[]Cell) {
-	if field.areCoordinatesRight(x, y) {
-		v := field.matrixValue(x, y)
-
-		if v < CellMine {
-			cell := NewCell(x, y, v, ID)
-			field.saveCell(cell, cells)
-			field.decrementCellsLeft()
-		}
-		if v == 0 {
-			field.openCellArea(x-1, y-1, ID, cells)
-			field.openCellArea(x-1, y, ID, cells)
-			field.openCellArea(x-1, y+1, ID, cells)
-
-			field.openCellArea(x, y+1, ID, cells)
-			field.openCellArea(x, y-1, ID, cells)
-
-			field.openCellArea(x+1, y-1, ID, cells)
-			field.openCellArea(x+1, y, ID, cells)
-			field.openCellArea(x+1, y+1, ID, cells)
-		}
+	if !field.areCoordinatesRight(x, y) {
+		return
 	}
+
+	v := field.matrixValue(x, y)
+
+	if v < CellMine {
+		cell := NewCell(x, y, v, ID)
+		field.saveCell(cell, cells)
+		field.decrementCellsLeft()
+	}
+	if v == 0 {
+		field.openCellArea(x-1, y-1, ID, cells)
+		field.openCellArea(x-1, y, ID, cells)
+		field.openCellArea(x-1, y+1, ID, cells)
+
+		field.openCellArea(x, y+1, ID, cells)
+		field.openCellArea(x, y-1, ID, cells)
+
+		field.openCellArea(x+1, y-1, ID, cells)
+		field.openCellArea(x+1, y, ID, cells)
+		field.openCellArea(x+1, y+1, ID, cells)
+	}
+
 }
 
 // IsCleared return true if all safe cells except flags open

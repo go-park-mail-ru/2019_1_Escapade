@@ -21,7 +21,7 @@ func (room *Room) Winners() (winners []int) {
 
 	max := 0.
 
-	players := room.Players.RPlayers()
+	players := room.Players.m.RPlayers()
 	for _, player := range players {
 		if player.Points > max && !player.Died {
 			max = player.Points
@@ -61,7 +61,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 
 	var which int32
 	which = 0
-	for _, flag := range room.Players.Flags() {
+	for _, flag := range room.Players.m.Flags() {
 		if flag.Cell.X == found.X && flag.Cell.Y == found.Y {
 			which = flag.Cell.PlayerID
 		}
@@ -71,7 +71,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 		return
 	}
 
-	room.Players.IncreasePlayerPoints(founder.Index(), 300)
+	room.Players.m.IncreasePlayerPoints(founder.Index(), 300)
 
 	index, killConn := room.Players.Connections.SearchByID(which)
 	fmt.Println(killConn.User.Name, "was found by", founder.User.Name)
@@ -83,7 +83,7 @@ func (room *Room) FlagFound(founder Connection, found *Cell) {
 // isAlive check if connection is player and he is not died
 func (room *Room) isAlive(conn *Connection) bool {
 	index := conn.Index()
-	return index >= 0 && !room.Players.Player(index).Finished
+	return index >= 0 && !room.Players.m.Player(index).Finished
 }
 
 // Kill make user die and check for finish battle
@@ -105,7 +105,7 @@ func (room *Room) Kill(conn *Connection, action int32) {
 
 		if room.Settings.Deathmatch {
 
-			cell := room.Players.Flag(conn.Index())
+			cell := room.Players.m.Flag(conn.Index())
 
 			cells := make([]Cell, 0)
 			room.Field.saveCell(&cell.Cell, &cells)
@@ -113,7 +113,7 @@ func (room *Room) Kill(conn *Connection, action int32) {
 			go room.sendNewCells(room.All, cell.Cell)
 		}
 
-		if room.Players.Capacity() <= room.killed()+1 {
+		if room.Players.m.Capacity() <= room.killed()+1 {
 			room.playingOver()
 		}
 		pa := *room.addAction(conn.ID(), action)
@@ -130,7 +130,7 @@ func (room *Room) GiveUp(conn *Connection) {
 // flagExists find players with such flag. This - flag owner
 func (room *Room) flagExists(cell Cell, this *Connection) (found bool, conn *Connection) {
 	var player int
-	flags := room.Players.Flags()
+	flags := room.Players.m.Flags()
 	for index, flag := range flags {
 		if (flag.Cell.X == cell.X) && (flag.Cell.Y == cell.Y) {
 			if this == nil || index != this.Index() {
@@ -158,7 +158,7 @@ func (room *Room) SetAndSendNewCell(conn Connection, group *sync.WaitGroup) {
 		cell = room.Field.CreateRandomFlag(conn.ID())
 		found, _ = room.flagExists(cell, nil)
 	}
-	room.Players.SetFlag(conn, cell, room.prepareOver)
+	room.Players.m.SetFlag(conn, cell, room.prepareOver)
 
 	response := models.RandomFlagSet(cell)
 	conn.SendInformation(&response)
@@ -238,7 +238,7 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) b
 		return true
 	}
 
-	room.Players.SetFlag(*conn, *cell, room.prepareOver)
+	room.Players.m.SetFlag(*conn, *cell, room.prepareOver)
 
 	pa := *room.addAction(conn.ID(), ActionFlagSet)
 	go room.sendAction(pa, room.All)
@@ -255,7 +255,7 @@ func (room *Room) FillField() {
 		room.wGroup.Done()
 	}()
 
-	room.Field.Fill(room.Players.Flags(), room.Settings.Deathmatch)
+	room.Field.Fill(room.Players.m.Flags(), room.Settings.Deathmatch)
 }
 
 // addAction creates an action and passes it on appendAction()

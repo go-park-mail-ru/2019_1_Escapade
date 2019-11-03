@@ -4,8 +4,20 @@ import (
 	"sync"
 )
 
+type OnlinePlayersMutex struct {
+	capacityM *sync.RWMutex
+	_capacity int32
+
+	playersM *sync.RWMutex
+	_players []Player
+
+	flagsM     *sync.RWMutex
+	_flags     []Flag
+	_flagsLeft int32
+}
+
 // Capacity return '_capacity' field
-func (onlinePlayers *OnlinePlayers) Capacity() int32 {
+func (onlinePlayers *OnlinePlayersMutex) Capacity() int32 {
 
 	onlinePlayers.capacityM.RLock()
 	defer onlinePlayers.capacityM.RUnlock()
@@ -13,7 +25,7 @@ func (onlinePlayers *OnlinePlayers) Capacity() int32 {
 }
 
 // SetCapacity set capacity
-func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int32) {
+func (onlinePlayers *OnlinePlayersMutex) SetCapacity(capacity int32) {
 
 	onlinePlayers.capacityM.Lock()
 	defer onlinePlayers.capacityM.Unlock()
@@ -21,7 +33,7 @@ func (onlinePlayers *OnlinePlayers) SetCapacity(capacity int32) {
 }
 
 // SetPlayer set player in slice of players
-func (onlinePlayers *OnlinePlayers) SetPlayer(i int, player Player) {
+func (onlinePlayers *OnlinePlayersMutex) SetPlayer(i int, player Player) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -30,7 +42,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayer(i int, player Player) {
 }
 
 // SetPlayers set player slice
-func (onlinePlayers *OnlinePlayers) SetPlayers(players []Player) {
+func (onlinePlayers *OnlinePlayersMutex) SetPlayers(players []Player) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -39,7 +51,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayers(players []Player) {
 }
 
 // IncreasePlayerPoints increase points of element of player slice where index i
-func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index int, points float64) {
+func (onlinePlayers *OnlinePlayersMutex) IncreasePlayerPoints(index int, points float64) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -55,7 +67,7 @@ func (onlinePlayers *OnlinePlayers) IncreasePlayerPoints(index int, points float
 }
 
 // SetFlags set flag slice
-func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
+func (onlinePlayers *OnlinePlayersMutex) SetFlags(flags []Flag) {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()
@@ -64,7 +76,7 @@ func (onlinePlayers *OnlinePlayers) SetFlags(flags []Flag) {
 }
 
 // SetPlayerID sets the id of an player slice element with an index i
-func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int32) {
+func (onlinePlayers *OnlinePlayersMutex) SetPlayerID(i int, id int32) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -73,7 +85,7 @@ func (onlinePlayers *OnlinePlayers) SetPlayerID(i int, id int32) {
 }
 
 // SetFlag set flag which connection is conn
-func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell, prepareOver func()) {
+func (onlinePlayers *OnlinePlayersMutex) SetFlag(conn Connection, cell Cell, prepareOver func()) {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()
@@ -89,15 +101,23 @@ func (onlinePlayers *OnlinePlayers) SetFlag(conn Connection, cell Cell, prepareO
 
 	if !onlinePlayers._flags[conn.Index()].Set {
 		onlinePlayers._flags[conn.Index()].Set = true
-		onlinePlayers.flagsLeft--
-		if onlinePlayers.flagsLeft == 0 {
+		onlinePlayers._flagsLeft--
+		if onlinePlayers._flagsLeft == 0 {
 			prepareOver()
 		}
 	}
 }
 
+// SetFlagByIndex set flag by index
+func (onlinePlayers *OnlinePlayersMutex) SetFlagByIndex(i int, flag Flag) {
+
+	onlinePlayers.flagsM.Lock()
+	defer onlinePlayers.flagsM.Unlock()
+	onlinePlayers._flags[i] = flag
+}
+
 // Flags return '_flags' field
-func (onlinePlayers *OnlinePlayers) Flags() []Flag {
+func (onlinePlayers *OnlinePlayersMutex) Flags() []Flag {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()
@@ -106,7 +126,7 @@ func (onlinePlayers *OnlinePlayers) Flags() []Flag {
 }
 
 // Finish set flag finish true to all players
-func (onlinePlayers *OnlinePlayers) Finish(wg *sync.WaitGroup) {
+func (onlinePlayers *OnlinePlayersMutex) Finish(wg *sync.WaitGroup) {
 
 	defer func() {
 		if wg != nil {
@@ -123,7 +143,7 @@ func (onlinePlayers *OnlinePlayers) Finish(wg *sync.WaitGroup) {
 }
 
 // Player return element from slice of players with index i
-func (onlinePlayers *OnlinePlayers) Player(i int) Player {
+func (onlinePlayers *OnlinePlayersMutex) Player(i int) Player {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -131,7 +151,7 @@ func (onlinePlayers *OnlinePlayers) Player(i int) Player {
 }
 
 // PlayerFinish set to player with index i in slice of players flags Finished and Died true
-func (onlinePlayers *OnlinePlayers) PlayerFinish(i int) {
+func (onlinePlayers *OnlinePlayersMutex) PlayerFinish(i int) {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -140,7 +160,7 @@ func (onlinePlayers *OnlinePlayers) PlayerFinish(i int) {
 }
 
 // Flag return element from slice of flags with index i
-func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
+func (onlinePlayers *OnlinePlayersMutex) Flag(i int) Flag {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()
@@ -148,7 +168,7 @@ func (onlinePlayers *OnlinePlayers) Flag(i int) Flag {
 }
 
 // CopyPlayers return copy of slice of players
-func (onlinePlayers *OnlinePlayers) CopyPlayers() []Player {
+func (onlinePlayers *OnlinePlayersMutex) CopyPlayers() []Player {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -157,7 +177,7 @@ func (onlinePlayers *OnlinePlayers) CopyPlayers() []Player {
 }
 
 // RPlayers return slice of players only for read
-func (onlinePlayers *OnlinePlayers) RPlayers() []Player {
+func (onlinePlayers *OnlinePlayersMutex) RPlayers() []Player {
 
 	onlinePlayers.playersM.Lock()
 	defer onlinePlayers.playersM.Unlock()
@@ -165,12 +185,10 @@ func (onlinePlayers *OnlinePlayers) RPlayers() []Player {
 }
 
 // Free free memory
-func (onlinePlayers *OnlinePlayers) Free() {
-
+func (onlinePlayers *OnlinePlayersMutex) Free() {
 	if onlinePlayers == nil {
 		return
 	}
-	onlinePlayers.Connections.Free()
 
 	onlinePlayers.playersM.Lock()
 	onlinePlayers._players = nil
