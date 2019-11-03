@@ -316,6 +316,45 @@ func (field *Field) setMinesAroundFlag(b Borders, probability int, mines int32) 
 	return mines
 }
 
+// SetMinesCounters set the counters of min - cells,
+// which are not mine or flags
+func (field *Field) setMinesCounters() {
+
+	var (
+		x, y   int32
+		width  = field.Width
+		height = field.Height
+	)
+
+	for x = 0; x < width; x++ {
+		for y = 0; y < height; y++ {
+			if field.matrixValue(x, y) != 0 {
+				continue
+			}
+			var b Borders
+			c := Cell{
+				X: x,
+				Y: y,
+			}
+			b.Init(c, field.Width, field.Height, 1)
+			field.setMineCounters(b, c)
+		}
+	}
+}
+
+func (field *Field) setMineCounters(b Borders, c Cell) {
+	var value int32
+	for i := b.left; i <= b.right; i++ {
+		for j := b.down; j <= b.up; j++ {
+			if field.matrixValue(i, j) == CellMine {
+				value++
+			}
+		}
+	}
+	field.setMatrixValue(c.X, c.Y, value)
+
+}
+
 func (field *Field) fixMineArea(area float64) float64 {
 	var (
 		min = float64(field.config.MinAreaSize)
@@ -382,37 +421,6 @@ func (field *Field) setMines(minesCount int32) {
 		if field.lessThenMine(someX, someY) {
 			field.setMatrixValue(someX, someY, CellMine)
 			minesCount--
-		}
-	}
-}
-
-// SetMinesCounters set the counters of min - cells,
-// which are not mine or flags
-func (field *Field) setMinesCounters() {
-
-	var width, height, x, y, i, j, value int32
-	width = field.Width
-	height = field.Height
-
-	for x = 0; x < width; x++ {
-		for y = 0; y < height; y++ {
-			if field.matrixValue(x, y) != 0 {
-				continue
-			}
-			value = 0
-
-			for i = x - 1; i <= x+1; i++ {
-				if i >= 0 && i < width {
-					for j = y - 1; j <= y+1; j++ {
-						if j >= 0 && j < height {
-							if field.matrixValue(i, j) == CellMine {
-								value++
-							}
-						}
-					}
-				}
-			}
-			field.setMatrixValue(x, y, value)
 		}
 	}
 }
