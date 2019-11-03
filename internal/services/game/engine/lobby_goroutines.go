@@ -143,7 +143,7 @@ func (lobby *Lobby) sendGamesToDB() {
 		games = lobby.NotSavedGamesGetAndClear()
 	)
 	for _, game := range games {
-		if err = lobby.db().SaveGame(*game); err != nil {
+		if err = lobby.db().Save(*game); err != nil {
 			lobby.AddNotSavedGame(game)
 		}
 	}

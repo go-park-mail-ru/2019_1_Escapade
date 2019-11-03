@@ -210,8 +210,8 @@ func (room *Room) OpenCell(conn *Connection, cell *Cell, group *sync.WaitGroup) 
 	}
 
 	if len(cells) > 0 {
-		go room.sendPlayerPoints(room.Players.m.Player(conn.Index()), room.All)
-		go room.sendNewCells(room.All, cells...)
+		go room.send.PlayerPoints(room.Players.m.Player(conn.Index()), room.All)
+		go room.send.NewCells(room.All, cells...)
 	}
 	if room.Field.IsCleared() {
 		room.updateStatus(StatusFinished)
@@ -285,7 +285,7 @@ func (room *Room) HandleRequest(conn *Connection, rr *RoomRequest) {
 		}
 		Message(room.lobby, conn, rr.Message, room.appendMessage,
 			room.setMessage, room.removeMessage, room.findMessage,
-			room.send, room.All, room, room.dbChatID)
+			room.send.sendAll, room.All, room, room.dbChatID)
 	}
 }
 
@@ -306,14 +306,14 @@ func (room *Room) StartFlagPlacing() {
 	playersIterator := NewConnectionsIterator(room.Players.Connections)
 	for playersIterator.Next() {
 		player := playersIterator.Value()
-		go room.greet(player, true)
+		go room.send.greet(player, true)
 		room.lobby.waiterToPlayer(player, room)
 	}
 
 	observersIterator := NewConnectionsIterator(room.Observers)
 	for playersIterator.Next() {
 		observer := observersIterator.Value()
-		go room.greet(observer, true)
+		go room.send.greet(observer, true)
 		room.lobby.waiterToPlayer(observer, room)
 	}
 	room.Players.Init(room.Field)
@@ -321,8 +321,8 @@ func (room *Room) StartFlagPlacing() {
 	room.wGroup.Add(1)
 	room.lobby.RoomStart(room, room.wGroup)
 
-	go room.sendStatus(room.All, StatusFlagPlacing, nil)
-	go room.sendField(room.All)
+	go room.send.StatusToAll(room.All, StatusFlagPlacing, nil)
+	go room.send.Field(room.All)
 }
 
 // StartGame start game
@@ -342,11 +342,11 @@ func (room *Room) StartGame() {
 	utils.Debug(false, "opennn", open, room.Settings.Width*room.Settings.Height)
 
 	cells := room.Field.OpenZero() //room.Field.OpenSave(int(open))
-	go room.sendNewCells(room.All, cells...)
+	go room.send.NewCells(room.All, cells...)
 	room.setStatus(StatusRunning)
 	room.setDate(time.Now().In(room.lobby.location()))
-	go room.sendStatus(room.All, StatusRunning, nil)
-	go room.sendMessage("Battle began! Destroy your enemy!", room.All)
+	go room.send.StatusToAll(room.All, StatusRunning, nil)
+	go room.send.Message("Battle began! Destroy your enemy!", room.All)
 }
 
 // FinishGame finish game
@@ -371,10 +371,10 @@ func (room *Room) FinishGame(timer bool) {
 	room.Field.OpenEverything(&cells)
 
 	saveAndSendGroup.Add(1)
-	go room.sendGameOver(timer, room.All, cells, saveAndSendGroup)
+	go room.send.GameOver(timer, room.All, cells, saveAndSendGroup)
 
 	saveAndSendGroup.Add(1)
-	go room.Save(saveAndSendGroup)
+	go room.models.Save(saveAndSendGroup)
 
 	saveAndSendGroup.Add(1)
 	go room.Players.m.Finish(saveAndSendGroup)

@@ -178,7 +178,7 @@ type Lobby struct {
 	chanBreak     chan interface{}
 
 	dbM *sync.RWMutex
-	_db *database.DataBase
+	_db database.GameUseCaseI
 
 	configM *sync.RWMutex
 	_config *config.Game
@@ -193,7 +193,7 @@ type Lobby struct {
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(config *config.Game, db *database.DataBase,
+func NewLobby(config *config.Game, db database.GameUseCaseI,
 	SetImage SetImage) *Lobby {
 
 	context, cancel := context.WithCancel(context.Background())
@@ -238,7 +238,7 @@ func NewLobby(config *config.Game, db *database.DataBase,
 }
 
 // SetConfiguration set lobby configuration
-func (lobby *Lobby) SetConfiguration(config *config.Game, db *database.DataBase,
+func (lobby *Lobby) SetConfiguration(config *config.Game, db database.GameUseCaseI,
 	setImage SetImage) {
 
 	var (
@@ -266,7 +266,7 @@ var (
 )
 
 // Launch launchs lobby goroutine
-func Launch(gc *config.Game, db *database.DataBase, si SetImage) {
+func Launch(gc *config.Game, db database.GameUseCaseI, si SetImage) {
 
 	if LOBBY == nil {
 		LOBBY = NewLobby(gc, db, si)
@@ -311,7 +311,7 @@ func (lobby *Lobby) Free() {
 	close(lobby.chanBroadcast)
 	lobby.setConfig(nil)
 	lobby.setMessages(nil)
-	lobby.db().Db.Close()
+	lobby.db().Close()
 	lobby.setDB(nil)
 	lobby.setLocation(nil)
 	lobby = nil

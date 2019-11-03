@@ -13,7 +13,7 @@ import (
 )
 
 type SessionHandler struct {
-	Handler
+	ih.Handler
 	user database.UserUseCaseI
 }
 

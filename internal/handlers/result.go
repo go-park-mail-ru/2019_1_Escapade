@@ -97,21 +97,17 @@ type MethodHandlers map[string]HandleRequest
 // mHr - map, where key - method, value - HandleRequest
 func Route(rw http.ResponseWriter, r *http.Request, mHr MethodHandlers) {
 	var result *Result
-	utils.Debug(false, "here we go")
 	for k, v := range mHr {
-		utils.Debug(false, "check", k, r.Method)
 		if k == r.Method {
 			if v == nil {
 				return
 			}
 			r := v(rw, r)
 			result = &r
-			utils.Debug(false, "result get")
 			break
 		}
 	}
 
-	utils.Debug(false, "result!", result.code)
 	if result == nil {
 		place := r.URL.Path
 		utils.Debug(false, place+" method not allowed:", r.Method)
@@ -121,6 +117,5 @@ func Route(rw http.ResponseWriter, r *http.Request, mHr MethodHandlers) {
 			place: place,
 		}
 	}
-	utils.Debug(false, "result send!!", result.code, result.send)
 	SendResult(rw, *result)
 }

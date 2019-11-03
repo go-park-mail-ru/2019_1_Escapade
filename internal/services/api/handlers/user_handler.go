@@ -21,7 +21,7 @@ import (
 )
 
 type UserHandler struct {
-	Handler
+	ih.Handler
 	user   database.UserUseCaseI
 	record database.RecordUseCaseI
 }
@@ -204,7 +204,7 @@ func (h *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Res
 func (h *UserHandler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetProfile"
 
-	userID, err := h.getUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
@@ -221,7 +221,7 @@ func (h *UserHandler) getUser(rw http.ResponseWriter, r *http.Request,
 		user      *models.UserPublicInfo
 	)
 
-	difficult = h.getDifficult(r)
+	difficult = getDifficult(r)
 
 	if user, err = h.user.FetchOne(userID, difficult); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))

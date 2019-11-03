@@ -11,12 +11,12 @@ import (
 )
 
 // LaunchLobbyHistory launch local lobby with rooms from database
-func LaunchLobbyHistory(db *database.DataBase,
+func LaunchLobbyHistory(db database.GameUseCaseI,
 	ws *websocket.Conn, user *models.UserPublicInfo,
 	cw config.WebSocket, gameSettings *config.Game,
 	si SetImage) {
 
-	urls, err := db.GetGamesURL(user.ID)
+	urls, err := db.FetchAllRoomsID(user.ID)
 
 	if err != nil {
 		utils.Debug(false, "GetGamesURL", err.Error())

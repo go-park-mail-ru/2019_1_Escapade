@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Winners determine who won the game
@@ -110,14 +109,14 @@ func (room *Room) Kill(conn *Connection, action int32) {
 			cells := make([]Cell, 0)
 			room.Field.saveCell(&cell.Cell, &cells)
 
-			go room.sendNewCells(room.All, cell.Cell)
+			go room.send.NewCells(room.All, cell.Cell)
 		}
 
 		if room.Players.m.Capacity() <= room.killed()+1 {
 			room.playingOver()
 		}
 		pa := *room.addAction(conn.ID(), action)
-		go room.sendAction(pa, room.All)
+		go room.send.Action(pa, room.All)
 	}
 	return
 }
@@ -167,37 +166,31 @@ func (room *Room) SetAndSendNewCell(conn Connection, group *sync.WaitGroup) {
 // dont call as goroutines!!!
 
 func (room *Room) recruitingOver() {
-	fmt.Println("!!!recruitingOver")
 	room.initTimers(false)
 	if room.updateStatus(StatusFlagPlacing) {
 		if room.Settings.Deathmatch {
-			go room.sendStatus(room.All, StatusFlagPlacing, nil)
+			go room.send.StatusToAll(room.All, StatusFlagPlacing, nil)
 		}
 	}
 }
 
 func (room *Room) prepareOver() {
-	fmt.Println("!!!prepareOver")
 	room.prepare.Stop()
 	if room.updateStatus(StatusRunning) {
-		go room.sendStatus(room.All, StatusRunning, nil)
+		go room.send.StatusToAll(room.All, StatusRunning, nil)
 	}
 }
 
 func (room *Room) playingOver() {
-	fmt.Println("!!!playingOver")
 	room.play.Stop()
 	if room.updateStatus(StatusFinished) {
-		go room.sendStatus(room.All, StatusFinished, nil)
+		go room.send.StatusToAll(room.All, StatusFinished, nil)
 	}
 }
 
 func (room *Room) updateStatus(newStatus int) bool {
-	utils.Debug(false, "!!!!updateStatus", room.Status(), newStatus)
 	if room.Status() != newStatus {
-		utils.Debug(false, "lock")
 		go func() { room.chanStatus <- newStatus }()
-		utils.Debug(false, "unlock")
 		return true
 	}
 	return false
@@ -228,7 +221,7 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) b
 
 	if found, prevConn := room.flagExists(*cell, conn); found {
 		pa := *room.addAction(conn.ID(), ActionFlagСonflict)
-		go room.sendAction(pa, room.All)
+		go room.send.Action(pa, room.All)
 
 		room.wGroup.Add(1)
 		go room.SetAndSendNewCell(*conn, room.wGroup)
@@ -241,7 +234,7 @@ func (room *Room) SetFlag(conn *Connection, cell *Cell, group *sync.WaitGroup) b
 	room.Players.m.SetFlag(*conn, *cell, room.prepareOver)
 
 	pa := *room.addAction(conn.ID(), ActionFlagSet)
-	go room.sendAction(pa, room.All)
+	go room.send.Action(pa, room.All)
 	return true
 }
 

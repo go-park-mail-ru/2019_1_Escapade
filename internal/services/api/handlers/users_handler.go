@@ -13,7 +13,7 @@ import (
 )
 
 type UsersHandler struct {
-	Handler
+	ih.Handler
 	user database.UserUseCaseI
 }
 
@@ -66,7 +66,7 @@ func (h *UsersHandler) GetUsersPageAmount(rw http.ResponseWriter, r *http.Reques
 		err     error
 	)
 
-	perPage = h.getPerPage(r)
+	perPage = getPerPage(r)
 
 	if pages.Amount, err = h.user.PagesCount(perPage); err != nil {
 		return ih.NewResult(http.StatusInternalServerError, place, nil, re.DatabaseWrapper(err))
@@ -95,10 +95,10 @@ func (h *UsersHandler) GetUsers(rw http.ResponseWriter, r *http.Request) ih.Resu
 		sort      string
 	)
 
-	sort = h.getSort(r)
-	perPage = h.getPerPage(r)
-	page = h.getPage(r)
-	difficult = h.getDifficult(r)
+	sort = getSort(r)
+	perPage = getPerPage(r)
+	page = getPage(r)
+	difficult = getDifficult(r)
 
 	if users, err = h.user.FetchAll(difficult, page, perPage, sort); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))

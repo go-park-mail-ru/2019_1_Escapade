@@ -18,7 +18,7 @@ import (
 )
 
 type GameHandler struct {
-	Handler
+	ih.Handler
 	record database.RecordUseCaseI
 }
 

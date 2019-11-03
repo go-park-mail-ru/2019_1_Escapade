@@ -6,7 +6,6 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	ametrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
@@ -21,7 +20,6 @@ import (
 func main() {
 	var (
 		configuration *config.Configuration
-		db            *database.DataBase
 		err           error
 	)
 
@@ -78,14 +76,16 @@ func main() {
 		return
 	}
 
-	db, err = database.Init(configuration.DataBase)
-	if err != nil {
-		utils.Debug(false, "Initialization error with database:", err.Error())
-		return
-	}
-
 	ametrics.Init()
 	gmetrics.Init()
+
+	var handler handlers.GameHandler
+	err = handler.InitWithPostgresql(configuration)
+	if err != nil {
+		utils.Debug(false, "Database error:", err.Error())
+		return
+	}
+	defer handler.Close()
 
 	utils.Debug(false, "✔✔")
 	utils.Debug(false, "3. Register in consul")
@@ -134,11 +134,11 @@ func main() {
 	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "4. Launch the game lobby")
 
-	engine.Launch(&configuration.Game, db, photo.GetImages)
+	engine.Launch(&configuration.Game, handler.GameDB(), photo.GetImages)
 	defer engine.GetLobby().Stop()
 
 	var (
-		r   = handlers.Router(db, configuration)
+		r   = handler.Router()
 		srv = server.Server(r, configuration.Server, false, mainPort)
 	)
 

@@ -27,36 +27,46 @@ func (room *Room) addConnection(conn *Connection, isPlayer bool, needRecover boo
 	}
 
 	// secondary: notify other players, that new connected
+	room.NotifyNewConnection(conn, isPlayer, needRecover)
+	// primary: provide the connection(client) with the necessary json
+	if !needRecover {
+		room.wGroup.Add(1)
+		room.lobby.sendRoomUpdate(room, All, room.wGroup)
+	}
+	room.send.StatusToOne(conn)
+	room.send.greet(conn, isPlayer)
+
+	utils.Debug(false, "user in room")
+
+	return true
+}
+
+func (room *Room) NotifyNewConnection(conn *Connection, isPlayer bool, needRecover bool) {
+	if room.done() {
+		return
+	}
+	room.wGroup.Add(1)
+	defer room.wGroup.Done()
+
 	var pa *PlayerAction
 	if needRecover {
 		pa = room.addAction(conn.ID(), ActionReconnect)
 	} else if isPlayer {
 		if !room.Players.EnoughPlace() {
-			return false
+			return
 		}
 		pa = room.addAction(conn.ID(), ActionConnectAsPlayer)
 		// maybe delete it?
 		//go room.sendPlayerEnter(*conn, room.AllExceptThat(conn))
 	} else {
 		if !room.Observers.EnoughPlace() {
-			return false
+			return
 		}
 		pa = room.addAction(conn.ID(), ActionConnectAsObserver)
 		// maybe delete it?
-		go room.sendObserverEnter(conn, room.AllExceptThat(conn))
+		go room.send.ObserverEnter(conn, room.AllExceptThat(conn))
 	}
-	go room.sendAction(*pa, room.AllExceptThat(conn))
-	// primary: provide the connection(client) with the necessary json
-	if !needRecover {
-		room.wGroup.Add(1)
-		room.lobby.sendRoomUpdate(room, All, room.wGroup)
-	}
-	room.sendStatusOne(conn)
-	room.greet(conn, isPlayer)
-
-	utils.Debug(false, "user in room")
-
-	return true
+	go room.send.Action(*pa, room.AllExceptThat(conn))
 }
 
 // Push add the connection to the room.
@@ -82,7 +92,7 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 		if !needRecover && !room.Players.EnoughPlace() {
 			return false
 		}
-		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), false, needRecover)
+		room.Players.Add(conn, room.Field.CreateRandomFlag(conn.ID()), needRecover)
 		if !needRecover && !room.Players.EnoughPlace() {
 			room.recruitingOver()
 		}
@@ -100,7 +110,6 @@ func (room *Room) Push(conn *Connection, isPlayer bool, needRecover bool) bool {
 	}
 
 	return true
-
 }
 
 // Search search the connection in players slice and observers slice of room

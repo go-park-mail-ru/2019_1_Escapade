@@ -65,14 +65,14 @@ func (lobby *Lobby) NotSavedGamesGetAndClear() []*models.GameInformation {
 }
 
 // setDB set the database object that the lobby is working with
-func (lobby *Lobby) setDB(newDB *database.DataBase) {
+func (lobby *Lobby) setDB(newDB database.GameUseCaseI) {
 	lobby.dbM.Lock()
 	lobby._db = newDB
 	lobby.dbM.Unlock()
 }
 
 // dbChatID get the database object that the lobby is working with
-func (lobby *Lobby) db() *database.DataBase {
+func (lobby *Lobby) db() database.GameUseCaseI {
 	lobby.dbM.RLock()
 	v := lobby._db
 	lobby.dbM.RUnlock()

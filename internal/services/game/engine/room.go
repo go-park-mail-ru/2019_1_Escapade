@@ -85,6 +85,9 @@ type Room struct {
 	chanConnection chan *ConnectionAction
 
 	Settings *models.RoomSettings
+
+	models *RoomModelsConverter
+	send   *RoomSender
 }
 
 // CharacteristicsCheck check room's characteristics are valid
@@ -149,7 +152,7 @@ func NewRoom(config *config.Field, lobby *Lobby,
 		game.Date = time.Now()
 		// we create chat here, not when all people will be find, because
 		// with this chat people can message while battle is finding players
-		roomID, chatID, err = lobby.db().CreateGame(game)
+		roomID, chatID, err = lobby.db().Create(game)
 		if err != nil {
 			return nil, err
 		}
@@ -216,6 +219,9 @@ func (room *Room) Init(config *config.Field, lobby *Lobby,
 	room.Field = field
 
 	room.setDate(time.Now().In(room.lobby.location()))
+
+	room.models = &RoomModelsConverter{r: room}
+	room.send = &RoomSender{r: room}
 
 	go room.runRoom()
 

@@ -2,85 +2,41 @@ package engine
 
 import (
 	"sync"
+	"time"
 
-	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+type RoomModelsConverter struct {
+	r *Room
+}
+
 // Save save room information to database
-func (room *Room) Save(wg *sync.WaitGroup) (err error) {
+func (room *RoomModelsConverter) Save(wg *sync.WaitGroup) error {
 	defer func() {
 		if wg != nil {
 			wg.Done()
 		}
 	}()
-	if room.done() {
+	if room.r.done() {
 		return re.ErrorRoomDone()
 	}
-	room.wGroup.Add(1)
+	room.r.wGroup.Add(1)
 	defer func() {
-		room.wGroup.Done()
+		room.r.wGroup.Done()
 	}()
-
-	players := room.Players.RPlayers()
 
 	// made in NewRoom
 	//room.Settings.ID = room.ID()
 
-	game := models.Game{
-		ID:              room.dbRoomID,
-		Settings:        room.Settings,
-		RecruitmentTime: room.recruitmentTime(),
-		PlayingTime:     room.playingTime(),
-		ChatID:          room.dbChatID,
-		Status:          int32(room.Status()),
-		Date:            room.Date(),
-	}
-
-	winners := room.Winners()
-	gamers := make([]models.Gamer, 0)
-	for id, player := range players {
-		gamer := models.Gamer{
-			ID:        player.ID,
-			Score:     player.Points,
-			Explosion: player.Died,
-			Won:       room.Winner(winners, id),
-		}
-		gamers = append(gamers, gamer)
-	}
-
-	field := models.Field{
-		Width:     room.Field.Width,
-		Height:    room.Field.Height,
-		CellsLeft: room.Field._cellsLeft,
-		Difficult: 0,
-		Mines:     room.Field.Mines,
-	}
-
-	cells := make([]models.Cell, 0)
-	for _, cellHistory := range room.Field.History() {
-		cell := models.Cell{
-			PlayerID: cellHistory.PlayerID,
-			X:        cellHistory.X,
-			Y:        cellHistory.Y,
-			Value:    cellHistory.Value,
-			Date:     cellHistory.Time,
-		}
-		cells = append(cells, cell)
-	}
-
-	history := room.history()
-	actions := make([]models.Action, 0)
-	for _, actionHistory := range history {
-		action := models.Action{
-			PlayerID: actionHistory.Player,
-			ActionID: actionHistory.Action,
-			Date:     actionHistory.Time,
-		}
-		actions = append(actions, action)
-	}
+	game := room.toModelGame()
+	gamers := room.toModelGamers()
+	field := room.toModelField()
+	cells := room.toModelCells()
+	actions := room.toModelActions()
 
 	gameInformation := models.GameInformation{
 		Game:    game,
@@ -90,13 +46,157 @@ func (room *Room) Save(wg *sync.WaitGroup) (err error) {
 		Cells:   cells,
 	}
 
-	if err = room.lobby.db().SaveGame(gameInformation); err != nil {
+	if err := room.r.lobby.db().Save(gameInformation); err != nil {
 		utils.Debug(false, "err. Cant save.", err.Error())
-		room.lobby.AddNotSavedGame(&gameInformation)
+		room.r.lobby.AddNotSavedGame(&gameInformation)
 	}
 
-	return
+	return nil
 }
+
+func (room *RoomModelsConverter) toModelGame() models.Game {
+	return models.Game{
+		ID:              room.r.dbRoomID,
+		Settings:        room.r.Settings,
+		RecruitmentTime: room.r.recruitmentTime(),
+		PlayingTime:     room.r.playingTime(),
+		ChatID:          room.r.dbChatID,
+		Status:          int32(room.r.Status()),
+		Date:            room.r.Date(),
+	}
+}
+
+func (room *RoomModelsConverter) toModelGamers() []models.Gamer {
+	winners := room.r.Winners()
+	players := room.r.Players.m.RPlayers()
+	gamers := make([]models.Gamer, 0)
+	for id, player := range players {
+		gamer := models.Gamer{
+			ID:        player.ID,
+			Score:     player.Points,
+			Explosion: player.Died,
+			Won:       room.r.Winner(winners, id),
+		}
+		gamers = append(gamers, gamer)
+	}
+	return gamers
+}
+
+func (room *RoomModelsConverter) toModelField() models.Field {
+	return models.Field{
+		Width:     room.r.Field.Width,
+		Height:    room.r.Field.Height,
+		CellsLeft: room.r.Field._cellsLeft,
+		Difficult: 0,
+		Mines:     room.r.Field.Mines,
+	}
+}
+
+func (room *RoomModelsConverter) toModelCells() []models.Cell {
+	cells := make([]models.Cell, 0)
+	for _, cellHistory := range room.r.Field.History() {
+		cell := models.Cell{
+			PlayerID: cellHistory.PlayerID,
+			X:        cellHistory.X,
+			Y:        cellHistory.Y,
+			Value:    cellHistory.Value,
+			Date:     cellHistory.Time,
+		}
+		cells = append(cells, cell)
+	}
+	return cells
+}
+
+func (room *RoomModelsConverter) toModelActions() []models.Action {
+	history := room.r.history()
+	actions := make([]models.Action, 0)
+	for _, actionHistory := range history {
+		action := models.Action{
+			PlayerID: actionHistory.Player,
+			ActionID: actionHistory.Action,
+			Date:     actionHistory.Time,
+		}
+		actions = append(actions, action)
+	}
+	return actions
+}
+
+////////// sender models //////////
+
+func (room *RoomModelsConverter) responseRoomGameOver(timer bool,
+	cells []Cell) *models.Response {
+	return &models.Response{
+		Type: "RoomGameOver",
+		Value: struct {
+			Players []Player `json:"players"`
+			Cells   []Cell   `json:"cells"`
+			Winners []int    `json:"winners"`
+			Timer   bool     `json:"timer"`
+		}{
+			Players: room.r.Players.m.RPlayers(),
+			Cells:   cells,
+			Winners: room.r.Winners(),
+			Timer:   timer,
+		},
+	}
+}
+
+func (room *RoomModelsConverter) responseRoomStatus(
+	status int) models.Response {
+	var leftTime int32
+	since := int32(time.Since(room.r.Date()).Seconds())
+	if status == StatusFlagPlacing {
+		leftTime = room.r.Settings.TimeToPrepare - since
+	} else if status == StatusRunning {
+		leftTime = room.r.Settings.TimeToPlay - since
+	}
+	return models.Response{
+		Type: "RoomStatus",
+		Value: struct {
+			ID     string `json:"id"`
+			Status int    `json:"status"`
+			Time   int32  `json:"time"`
+		}{
+			ID:     room.r.ID(),
+			Status: status,
+			Time:   leftTime,
+		},
+	}
+}
+
+func (room *RoomModelsConverter) responseRoom(
+	conn *Connection, isPlayer bool) models.Response {
+	var flag Flag
+	if room.r.Settings.Deathmatch {
+		index := conn.Index()
+		if index >= 0 {
+			flag = room.r.Players.m.Flag(index)
+		}
+	} else {
+		flag = Flag{Cell: *NewCell(-1, -1, 0, 0)}
+	}
+
+	//leftTime := room.Settings.TimeToPlay + room.Settings.TimeToPrepare - int(time.Since(room.Date).Seconds())
+
+	return models.Response{
+		Type: "Room",
+		Value: struct {
+			Room *Room                 `json:"room"`
+			You  models.UserPublicInfo `json:"you"`
+			Flag Flag                  `json:"flag,omitempty"`
+			//Time     int                   `json:"time"`
+			IsPlayer bool `json:"isPlayer"`
+		}{
+			Room: room.r,
+			You:  *conn.User,
+			Flag: flag,
+			//Time:     leftTime,
+			IsPlayer: isPlayer,
+		},
+	}
+}
+
+///////////////////////////////////
 
 // Load load room information from database
 func (lobby *Lobby) Load(id string) (room *Room, err error) {
@@ -109,7 +209,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}()
 
 	var info models.GameInformation
-	if info, err = lobby.db().GetGame(id); err != nil {
+	if info, err = lobby.db().FetchOneGame(id); err != nil {
 		return
 	}
 
@@ -154,7 +254,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	// players
 	room.Players = newOnlinePlayers(info.Game.Settings.Players, *room.Field)
 	for i, gamer := range info.Gamers {
-		room.Players.SetPlayer(i, Player{
+		room.Players.m.SetPlayer(i, Player{
 			ID:       gamer.ID,
 			Points:   gamer.Score,
 			Died:     gamer.Explosion,

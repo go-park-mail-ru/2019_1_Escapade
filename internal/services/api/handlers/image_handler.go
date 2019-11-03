@@ -18,7 +18,7 @@ import (
 )
 
 type ImageHandler struct {
-	Handler
+	ih.Handler
 	image database.ImageUseCaseI
 }
 
@@ -65,7 +65,7 @@ func (h *ImageHandler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Resu
 		url     models.Avatar
 	)
 
-	if name, _ := h.getName(r); name == "" {
+	if name, _ := getName(r); name == "" {
 		id, err := ih.GetUserIDFromAuthRequest(r)
 		if err != nil {
 			return ih.NewResult(http.StatusBadRequest, place, nil, re.AuthWrapper(err))
