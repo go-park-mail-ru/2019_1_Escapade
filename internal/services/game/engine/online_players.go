@@ -17,7 +17,7 @@ type OnlinePlayers struct {
 }
 
 // NewConnections create instance of Connections
-func newOnlinePlayers(size int32, field Field) *OnlinePlayers {
+func newOnlinePlayers(size int32) *OnlinePlayers {
 	players := make([]Player, size)
 	flags := make([]Flag, size)
 	var m = &OnlinePlayersMutex{
@@ -38,22 +38,11 @@ func newOnlinePlayers(size int32, field Field) *OnlinePlayers {
 }
 
 // Init create players and flags
-func (onlinePlayers *OnlinePlayers) Init(field *Field) {
-
+func (onlinePlayers *OnlinePlayers) Init() {
 	for i, conn := range onlinePlayers.Connections._get {
-		// if i > onlinePlayers.Capacity() {
-		// 	room := conn.PlayingRoom()
-		// 	if room == nil {
-		// 		continue
-		// 	}
-		// 	room.Leave(conn, true)
-		// 	continue
-		// }
 		onlinePlayers.m.SetPlayer(i, *NewPlayer(conn.User.ID))
 		conn.SetIndex(i)
 	}
-
-	return
 }
 
 // search element in slice
@@ -110,6 +99,21 @@ func (onlinePlayers *OnlinePlayers) Add(conn *Connection, cell Cell, recover boo
 // EnoughPlace check that you can add more elements
 func (onlinePlayers *OnlinePlayers) EnoughPlace() bool {
 	return onlinePlayers.Connections.EnoughPlace()
+}
+
+// ForEach apply function to every element of copy of players slice
+func (onlinePlayers *OnlinePlayers) ForEach(apply func(index int, player Player)) {
+	players := onlinePlayers.m.RPlayers()
+	for index, player := range players {
+		apply(index, player)
+	}
+}
+
+func (onlinePlayers *OnlinePlayers) ForEachFlag(apply func(index int, flag Flag)) {
+	flags := onlinePlayers.m.Flags()
+	for index, flag := range flags {
+		apply(index, flag)
+	}
 }
 
 // Free free memory

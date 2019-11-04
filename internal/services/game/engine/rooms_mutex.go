@@ -116,7 +116,7 @@ func (rooms *Rooms) Free() {
 	}
 	rooms.getM.RLock()
 	for _, room := range rooms._get {
-		room.Free()
+		room.sync.Free()
 	}
 	rooms._get = nil
 	rooms.getM.RUnlock()

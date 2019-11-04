@@ -85,7 +85,7 @@ func (onlinePlayers *OnlinePlayersMutex) SetPlayerID(i int, id int32) {
 }
 
 // SetFlag set flag which connection is conn
-func (onlinePlayers *OnlinePlayersMutex) SetFlag(conn Connection, cell Cell, prepareOver func()) {
+func (onlinePlayers *OnlinePlayersMutex) SetFlag(conn *Connection, cell Cell, prepareOver func()) {
 
 	onlinePlayers.flagsM.Lock()
 	defer onlinePlayers.flagsM.Unlock()

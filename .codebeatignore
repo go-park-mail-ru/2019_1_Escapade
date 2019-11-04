@@ -1,0 +1,6 @@
+cmd/*
+docs/*
+extra/*
+internal/models/models_easyjson.go
+internal/services/ery/*
+vendor/*

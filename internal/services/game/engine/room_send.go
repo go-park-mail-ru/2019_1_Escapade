@@ -5,31 +5,23 @@ import (
 
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 type RoomSender struct {
 	r *Room
+	s SyncI
 }
 
-// sendToAllInRoom send info to those in room, whose predicate returns true
-// sendUnsafe is goroutine unsafe. Use sendAll for goroutine safe use
-func (room *RoomSender) sendAllUnsafe(info handlers.JSONtype, predicate SendPredicate) {
-	players := room.r.Players.Connections
-	observers := room.r.Observers
-	SendToConnections(info, predicate, players, observers)
+func (room *RoomSender) Init(r *Room, s SyncI) {
+	room.r = r
+	room.s = s
 }
 
 func (room *RoomSender) sendAll(info handlers.JSONtype, predicate SendPredicate) {
-	if room.r.done() {
-		return
-	}
-	room.r.wGroup.Add(1)
-	defer func() {
-		room.r.wGroup.Done()
-		utils.CatchPanic("room_send.go sendMessage()")
-	}()
-	room.sendAll(info, predicate)
+	room.s.do(func() {
+		people := room.r.people.Connections()
+		SendToConnections(info, predicate, people...)
+	})
 }
 
 func (room *RoomSender) Message(text string, predicate SendPredicate) {
@@ -47,9 +39,6 @@ func (room *RoomSender) PlayerPoints(player Player, predicate SendPredicate) {
 
 func (room *RoomSender) GameOver(timer bool, predicate SendPredicate,
 	cells []Cell, wg *sync.WaitGroup) {
-	if room.r.done() {
-		return
-	}
 	defer func() {
 		if wg != nil {
 			wg.Done()
@@ -110,21 +99,18 @@ func (room *RoomSender) StatusToAll(predicate SendPredicate, status int, wg *syn
 			wg.Done()
 		}
 	}()
-	if room.r.done() {
-		return
-	}
-
-	response := room.r.models.responseRoomStatus(status)
-	room.sendAll(response, predicate)
+	room.s.do(func() {
+		response := room.r.models.responseRoomStatus(status)
+		room.sendAll(response, predicate)
+	})
 }
 
 func (room *RoomSender) StatusToOne(conn *Connection) {
-	if room.r.done() {
-		return
-	}
-	status := room.r.Status()
-	response := room.r.models.responseRoomStatus(status)
-	conn.SendInformation(response)
+	room.s.doWithConn(conn, func() {
+		status := room.r.events.Status()
+		response := room.r.models.responseRoomStatus(status)
+		conn.SendInformation(response)
+	})
 }
 
 // Action send actions history to all in room
@@ -137,42 +123,57 @@ func (room *RoomSender) Action(pa PlayerAction, predicate SendPredicate) {
 }
 
 func (room *RoomSender) Error(err error, conn *Connection) {
-	response := models.Response{
-		Type:  "RoomError",
-		Value: err.Error(),
-	}
-	conn.SendInformation(&response)
+	room.s.doWithConn(conn, func() {
+		response := models.Response{
+			Type:  "RoomError",
+			Value: err.Error(),
+		}
+		conn.SendInformation(&response)
+	})
+}
+
+// FailFlagSet is called when room cant set flag
+func (room *RoomSender) FailFlagSet(conn *Connection, value interface{},
+	err error) {
+	room.s.doWithConn(conn, func() {
+		response := models.Response{
+			Type:    "FailFlagSet",
+			Message: err.Error(),
+			Value:   value,
+		}
+		conn.SendInformation(&response)
+	})
+}
+
+// RandomFlagSet is called when any player set his flag at the same as any other
+func (room *RoomSender) RandomFlagSet(conn *Connection, value interface{}) {
+	room.s.doWithConn(conn, func() {
+		response := models.Response{
+			Type:    "ChangeFlagSet",
+			Message: "The cell you have selected is chosen by another person.",
+			Value:   value,
+		}
+		conn.SendInformation(&response)
+	})
 }
 
 // sendTAIRField send field to all in room
 func (room *RoomSender) Field(predicate SendPredicate) {
-	if room.r.done() {
-		return
-	}
-
-	response := models.Response{
-		Type:  "RoomField",
-		Value: room.Field,
-	}
-	room.sendAll(&response, predicate)
+	room.s.do(func() {
+		response := models.Response{
+			Type:  "RoomField",
+			Value: room.Field,
+		}
+		room.sendAll(&response, predicate)
+	})
 }
 
 // sendTAIRAll send everything to one connection
-func (room *RoomSender) greet(conn *Connection, isPlayer bool) {
-	if room.r.done() {
-		return
-	}
-	room.r.wGroup.Add(1)
-	defer func() {
-		room.r.wGroup.Done()
-		utils.CatchPanic("room_send.go greet()")
-	}()
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer conn.wGroup.Done()
-	conn.SendInformation(room.r.models.responseRoom(conn, isPlayer))
+func (room *RoomSender) Room(conn *Connection) {
+	room.s.doWithConn(conn, func() {
+		isPlayer := room.r.connEvents.isPlayer(conn)
+		conn.SendInformation(room.r.models.responseRoom(conn, isPlayer))
+	})
 }
 
 // 302 -> 180

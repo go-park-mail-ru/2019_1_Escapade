@@ -30,28 +30,7 @@ type ConnectionAction struct {
 
 // Room consist of players and observers, field and history
 type Room struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
-
 	dbRoomID int32
-	dbChatID int32
-
-	//playersM *sync.RWMutex
-	Players *OnlinePlayers
-
-	//observersM *sync.RWMutex
-	Observers *Connections
-
-	historyM *sync.RWMutex
-	_history []*PlayerAction
-
-	messagesM *sync.Mutex
-	_messages []*models.Message
-
-	killedM *sync.RWMutex
-	_killed int32 //amount of killed users
 
 	idM *sync.RWMutex
 	_id string
@@ -59,35 +38,21 @@ type Room struct {
 	nameM *sync.RWMutex
 	_name string
 
-	statusM *sync.RWMutex
-	_status int
-
-	nextM *sync.RWMutex
-	_next *Room
-
-	lobby *Lobby
-
-	Field *Field
-
-	dateM *sync.RWMutex
-	_date time.Time
-
-	recruitmentTimeM *sync.RWMutex
-	_recruitmentTime time.Duration
-
-	playingTimeM *sync.RWMutex
-	_playingTime time.Duration
-
-	play    *time.Timer
-	prepare *time.Timer
-
-	chanStatus     chan int
-	chanConnection chan *ConnectionAction
-
+	lobby    *Lobby
 	Settings *models.RoomSettings
 
-	models *RoomModelsConverter
-	send   *RoomSender
+	field            *RoomField
+	sync             *RoomSync
+	api              *RoomAPI
+	models           *RoomModelsConverter
+	send             *RoomSender
+	connEvents       *RoomConnectionEvents
+	people           *RoomPeople
+	events           *RoomEvents
+	record           *RoomRecorder
+	metrics          *RoomMetrics
+	messages         *RoomMessages
+	garbageCollector RoomGarbageCollectorI
 }
 
 // CharacteristicsCheck check room's characteristics are valid
@@ -162,31 +127,17 @@ func NewRoom(config *config.Field, lobby *Lobby,
 	}
 
 	room.dbRoomID = roomID
-	room.dbChatID = chatID
-	room.Init(config, lobby, game.Settings, id)
+	room.Init(config, lobby, game.Settings, id, chatID)
 	return room, err
 }
 
 // Init init instance of room
 func (room *Room) Init(config *config.Field, lobby *Lobby,
-	rs *models.RoomSettings, id string) {
-
-	room.wGroup = &sync.WaitGroup{}
-
+	rs *models.RoomSettings, id string, chatID int32) {
 	field := NewField(rs, config)
-	room._done = false
-	room.doneM = &sync.RWMutex{}
-
-	// cant use Restart cause need to
-	room.Players = newOnlinePlayers(rs.Players, *field)
-	room.historyM = &sync.RWMutex{}
-	room.messagesM = &sync.Mutex{}
-	room.killedM = &sync.RWMutex{}
 
 	room.nameM = &sync.RWMutex{}
 	room._name = rs.Name
-
-	room.statusM = &sync.RWMutex{}
 
 	room.lobby = lobby
 
@@ -195,84 +146,45 @@ func (room *Room) Init(config *config.Field, lobby *Lobby,
 	room.idM = &sync.RWMutex{}
 	room._id = id
 
-	room.nextM = &sync.RWMutex{}
-	room._next = nil
-
-	room.recruitmentTimeM = &sync.RWMutex{}
-
-	room.playingTimeM = &sync.RWMutex{}
-
-	room.dateM = &sync.RWMutex{}
-	room._date = time.Now()
-
-	room.Observers = NewConnections(room.Settings.Observers)
-
-	room.chanStatus = make(chan int)
-	room.chanConnection = make(chan *ConnectionAction)
-
-	room.setHistory(make([]*PlayerAction, 0))
-	room.setMessages(make([]*models.Message, 0))
-	room.setKilled(0)
 	room.setID(utils.RandomString(16))
-	room.setStatus(StatusRecruitment)
 
-	room.Field = field
+	room.sync = &RoomSync{}
+	room.api = &RoomAPI{}
+	room.field = &RoomField{}
+	room.models = &RoomModelsConverter{}
+	room.send = &RoomSender{}
+	room.people = &RoomPeople{}
+	room.connEvents = &RoomConnectionEvents{}
+	room.events = &RoomEvents{}
+	room.metrics = &RoomMetrics{}
+	room.record = &RoomRecorder{}
+	room.messages = &RoomMessages{}
 
-	room.setDate(time.Now().In(room.lobby.location()))
+	room.sync.Init(room)
+	room.api.Init(room, room.sync, room.messages)
+	room.field.Init(room, room.sync, field)
+	room.models.Init(room, room.sync)
+	room.send.Init(room, room.sync)
+	room.people.Init(room, room.sync, rs.Players, rs.Observers)
+	room.connEvents.Init(room, room.sync)
+	room.events.Init(room, room.sync)
+	room.metrics.Init(room, room.sync, room.events, room.field)
+	room.record.Init(room, room.sync)
+	room.messages.Init(chatID)
 
-	room.models = &RoomModelsConverter{r: room}
-	room.send = &RoomSender{r: room}
+	room.garbageCollector = &RoomGarbageCollector{}
+	// в конфиг
+	t := Timeouts{
+		timeoutPeopleFinding:   2.,
+		timeoutRunningPlayer:   60.,
+		timeoutRunningObserver: 5.,
+		timeoutFinished:        20.,
+	}
+	room.garbageCollector.Init(room, room.sync, t)
 
-	go room.runRoom()
+	go room.events.Run()
 
 	return
-}
-
-// Restart fill in the room fields with the original values
-func (room *Room) Restart(conn *Connection) {
-
-	if room.Next() == nil || room.Next().done() {
-		pa := *room.addAction(conn.ID(), ActionRestart)
-		room.sendAction(pa, room.All)
-		next, err := room.lobby.CreateAndAddToRoom(room.Settings, conn)
-		if err != nil {
-			panic("next")
-		}
-		room.setNext(next)
-	}
-	room.processActionBackToLobby(conn)
-	room.Next().Enter(conn)
-	return
-}
-
-// Empty check room has no people
-func (room *Room) Empty() bool {
-	if room.done() {
-		return true
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-
-	return room.Players.Connections.len()+room.Observers.len() == 0
-}
-
-// IsActive check if game is started and results not known
-func (room *Room) IsActive() bool {
-	if room.done() {
-		return false
-	}
-	room.wGroup.Add(1)
-	defer func() {
-		room.wGroup.Done()
-	}()
-	return room.Status() == StatusFlagPlacing || room.Status() == StatusRunning
-}
-
-// SameAs compare  one room with another
-func (room *Room) SameAs(another *Room) bool {
-	return room.Field.SameAs(another.Field)
 }
 
 /* Examples of json

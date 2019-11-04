@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -75,21 +74,11 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		}
 	}
 	if conn.PlayingRoom() != nil {
-		if !conn.PlayingRoom().done() {
-			conn.PlayingRoom().chanConnection <- &ConnectionAction{
-				conn:   conn,
-				action: ActionDisconnect,
-			}
-		}
+		conn.PlayingRoom().api.PostAction(conn, ActionDisconnect)
 		// dont delete from lobby, because player not in lobby
 		return
 	} else if conn.WaitingRoom() != nil {
-		if !conn.WaitingRoom().done() {
-			conn.WaitingRoom().chanConnection <- &ConnectionAction{
-				conn:   conn,
-				action: ActionDisconnect,
-			}
-		}
+		conn.PlayingRoom().api.PostAction(conn, ActionDisconnect)
 		// continue, because player in lobby
 	}
 
@@ -105,8 +94,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room, group *sync.WaitGroup) {
-	defer group.Done()
+func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 	defer utils.CatchPanic("lobby_handle.go LeaveRoom()")
 
 	if lobby.done() {
@@ -115,16 +103,18 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room, group *s
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	if action != ActionDisconnect {
-		if conn.PlayingRoom() != nil {
-			lobby.PlayerToWaiter(conn)
-		} else {
-			conn.PushToLobby()
+	room.sync.doWithConn(conn, func() {
+		if action != ActionDisconnect {
+			if conn.PlayingRoom() != nil {
+				lobby.PlayerToWaiter(conn)
+			} else {
+				conn.PushToLobby()
+			}
+		} else if room.people.Players.Connections.len() > 0 {
+			go lobby.sendRoomUpdate(room, AllExceptThat(conn))
 		}
-	} else if room.Players.Connections.len() > 0 {
-		group.Add(1)
-		go lobby.sendRoomUpdate(room, AllExceptThat(conn), group)
-	}
+		lobby.greet(conn)
+	})
 }
 
 // EnterRoom handle user join to room
@@ -151,7 +141,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 		if conn.WaitingRoom().ID() == rs.ID {
 			return
 		}
-		conn.WaitingRoom().processActionBackToLobby(conn)
+		conn.WaitingRoom().connEvents.Leave(conn)
 	}
 
 	if rs.ID == "create" {
@@ -163,7 +153,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 	if room := lobby.allRooms.Search(rs.ID); room != nil {
 		utils.Debug(false, "lobby found required room")
-		room.Enter(conn)
+		room.connEvents.Enter(conn)
 	} else {
 		lobby.PickUpRoom(conn, rs)
 	}
@@ -184,7 +174,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
 	for freeRoomsIterator.Next() {
 		freeRoom := freeRoomsIterator.Value()
-		if freeRoom.Settings.Similar(rs) && freeRoom.addConnection(conn, true, false) {
+		if freeRoom.Settings.Similar(rs) && freeRoom.people.add(conn, true, false) {
 			return
 		}
 	}
@@ -210,7 +200,7 @@ func (lobby *Lobby) Analize(req *Request) {
 		if err := rsend.UnmarshalJSON(req.Message); err != nil {
 			utils.Debug(true, "json error")
 		} else {
-			req.Connection.PlayingRoom().HandleRequest(req.Connection, &rsend)
+			req.Connection.PlayingRoom().api.Handle(req.Connection, &rsend)
 		}
 		// not in lobby
 		return
@@ -219,7 +209,7 @@ func (lobby *Lobby) Analize(req *Request) {
 		if err := rsend.UnmarshalJSON(req.Message); err != nil {
 			utils.Debug(true, "json error")
 		} else {
-			req.Connection.WaitingRoom().HandleRequest(req.Connection, &rsend)
+			req.Connection.WaitingRoom().api.Handle(req.Connection, &rsend)
 		}
 		// in lobby
 	}

@@ -153,12 +153,12 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		if room != nil {
 			lobby.AddNotSavedMessage(&MessageWithAction{
 				message, msg, action, func() (int32, error) {
-					if room.dbChatID != 0 {
-						return room.dbChatID, nil
+					if room.messages.dbChatID != 0 {
+						return room.messages.dbChatID, nil
 					}
 					id, err := GetChatID(chat.ChatType_ROOM, room.dbRoomID)
 					if err != nil {
-						room.dbChatID = id
+						room.messages.dbChatID = id
 					}
 					return id, err
 				}})
@@ -216,7 +216,7 @@ func Messages(conn *Connection, messages *models.Messages,
 	if messages.Limit < 0 || messages.Limit > size {
 		messages.Limit = size
 	}
-	messages.Messages = messageSlice[messages.Offset:messages.Limit]
+	messages.Messages = messageSlice[messages.Offset : messages.Offset+messages.Limit]
 	messages.Capacity = size
 
 	response := models.Response{

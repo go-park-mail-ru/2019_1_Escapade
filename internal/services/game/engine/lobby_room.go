@@ -1,18 +1,13 @@
 package engine
 
 import (
-	"sync"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // RoomStart - room remove from free
-func (lobby *Lobby) RoomStart(room *Room, group *sync.WaitGroup) {
-	defer utils.CatchPanic("lobby_room.go RoomStart()")
-	defer group.Done()
-
+func (lobby *Lobby) RoomStart(room *Room) {
 	if lobby.done() {
 		return
 	}
@@ -20,17 +15,13 @@ func (lobby *Lobby) RoomStart(room *Room, group *sync.WaitGroup) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	room.wGroup.Add(1)
-	go lobby.removeFromFreeRooms(room.ID(), room.wGroup)
-
-	room.wGroup.Add(1)
-	go lobby.sendRoomUpdate(room, All, room.wGroup)
+	go lobby.removeFromFreeRooms(room.ID())
+	go lobby.sendRoomUpdate(room, All)
 }
 
 // roomFinish - room remove from all
-func (lobby *Lobby) roomFinish(room *Room, group *sync.WaitGroup) {
+func (lobby *Lobby) roomFinish(room *Room) {
 	defer utils.CatchPanic("lobby_room.go roomFinish()")
-	defer group.Done()
 
 	if lobby.done() {
 		return
@@ -40,32 +31,26 @@ func (lobby *Lobby) roomFinish(room *Room, group *sync.WaitGroup) {
 
 	roomID := room.ID()
 
-	room.wGroup.Add(1)
-	go lobby.removeFromAllRooms(roomID, room.wGroup)
+	go lobby.removeFromAllRooms(roomID)
 
 	go lobby.sendRoomDelete(roomID, All)
 }
 
 // CloseRoom free room resources
-func (lobby *Lobby) CloseRoom(room *Room, group *sync.WaitGroup) {
-	defer utils.CatchPanic("lobby_room.go CloseRoom()")
-	defer group.Done()
-
+func (lobby *Lobby) CloseRoom(room *Room) {
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	roomID := room.ID()
+	room.sync.do(func() {
+		roomID := room.ID()
+		go lobby.removeFromFreeRooms(roomID)
+		go lobby.removeFromAllRooms(roomID)
 
-	room.wGroup.Add(1)
-	go lobby.removeFromFreeRooms(roomID, room.wGroup)
-
-	room.wGroup.Add(1)
-	go lobby.removeFromAllRooms(roomID, room.wGroup)
-
-	go lobby.sendRoomDelete(roomID, All)
+		go lobby.sendRoomDelete(roomID, All)
+	})
 }
 
 // CreateAndAddToRoom create room and add player to it
@@ -83,7 +68,7 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 
 	if room, err = lobby.createRoom(rs); err == nil {
 		utils.Debug(false, "We create your own room, cool!", conn.ID())
-		room.addConnection(conn, true, false)
+		room.people.add(conn, true, false)
 	} else {
 		utils.Debug(true, "cant create. Why?", conn.ID(), err.Error())
 	}
@@ -141,7 +126,6 @@ func (lobby *Lobby) addRoom(room *Room) (err error) {
 		return
 	}
 
-	room.wGroup.Add(1)
-	lobby.sendRoomCreate(room, All, room.wGroup) // inform all about new room
+	lobby.sendRoomCreate(room, All) // inform all about new room
 	return
 }

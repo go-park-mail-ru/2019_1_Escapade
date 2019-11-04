@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"sync"
-
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -62,9 +60,7 @@ func (lobby *Lobby) sendLobbyMessage(message string, predicate SendPredicate) {
 	lobby.sendToAll(&response, predicate)
 }
 
-func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate,
-	group *sync.WaitGroup) {
-	defer group.Done()
+func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate) {
 	defer utils.CatchPanic("lobby_send.go sendRoomCreate")
 
 	if lobby.done() {
@@ -81,22 +77,22 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate,
 	lobby.send(&response, predicate)
 }
 
-func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate, group *sync.WaitGroup) {
+func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate) {
+	room.sync.do(func() {
+		defer utils.CatchPanic("lobby_send.go sendRoomUpdate")
 
-	defer group.Done()
-	defer utils.CatchPanic("lobby_send.go sendRoomUpdate")
+		if lobby.done() {
+			return
+		}
+		lobby.wGroup.Add(1)
+		defer lobby.wGroup.Done()
 
-	if lobby.done() {
-		return
-	}
-	lobby.wGroup.Add(1)
-	defer lobby.wGroup.Done()
-
-	response := models.Response{
-		Type:  "LobbyRoomUpdate",
-		Value: room.JSON(),
-	}
-	lobby.send(&response, predicate)
+		response := models.Response{
+			Type:  "LobbyRoomUpdate",
+			Value: room.JSON(),
+		}
+		lobby.send(&response, predicate)
+	})
 }
 
 func (lobby *Lobby) sendRoomDelete(roomID string, predicate SendPredicate) {

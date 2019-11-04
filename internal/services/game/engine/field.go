@@ -84,6 +84,7 @@ func (field *Field) Free(timeout time.Duration) {
 }
 
 // SameAs compare two fields
+/*
 func (field *Field) SameAs(another *Field) bool {
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
@@ -96,10 +97,10 @@ func (field *Field) SameAs(another *Field) bool {
 		left1 == left2
 
 	return compare
-}
+}*/
 
 // OpenEverything open all cells
-func (field *Field) OpenEverything(cells *[]Cell) {
+func (field *Field) OpenEverything(cells []Cell) {
 	if field.Done() {
 		return
 	}
@@ -121,7 +122,7 @@ func (field *Field) OpenEverything(cells *[]Cell) {
 
 // openCellArea open cell area, if there is no mines around
 // in this cell
-func (field *Field) openCellArea(x, y, ID int32, cells *[]Cell) {
+func (field *Field) openCellArea(x, y, ID int32, cells []Cell) {
 	if !field.areCoordinatesRight(x, y) {
 		return
 	}
@@ -155,11 +156,11 @@ func (field *Field) IsCleared() bool {
 
 // saveCell save cell to the slice 'cells' and to the slice of
 // opened cells
-func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
+func (field *Field) saveCell(cell *Cell, cells []Cell) {
 	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
 		cell.Time = time.Now()
 		field.setToHistory(cell)
-		*cells = append(*cells, *cell)
+		cells = append(cells, *cell)
 		field.setCellOpen(cell.X, cell.Y, cell.Value)
 	}
 }
@@ -173,15 +174,12 @@ func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
 	defer field.wGroup.Done()
 
 	cell.Value = field.matrixValue(cell.X, cell.Y)
-
-	utils.Debug(false, "!!!!!!!!!!!!!!!11cell.Value", cell.Value)
-
 	cells = make([]Cell, 0)
 	if cell.Value < CellMine {
-		field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
+		field.openCellArea(cell.X, cell.Y, cell.PlayerID, cells)
 	} else {
 		if cell.Value != FlagID(cell.PlayerID) {
-			field.saveCell(cell, &cells)
+			field.saveCell(cell, cells)
 		}
 	}
 
@@ -207,9 +205,9 @@ func (field *Field) RandomFlags(players []Player) (flags []Flag) {
 }
 
 // CreateRandomFlag create flag for player
-func (field *Field) CreateRandomFlag(playerID int32) (cell Cell) {
+func (field *Field) CreateRandomFlag(playerID int32) Cell {
 	if field.Done() {
-		return
+		return Cell{}
 	}
 	field.wGroup.Add(1)
 	defer field.wGroup.Done()
@@ -218,9 +216,8 @@ func (field *Field) CreateRandomFlag(playerID int32) (cell Cell) {
 	var x, y int32
 	x = rand.Int31n(field.Width)
 	y = rand.Int31n(field.Height)
-	cell = *NewCell(x, y, FlagID(playerID), playerID)
 
-	return cell
+	return *NewCell(x, y, FlagID(playerID), playerID)
 }
 
 // OpenSave open n(or more) cells that do not contain any mines or flags
