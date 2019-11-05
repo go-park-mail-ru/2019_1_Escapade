@@ -17,22 +17,22 @@ type SyncI interface {
 	done() bool
 }
 
-// RoomSync implements SyncI
-type RoomSync struct {
+// SyncWgroup implements SyncI
+type SyncWgroup struct {
 	wGroup *sync.WaitGroup
 
 	doneM *sync.RWMutex
 	_done bool
 }
 
-func (room *RoomSync) Init() {
+func (room *SyncWgroup) Init() {
 	room.wGroup = &sync.WaitGroup{}
 	room._done = false
 	room.doneM = &sync.RWMutex{}
 }
 
 // do any action in room by calling this func!
-func (room *RoomSync) do(f func()) {
+func (room *SyncWgroup) do(f func()) {
 	if room.done() {
 		return
 	}
@@ -45,7 +45,7 @@ func (room *RoomSync) do(f func()) {
 	f()
 }
 
-func (room *RoomSync) doWithConn(conn *Connection, f func()) {
+func (room *SyncWgroup) doWithConn(conn *Connection, f func()) {
 	if room.done() || conn.done() {
 		return
 	}
@@ -61,7 +61,7 @@ func (room *RoomSync) doWithConn(conn *Connection, f func()) {
 	f()
 }
 
-func (room *RoomSync) doAndFree(clear func()) {
+func (room *SyncWgroup) doAndFree(clear func()) {
 
 	if room.checkAndSetCleared() {
 		return
@@ -78,7 +78,7 @@ func (room *RoomSync) doAndFree(clear func()) {
 // based on 'done'. If it is true, then the function has already been called.
 // If not, set done to True and return false.
 // IMPORTANT: this function must only be called in the cleanup function
-func (room *RoomSync) checkAndSetCleared() bool {
+func (room *SyncWgroup) checkAndSetCleared() bool {
 	room.doneM.Lock()
 	defer room.doneM.Unlock()
 	if room._done {
@@ -89,7 +89,7 @@ func (room *RoomSync) checkAndSetCleared() bool {
 }
 
 // done return room readiness flag to free up resources
-func (room *RoomSync) done() bool {
+func (room *SyncWgroup) done() bool {
 	room.doneM.RLock()
 	v := room._done
 	room.doneM.RUnlock()

@@ -4,9 +4,10 @@ import (
 	"bytes"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
@@ -22,7 +23,7 @@ type ImageHandler struct {
 	image database.ImageUseCaseI
 }
 
-func (h *ImageHandler) Init(c *config.Configuration, DB database.DatabaseI,
+func (h *ImageHandler) Init(c *config.Configuration, DB idb.DatabaseI,
 	imageDB database.ImageRepositoryI) error {
 	h.Handler.Init(c)
 

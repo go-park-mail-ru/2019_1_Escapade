@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
 	server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -40,13 +41,13 @@ func (h *Handlers) InitWithPostgreSQL(c *config.Configuration) error {
 			record: &database.RecordRepositoryPQ{},
 			image:  &database.ImageRepositoryPQ{},
 		}
-		database = &database.PostgresSQL{}
+		database = &idb.PostgresSQL{}
 	)
 	return h.Init(c, database, reps)
 }
 
 // Init open connection to database and put it to all handlers
-func (h *Handlers) Init(c *config.Configuration, db database.DatabaseI, reps repositories) error {
+func (h *Handlers) Init(c *config.Configuration, db idb.DatabaseI, reps repositories) error {
 	h.c = c
 	err := db.Open(c.DataBase)
 	if err != nil {

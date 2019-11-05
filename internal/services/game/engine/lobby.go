@@ -6,7 +6,7 @@ import (
 	"time"
 
 	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	models "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	utils "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"

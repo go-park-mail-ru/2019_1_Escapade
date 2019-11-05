@@ -1,10 +1,12 @@
 package database
 
+import idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+
 // ImageRepositoryPQ implements the interface ImageRepositoryI using the sql postgres driver
 type ImageRepositoryPQ struct{}
 
 // update set filename of avatar to relation Player
-func (db *ImageRepositoryPQ) update(dbI DatabaseI, filename string, userID int32) error {
+func (db *ImageRepositoryPQ) update(dbI idb.DatabaseI, filename string, userID int32) error {
 	sqlStatement := `UPDATE Player SET photo_title = $1 WHERE id = $2;`
 
 	var err error
@@ -14,7 +16,7 @@ func (db *ImageRepositoryPQ) update(dbI DatabaseI, filename string, userID int32
 }
 
 // fetchByName Get avatar - filename of player image by his name
-func (db *ImageRepositoryPQ) fetchByName(dbI DatabaseI, name string) (string, error) {
+func (db *ImageRepositoryPQ) fetchByName(dbI idb.DatabaseI, name string) (string, error) {
 	sqlStatement := `SELECT photo_title FROM Player WHERE name like $1`
 	row := dbI.QueryRow(sqlStatement, name)
 
@@ -24,7 +26,7 @@ func (db *ImageRepositoryPQ) fetchByName(dbI DatabaseI, name string) (string, er
 }
 
 // fetchByID Get avatar - filename of player image by his id
-func (db *ImageRepositoryPQ) fetchByID(dbI DatabaseI, id int32) (string, error) {
+func (db *ImageRepositoryPQ) fetchByID(dbI idb.DatabaseI, id int32) (string, error) {
 	sqlStatement := `SELECT photo_title FROM Player WHERE id=$1`
 	row := dbI.QueryRow(sqlStatement, id)
 

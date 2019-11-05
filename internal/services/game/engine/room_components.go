@@ -32,7 +32,7 @@ type ComponentBuilderI interface {
 type RoomBuilder struct {
 	info             *RoomInformation
 	field            *RoomField
-	sync             *RoomSync
+	sync             *SyncWgroup
 	api              *RoomAPI
 	lobby            *RoomLobby
 	models           *RoomModelsAdapter
@@ -57,7 +57,7 @@ func (room *RoomBuilder) Build(r *Room, field *Field, lobby *Lobby,
 }
 
 func (room *RoomBuilder) createComponents() {
-	room.sync = &RoomSync{}
+	room.sync = &SyncWgroup{}
 	room.info = &RoomInformation{}
 	room.api = &RoomAPI{}
 	room.lobby = &RoomLobby{}

@@ -2,7 +2,7 @@ package clients
 
 import (
 	//session "github.com/go-park-mail-ru/2019_1_Escapade/auth/server"
-	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -24,18 +24,26 @@ type Clients struct {
 
 var ALL Clients
 
-func (clients *Clients) Init(consulAddr string, ready chan error,
-	finish chan interface{}, conf config.Service) {
+func (clients *Clients) Init( /*consulAddr string, ready chan error,
+finish chan interface{}, conf config.Service*/) {
 
 	clients.chatM = &sync.RWMutex{}
+	/*
+		for _, client := range conf.DependsOn {
+			utils.Debug(false, "client name ", client)
+			if client == "chat" {
+				go clients.InitChat(client, consulAddr, ready, finish)
+				<-ready
+			}
+		}*/
+}
 
-	for _, client := range conf.DependsOn {
-		utils.Debug(false, "client name ", client)
-		if client == "chat" {
-			go clients.InitChat(client, consulAddr, ready, finish)
-			<-ready
-		}
-	}
+func (clients *Clients) AddChat(consulAddr string, finish chan interface{}) {
+	ready := make(chan error)
+	defer close(ready)
+
+	go clients.InitChat("chat", consulAddr, ready, finish)
+	<-ready
 }
 
 func (clients *Clients) InitChat(name string, consulAddr string, ready chan error, finish chan interface{}) {

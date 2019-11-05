@@ -1,12 +1,13 @@
 package database
 
 import (
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // RecordUseCase implements the interface RecordUseCaseI
 type RecordUseCase struct {
-	UseCaseBase
+	idb.UseCaseBase
 	record RecordRepositoryI
 }
 

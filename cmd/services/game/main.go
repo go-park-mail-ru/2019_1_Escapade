@@ -128,13 +128,13 @@ func main() {
 	defer close(finishChan)
 
 	clients.ALL = clients.Clients{}
-	clients.ALL.Init(consulAddr+consulPort, readyChan,
-		finishChan, configuration.Service)
+	clients.ALL.Init()
+	clients.ALL.AddChat(consulAddr+consulPort, finishChan)
 
 	utils.Debug(false, "✔✔✔✔")
 	utils.Debug(false, "4. Launch the game lobby")
 
-	engine.Launch(&configuration.Game, handler.GameDB(), photo.GetImages)
+	engine.Launch(&configuration.Game, handler.GameDB(configuration), photo.GetImages)
 	defer engine.GetLobby().Stop()
 
 	var (

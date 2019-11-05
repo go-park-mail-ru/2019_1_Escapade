@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -51,16 +50,9 @@ func main() {
 		return
 	}
 
-	var (
-		db *database.DataBase
-	)
-
-	if db, err = database.Init(configuration.DataBase); err != nil {
-		return
-	}
-	defer db.Db.Close()
-
-	service := chat.NewService(db.Db, mainPortInt)
+	var handler chat.Handler
+	handler.InitWithPostgreSQL(configuration)
+	defer handler.Close()
 
 	var (
 		serviceName = "chat"
@@ -102,7 +94,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	chat.RegisterChatServiceServer(grpcServer, service)
+	chat.RegisterChatServiceServer(grpcServer, &handler)
 
 	utils.Debug(false, "✔✔✔")
 	utils.Debug(false, "Service", serviceName, "with id:",
@@ -110,7 +102,6 @@ func main() {
 		configuration.Server.Host+mainPort)
 
 	server.LaunchGRPC(grpcServer, mainPort, func() {
-		service.Close()
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 	os.Exit(0)

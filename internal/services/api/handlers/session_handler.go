@@ -3,7 +3,9 @@ package handlers
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
@@ -17,7 +19,7 @@ type SessionHandler struct {
 	user database.UserUseCaseI
 }
 
-func (h *SessionHandler) Init(c *config.Configuration, DB database.DatabaseI,
+func (h *SessionHandler) Init(c *config.Configuration, DB idb.DatabaseI,
 	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
 	h.Handler.Init(c)
 

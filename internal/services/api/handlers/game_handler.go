@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -22,7 +23,7 @@ type GameHandler struct {
 	record database.RecordUseCaseI
 }
 
-func (h *GameHandler) Init(c *config.Configuration, DB database.DatabaseI,
+func (h *GameHandler) Init(c *config.Configuration, DB idb.DatabaseI,
 	recordDB database.RecordRepositoryI) error {
 	h.Handler.Init(c)
 

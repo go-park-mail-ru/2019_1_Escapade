@@ -63,6 +63,10 @@ func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int
 		err       error
 	)
 
+	// TODO delete it
+	if clients.ALL.Chat() == nil {
+		panic("clients.ALL.Chat() == nil ")
+	}
 	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
 
 	if err != nil {

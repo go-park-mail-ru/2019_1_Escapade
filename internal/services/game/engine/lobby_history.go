@@ -3,7 +3,7 @@ package engine
 import (
 	"github.com/gorilla/websocket"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"

@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -26,7 +28,7 @@ type UserHandler struct {
 	record database.RecordUseCaseI
 }
 
-func (h *UserHandler) Init(c *config.Configuration, DB database.DatabaseI,
+func (h *UserHandler) Init(c *config.Configuration, DB idb.DatabaseI,
 	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
 	h.Handler.Init(c)
 

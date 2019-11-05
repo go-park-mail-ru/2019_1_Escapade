@@ -1,13 +1,14 @@
 package database
 
 import (
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // RecordRepositoryPQ implements the interface RecordRepositoryI using the sql postgres driver
 type RecordRepositoryPQ struct{}
 
-func (db *RecordRepositoryPQ) create(tx transactionI, id int) error {
+func (db *RecordRepositoryPQ) create(tx idb.TransactionI, id int) error {
 	var err error
 	sqlInsert := `INSERT INTO Record(player_id, difficult) VALUES ($1, $2);`
 	difficultAmount := 4 // вынести в конфиг
@@ -20,8 +21,8 @@ func (db *RecordRepositoryPQ) create(tx transactionI, id int) error {
 	return err
 }
 
-func (db *RecordRepositoryPQ) update(tx transactionI,
-	id int32, record *models.Record) error {
+func (db *RecordRepositoryPQ) update(tx idb.TransactionI, id int32,
+	record *models.Record) error {
 
 	var (
 		sqlStatement string

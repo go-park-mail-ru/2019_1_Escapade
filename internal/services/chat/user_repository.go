@@ -1,19 +1,21 @@
 package chat
 
 import (
-	"database/sql"
 
 	//
 	_ "github.com/lib/pq"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
+
+type UserRepositoryPQ struct{}
 
 func addUserToQuery(user *User) string {
 	return "('" + utils.String32(user.Id) + "',$1)"
 }
 
-func (service *Service) insertUsers(tx *sql.Tx, chatID int32, users ...*User) error {
+func (db *UserRepositoryPQ) create(tx database.TransactionI, chatID int32, users ...*User) error {
 	var (
 		err error
 	)
@@ -35,7 +37,8 @@ func (service *Service) insertUsers(tx *sql.Tx, chatID int32, users ...*User) er
 	return err
 }
 
-func (service *Service) deleteUserInChat(userInGroup *UserInGroup) (*Result, error) {
+func (db *UserRepositoryPQ) delete(Db database.DatabaseI,
+	userInGroup *UserInGroup) (*Result, error) {
 
 	var (
 		id  int32
@@ -44,7 +47,7 @@ func (service *Service) deleteUserInChat(userInGroup *UserInGroup) (*Result, err
 	sqlDelete := `
 	Delete from UserInChat where user_id = $1 and chat_id = $2;
 		`
-	row := service.DB.QueryRow(sqlDelete, userInGroup.User.Id, userInGroup.Chat.Id)
+	row := Db.QueryRow(sqlDelete, userInGroup.User.Id, userInGroup.Chat.Id)
 
 	if err = row.Scan(&id); err != nil {
 		utils.Debug(true, "cant delete message", err.Error())

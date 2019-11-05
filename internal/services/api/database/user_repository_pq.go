@@ -3,6 +3,7 @@ package database
 import (
 	"math"
 
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -20,7 +21,7 @@ type UsersSelectParams struct {
 	Sort      string
 }
 
-func (db *UserRepositoryPQ) create(tx transactionI, user *models.UserPrivateInfo) (int, error) {
+func (db *UserRepositoryPQ) create(tx idb.TransactionI, user *models.UserPrivateInfo) (int, error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
 		($1, $2, $3, $4)
@@ -36,7 +37,7 @@ func (db *UserRepositoryPQ) create(tx transactionI, user *models.UserPrivateInfo
 }
 
 // deletePlayer delete all information about user
-func (db *UserRepositoryPQ) delete(tx transactionI, user *models.UserPrivateInfo) error {
+func (db *UserRepositoryPQ) delete(tx idb.TransactionI, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2
 	RETURNING ID
@@ -51,7 +52,7 @@ func (db *UserRepositoryPQ) delete(tx transactionI, user *models.UserPrivateInfo
 	return err
 }
 
-func (db *UserRepositoryPQ) updateNamePassword(tx transactionI, user *models.UserPrivateInfo) error {
+func (db *UserRepositoryPQ) updateNamePassword(tx idb.TransactionI, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -69,7 +70,7 @@ func (db *UserRepositoryPQ) updateNamePassword(tx transactionI, user *models.Use
 	return err
 }
 
-func (db *UserRepositoryPQ) checkNamePassword(tx transactionI, name string, password string) (int32, *models.UserPublicInfo, error) {
+func (db *UserRepositoryPQ) checkNamePassword(tx idb.TransactionI, name string, password string) (int32, *models.UserPublicInfo, error) {
 	var (
 		sqlStatement = `
 			SELECT pl.id, pl.name, r.score, r.time, r.difficult
@@ -87,7 +88,7 @@ func (db *UserRepositoryPQ) checkNamePassword(tx transactionI, name string, pass
 }
 
 // fetchNamePassword get player's personal info
-func (db *UserRepositoryPQ) fetchNamePassword(tx transactionI, userID int32) (*models.UserPrivateInfo, error) {
+func (db *UserRepositoryPQ) fetchNamePassword(tx idb.TransactionI, userID int32) (*models.UserPrivateInfo, error) {
 
 	sqlStatement := "SELECT name, password FROM Player where id = $1"
 
@@ -100,7 +101,7 @@ func (db *UserRepositoryPQ) fetchNamePassword(tx transactionI, userID int32) (*m
 }
 
 // updateLastSeen update users last date seen
-func (db *UserRepositoryPQ) updateLastSeen(tx transactionI, id int) error {
+func (db *UserRepositoryPQ) updateLastSeen(tx idb.TransactionI, id int) error {
 	var (
 		sqlStatement = `
 			UPDATE Player 
@@ -115,7 +116,7 @@ func (db *UserRepositoryPQ) updateLastSeen(tx transactionI, id int) error {
 
 // fetchAll returns information about users
 // for leaderboard
-func (db *UserRepositoryPQ) fetchAll(tx transactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error) {
+func (db *UserRepositoryPQ) fetchAll(tx idb.TransactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -154,7 +155,7 @@ func (db *UserRepositoryPQ) fetchAll(tx transactionI, params UsersSelectParams) 
 }
 
 // fetchOne returns information about user
-func (db *UserRepositoryPQ) fetchOne(tx transactionI, userID int32,
+func (db *UserRepositoryPQ) fetchOne(tx idb.TransactionI, userID int32,
 	difficult int) (*models.UserPublicInfo, error) {
 
 	sqlStatement := `
@@ -175,7 +176,7 @@ func (db *UserRepositoryPQ) fetchOne(tx transactionI, userID int32,
 	return player, err
 }
 
-func (db *UserRepositoryPQ) pagesCount(dbI DatabaseI, perPage int) (amount int, err error) {
+func (db *UserRepositoryPQ) pagesCount(dbI idb.DatabaseI, perPage int) (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := dbI.QueryRow(sqlStatement)
 	if err = row.Scan(&amount); err != nil {

@@ -41,7 +41,7 @@ func (db *PostgresSQL) Open(CDB config.Database) error {
 	return err
 }
 
-func (db *PostgresSQL) Begin() (transactionI, error) {
+func (db *PostgresSQL) Begin() (TransactionI, error) {
 	return db.Db.Begin()
 }
 

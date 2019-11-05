@@ -9,12 +9,15 @@ import (
 	//
 	_ "github.com/lib/pq"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-func (service *Service) insertMessage(message *Message) (*MessageID, error) {
+type MessageRepositoryPQ struct{}
+
+func (db *MessageRepositoryPQ) createOne(Db database.DatabaseI, message *Message) (*MessageID, error) {
 
 	var (
 		id              int32
@@ -45,21 +48,21 @@ func (service *Service) insertMessage(message *Message) (*MessageID, error) {
 	switch extraParameters {
 	case 0:
 		sqlInsert += `) returning id;`
-		row = service.DB.QueryRow(sqlInsert, message.Id, message.From.Id,
+		row = Db.QueryRow(sqlInsert, message.Id, message.From.Id,
 			message.From.Name, message.From.Status, message.ChatId,
 			message.Text, date)
 	case 1:
 		sqlInsert += `$8) returning id;`
-		row = service.DB.QueryRow(sqlInsert, message.Id, message.Answer.Id,
+		row = Db.QueryRow(sqlInsert, message.Id, message.Answer.Id,
 			message.From.Id, message.From.Name, message.From.Status,
 			message.ChatId, message.Text, date)
 	case 2:
-		row = service.DB.QueryRow(sqlInsert, message.Id, message.To.Id,
+		row = Db.QueryRow(sqlInsert, message.Id, message.To.Id,
 			message.To.Name, message.From.Id, message.From.Name,
 			message.From.Status, message.ChatId, message.Text, date)
 		sqlInsert += `$8, $9) returning id;`
 	case 3:
-		row = service.DB.QueryRow(sqlInsert, message.Id, message.Answer.Id,
+		row = Db.QueryRow(sqlInsert, message.Id, message.Answer.Id,
 			message.To.Id, message.To.Name, message.From.Id, message.From.Name,
 			message.From.Status, message.ChatId, message.Text, date)
 		sqlInsert += `$8, $9, $10) returning id;`
@@ -74,7 +77,7 @@ func (service *Service) insertMessage(message *Message) (*MessageID, error) {
 	return &MessageID{Value: id}, nil
 }
 
-func (service *Service) insertMessages(messages *Messages) (*MessagesID, error) {
+func (db *MessageRepositoryPQ) createMany(Db database.DatabaseI, messages *Messages) (*MessagesID, error) {
 
 	var err error
 	if len(messages.Messages) == 0 {
@@ -82,7 +85,7 @@ func (service *Service) insertMessages(messages *Messages) (*MessagesID, error) 
 	}
 	var ids = make([]*MessageID, len(messages.Messages))
 	for i, message := range messages.Messages {
-		ids[i], err = service.insertMessage(message)
+		ids[i], err = db.createOne(Db, message)
 		if err != nil {
 			break
 		}
@@ -91,7 +94,7 @@ func (service *Service) insertMessages(messages *Messages) (*MessagesID, error) 
 	return &MessagesID{Values: ids}, err
 }
 
-func (service *Service) updateMessage(message *Message) (*Result, error) {
+func (db *MessageRepositoryPQ) update(Db database.DatabaseI, message *Message) (*Result, error) {
 
 	var (
 		id  int32
@@ -101,7 +104,7 @@ func (service *Service) updateMessage(message *Message) (*Result, error) {
 	Update Message set message = $1, edited = true where id = $2 or (not_saved_id = $2 and sender_id = $3)
 		RETURNING ID;
 		`
-	row := service.DB.QueryRow(sqlUpdate, message.Text, message.Id, message.From.Id)
+	row := Db.QueryRow(sqlUpdate, message.Text, message.Id, message.From.Id)
 
 	if err = row.Scan(&id); err != nil {
 		utils.Debug(false, "sql statement:", sqlUpdate)
@@ -112,7 +115,7 @@ func (service *Service) updateMessage(message *Message) (*Result, error) {
 	return &Result{Done: true}, nil
 }
 
-func (service *Service) deleteMessage(message *Message) (*Result, error) {
+func (db *MessageRepositoryPQ) delete(Db database.DatabaseI, message *Message) (*Result, error) {
 
 	var (
 		id  int32
@@ -122,7 +125,7 @@ func (service *Service) deleteMessage(message *Message) (*Result, error) {
 	Delete from Message where id = $1 or (not_saved_id = $1 and sender_id = $2)
 	RETURNING ID;
 		`
-	row := service.DB.QueryRow(sqlDelete, message.Id, message.From.Id)
+	row := Db.QueryRow(sqlDelete, message.Id, message.From.Id)
 
 	if err = row.Scan(&id); err != nil {
 		utils.Debug(false, "sql statement:", sqlDelete)
@@ -133,7 +136,7 @@ func (service *Service) deleteMessage(message *Message) (*Result, error) {
 	return &Result{Done: true}, nil
 }
 
-func (service *Service) getChatMessages(chatID *ChatID) (*Messages, error) {
+func (db *MessageRepositoryPQ) getAll(Db database.DatabaseI, chatID *ChatID) (*Messages, error) {
 
 	var (
 		rows  *sql.Rows
@@ -151,7 +154,7 @@ func (service *Service) getChatMessages(chatID *ChatID) (*Messages, error) {
 		where M.chat_id = $1
 		ORDER BY M.ID ASC;
 		`
-	rows, err = service.DB.Query(sqlStatement, chatID.Value)
+	rows, err = Db.Query(sqlStatement, chatID.Value)
 	if err != nil {
 		return &Messages{}, err
 	}

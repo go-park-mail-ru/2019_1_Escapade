@@ -1,12 +1,13 @@
 package database
 
 import (
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // UserUseCase implements the interface UserUseCaseI
 type UserUseCase struct {
-	UseCaseBase
+	idb.UseCaseBase
 	user   UserRepositoryI
 	record RecordRepositoryI
 }
@@ -23,7 +24,7 @@ func (db *UserUseCase) CreateAccount(user *models.UserPrivateInfo) (int, error) 
 	var (
 		userID int
 		err    error
-		tx     transactionI
+		tx     idb.TransactionI
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
@@ -48,7 +49,7 @@ func (db *UserUseCase) CreateAccount(user *models.UserPrivateInfo) (int, error) 
 func (db *UserUseCase) EnterAccount(name, password string) (int32, error) {
 
 	var (
-		tx     transactionI
+		tx     idb.TransactionI
 		userID int32
 		err    error
 	)
@@ -71,7 +72,7 @@ func (db *UserUseCase) EnterAccount(name, password string) (int32, error) {
 func (db *UserUseCase) UpdateAccount(userID int32, user *models.UserPrivateInfo) error {
 	var (
 		confirmedUser *models.UserPrivateInfo
-		tx            transactionI
+		tx            idb.TransactionI
 		err           error
 	)
 
@@ -96,7 +97,7 @@ func (db *UserUseCase) UpdateAccount(userID int32, user *models.UserPrivateInfo)
 
 // DeleteAccount deletes account
 func (db *UserUseCase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
-	var tx transactionI
+	var tx idb.TransactionI
 
 	if tx, err = db.Db.Begin(); err != nil {
 		return
@@ -122,7 +123,7 @@ func (db *UserUseCase) FetchAll(difficult int, page int, perPage int,
 	var (
 		offset int
 		limit  int
-		tx     transactionI
+		tx     idb.TransactionI
 	)
 
 	if tx, err = db.Db.Begin(); err != nil {
@@ -160,7 +161,7 @@ func (db *UserUseCase) FetchAll(difficult int, page int, perPage int,
 
 // FetchOne get one user
 func (db *UserUseCase) FetchOne(userID int32, difficult int) (user *models.UserPublicInfo, err error) {
-	var tx transactionI
+	var tx idb.TransactionI
 
 	if tx, err = db.Db.Begin(); err != nil {
 		return

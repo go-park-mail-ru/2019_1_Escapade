@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 )
 
-// GameuseCasePQ implements the interface GameuseCaseI
+// GameUseCase implements the interface GameuseCaseI
 type GameUseCase struct {
-	UseCaseBase
+	idb.UseCaseBase
 	game GameRepositoryI
 }
 
@@ -21,7 +22,7 @@ func (db *GameUseCase) Init(game GameRepositoryI) {
 func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
 
 	var (
-		tx       transactionI
+		tx       idb.TransactionI
 		roomID   int32
 		pbChatID *chat.ChatID
 		err      error
@@ -51,7 +52,7 @@ func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
 // SaveGame save game to database
 func (db *GameUseCase) Save(info models.GameInformation) error {
 	var (
-		tx              transactionI
+		tx              idb.TransactionI
 		gameID, fieldID int32
 		err             error
 	)
@@ -97,7 +98,7 @@ func (db *GameUseCase) Save(info models.GameInformation) error {
 // GetGames get list of games
 func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, error) {
 	var (
-		tx    transactionI
+		tx    idb.TransactionI
 		URLs  []string
 		games []models.GameInformation
 		err   error
@@ -128,7 +129,7 @@ func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, er
 // GetGamesURL get games url
 func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 	var (
-		tx   transactionI
+		tx   idb.TransactionI
 		URLs []string
 		err  error
 	)
@@ -150,7 +151,7 @@ func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 // game, gamers, field, history of cells and actions
 func (db *GameUseCase) FetchOneGame(roomID string) (models.GameInformation, error) {
 	var (
-		tx              transactionI
+		tx              idb.TransactionI
 		gameInformation models.GameInformation
 		err             error
 	)

@@ -1,8 +1,10 @@
 package database
 
+import idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+
 // ImageUseCase implements the interface ImageUseCaseI
 type ImageUseCase struct {
-	UseCaseBase
+	idb.UseCaseBase
 	image ImageRepositoryI
 }
 

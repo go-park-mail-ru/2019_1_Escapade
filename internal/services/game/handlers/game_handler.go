@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
 
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
@@ -28,7 +29,7 @@ type GameHandler struct {
 func (h *GameHandler) InitWithPostgresql(c *config.Configuration) error {
 
 	var (
-		db     = &database.PostgresSQL{}
+		db     = &idb.PostgresSQL{}
 		user   = &database.UserRepositoryPQ{}
 		record = &database.RecordRepositoryPQ{}
 		game   = &database.GameRepositoryPQ{}
@@ -41,7 +42,7 @@ func (h *GameHandler) GameDB(c *config.Configuration) database.GameUseCaseI {
 }
 
 func (h *GameHandler) Init(c *config.Configuration,
-	DB database.DatabaseI,
+	DB idb.DatabaseI,
 	userDB database.UserRepositoryI,
 	recordDB database.RecordRepositoryI,
 	gameDB database.GameRepositoryI,
