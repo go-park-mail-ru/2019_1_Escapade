@@ -3,4 +3,5 @@ docs/*
 extra/*
 internal/models/models_easyjson.go
 internal/services/ery/*
+internal/services/game/engine/game_easyjson.go
 vendor/*
