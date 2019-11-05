@@ -2,11 +2,11 @@ package rerrors
 
 import "errors"
 
-// ErrorBattleAlreadyBegan return error, returns an error if
-// someone tries to perform an action that is valid before
-// the game starts, after it starts
-func ErrorBattleAlreadyBegan() error {
-	return errors.New("Action refused. Game also began")
+// ErrorWrongStatus return error, returns an error if
+// someone tries to perform an action that is valid not with current
+// room status
+func ErrorWrongStatus() error {
+	return errors.New("Action refused. Too late or too early to perform your action")
 }
 
 // ErrorCellOutside return error if the specified cel

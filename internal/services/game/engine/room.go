@@ -29,20 +29,20 @@ type ConnectionAction struct {
 
 // Room consist of players and observers, field and history
 type Room struct {
-	info             *RoomInformation
-	field            *RoomField
-	sync             *RoomSync
-	api              *RoomAPI
-	lobby            *RoomLobbyCommunication
-	models           *RoomModelsConverter
-	sender           *RoomSender
-	connEvents       *RoomConnectionEvents
-	people           *RoomPeople
-	events           *RoomEvents
-	record           *RoomRecorder
-	metrics          *RoomMetrics
-	messages         *RoomMessages
-	garbageCollector RoomGarbageCollectorI
+	info             RoomInformationI
+	field            FieldProxyI
+	sync             SyncI
+	api              APIStrategyI
+	lobby            LobbyProxyI
+	models           ModelsAdapterI
+	sender           SendStrategyI
+	connEvents       ConnectionEventsI
+	people           PeopleI
+	events           EventsI
+	record           ActionRecorderProxyI
+	metrics          MetricsStrategyI
+	messages         MessagesProxyI
+	garbageCollector GarbageCollectorI
 }
 
 // CharacteristicsCheck check room's characteristics are valid
@@ -132,63 +132,19 @@ func (room *Room) registerInDB(lobby *Lobby, game *models.Game, id string) (int3
 // Init init instance of room
 func (room *Room) configureAndStart(config *config.Field, lobby *Lobby,
 	rs *models.RoomSettings, id string, chatID, roomID int32) {
-	room.init()
-	room.configureDependencies(config, lobby, rs, id, chatID, roomID)
+	var (
+		// в конфиг
+		t = Timeouts{
+			timeoutPeopleFinding:   2.,
+			timeoutRunningPlayer:   60.,
+			timeoutRunningObserver: 5.,
+			timeoutFinished:        20.,
+		}
+		field      = NewField(rs, config)
+		components = &RoomBuilder{}
+	)
+	components.Build(room, field, lobby, rs, t, id, chatID, roomID)
 	go room.events.Run()
-}
-
-func (room *Room) init() {
-	room.sync = &RoomSync{}
-	room.info = &RoomInformation{}
-	room.api = &RoomAPI{}
-	room.lobby = &RoomLobbyCommunication{}
-	room.field = &RoomField{}
-	room.models = &RoomModelsConverter{}
-	room.sender = &RoomSender{}
-	room.people = &RoomPeople{}
-	room.connEvents = &RoomConnectionEvents{}
-	room.events = &RoomEvents{}
-	room.metrics = &RoomMetrics{}
-	room.record = &RoomRecorder{}
-	room.messages = &RoomMessages{}
-	room.garbageCollector = &RoomGarbageCollector{}
-}
-
-func (room *Room) configureDependencies(config *config.Field, lobby *Lobby,
-	rs *models.RoomSettings, id string, chatID, roomID int32) {
-	field := NewField(rs, config)
-	room.sync.Init(room)
-	room.info.Init(rs, id, roomID)
-	room.api.Init(room.sync, room.messages, room.connEvents, room.sender,
-		room.events, room.info)
-	room.lobby.Init(room, room.sync, room.info, lobby)
-	room.field.Init(room.sync, room.record, room.sender, room.events,
-		room.people, field, rs.Deathmatch)
-	room.models.Init(room.sync, room.info, room.lobby, room.events,
-		room.messages, room.people, room.record, room.field)
-	room.sender.Init(room.sync, room.events, room.people, room.connEvents,
-		room.info, room.models)
-	room.people.Init(room.sync, room.connEvents, room.events, room.info,
-		room.lobby, room.field, room.record, rs.Players, rs.Observers)
-	room.connEvents.Init(room.sync, room.lobby, room.record, room.sender,
-		room.info, room.events, room.people)
-	room.events.Init(room.sync, room.info, room.lobby, room.people, room.field,
-		room.garbageCollector, room.models, room.metrics, room.messages,
-		room.record, room.sender)
-	room.metrics.Init(room, room.sync, room.events, room.field, room.info)
-	room.record.Init(room.sync, room.info, room.lobby, room.people,
-		room.field, room.sender)
-	room.messages.Init(room.sync, room.info, room.lobby, room.sender, chatID)
-
-	// в конфиг
-	t := Timeouts{
-		timeoutPeopleFinding:   2.,
-		timeoutRunningPlayer:   60.,
-		timeoutRunningObserver: 5.,
-		timeoutFinished:        20.,
-	}
-	room.garbageCollector.Init(room.sync, room.events, room.people,
-		room.connEvents, t)
 }
 
 /* Examples of json

@@ -86,7 +86,7 @@ func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int
 }
 
 func HandleMessage(conn *Connection,
-	message *models.Message, handler MessagesHandlerI) error {
+	message *models.Message, handler MessagesProxyI) error {
 	handler.Fix(message, conn)
 	msg, err := handler.Proto(message)
 	if err != nil {
@@ -177,12 +177,12 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		if room != nil {
 			lobby.AddNotSavedMessage(&MessageWithAction{
 				message, msg, action, func() (int32, error) {
-					if room.messages.dbChatID != 0 {
-						return room.messages.dbChatID, nil
+					if room.messages.ChatID() != 0 {
+						return room.messages.ChatID(), nil
 					}
-					id, err := GetChatID(chat.ChatType_ROOM, room.info.dbRoomID)
+					id, err := GetChatID(chat.ChatType_ROOM, room.info.RoomID())
 					if err != nil {
-						room.messages.dbChatID = id
+						room.messages.setChatID(id)
 					}
 					return id, err
 				}})

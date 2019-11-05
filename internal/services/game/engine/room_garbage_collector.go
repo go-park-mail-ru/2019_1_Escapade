@@ -4,12 +4,13 @@ import (
 	"time"
 )
 
-type RoomGarbageCollectorI interface {
-	Init(s SyncI, e *RoomEvents, p *RoomPeople, c *RoomConnectionEvents,
-		timeouts Timeouts)
+// GarbageCollectorI handle deleting connections, when they are disconnected
+// Strategy Pattern
+type GarbageCollectorI interface {
 	Run()
 }
 
+// Timeouts contains the timeouts required for the garbage collector to run
 type Timeouts struct {
 	timeoutPeopleFinding   float64
 	timeoutRunningPlayer   float64
@@ -17,23 +18,25 @@ type Timeouts struct {
 	timeoutFinished        float64
 }
 
+// RoomGarbageCollector implements GarbageCollectorI
 type RoomGarbageCollector struct {
 	s SyncI
-	e *RoomEvents
-	p *RoomPeople
-	c *RoomConnectionEvents
+	e EventsI
+	p PeopleI
+	c ConnectionEventsI
 
 	tPlayer   float64
 	tObserver float64
 	t         Timeouts
 }
 
-func (room *RoomGarbageCollector) Init(s SyncI, e *RoomEvents,
-	p *RoomPeople, c *RoomConnectionEvents, timeouts Timeouts) {
-	room.s = s
-	room.e = e
-	room.p = p
-	room.c = c
+// Init configure dependencies with other components of the room
+func (room *RoomGarbageCollector) Init(builder ComponentBuilderI, timeouts Timeouts) {
+	builder.BuildSync(&room.s)
+	builder.BuildEvents(&room.e)
+	builder.BuildPeople(&room.p)
+	builder.BuildRoomConnectionEvents(&room.c)
+
 	room.t = timeouts
 }
 

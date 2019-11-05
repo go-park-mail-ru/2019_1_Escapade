@@ -4,21 +4,51 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+// EventsI handle events in the game process
+// Strategy Pattern
+type EventsI interface {
+	OpenCell(conn *Connection, cell *Cell)
+
+	IsActive() bool
+	Status() int
+
+	Restart(conn *Connection) error
+	Next() *Room
+
+	prepareOver()
+	RecruitingOver()
+
+	tryFinish()
+	tryClose()
+
+	configure(status int, date time.Time)
+
+	Free()
+	Run()
+
+	playingTime() time.Duration
+	recruitmentTime() time.Duration
+
+	Date() time.Time
+}
+
+// RoomEvents implements EventsI
 type RoomEvents struct {
 	s   SyncI
-	i   *RoomInformation
-	l   RoomLobbyCommunicationI
-	p   *RoomPeople
-	f   *RoomField
-	g   RoomGarbageCollectorI
-	mo  *RoomModelsConverter
-	met *RoomMetrics
-	mes *RoomMessages
-	re  *RoomRecorder
-	se  *RoomSender
+	i   RoomInformationI
+	l   LobbyProxyI
+	p   PeopleI
+	f   FieldProxyI
+	g   GarbageCollectorI
+	mo  ModelsAdapterI
+	met MetricsStrategyI
+	mes MessagesProxyI
+	re  ActionRecorderProxyI
+	se  SendStrategyI
 
 	play    *time.Timer
 	prepare *time.Timer
@@ -38,23 +68,29 @@ type RoomEvents struct {
 	statusM    *sync.RWMutex
 	_status    int
 	chanStatus chan int
+
+	isDeathmatch  bool
+	TimeToPlay    time.Duration
+	TimeToPrepare time.Duration
 }
 
-func (room *RoomEvents) Init(s SyncI, i *RoomInformation,
-	l RoomLobbyCommunicationI, p *RoomPeople, f *RoomField,
-	g RoomGarbageCollectorI, mo *RoomModelsConverter, met *RoomMetrics,
-	mes *RoomMessages, re *RoomRecorder, se *RoomSender) {
-	room.s = s
-	room.i = i
-	room.l = l
-	room.p = p
-	room.f = f
-	room.g = g
-	room.mo = mo
-	room.met = met
-	room.mes = mes
-	room.re = re
-	room.se = se
+// Init configure dependencies with other components of the room
+func (room *RoomEvents) Init(builder ComponentBuilderI, settings *models.RoomSettings) {
+	builder.BuildSync(&room.s)
+	builder.BuildInformation(&room.i)
+	builder.BuildLobby(&room.l)
+	builder.BuildPeople(&room.p)
+	builder.BuildField(&room.f)
+	builder.BuildGarbageCollector(&room.g)
+	builder.BuildModelsAdapter(&room.mo)
+	builder.BuildMetrics(&room.met)
+	builder.BuildMessages(&room.mes)
+	builder.BuildRecorder(&room.re)
+	builder.BuildSender(&room.se)
+
+	room.isDeathmatch = settings.Deathmatch
+	room.TimeToPlay = time.Second * time.Duration(settings.TimeToPlay)
+	room.TimeToPrepare = time.Second * time.Duration(settings.TimeToPrepare)
 
 	room.statusM = &sync.RWMutex{}
 
@@ -79,14 +115,14 @@ func (room *RoomEvents) initTimers(first bool) {
 		room.prepare = time.NewTimer(time.Millisecond)
 		room.play = time.NewTimer(time.Millisecond)
 	} else {
-		if room.i.Settings.Deathmatch {
+		if room.isDeathmatch {
 			room.prepare.Reset(time.Second *
-				time.Duration(room.i.Settings.TimeToPrepare))
+				time.Duration(room.TimeToPrepare))
 		} else {
 			room.prepare.Reset(time.Millisecond)
 		}
 		room.play.Reset(time.Second *
-			time.Duration(room.i.Settings.TimeToPlay))
+			time.Duration(room.TimeToPlay))
 	}
 	return
 }
@@ -94,7 +130,7 @@ func (room *RoomEvents) initTimers(first bool) {
 func (room *RoomEvents) RecruitingOver() {
 	room.initTimers(false)
 	if room.updateStatus(StatusFlagPlacing) {
-		if room.i.Settings.Deathmatch {
+		if room.isDeathmatch {
 			go room.se.StatusToAll(room.se.All, StatusFlagPlacing, nil)
 		}
 	}
@@ -108,7 +144,7 @@ func (room *RoomEvents) prepareOver() {
 }
 
 func (room *RoomEvents) tryFinish() {
-	if room.p.AllKilled() {
+	if room.p.AllKilled() || room.f.IsCleared() {
 		room.playingOver()
 	}
 }
@@ -144,9 +180,7 @@ func (room *RoomEvents) StartFlagPlacing() {
 			room.l.WaiterToPlayer(c)
 		})
 
-		room.f.Fill(room.p.Players.m.Flags())
-		room.p.Players.Init()
-
+		room.p.Start()
 		room.l.Start()
 
 		go room.se.StatusToAll(room.se.All, StatusFlagPlacing, nil)
@@ -169,7 +203,7 @@ func (room *RoomEvents) StartGame() {
 		//open := float64(room.r.Settings.Mines) / float64(s) * float64(100)
 		//utils.Debug(false, "opennn", open, room.Settings.Width*room.Settings.Height)
 
-		cells := room.f.Field.OpenZero() //room.Field.OpenSave(int(open))
+		cells := room.f.OpenZero() //room.Field.OpenSave(int(open))
 		go room.se.NewCells(cells...)
 		room.setStatus(StatusRunning)
 		room.setDate(room.l.Date())
@@ -187,7 +221,7 @@ func (room *RoomEvents) FinishGame(timer bool) {
 		saveAndSendGroup := &sync.WaitGroup{}
 
 		cells := make([]Cell, 0)
-		room.f.Field.OpenEverything(cells)
+		room.f.OpenEverything(cells)
 
 		saveAndSendGroup.Add(1)
 		go room.se.GameOver(timer, room.se.All, cells, saveAndSendGroup)
@@ -196,7 +230,7 @@ func (room *RoomEvents) FinishGame(timer bool) {
 		go room.mo.Save(saveAndSendGroup)
 
 		saveAndSendGroup.Add(1)
-		go room.p.Players.m.Finish(saveAndSendGroup)
+		go room.p.Finish(saveAndSendGroup)
 		saveAndSendGroup.Wait()
 
 		go room.met.Observe(room.l.metricsEnabled(), false)
@@ -339,6 +373,11 @@ func (room *RoomEvents) Free() {
 
 		close(room.chanStatus)
 	})
+}
+
+func (room *RoomEvents) configure(status int, date time.Time) {
+	room.setStatus(status)
+	room.setDate(date)
 }
 
 ////////////////////////////////////////////////////////// mutex

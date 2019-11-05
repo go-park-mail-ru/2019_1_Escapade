@@ -7,23 +7,54 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-type RoomSender struct {
-	s SyncI
-	e *RoomEvents
-	p *RoomPeople
-	c *RoomConnectionEvents
-	i *RoomInformation
-	m *RoomModelsConverter
+// SendStrategyI handle controls the distribution of responses to clients
+// Strategy Pattern
+type SendStrategyI interface {
+	Room(conn *Connection)
+
+	ObserverExit(conn *Connection)
+	PlayerExit(conn *Connection)
+	PlayerEnter(conn *Connection)
+	ObserverEnter(conn *Connection)
+	StatusToOne(conn *Connection)
+
+	GameOver(timer bool, predicate SendPredicate, cells []Cell, wg *sync.WaitGroup)
+
+	NewCells(cells ...Cell)
+	Text(text string, predicate SendPredicate)
+	Field(predicate SendPredicate)
+
+	FailFlagSet(conn *Connection, cell *Cell, err error)
+	RandomFlagSet(conn *Connection, cell *Cell)
+
+	PlayerPoints(player Player)
+
+	Message(message models.Message)
+	Action(pa PlayerAction, predicate SendPredicate)
+
+	All(conn *Connection) bool
+	AllExceptThat(me *Connection) func(*Connection) bool
+	StatusToAll(predicate SendPredicate, status int, wg *sync.WaitGroup)
 }
 
-func (room *RoomSender) Init(s SyncI, e *RoomEvents, p *RoomPeople,
-	c *RoomConnectionEvents, i *RoomInformation, m *RoomModelsConverter) {
-	room.s = s
-	room.e = e
-	room.p = p
-	room.c = c
-	room.i = i
-	room.m = m
+// RoomSender implements SendStrategyI
+type RoomSender struct {
+	s SyncI
+	e EventsI
+	p PeopleI
+	c ConnectionEventsI
+	i RoomInformationI
+	m ModelsAdapterI
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomSender) Init(builder ComponentBuilderI) {
+	builder.BuildSync(&room.s)
+	builder.BuildEvents(&room.e)
+	builder.BuildPeople(&room.p)
+	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildInformation(&room.i)
+	builder.BuildModelsAdapter(&room.m)
 }
 
 func (room *RoomSender) sendAll(info handlers.JSONtype, predicate SendPredicate) {
@@ -150,25 +181,24 @@ func (room *RoomSender) Error(err error, conn *Connection) {
 }
 
 // FailFlagSet is called when room cant set flag
-func (room *RoomSender) FailFlagSet(conn *Connection, value interface{},
-	err error) {
+func (room *RoomSender) FailFlagSet(conn *Connection, cell *Cell, err error) {
 	room.s.doWithConn(conn, func() {
 		response := models.Response{
 			Type:    "FailFlagSet",
 			Message: err.Error(),
-			Value:   value,
+			Value:   cell,
 		}
 		conn.SendInformation(&response)
 	})
 }
 
 // RandomFlagSet is called when any player set his flag at the same as any other
-func (room *RoomSender) RandomFlagSet(conn *Connection, value interface{}) {
+func (room *RoomSender) RandomFlagSet(conn *Connection, cell *Cell) {
 	room.s.doWithConn(conn, func() {
 		response := models.Response{
 			Type:    "ChangeFlagSet",
 			Message: "The cell you have selected is chosen by another person.",
-			Value:   value,
+			Value:   cell,
 		}
 		conn.SendInformation(&response)
 	})

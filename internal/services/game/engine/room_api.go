@@ -4,27 +4,33 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
+// APIStrategyI handle client requests to room
+// Strategy Pattern
+type APIStrategyI interface {
+	Handle(conn *Connection, rr *RoomRequest)
+}
+
+// RoomAPI implement APIStrategyI
 type RoomAPI struct {
 	s  SyncI
-	m  *RoomMessages
-	ce *RoomConnectionEvents
-	e  *RoomEvents
-	se *RoomSender
-	i  *RoomInformation
+	m  MessagesProxyI
+	c  ConnectionEventsI
+	e  EventsI
+	se SendStrategyI
+	i  RoomInformationI
 }
 
-func (room *RoomAPI) Init(s SyncI,
-	m *RoomMessages, ce *RoomConnectionEvents,
-	se *RoomSender, e *RoomEvents, i *RoomInformation) {
-	room.s = s
-	room.m = m
-	room.ce = ce
-	room.se = se
-	room.e = e
-	room.i = i
+// Init configure dependencies with other components of the room
+func (room *RoomAPI) Init(builder ComponentBuilderI) {
+	builder.BuildSync(&room.s)
+	builder.BuildMessages(&room.m)
+	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildEvents(&room.e)
+	builder.BuildSender(&room.se)
+	builder.BuildInformation(&room.i)
 }
 
-// HandleRequest processes the request came from the user
+// Handle processes the request came from the user
 func (room *RoomAPI) Handle(conn *Connection, rr *RoomRequest) {
 	go room.s.do(func() {
 		if rr.IsGet() {
@@ -58,38 +64,41 @@ func (room *RoomAPI) handleSent(conn *Connection, request *RoomSend) {
 	}
 }
 
+// GetRoom handle "GET /room", return all room information
 func (room *RoomAPI) GetRoom(conn *Connection) {
 	room.s.doWithConn(conn, func() {
 		room.se.Room(conn)
 	})
 }
 
+// GetMessages handle "GET /messages", return all room messages
 func (room *RoomAPI) GetMessages(conn *Connection, settings *models.Messages) {
 	room.s.doWithConn(conn, func() {
 		Messages(conn, settings, room.m.Messages())
 	})
 }
 
-// CellHandle processes the Cell came from the user
+// PostCell  handle "POST /cell" processes the Cell came from the user
 func (room *RoomAPI) PostCell(conn *Connection, cell *Cell) {
 	room.s.doWithConn(conn, func() {
 		room.e.OpenCell(conn, cell)
 	})
 }
 
+// PostAction handle "POST /action" processes the Cell came from the user
 func (room *RoomAPI) PostAction(conn *Connection, action int) {
 	room.s.doWithConn(conn, func() {
 		switch action {
 		case ActionBackToLobby:
-			room.ce.Leave(conn)
+			room.c.Leave(conn)
 		case ActionDisconnect:
-			room.ce.Disconnect(conn)
+			room.c.Disconnect(conn)
 		case ActionReconnect:
-			room.ce.Reconnect(conn)
+			room.c.Reconnect(conn)
 		case ActionGiveUp:
-			room.ce.GiveUp(conn)
+			room.c.GiveUp(conn)
 		case ActionRestart:
-			room.ce.Restart(conn)
+			room.c.Restart(conn)
 		}
 	})
 }

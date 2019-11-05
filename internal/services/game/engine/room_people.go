@@ -1,16 +1,57 @@
 package engine
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+)
+
+type PeopleI interface {
+	Connections() []*Connections
+
+	Remove(conn *Connection)
+	add(conn *Connection, isPlayer bool, needRecover bool) bool
+	Search(find *Connection) (*Connection, bool)
+
+	isAlive(conn *Connection) bool
+	SetFinished(conn *Connection)
+
+	ForEach(action func(c *Connection, isPlayer bool))
+
+	players() *OnlinePlayers
+	observers() *Connections
+
+	Start()
+	Finish(group *sync.WaitGroup)
+
+	AllKilled() bool
+	Empty() bool
+
+	Flag(index int) Flag
+
+	getPlayer(conn *Connection) Player
+	PlayersSlice() []Player
+
+	IsWinner(index int) bool
+	Winners() []int
+
+	configure(info models.GameInformation)
+
+	setFlag(conn *Connection, cell Cell)
+	OpenCell(conn *Connection, cell *Cell)
+
+	flagExists(cell Cell, this *Connection) (bool, *Connection)
+
+	Free()
+}
 
 type RoomPeople struct {
-	//r  *Room
 	s  SyncI
-	c  *RoomConnectionEvents
-	e  *RoomEvents
-	i  *RoomInformation
-	l  RoomLobbyCommunicationI
-	f  *RoomField
-	re *RoomRecorder
+	c  ConnectionEventsI
+	e  EventsI
+	l  LobbyProxyI
+	f  FieldProxyI
+	re ActionRecorderProxyI
 
 	pointsPerCellK float64
 	winners        []int
@@ -24,31 +65,55 @@ type RoomPeople struct {
 	_killed   int32 //amount of killed users
 }
 
-func (room *RoomPeople) Init(s SyncI, c *RoomConnectionEvents,
-	e *RoomEvents, i *RoomInformation, l RoomLobbyCommunicationI,
-	f *RoomField, re *RoomRecorder,
-	players, observers int32) {
-	room.s = s
-	room.c = c
-	room.e = e
-	room.i = i
-	room.l = l
-	room.f = f
-	room.re = re
+func (room *RoomPeople) Init(builder ComponentBuilderI, rs *models.RoomSettings) {
+	builder.BuildSync(&room.s)
+	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildEvents(&room.e)
+	builder.BuildLobby(&room.l)
+	builder.BuildField(&room.f)
+	builder.BuildRecorder(&room.re)
 
-	sq := i.Settings.Width * i.Settings.Height
+	sq := rs.Width * rs.Height
 	room.pointsPerCellK = 1000 / float64(sq)
 
 	room.winners = nil
 	room.setKilled(0)
 	room.killedM = &sync.RWMutex{}
-	room.Players = newOnlinePlayers(players)
-	room.Observers = NewConnections(observers)
+	room.Players = newOnlinePlayers(rs.Players)
+	room.Observers = NewConnections(rs.Observers)
 }
 
 func (room *RoomPeople) Free() {
 	go room.Players.Free()
 	go room.Observers.Free()
+}
+
+func (room *RoomPeople) Start() {
+	room.s.do(func() {
+		room.f.Fill(room.Players.m.Flags())
+		room.Players.Init()
+	})
+}
+
+func (room *RoomPeople) Finish(group *sync.WaitGroup) {
+	room.s.do(func() {
+		room.Players.m.Finish(group)
+	})
+}
+
+func (room *RoomPeople) configure(info models.GameInformation) {
+	room.s.do(func() {
+		room.setKilled(info.Game.Settings.Players)
+		room.Players = newOnlinePlayers(info.Game.Settings.Players)
+		for i, gamer := range info.Gamers {
+			room.Players.m.SetPlayer(i, Player{
+				ID:       gamer.ID,
+				Points:   gamer.Score,
+				Died:     gamer.Explosion,
+				Finished: true,
+			})
+		}
+	})
 }
 
 /* use ApplyActionToAll with func() instead of LeaveAll
@@ -70,8 +135,20 @@ func (room *RoomPeople) Flag(index int) Flag {
 	return room.Players.m.Flag(index)
 }
 
+func (room *RoomPeople) setFlag(conn *Connection, cell Cell) {
+	room.Players.m.SetFlag(conn, cell, room.e.prepareOver)
+}
+
 func (room *RoomPeople) PlayersSlice() []Player {
 	return room.Players.m.RPlayers()
+}
+
+func (room *RoomPeople) players() *OnlinePlayers {
+	return room.Players
+}
+
+func (room *RoomPeople) observers() *Connections {
+	return room.Observers
 }
 
 func (room *RoomPeople) ForEach(action func(c *Connection, isPlayer bool)) {
@@ -275,7 +352,7 @@ func (room *RoomPeople) add(conn *Connection, isPlayer bool, needRecover bool) b
 		if !result {
 			return
 		}
-		room.c.re.AddConnection(conn, isPlayer, needRecover)
+		room.re.AddConnection(conn, isPlayer, needRecover)
 	})
 	return result
 }
@@ -325,6 +402,10 @@ func (room *RoomPeople) isAlive(conn *Connection) bool {
 	return index >= 0 && !room.Players.m.Player(index).Finished
 }
 
+func (room *RoomPeople) getPlayer(conn *Connection) Player {
+	return room.Players.m.Player(conn.Index())
+}
+
 func (room *RoomPeople) flagExists(cell Cell, this *Connection) (bool, *Connection) {
 	var (
 		player int
@@ -345,4 +426,11 @@ func (room *RoomPeople) flagExists(cell Cell, this *Connection) (bool, *Connecti
 	}
 	conn := room.Players.Connections.SearchByIndex(player)
 	return found, conn
+}
+
+func (room *RoomPeople) Remove(conn *Connection) {
+	room.s.do(func() {
+		room.Players.Connections.Remove(conn)
+		room.Observers.Remove(conn)
+	})
 }

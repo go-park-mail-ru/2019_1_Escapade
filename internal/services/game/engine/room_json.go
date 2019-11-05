@@ -36,11 +36,10 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	room.info.setName(temp.Name)
-	room.events.setStatus(temp.Status)
+	room.events.configure(temp.Status, temp.Date)
 	room.record.setHistory(temp.History)
 	room.messages.setMessages(temp.Messages)
-	room.events.setDate(temp.Date)
-	room.info.Settings = temp.Settings
+	room.info.setSettings(temp.Settings)
 
 	return nil
 }

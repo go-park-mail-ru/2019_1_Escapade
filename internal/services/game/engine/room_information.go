@@ -7,6 +7,22 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+// RoomInformationI contains the meta information about room
+// Memento pattern
+type RoomInformationI interface {
+	setName(name string)
+	Name() string
+
+	setID(id string)
+	ID() string
+
+	Settings() *models.RoomSettings
+	setSettings(rs *models.RoomSettings)
+
+	RoomID() int32
+}
+
+// RoomInformation implement RoomInformationI
 type RoomInformation struct {
 	dbRoomID int32
 
@@ -16,7 +32,7 @@ type RoomInformation struct {
 	nameM *sync.RWMutex
 	_name string
 
-	Settings *models.RoomSettings
+	settings *models.RoomSettings
 }
 
 // Init set Room and RoomNotifier pointers
@@ -25,7 +41,7 @@ func (room *RoomInformation) Init(rs *models.RoomSettings, id string,
 	room.nameM = &sync.RWMutex{}
 	room._name = rs.Name
 
-	room.Settings = rs
+	room.settings = rs
 
 	room.idM = &sync.RWMutex{}
 	room._id = id
@@ -33,6 +49,18 @@ func (room *RoomInformation) Init(rs *models.RoomSettings, id string,
 	room.dbRoomID = dbRoomID
 
 	room.setID(utils.RandomString(16))
+}
+
+func (room *RoomInformation) Settings() *models.RoomSettings {
+	return room.settings
+}
+
+func (room *RoomInformation) setSettings(rs *models.RoomSettings) {
+	room.settings = rs
+}
+
+func (room *RoomInformation) RoomID() int32 {
+	return room.RoomID()
 }
 
 ////////////////////////// mutex

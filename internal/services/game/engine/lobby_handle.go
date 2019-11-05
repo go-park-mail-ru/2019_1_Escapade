@@ -74,11 +74,11 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 		}
 	}
 	if conn.PlayingRoom() != nil {
-		conn.PlayingRoom().api.PostAction(conn, ActionDisconnect)
+		conn.PlayingRoom().connEvents.Disconnect(conn)
 		// dont delete from lobby, because player not in lobby
 		return
 	} else if conn.WaitingRoom() != nil {
-		conn.PlayingRoom().api.PostAction(conn, ActionDisconnect)
+		conn.PlayingRoom().connEvents.Disconnect(conn)
 		// continue, because player in lobby
 	}
 
@@ -171,7 +171,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
 	for freeRoomsIterator.Next() {
 		freeRoom := freeRoomsIterator.Value()
-		if freeRoom.info.Settings.Similar(rs) && freeRoom.people.add(conn, true, false) {
+		if freeRoom.info.Settings().Similar(rs) && freeRoom.people.add(conn, true, false) {
 			return
 		}
 	}

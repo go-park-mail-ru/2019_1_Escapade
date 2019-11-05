@@ -7,6 +7,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
+// SyncI controls the launch of funcs and resource cleanup
+// Strategy Pattern
 type SyncI interface {
 	do(f func())
 	doAndFree(clear func())
@@ -15,16 +17,15 @@ type SyncI interface {
 	done() bool
 }
 
+// RoomSync implements SyncI
 type RoomSync struct {
-	r      *Room
 	wGroup *sync.WaitGroup
 
 	doneM *sync.RWMutex
 	_done bool
 }
 
-func (room *RoomSync) Init(r *Room) {
-	room.r = r
+func (room *RoomSync) Init() {
 	room.wGroup = &sync.WaitGroup{}
 	room._done = false
 	room.doneM = &sync.RWMutex{}

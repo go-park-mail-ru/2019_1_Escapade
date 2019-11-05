@@ -6,28 +6,52 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-// RoomNotifier notify actions to room history and to users
+// ActionRecorderProxyI control access to actions history
+// Proxy Pattern
+type ActionRecorderProxyI interface {
+	Restart(conn *Connection)
+	Disconnect(conn *Connection)
+	FlagСonflict(conn *Connection)
+	FlagSet(conn *Connection)
+	Leave(conn *Connection, action int32, isPlayer bool)
+
+	ModelActions() []models.Action
+	history() []*PlayerAction
+
+	AddConnection(conn *Connection, isPlayer bool, needRecover bool)
+	setHistory(history []*PlayerAction)
+
+	Kill(conn *Connection, action int32, isDeathmatch bool)
+
+	configure(info []models.Action)
+
+	Free()
+}
+
+// RoomRecorder notify actions to room history and to users
+// implements ActionRecorderProxyI
 type RoomRecorder struct {
-	//r  *Room
 	s  SyncI
-	i  *RoomInformation
-	l  RoomLobbyCommunicationI
-	p  *RoomPeople
-	f  *RoomField
-	se *RoomSender
+	i  RoomInformationI
+	l  LobbyProxyI
+	p  PeopleI
+	f  FieldProxyI
+	se SendStrategyI
+	mo ModelsAdapterI
 
 	historyM *sync.RWMutex
 	_history []*PlayerAction
 }
 
-func (room *RoomRecorder) Init(s SyncI, i *RoomInformation,
-	l RoomLobbyCommunicationI, p *RoomPeople, f *RoomField, se *RoomSender) {
-	room.s = s
-	room.i = i
-	room.l = l
-	room.p = p
-	room.f = f
-	room.se = se
+func (room *RoomRecorder) Init(builder ComponentBuilderI) {
+	builder.BuildSync(&room.s)
+	builder.BuildInformation(&room.i)
+	builder.BuildLobby(&room.l)
+	builder.BuildPeople(&room.p)
+	builder.BuildField(&room.f)
+	builder.BuildSender(&room.se)
+	builder.BuildModelsAdapter(&room.mo)
+
 	room.historyM = &sync.RWMutex{}
 	room.setHistory(make([]*PlayerAction, 0))
 }
@@ -37,7 +61,12 @@ func (room *RoomRecorder) Free() {
 }
 
 // LeaveMeta update metainformation about user leaving room
-func (room *RoomRecorder) Leave(conn *Connection, action int32) {
+func (room *RoomRecorder) Leave(conn *Connection, action int32, isPlayer bool) {
+	if isPlayer {
+		room.se.PlayerExit(conn)
+	} else {
+		room.se.ObserverExit(conn)
+	}
 	room.notifyAll(conn, action)
 }
 
@@ -54,9 +83,8 @@ func (room *RoomRecorder) Restart(conn *Connection) {
 }
 
 func (room *RoomRecorder) flag(conn *Connection) {
-	cell := room.p.Players.m.Flag(conn.Index())
-	cells := make([]Cell, 0)
-	room.f.Field.saveCell(&cell.Cell, cells)
+	cell := room.p.Flag(conn.Index())
+	room.f.saveCell(&cell.Cell)
 	go room.se.NewCells(cell.Cell)
 }
 
@@ -75,11 +103,7 @@ func (room *RoomRecorder) ModelActions() []models.Action {
 	actions := make([]models.Action, 0)
 	room.s.do(func() {
 		for _, actionHistory := range history {
-			action := models.Action{
-				PlayerID: actionHistory.Player,
-				ActionID: actionHistory.Action,
-				Date:     actionHistory.Time,
-			}
+			action := room.mo.toModelPlayerAction(actionHistory)
 			actions = append(actions, action)
 		}
 	})
@@ -125,6 +149,14 @@ func (room *RoomRecorder) notifyAll(conn *Connection, action int32) {
 			go room.l.Notify()
 		}
 	})
+}
+
+func (room *RoomRecorder) configure(info []models.Action) {
+	room.setHistory(make([]*PlayerAction, 0))
+	for _, actionDB := range info {
+		action := room.mo.fromModelPlayerAction(actionDB)
+		room.appendAction(action)
+	}
 }
 
 /////////////////////////////// mutex

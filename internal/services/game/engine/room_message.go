@@ -13,7 +13,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 )
 
-type MessagesHandlerI interface {
+// MessagesProxyI control access to messages
+// Proxy Pattern
+type MessagesProxyI interface {
 	Fix(message *models.Message, conn *Connection)
 	Proto(message *models.Message) (*chat.Message, error)
 
@@ -23,8 +25,17 @@ type MessagesHandlerI interface {
 
 	Send(message *models.Message)
 	HandleError(message *models.Message, send *chat.Message)
+
+	setMessages(messages []*models.Message)
+	Messages() []*models.Message
+
+	ChatID() int32
+	setChatID(id int32)
+
+	Free()
 }
 
+// RoomMessages implements MessagesProxyI
 type RoomMessages struct {
 	dbChatID int32
 
@@ -32,17 +43,18 @@ type RoomMessages struct {
 	_messages []*models.Message
 
 	s  SyncI
-	i  *RoomInformation
-	l  RoomLobbyCommunicationI
-	se *RoomSender
+	i  RoomInformationI
+	l  LobbyProxyI
+	se SendStrategyI
 }
 
-func (room *RoomMessages) Init(s SyncI, i *RoomInformation,
-	l RoomLobbyCommunicationI, se *RoomSender, chatID int32) {
-	room.i = i
-	room.l = l
-	room.s = s
-	room.se = se
+// Init configure dependencies with other components of the room
+func (room *RoomMessages) Init(builder ComponentBuilderI, chatID int32) {
+	builder.BuildInformation(&room.i)
+	builder.BuildLobby(&room.l)
+	builder.BuildSync(&room.s)
+	builder.BuildSender(&room.se)
+
 	room.messagesM = &sync.Mutex{}
 	room.dbChatID = chatID
 	room.setMessages(make([]*models.Message, 0))
@@ -50,6 +62,14 @@ func (room *RoomMessages) Init(s SyncI, i *RoomInformation,
 
 func (room *RoomMessages) Free() {
 	room.messagesFree()
+}
+
+func (room *RoomMessages) ChatID() int32 {
+	return room.dbChatID
+}
+
+func (room *RoomMessages) setChatID(id int32) {
+	room.dbChatID = id
 }
 
 func (room *RoomMessages) Proto(message *models.Message) (*chat.Message, error) {
@@ -80,7 +100,7 @@ func (room *RoomMessages) HandleError(message *models.Message, send *chat.Messag
 			if room.dbChatID != 0 {
 				return room.dbChatID, nil
 			}
-			id, err := GetChatID(chat.ChatType_ROOM, room.i.dbRoomID)
+			id, err := GetChatID(chat.ChatType_ROOM, room.i.RoomID())
 			if err != nil {
 				room.dbChatID = id
 			}
