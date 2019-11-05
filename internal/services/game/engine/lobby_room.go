@@ -7,7 +7,7 @@ import (
 )
 
 // RoomStart - room remove from free
-func (lobby *Lobby) RoomStart(room *Room) {
+func (lobby *Lobby) RoomStart(room *Room, roomID string) {
 	if lobby.done() {
 		return
 	}
@@ -15,12 +15,12 @@ func (lobby *Lobby) RoomStart(room *Room) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	go lobby.removeFromFreeRooms(room.ID())
+	go lobby.removeFromFreeRooms(roomID)
 	go lobby.sendRoomUpdate(room, All)
 }
 
 // roomFinish - room remove from all
-func (lobby *Lobby) roomFinish(room *Room) {
+func (lobby *Lobby) roomFinish(roomID string) {
 	defer utils.CatchPanic("lobby_room.go roomFinish()")
 
 	if lobby.done() {
@@ -29,35 +29,30 @@ func (lobby *Lobby) roomFinish(room *Room) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	roomID := room.ID()
-
 	go lobby.removeFromAllRooms(roomID)
 
 	go lobby.sendRoomDelete(roomID, All)
 }
 
 // CloseRoom free room resources
-func (lobby *Lobby) CloseRoom(room *Room) {
+func (lobby *Lobby) CloseRoom(roomID string) {
 	if lobby.done() {
 		return
 	}
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	room.sync.do(func() {
-		roomID := room.ID()
-		go lobby.removeFromFreeRooms(roomID)
-		go lobby.removeFromAllRooms(roomID)
+	go lobby.removeFromFreeRooms(roomID)
+	go lobby.removeFromAllRooms(roomID)
 
-		go lobby.sendRoomDelete(roomID, All)
-	})
+	go lobby.sendRoomDelete(roomID, All)
 }
 
 // CreateAndAddToRoom create room and add player to it
-func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection) (room *Room, err error) {
+func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection) (*Room, error) {
 	defer utils.CatchPanic("lobby_room.go CreateAndAddToRoom()")
 	if lobby.done() || conn.done() {
-		return
+		return nil, re.ErrorLobbyDone()
 	}
 
 	lobby.wGroup.Add(1)
@@ -66,13 +61,14 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 	conn.wGroup.Add(1)
 	defer conn.wGroup.Done()
 
-	if room, err = lobby.createRoom(rs); err == nil {
+	room, err := lobby.createRoom(rs)
+	if err == nil {
 		utils.Debug(false, "We create your own room, cool!", conn.ID())
 		room.people.add(conn, true, false)
 	} else {
 		utils.Debug(true, "cant create. Why?", conn.ID(), err.Error())
 	}
-	return
+	return room, err
 }
 
 // createRoom create room, add to all and free rooms

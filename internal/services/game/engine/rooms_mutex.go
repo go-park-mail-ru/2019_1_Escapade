@@ -116,7 +116,7 @@ func (rooms *Rooms) Free() {
 	}
 	rooms.getM.RLock()
 	for _, room := range rooms._get {
-		room.sync.Free()
+		room.events.Free()
 	}
 	rooms._get = nil
 	rooms.getM.RUnlock()
@@ -134,7 +134,7 @@ func (rooms *Rooms) Search(roomID string) (room *Room) {
 
 	for it.Next() {
 		foundRoom := it.Value()
-		if foundRoom.ID() == roomID {
+		if foundRoom.info.ID() == roomID {
 			room = foundRoom
 			return
 		}
@@ -154,7 +154,7 @@ func (rooms *Rooms) Remove(roomID string) bool {
 	index := -1
 
 	for i, foundRoom := range rooms._get {
-		if foundRoom.ID() == roomID {
+		if foundRoom.info.ID() == roomID {
 			index = i
 			break
 		}

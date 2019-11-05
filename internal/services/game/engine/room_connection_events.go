@@ -2,27 +2,50 @@ package engine
 
 import "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
+type ConnectionEventsI interface {
+	nit(s SyncI, l RoomLobbyCommunicationI,
+		re *RoomRecorder, se *RoomSender, i *RoomInformation, e *RoomEvents,
+		p *RoomPeople)
+
+	Timeout(conn *Connection)
+	Leave(conn *Connection)
+	GiveUp(conn *Connection)
+	Reconnect(conn *Connection)
+	Restart(conn *Connection)
+	Enter(conn *Connection)
+	Disconnect(conn *Connection)
+}
+
 type RoomConnectionEvents struct {
-	r      *Room
-	s      SyncI
-	notify *RoomRecorder
+	s  SyncI
+	l  RoomLobbyCommunicationI
+	re *RoomRecorder
+	se *RoomSender
+	i  *RoomInformation
+	e  *RoomEvents
+	p  *RoomPeople
 }
 
 // Init set Room and RoomNotifier pointers
-func (room *RoomConnectionEvents) Init(r *Room, s SyncI) {
-	room.r = r
+func (room *RoomConnectionEvents) Init(s SyncI, l RoomLobbyCommunicationI,
+	re *RoomRecorder, se *RoomSender, i *RoomInformation, e *RoomEvents,
+	p *RoomPeople) {
 	room.s = s
-	var notify = &RoomRecorder{}
-	notify.Init(r, s)
-	room.notify = notify
+	room.l = l
+	room.re = re
+	room.se = se
+	room.i = i
+	room.e = e
+	room.p = p
 }
 
 // Timeout handle the situation, when the waiting time for the player
 // to return has expired
-func (room *RoomConnectionEvents) Timeout(conn *Connection, isPlayer bool) {
-	room.s.do(func() {
+func (room *RoomConnectionEvents) Timeout(conn *Connection) {
+	room.s.doWithConn(conn, func() {
+		isPlayer := room.isPlayer(conn)
 		if isPlayer {
-			if room.r.events.IsActive() {
+			if room.e.IsActive() {
 				room.Kill(conn, ActionTimeout)
 			} else {
 				room.exitPlayerWhenGameNotRunning(conn)
@@ -30,7 +53,7 @@ func (room *RoomConnectionEvents) Timeout(conn *Connection, isPlayer bool) {
 		} else {
 			room.exitObsserver(conn)
 		}
-		room.r.lobby.greet(conn)
+		room.l.Greet(conn)
 	})
 }
 
@@ -39,7 +62,7 @@ func (room *RoomConnectionEvents) Leave(conn *Connection) {
 	room.s.doWithConn(conn, func() {
 		// work in rooms structs
 		if room.isPlayer(conn) {
-			if room.r.events.IsActive() {
+			if room.e.IsActive() {
 				room.GiveUp(conn)
 			} else {
 				room.exitPlayerWhenGameNotRunning(conn)
@@ -49,14 +72,14 @@ func (room *RoomConnectionEvents) Leave(conn *Connection) {
 		}
 
 		// inform lobby
-		go room.r.lobby.LeaveRoom(conn, ActionBackToLobby, room.r)
+		go room.l.BackToLobby(conn)
 
 	})
 }
 
 // GiveUp kill connection, that call it
 func (room *RoomConnectionEvents) GiveUp(conn *Connection) {
-	if !room.r.events.IsActive() {
+	if !room.e.IsActive() {
 		return
 	}
 	room.Kill(conn, ActionGiveUp)
@@ -65,25 +88,25 @@ func (room *RoomConnectionEvents) GiveUp(conn *Connection) {
 // Reconnect reconnect connection to room
 func (room *RoomConnectionEvents) Reconnect(conn *Connection) {
 	room.s.doWithConn(conn, func() {
-		found, isPlayer := room.r.people.Search(conn)
+		found, isPlayer := room.p.Search(conn)
 		if found == nil {
 			return
 		}
-		room.r.people.add(conn, isPlayer, true)
+		room.p.add(conn, isPlayer, true)
 	})
 }
 
 func (room *RoomConnectionEvents) Restart(conn *Connection) {
 	room.s.doWithConn(conn, func() {
-		if room.r.events.Status() != StatusFinished {
+		if room.e.Status() != StatusFinished {
 			return
 		}
-		if err := room.r.events.Restart(conn); err != nil {
+		if err := room.e.Restart(conn); err != nil {
 			utils.Debug(false, "cant create room for restart", err.Error())
 			return
 		}
 		room.goToNextRoom(conn)
-		room.notify.Restart(conn)
+		room.re.Restart(conn)
 	})
 }
 
@@ -91,11 +114,11 @@ func (room *RoomConnectionEvents) Restart(conn *Connection) {
 func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
 	var done bool
 	room.s.doWithConn(conn, func() {
-		if room.r.events.Status() == StatusRecruitment {
-			if room.r.people.add(conn, true, false) {
+		if room.e.Status() == StatusRecruitment {
+			if room.p.add(conn, true, false) {
 				done = true
 			}
-		} else if room.r.people.add(conn, false, false) {
+		} else if room.p.add(conn, false, false) {
 			done = true
 		}
 	})
@@ -105,13 +128,13 @@ func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
 // Kill make user die and check for finish battle
 func (room *RoomConnectionEvents) Kill(conn *Connection, action int32) {
 	room.s.doWithConn(conn, func() {
-		if !room.r.people.isAlive(conn) {
+		if !room.p.isAlive(conn) {
 			return
 		}
 
-		room.r.people.SetFinished(conn)
-		room.notify.Kill(conn, action, room.r.Settings.Deathmatch)
-		room.r.events.tryFinish()
+		room.p.SetFinished(conn)
+		room.re.Kill(conn, action, room.i.Settings.Deathmatch)
+		room.e.tryFinish()
 	})
 }
 
@@ -124,30 +147,30 @@ func (room *RoomConnectionEvents) Disconnect(conn *Connection) {
 			return
 		}
 
-		found, _ := room.r.people.Search(conn)
+		found, _ := room.p.Search(conn)
 		if found == nil {
 			return
 		}
 		found.setDisconnected()
-		room.notify.Disconnect(conn)
+		room.re.Disconnect(conn)
 	})
 }
 
 func (room *RoomConnectionEvents) exitPlayerWhenGameNotRunning(conn *Connection) {
 	room.s.do(func() {
-		room.r.people.Players.Connections.Remove(conn)
-		room.notify.Leave(conn, ActionBackToLobby)
-		room.r.send.PlayerExit(conn, room.r.AllExceptThat(conn))
-		room.r.events.tryClose()
+		room.p.Players.Connections.Remove(conn)
+		room.re.Leave(conn, ActionBackToLobby)
+		room.se.PlayerExit(conn)
+		room.e.tryClose()
 	})
 }
 
 func (room *RoomConnectionEvents) exitObsserver(conn *Connection) {
 	room.s.do(func() {
-		room.r.people.Observers.Remove(conn)
-		room.notify.Leave(conn, ActionBackToLobby)
-		room.r.send.ObserverExit(conn, room.r.AllExceptThat(conn))
-		room.r.events.tryClose()
+		room.p.Observers.Remove(conn)
+		room.re.Leave(conn, ActionBackToLobby)
+		room.se.ObserverExit(conn)
+		room.e.tryClose()
 	})
 }
 
@@ -157,5 +180,5 @@ func (room *RoomConnectionEvents) isPlayer(conn *Connection) bool {
 
 func (room *RoomConnectionEvents) goToNextRoom(conn *Connection) {
 	room.Leave(conn)
-	room.r.events.Next().connEvents.Enter(conn)
+	room.e.Next().connEvents.Enter(conn)
 }

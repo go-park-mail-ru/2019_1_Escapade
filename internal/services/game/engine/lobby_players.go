@@ -59,10 +59,7 @@ func (lobby *Lobby) restore(conn *Connection) bool {
 	}
 
 	if room != nil {
-		room.chanConnection <- &ConnectionAction{
-			conn:   conn,
-			action: ActionReconnect,
-		}
+		room.connEvents.Reconnect(conn)
 	}
 	return found
 }

@@ -9,9 +9,10 @@ import (
 
 type SyncI interface {
 	do(f func())
-	done() bool
+	doAndFree(clear func())
 	doWithConn(conn *Connection, f func())
-	Free()
+
+	done() bool
 }
 
 type RoomSync struct {
@@ -59,27 +60,15 @@ func (room *RoomSync) doWithConn(conn *Connection, f func()) {
 	f()
 }
 
-// Free clear all resources. Call it when no
-//  observers and players inside
-func (room *RoomSync) Free() {
+func (room *RoomSync) doAndFree(clear func()) {
 
 	if room.checkAndSetCleared() {
 		return
 	}
 
 	groupWaitRoom := 60 * time.Second // TODO в конфиг
-	fieldWaitRoom := 40 * time.Second // TODO в конфиг
 	utils.WaitWithTimeout(room.wGroup, groupWaitRoom)
-
-	room.r.events.chanStatus <- StatusAborted
-
-	room.r.events.setStatus(StatusFinished)
-	go room.r.connEvents.notify.Free()
-	go room.r.messages.Free()
-	go room.r.people.Free()
-	go room.r.field.Free(fieldWaitRoom)
-
-	close(room.r.events.chanStatus)
+	clear()
 }
 
 /////////////////////////// mutex

@@ -7,17 +7,31 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 type RoomModelsConverter struct {
-	r *Room
-	s SyncI
+	s  SyncI
+	i  *RoomInformation
+	l  RoomLobbyCommunicationI
+	e  *RoomEvents
+	m  *RoomMessages
+	p  *RoomPeople
+	re *RoomRecorder
+	f  *RoomField
 }
 
-func (room *RoomModelsConverter) Init(r *Room, s SyncI) {
-	room.r = r
+func (room *RoomModelsConverter) Init(s SyncI, i *RoomInformation,
+	l RoomLobbyCommunicationI, e *RoomEvents, m *RoomMessages,
+	p *RoomPeople, re *RoomRecorder, f *RoomField) {
 	room.s = s
+	room.i = i
+	room.l = l
+	room.e = e
+	room.m = m
+	room.p = p
+	room.re = re
+	room.f = f
+
 }
 
 // Save save room information to database
@@ -46,11 +60,7 @@ func (room *RoomModelsConverter) Save(wg *sync.WaitGroup) error {
 			Actions: actions,
 			Cells:   cells,
 		}
-
-		if err = room.r.lobby.db().Save(gameInformation); err != nil {
-			utils.Debug(false, "err. Cant save.", err.Error())
-			room.r.lobby.AddNotSavedGame(&gameInformation)
-		}
+		err = room.l.SaveGame(gameInformation)
 	})
 
 	return err
@@ -58,13 +68,13 @@ func (room *RoomModelsConverter) Save(wg *sync.WaitGroup) error {
 
 func (room *RoomModelsConverter) toModelGame() models.Game {
 	return models.Game{
-		ID:              room.r.dbRoomID,
-		Settings:        room.r.Settings,
-		RecruitmentTime: room.r.events.recruitmentTime(),
-		PlayingTime:     room.r.events.playingTime(),
-		ChatID:          room.r.messages.dbChatID,
-		Status:          int32(room.r.events.Status()),
-		Date:            room.r.events.Date(),
+		ID:              room.i.dbRoomID,
+		Settings:        room.i.Settings,
+		RecruitmentTime: room.e.recruitmentTime(),
+		PlayingTime:     room.e.playingTime(),
+		ChatID:          room.m.dbChatID,
+		Status:          int32(room.e.Status()),
+		Date:            room.e.Date(),
 	}
 }
 
@@ -73,13 +83,13 @@ func (room *RoomModelsConverter) toModelGamer(index int, player Player) models.G
 		ID:        player.ID,
 		Score:     player.Points,
 		Explosion: player.Died,
-		Won:       room.r.people.IsWinner(index),
+		Won:       room.p.IsWinner(index),
 	}
 }
 
 func (room *RoomModelsConverter) toModelGamers() []models.Gamer {
 	gamers := make([]models.Gamer, 0)
-	room.r.people.Players.ForEach(room.getGamers(gamers))
+	room.p.Players.ForEach(room.getGamers(gamers))
 	return gamers
 }
 
@@ -90,15 +100,15 @@ func (room *RoomModelsConverter) getGamers(gamers []models.Gamer) func(int, Play
 }
 
 func (room *RoomModelsConverter) toModelField() models.Field {
-	return room.r.field.Model()
+	return room.f.Model()
 }
 
 func (room *RoomModelsConverter) toModelCells() []models.Cell {
-	return room.r.field.ModelCells()
+	return room.f.ModelCells()
 }
 
 func (room *RoomModelsConverter) toModelActions() []models.Action {
-	return room.r.record.ModelActions()
+	return room.re.ModelActions()
 }
 
 ////////// sender models //////////
@@ -113,9 +123,9 @@ func (room *RoomModelsConverter) responseRoomGameOver(timer bool,
 			Winners []int    `json:"winners"`
 			Timer   bool     `json:"timer"`
 		}{
-			Players: room.r.people.PlayersSlice(),
+			Players: room.p.PlayersSlice(),
 			Cells:   cells,
-			Winners: room.r.people.Winners(),
+			Winners: room.p.Winners(),
 			Timer:   timer,
 		},
 	}
@@ -124,11 +134,11 @@ func (room *RoomModelsConverter) responseRoomGameOver(timer bool,
 func (room *RoomModelsConverter) responseRoomStatus(
 	status int) *models.Response {
 	var leftTime int32
-	since := int32(time.Since(room.r.events.Date()).Seconds())
+	since := int32(time.Since(room.e.Date()).Seconds())
 	if status == StatusFlagPlacing {
-		leftTime = room.r.Settings.TimeToPrepare - since
+		leftTime = room.i.Settings.TimeToPrepare - since
 	} else if status == StatusRunning {
-		leftTime = room.r.Settings.TimeToPlay - since
+		leftTime = room.i.Settings.TimeToPlay - since
 	}
 	return &models.Response{
 		Type: "RoomStatus",
@@ -137,20 +147,36 @@ func (room *RoomModelsConverter) responseRoomStatus(
 			Status int    `json:"status"`
 			Time   int32  `json:"time"`
 		}{
-			ID:     room.r.ID(),
+			ID:     room.i.ID(),
 			Status: status,
 			Time:   leftTime,
 		},
 	}
 }
 
+// JSON convert Room to RoomJSON
+func (room *RoomModelsConverter) JSON() RoomJSON {
+	return RoomJSON{
+		ID:        room.i.ID(),
+		Name:      room.i.Name(),
+		Status:    room.e.Status(),
+		Players:   room.p.Players.JSON(),
+		Observers: room.p.Observers.JSON(),
+		History:   room.re.history(),
+		Messages:  room.m.Messages(),
+		Field:     room.f.JSON(),
+		Date:      room.e.Date(),
+		Settings:  room.i.Settings,
+	}
+}
+
 func (room *RoomModelsConverter) responseRoom(
 	conn *Connection, isPlayer bool) *models.Response {
 	var flag Flag
-	if room.r.Settings.Deathmatch {
+	if room.i.Settings.Deathmatch {
 		index := conn.Index()
 		if index >= 0 {
-			flag = room.r.people.Flag(index)
+			flag = room.p.Flag(index)
 		}
 	} else {
 		flag = Flag{Cell: *NewCell(-1, -1, 0, 0)}
@@ -161,13 +187,13 @@ func (room *RoomModelsConverter) responseRoom(
 	return &models.Response{
 		Type: "Room",
 		Value: struct {
-			Room *Room                 `json:"room"`
+			Room RoomJSON              `json:"room"`
 			You  models.UserPublicInfo `json:"you"`
 			Flag Flag                  `json:"flag,omitempty"`
 			//Time     int                   `json:"time"`
 			IsPlayer bool `json:"isPlayer"`
 		}{
-			Room: room.r,
+			Room: room.JSON(),
 			You:  *conn.User,
 			Flag: flag,
 			//Time:     leftTime,
@@ -243,7 +269,7 @@ func (lobby *Lobby) Load(id string) (room *Room, err error) {
 	}
 
 	_, messages, err := GetChatIDAndMessages(lobby.location(),
-		pChat.ChatType_ROOM, room.messages.dbChatID, room.lobby.SetImage)
+		pChat.ChatType_ROOM, room.messages.dbChatID, lobby.SetImage)
 
 	if err == nil {
 		room.messages.setMessages(messages)

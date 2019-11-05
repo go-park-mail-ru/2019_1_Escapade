@@ -8,15 +8,26 @@ import (
 
 // RoomNotifier notify actions to room history and to users
 type RoomRecorder struct {
-	r        *Room
-	s        SyncI
+	//r  *Room
+	s  SyncI
+	i  *RoomInformation
+	l  RoomLobbyCommunicationI
+	p  *RoomPeople
+	f  *RoomField
+	se *RoomSender
+
 	historyM *sync.RWMutex
 	_history []*PlayerAction
 }
 
-func (room *RoomRecorder) Init(r *Room, s SyncI) {
-	room.r = r
+func (room *RoomRecorder) Init(s SyncI, i *RoomInformation,
+	l RoomLobbyCommunicationI, p *RoomPeople, f *RoomField, se *RoomSender) {
 	room.s = s
+	room.i = i
+	room.l = l
+	room.p = p
+	room.f = f
+	room.se = se
 	room.historyM = &sync.RWMutex{}
 	room.setHistory(make([]*PlayerAction, 0))
 }
@@ -43,16 +54,16 @@ func (room *RoomRecorder) Restart(conn *Connection) {
 }
 
 func (room *RoomRecorder) flag(conn *Connection) {
-	cell := room.r.people.Players.m.Flag(conn.Index())
+	cell := room.p.Players.m.Flag(conn.Index())
 	cells := make([]Cell, 0)
-	room.r.field.Field.saveCell(&cell.Cell, cells)
-	go room.r.send.NewCells(room.r.All, cell.Cell)
+	room.f.Field.saveCell(&cell.Cell, cells)
+	go room.se.NewCells(cell.Cell)
 }
 
 func (room *RoomRecorder) Kill(conn *Connection,
 	action int32, isDeathmatch bool) {
 	room.notifyAll(conn, action)
-	room.r.sync.do(func() {
+	room.s.do(func() {
 		if isDeathmatch {
 			room.flag(conn)
 		}
@@ -81,12 +92,12 @@ func (room *RoomRecorder) Reconnect(conn *Connection) {
 
 func (room *RoomRecorder) AddPlayer(conn *Connection) {
 	room.notifyAll(conn, ActionConnectAsPlayer)
-	go room.r.send.PlayerEnter(conn, room.r.AllExceptThat(conn))
+	go room.se.PlayerEnter(conn)
 }
 
 func (room *RoomRecorder) AddObserver(conn *Connection) {
 	room.notifyAll(conn, ActionConnectAsObserver)
-	go room.r.send.ObserverEnter(conn, room.r.AllExceptThat(conn))
+	go room.se.ObserverEnter(conn)
 }
 
 func (room *RoomRecorder) AddConnection(conn *Connection, isPlayer bool, needRecover bool) {
@@ -97,8 +108,8 @@ func (room *RoomRecorder) AddConnection(conn *Connection, isPlayer bool, needRec
 	} else {
 		room.AddObserver(conn)
 	}
-	room.r.send.StatusToOne(conn)
-	room.r.send.Room(conn)
+	room.se.StatusToOne(conn)
+	room.se.Room(conn)
 }
 
 func (room *RoomRecorder) FlagСonflict(conn *Connection) {
@@ -109,10 +120,10 @@ func (room *RoomRecorder) notifyAll(conn *Connection, action int32) {
 	room.s.do(func() {
 		pa := NewPlayerAction(conn.ID(), action)
 		room.appendAction(pa)
-		if !room.r.people.Empty() {
-			room.r.send.Action(*pa, room.r.AllExceptThat(conn))
+		if !room.p.Empty() {
+			room.se.Action(*pa, room.se.AllExceptThat(conn))
+			go room.l.Notify()
 		}
-		go room.r.lobby.sendRoomUpdate(room.r, All)
 	})
 }
 

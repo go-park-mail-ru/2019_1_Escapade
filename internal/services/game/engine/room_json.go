@@ -23,25 +23,9 @@ type RoomJSON struct {
 	Settings *models.RoomSettings `json:"settings"`
 }
 
-// JSON convert Room to RoomJSON
-func (room *Room) JSON() RoomJSON {
-	return RoomJSON{
-		ID:        room.ID(),
-		Name:      room.Name(),
-		Status:    room.events.Status(),
-		Players:   room.people.Players.JSON(),
-		Observers: room.people.Observers.JSON(),
-		History:   room.connEvents.notify.history(),
-		Messages:  room.messages.Messages(),
-		Field:     room.field.JSON(),
-		Date:      room.events.Date(),
-		Settings:  room.Settings,
-	}
-}
-
 // MarshalJSON - overriding the standard method json.Marshal
 func (room *Room) MarshalJSON() ([]byte, error) {
-	return room.JSON().MarshalJSON()
+	return room.models.JSON().MarshalJSON()
 }
 
 // UnmarshalJSON - overriding the standard method json.Unmarshal
@@ -51,12 +35,12 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 	if err := temp.UnmarshalJSON(b); err != nil {
 		return err
 	}
-	room.setName(temp.Name)
+	room.info.setName(temp.Name)
 	room.events.setStatus(temp.Status)
-	room.connEvents.notify._history = temp.History
+	room.record.setHistory(temp.History)
 	room.messages.setMessages(temp.Messages)
 	room.events.setDate(temp.Date)
-	room.Settings = temp.Settings
+	room.info.Settings = temp.Settings
 
 	return nil
 }

@@ -8,15 +8,25 @@ import (
 )
 
 type RoomField struct {
-	r *Room
-	s SyncI
+	//r  *Room
+	s  SyncI
+	re *RoomRecorder
+	se *RoomSender
+	e  *RoomEvents
+	p  *RoomPeople
 
-	Field *Field
+	Field        *Field
+	isDeathmatch bool
 }
 
-func (room *RoomField) Init(r *Room, s SyncI, field *Field) {
-	room.r = r
+func (room *RoomField) Init(s SyncI, re *RoomRecorder, se *RoomSender,
+	e *RoomEvents, p *RoomPeople, field *Field, isDeathmatch bool) {
 	room.s = s
+	room.re = re
+	room.se = se
+	room.e = room.e
+	room.p = room.p
+	room.isDeathmatch = isDeathmatch
 	room.Field = field
 }
 
@@ -40,7 +50,7 @@ func (room *RoomField) ModelCells() []models.Cell {
 }
 
 func (room *RoomField) Fill(flags []Flag) {
-	room.r.field.Field.Fill(flags, room.r.Settings.Deathmatch)
+	room.Field.Fill(flags, room.isDeathmatch)
 }
 
 func (room *RoomField) Model() models.Field {
@@ -65,7 +75,7 @@ func (room *RoomField) RandomFlag(conn *Connection) Cell {
 func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
 	room.s.doWithConn(conn, func() {
 		// if user try set open cell before game launch
-		if room.r.events.Status() != StatusRunning {
+		if room.e.Status() != StatusRunning {
 			return
 		}
 		// if wrong cell
@@ -73,7 +83,7 @@ func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
 			return
 		}
 		// if user died
-		if !room.r.people.isAlive(conn) {
+		if !room.p.isAlive(conn) {
 			return
 		}
 
@@ -82,18 +92,18 @@ func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
 		cells := room.Field.OpenCell(cell)
 		if len(cells) == 1 {
 			newCell := cells[0]
-			room.r.people.OpenCell(conn, &newCell)
+			room.p.OpenCell(conn, &newCell)
 		} else {
 			for _, foundCell := range cells {
-				room.r.people.OpenCell(conn, &foundCell)
+				room.p.OpenCell(conn, &foundCell)
 			}
 		}
 		if len(cells) > 0 {
-			go room.r.send.PlayerPoints(room.r.people.Players.m.Player(conn.Index()), room.r.All)
-			go room.r.send.NewCells(room.r.All, cells...)
+			go room.se.PlayerPoints(room.p.Players.m.Player(conn.Index()))
+			go room.se.NewCells(cells...)
 		}
 		if room.Field.IsCleared() {
-			room.r.events.updateStatus(StatusFinished)
+			room.e.updateStatus(StatusFinished)
 		}
 	})
 }
@@ -106,10 +116,10 @@ func (room *RoomField) SetAndSendNewCell(conn *Connection) {
 		var cell Cell
 		for found {
 			cell = room.Field.CreateRandomFlag(conn.ID())
-			found, _ = room.r.people.flagExists(cell, nil)
+			found, _ = room.p.flagExists(cell, nil)
 		}
-		room.r.people.Players.m.SetFlag(conn, cell, room.r.events.prepareOver)
-		room.r.send.RandomFlagSet(conn, cell)
+		room.p.Players.m.SetFlag(conn, cell, room.e.prepareOver)
+		room.se.RandomFlagSet(conn, cell)
 	})
 }
 
@@ -118,7 +128,7 @@ func (room *RoomField) SetFlag(conn *Connection, cell *Cell) bool {
 	var err error
 	room.s.doWithConn(conn, func() {
 		// if user try set flag after game launch
-		if room.r.events.Status() != StatusFlagPlacing {
+		if room.e.Status() != StatusFlagPlacing {
 			err = re.ErrorBattleAlreadyBegan()
 			return
 		}
@@ -128,24 +138,24 @@ func (room *RoomField) SetFlag(conn *Connection, cell *Cell) bool {
 			return
 		}
 
-		if !room.r.people.isAlive(conn) {
+		if !room.p.isAlive(conn) {
 			err = re.ErrorPlayerFinished()
 			return
 		}
 
-		if found, prevConn := room.r.people.flagExists(*cell, conn); found {
-			room.r.connEvents.notify.FlagСonflict(conn)
+		if found, prevConn := room.p.flagExists(*cell, conn); found {
+			room.re.FlagСonflict(conn)
 
 			go room.SetAndSendNewCell(conn)
 
 			go room.SetAndSendNewCell(prevConn)
 			return
 		}
-		room.r.people.Players.m.SetFlag(conn, *cell, room.r.events.prepareOver)
-		room.r.connEvents.notify.FlagSet(conn)
+		room.p.Players.m.SetFlag(conn, *cell, room.e.prepareOver)
+		room.re.FlagSet(conn)
 	})
 	if err != nil {
-		room.r.send.FailFlagSet(conn, cell, err)
+		room.se.FailFlagSet(conn, cell, err)
 		return false
 	}
 	return true

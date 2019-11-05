@@ -8,33 +8,50 @@ import (
 )
 
 type RoomSender struct {
-	r *Room
 	s SyncI
+	e *RoomEvents
+	p *RoomPeople
+	c *RoomConnectionEvents
+	i *RoomInformation
+	m *RoomModelsConverter
 }
 
-func (room *RoomSender) Init(r *Room, s SyncI) {
-	room.r = r
+func (room *RoomSender) Init(s SyncI, e *RoomEvents, p *RoomPeople,
+	c *RoomConnectionEvents, i *RoomInformation, m *RoomModelsConverter) {
 	room.s = s
+	room.e = e
+	room.p = p
+	room.c = c
+	room.i = i
+	room.m = m
 }
 
 func (room *RoomSender) sendAll(info handlers.JSONtype, predicate SendPredicate) {
 	room.s.do(func() {
-		people := room.r.people.Connections()
+		people := room.p.Connections()
 		SendToConnections(info, predicate, people...)
 	})
 }
 
-func (room *RoomSender) Message(text string, predicate SendPredicate) {
+func (room *RoomSender) Text(text string, predicate SendPredicate) {
 	room.sendAll(&models.Result{
-		Message: "Room(" + room.r.ID() + "):" + text}, predicate)
+		Message: "Room(" + room.i.ID() + "):" + text}, predicate)
 }
 
-func (room *RoomSender) PlayerPoints(player Player, predicate SendPredicate) {
+func (room *RoomSender) Message(message models.Message) {
+	response := models.Response{
+		Type:  "GameMessage",
+		Value: message,
+	}
+	room.sendAll(&response, room.All)
+}
+
+func (room *RoomSender) PlayerPoints(player Player) {
 	response := models.Response{
 		Type:  "RoomPlayerPoints",
 		Value: player,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.All)
 }
 
 func (room *RoomSender) GameOver(timer bool, predicate SendPredicate,
@@ -45,52 +62,52 @@ func (room *RoomSender) GameOver(timer bool, predicate SendPredicate,
 		}
 	}()
 
-	response := room.r.models.responseRoomGameOver(timer, cells)
+	response := room.m.responseRoomGameOver(timer, cells)
 	room.sendAll(response, predicate)
 }
 
-func (room *RoomSender) NewCells(predicate SendPredicate, cells ...Cell) {
+func (room *RoomSender) NewCells(cells ...Cell) {
 	response := models.Response{
 		Type:  "RoomNewCells",
 		Value: cells,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.All)
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *RoomSender) PlayerEnter(conn *Connection, predicate SendPredicate) {
+func (room *RoomSender) PlayerEnter(conn *Connection) {
 	response := models.Response{
 		Type:  "RoomPlayerEnter",
 		Value: conn,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.AllExceptThat(conn))
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *RoomSender) PlayerExit(conn *Connection, predicate SendPredicate) {
+func (room *RoomSender) PlayerExit(conn *Connection) {
 	response := models.Response{
 		Type:  "RoomPlayerExit",
 		Value: conn,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.AllExceptThat(conn))
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *RoomSender) ObserverEnter(conn *Connection, predicate SendPredicate) {
+func (room *RoomSender) ObserverEnter(conn *Connection) {
 	response := models.Response{
 		Type:  "RoomObserverEnter",
 		Value: conn,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.AllExceptThat(conn))
 }
 
 // sendTAIRPeople send players, observers and history to all in room
-func (room *RoomSender) ObserverExit(conn *Connection, predicate SendPredicate) {
+func (room *RoomSender) ObserverExit(conn *Connection) {
 	response := models.Response{
 		Type:  "RoomObserverExit",
 		Value: conn,
 	}
-	room.sendAll(&response, predicate)
+	room.sendAll(&response, room.AllExceptThat(conn))
 }
 
 func (room *RoomSender) StatusToAll(predicate SendPredicate, status int, wg *sync.WaitGroup) {
@@ -100,15 +117,15 @@ func (room *RoomSender) StatusToAll(predicate SendPredicate, status int, wg *syn
 		}
 	}()
 	room.s.do(func() {
-		response := room.r.models.responseRoomStatus(status)
+		response := room.m.responseRoomStatus(status)
 		room.sendAll(response, predicate)
 	})
 }
 
 func (room *RoomSender) StatusToOne(conn *Connection) {
 	room.s.doWithConn(conn, func() {
-		status := room.r.events.Status()
-		response := room.r.models.responseRoomStatus(status)
+		status := room.e.Status()
+		response := room.m.responseRoomStatus(status)
 		conn.SendInformation(response)
 	})
 }
@@ -171,8 +188,8 @@ func (room *RoomSender) Field(predicate SendPredicate) {
 // sendTAIRAll send everything to one connection
 func (room *RoomSender) Room(conn *Connection) {
 	room.s.doWithConn(conn, func() {
-		isPlayer := room.r.connEvents.isPlayer(conn)
-		conn.SendInformation(room.r.models.responseRoom(conn, isPlayer))
+		isPlayer := room.c.isPlayer(conn)
+		conn.SendInformation(room.m.responseRoom(conn, isPlayer))
 	})
 }
 

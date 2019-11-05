@@ -10,13 +10,16 @@ type RoomMetrics struct {
 	s SyncI
 	e *RoomEvents
 	f *RoomField
+	i *RoomInformation
 }
 
-func (room *RoomMetrics) Init(r *Room, s SyncI, e *RoomEvents, f *RoomField) {
+func (room *RoomMetrics) Init(r *Room, s SyncI, e *RoomEvents,
+	f *RoomField, i *RoomInformation) {
 	room.r = r
 	room.s = s
 	room.e = e
 	room.f = f
+	room.i = i
 }
 
 func (room *RoomMetrics) Observe(needMetrics bool, cancel bool) {

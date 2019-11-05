@@ -5,15 +5,23 @@ import (
 )
 
 type RoomAPI struct {
-	r *Room
-	s SyncI
-	m *RoomMessages
+	s  SyncI
+	m  *RoomMessages
+	ce *RoomConnectionEvents
+	e  *RoomEvents
+	se *RoomSender
+	i  *RoomInformation
 }
 
-func (room *RoomAPI) Init(r *Room, s SyncI, m *RoomMessages) {
-	room.r = r
+func (room *RoomAPI) Init(s SyncI,
+	m *RoomMessages, ce *RoomConnectionEvents,
+	se *RoomSender, e *RoomEvents, i *RoomInformation) {
 	room.s = s
 	room.m = m
+	room.ce = ce
+	room.se = se
+	room.e = e
+	room.i = i
 }
 
 // HandleRequest processes the request came from the user
@@ -31,14 +39,11 @@ func (room *RoomAPI) Handle(conn *Connection, rr *RoomRequest) {
 
 func (room *RoomAPI) handleMessage(conn *Connection, message *models.Message) {
 	room.s.doWithConn(conn, func() {
-		if conn.Index() < 0 {
-			message.Status = models.StatusObserver
-		} else {
-			message.Status = models.StatusPlayer
-		}
-		Message(room.r.lobby, conn, message, room.m.appendMessage,
-			room.m.setMessage, room.m.removeMessage, room.m.findMessage,
-			room.r.send.sendAll, room.r.All, room.r, room.m.dbChatID)
+		/*
+			Message(room.i.lobby, conn, message, room.m.appendMessage,
+				room.m.setMessage, room.m.removeMessage, room.m.findMessage,
+				room.r.send.sendAll, room.r.All, room.r, room.m.dbChatID)*/
+		HandleMessage(conn, message, room.m)
 	})
 }
 
@@ -55,7 +60,7 @@ func (room *RoomAPI) handleSent(conn *Connection, request *RoomSend) {
 
 func (room *RoomAPI) GetRoom(conn *Connection) {
 	room.s.doWithConn(conn, func() {
-		room.r.send.Room(conn)
+		room.se.Room(conn)
 	})
 }
 
@@ -68,15 +73,7 @@ func (room *RoomAPI) GetMessages(conn *Connection, settings *models.Messages) {
 // CellHandle processes the Cell came from the user
 func (room *RoomAPI) PostCell(conn *Connection, cell *Cell) {
 	room.s.doWithConn(conn, func() {
-		if !room.r.people.isAlive(conn) {
-			return
-		}
-		status := room.r.events.Status()
-		if status == StatusFlagPlacing {
-			room.r.field.SetFlag(conn, cell)
-		} else if status == StatusRunning {
-			room.r.field.OpenCell(conn, cell)
-		}
+		room.e.OpenCell(conn, cell)
 	})
 }
 
@@ -84,15 +81,15 @@ func (room *RoomAPI) PostAction(conn *Connection, action int) {
 	room.s.doWithConn(conn, func() {
 		switch action {
 		case ActionBackToLobby:
-			room.r.connEvents.Leave(conn)
+			room.ce.Leave(conn)
 		case ActionDisconnect:
-			room.r.connEvents.Disconnect(conn)
+			room.ce.Disconnect(conn)
 		case ActionReconnect:
-			room.r.connEvents.Reconnect(conn)
+			room.ce.Reconnect(conn)
 		case ActionGiveUp:
-			room.r.connEvents.GiveUp(conn)
+			room.ce.GiveUp(conn)
 		case ActionRestart:
-			room.r.connEvents.Restart(conn)
+			room.ce.Restart(conn)
 		}
 	})
 }

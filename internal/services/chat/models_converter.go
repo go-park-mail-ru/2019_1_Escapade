@@ -112,12 +112,12 @@ func MessagesFromProto(loc *time.Location, pMessages ...*Message) ([]*models.Mes
 
 // MessagesToProto converts the structure to retrieve messages from the database
 // into the structure for transmission over grpc
-func MessagesToProto(mMessages ...*models.Message) (*Messages, error) {
+func MessagesToProto(chatID int32, mMessages ...*models.Message) (*Messages, error) {
 	var (
 		pMessages = make([]*Message, 0)
 	)
 	for _, message := range mMessages {
-		pMessage, err := MessageToProto(message)
+		pMessage, err := MessageToProto(message, chatID)
 		if err != nil {
 			return &Messages{}, err
 		}
@@ -130,7 +130,7 @@ func MessagesToProto(mMessages ...*models.Message) (*Messages, error) {
 
 // MessageToProto converts the structure to retrieve message from the database
 // into the structure for transmission over grpc
-func MessageToProto(message *models.Message) (*Message, error) {
+func MessageToProto(message *models.Message, chatID int32) (*Message, error) {
 	var (
 		err      error
 		pMessage = &Message{
@@ -138,6 +138,7 @@ func MessageToProto(message *models.Message) (*Message, error) {
 			From:   UserToProto(message.User),
 			Text:   message.Text,
 			Edited: message.Edited,
+			ChatId: chatID,
 		}
 	)
 	pMessage.Time, err = ptypes.TimestampProto(message.Time)

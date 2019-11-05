@@ -94,7 +94,7 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 }
 
 // LeaveRoom handle leave room
-func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
+func (lobby *Lobby) LeaveRoom(conn *Connection, action int) {
 	defer utils.CatchPanic("lobby_handle.go LeaveRoom()")
 
 	if lobby.done() {
@@ -103,18 +103,15 @@ func (lobby *Lobby) LeaveRoom(conn *Connection, action int, room *Room) {
 	lobby.wGroup.Add(1)
 	defer lobby.wGroup.Done()
 
-	room.sync.doWithConn(conn, func() {
-		if action != ActionDisconnect {
-			if conn.PlayingRoom() != nil {
-				lobby.PlayerToWaiter(conn)
-			} else {
-				conn.PushToLobby()
-			}
-		} else if room.people.Players.Connections.len() > 0 {
-			go lobby.sendRoomUpdate(room, AllExceptThat(conn))
+	if action != ActionDisconnect {
+		if conn.PlayingRoom() != nil {
+			lobby.PlayerToWaiter(conn)
+		} else {
+			conn.PushToLobby()
 		}
-		lobby.greet(conn)
-	})
+	}
+	lobby.greet(conn)
+
 }
 
 // EnterRoom handle user join to room
@@ -138,7 +135,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 	defer func() { <-conn.actionSem }()
 
 	if conn.WaitingRoom() != nil {
-		if conn.WaitingRoom().ID() == rs.ID {
+		if conn.WaitingRoom().info.ID() == rs.ID {
 			return
 		}
 		conn.WaitingRoom().connEvents.Leave(conn)
@@ -174,7 +171,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) (room 
 	freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
 	for freeRoomsIterator.Next() {
 		freeRoom := freeRoomsIterator.Value()
-		if freeRoom.Settings.Similar(rs) && freeRoom.people.add(conn, true, false) {
+		if freeRoom.info.Settings.Similar(rs) && freeRoom.people.add(conn, true, false) {
 			return
 		}
 	}

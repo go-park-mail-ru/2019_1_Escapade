@@ -3,9 +3,17 @@ package engine
 import "sync"
 
 type RoomPeople struct {
-	r       *Room
-	s       SyncI
-	winners []int
+	//r  *Room
+	s  SyncI
+	c  *RoomConnectionEvents
+	e  *RoomEvents
+	i  *RoomInformation
+	l  RoomLobbyCommunicationI
+	f  *RoomField
+	re *RoomRecorder
+
+	pointsPerCellK float64
+	winners        []int
 
 	//playersM *sync.RWMutex
 	Players *OnlinePlayers
@@ -16,9 +24,21 @@ type RoomPeople struct {
 	_killed   int32 //amount of killed users
 }
 
-func (room *RoomPeople) Init(r *Room, s SyncI, players, observers int32) {
-	room.r = r
+func (room *RoomPeople) Init(s SyncI, c *RoomConnectionEvents,
+	e *RoomEvents, i *RoomInformation, l RoomLobbyCommunicationI,
+	f *RoomField, re *RoomRecorder,
+	players, observers int32) {
 	room.s = s
+	room.c = c
+	room.e = e
+	room.i = i
+	room.l = l
+	room.f = f
+	room.re = re
+
+	sq := i.Settings.Width * i.Settings.Height
+	room.pointsPerCellK = 1000 / float64(sq)
+
 	room.winners = nil
 	room.setKilled(0)
 	room.killedM = &sync.RWMutex{}
@@ -157,8 +177,7 @@ func (room *RoomPeople) OpenCell(conn *Connection, cell *Cell) {
 // openFlag is called, when somebody find cell flag
 func (room *RoomPeople) openSafeCell(conn *Connection, cell *Cell) {
 	room.s.doWithConn(conn, func() {
-		s := room.r.Settings.Width * room.r.Settings.Height
-		points := 1000 * float64(cell.Value) / float64(s)
+		points := float64(cell.Value) * room.pointsPerCellK
 		room.IncreasePoints(conn.Index(), points)
 	})
 }
@@ -167,7 +186,7 @@ func (room *RoomPeople) openSafeCell(conn *Connection, cell *Cell) {
 func (room *RoomPeople) openMine(conn *Connection) {
 	room.s.doWithConn(conn, func() {
 		room.IncreasePoints(conn.Index(), float64(-1000))
-		room.r.connEvents.Kill(conn, ActionExplode)
+		room.c.Kill(conn, ActionExplode)
 	})
 }
 
@@ -183,7 +202,7 @@ func (room *RoomPeople) openFlag(founder *Connection, found *Cell) {
 		room.Players.m.IncreasePlayerPoints(founder.Index(), 300)
 		index, killConn := room.Players.Connections.SearchByID(which)
 		if index >= 0 {
-			room.r.connEvents.Kill(killConn, ActionFlagLost)
+			room.c.Kill(killConn, ActionFlagLost)
 		}
 	})
 }
@@ -256,7 +275,7 @@ func (room *RoomPeople) add(conn *Connection, isPlayer bool, needRecover bool) b
 		if !result {
 			return
 		}
-		room.r.connEvents.notify.AddConnection(conn, isPlayer, needRecover)
+		room.c.re.AddConnection(conn, isPlayer, needRecover)
 	})
 	return result
 }
@@ -277,9 +296,9 @@ func (room *RoomPeople) push(conn *Connection, isPlayer bool, needRecover bool) 
 				result = false
 				return
 			}
-			room.Players.Add(conn, room.r.field.RandomFlag(conn), needRecover)
+			room.Players.Add(conn, room.f.RandomFlag(conn), needRecover)
 			if !needRecover && !room.Players.EnoughPlace() {
-				room.r.events.RecruitingOver()
+				room.e.RecruitingOver()
 			}
 		} else {
 			if !needRecover && !room.Observers.EnoughPlace() {
@@ -289,10 +308,10 @@ func (room *RoomPeople) push(conn *Connection, isPlayer bool, needRecover bool) 
 			room.Observers.Add(conn)
 		}
 
-		if room.r.events.Status() != StatusRecruitment {
-			room.r.lobby.waiterToPlayer(conn, room.r)
+		if room.e.Status() != StatusRecruitment {
+			room.l.WaiterToPlayer(conn)
 		} else {
-			conn.setWaitingRoom(room.r)
+			room.l.setWaitingRoom(conn)
 		}
 
 		result = true

@@ -85,6 +85,31 @@ func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int
 	return chatID.Value, messages, err
 }
 
+func HandleMessage(conn *Connection,
+	message *models.Message, handler MessagesHandlerI) error {
+	handler.Fix(message, conn)
+	msg, err := handler.Proto(message)
+	if err != nil {
+		return err
+	}
+
+	// ignore models.StartWrite, models.FinishWrite
+	switch message.Action {
+	case models.Write:
+		err = handler.Write(message, msg)
+	case models.Update:
+		err = handler.Update(message, msg)
+	case models.Delete:
+		err = handler.Delete(message, msg)
+	}
+	if err != nil {
+		handler.HandleError(message, msg)
+	} else {
+		handler.Send(message)
+	}
+	return err
+}
+
 // Message send message to connections
 func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	append AppendMessage, update UpdateMessage, delete DeleteMessage,
@@ -100,12 +125,11 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		message.ID = rand.Int31n(10000000) // в конфиг?
 	}
 
-	msg, err := chat.MessageToProto(message)
+	msg, err := chat.MessageToProto(message, chatID)
 
 	if err != nil {
 		return err
 	}
-	msg.ChatId = chatID
 
 	var msgID *chat.MessageID
 
@@ -156,7 +180,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 					if room.messages.dbChatID != 0 {
 						return room.messages.dbChatID, nil
 					}
-					id, err := GetChatID(chat.ChatType_ROOM, room.dbRoomID)
+					id, err := GetChatID(chat.ChatType_ROOM, room.info.dbRoomID)
 					if err != nil {
 						room.messages.dbChatID = id
 					}

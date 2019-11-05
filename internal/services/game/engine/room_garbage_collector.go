@@ -5,7 +5,8 @@ import (
 )
 
 type RoomGarbageCollectorI interface {
-	Init(r *Room, s SyncI, timeouts Timeouts)
+	Init(s SyncI, e *RoomEvents, p *RoomPeople, c *RoomConnectionEvents,
+		timeouts Timeouts)
 	Run()
 }
 
@@ -17,21 +18,27 @@ type Timeouts struct {
 }
 
 type RoomGarbageCollector struct {
-	r         *Room
-	s         SyncI
+	s SyncI
+	e *RoomEvents
+	p *RoomPeople
+	c *RoomConnectionEvents
+
 	tPlayer   float64
 	tObserver float64
 	t         Timeouts
 }
 
-func (room *RoomGarbageCollector) Init(r *Room, s SyncI, timeouts Timeouts) {
-	room.r = r
+func (room *RoomGarbageCollector) Init(s SyncI, e *RoomEvents,
+	p *RoomPeople, c *RoomConnectionEvents, timeouts Timeouts) {
 	room.s = s
+	room.e = e
+	room.p = p
+	room.c = c
 	room.t = timeouts
 }
 
 func (room *RoomGarbageCollector) updateTimeouts() {
-	status := room.r.events.Status()
+	status := room.e.Status()
 	if status == StatusRecruitment {
 		room.tPlayer = room.t.timeoutPeopleFinding
 		room.tObserver = room.t.timeoutPeopleFinding
@@ -52,14 +59,14 @@ func (room *RoomGarbageCollector) Run() {
 }
 
 func (room *RoomGarbageCollector) checkPeople() {
-	room.r.people.ForEach(func(c *Connection, isPlayer bool) {
+	room.p.ForEach(func(c *Connection, isPlayer bool) {
 		if isPlayer {
 			if room.isExpired(c, room.tPlayer) {
-				room.r.connEvents.Timeout(c, isPlayer)
+				room.c.Timeout(c)
 			}
 		} else {
 			if room.isExpired(c, room.tObserver) {
-				room.r.connEvents.Timeout(c, isPlayer)
+				room.c.Timeout(c)
 			}
 		}
 	})

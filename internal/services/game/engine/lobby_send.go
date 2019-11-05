@@ -71,7 +71,7 @@ func (lobby *Lobby) sendRoomCreate(room *Room, predicate SendPredicate) {
 
 	response := models.Response{
 		Type:  "LobbyRoomCreate",
-		Value: room.JSON(),
+		Value: room.models.JSON(),
 	}
 
 	lobby.send(&response, predicate)
@@ -89,7 +89,7 @@ func (lobby *Lobby) sendRoomUpdate(room *Room, predicate SendPredicate) {
 
 		response := models.Response{
 			Type:  "LobbyRoomUpdate",
-			Value: room.JSON(),
+			Value: room.models.JSON(),
 		}
 		lobby.send(&response, predicate)
 	})
