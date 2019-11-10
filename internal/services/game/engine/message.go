@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"math/rand"
 	"time"
 
@@ -30,7 +29,7 @@ type FindMessage func(*models.Message) int
 type DeleteMessage func(int)
 
 // GetChatID accesses the chat service to get the ID of the chat
-func GetChatID(chatType chat.ChatType, typeID int32) (int32, error) {
+func GetChatID(chatS clients.Chat, chatType int32, typeID int32) (int32, error) {
 	var (
 		newChat = &chat.Chat{
 			Type:   chatType,
@@ -40,7 +39,7 @@ func GetChatID(chatType chat.ChatType, typeID int32) (int32, error) {
 		err    error
 	)
 
-	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
+	chatID, err = chatS.GetChat(newChat)
 
 	if err != nil {
 		utils.Debug(false, "cant access to chat service", err.Error())
@@ -51,7 +50,7 @@ func GetChatID(chatType chat.ChatType, typeID int32) (int32, error) {
 
 // GetChatIDAndMessages accesses the chat service to get the ID of the chat and
 // all messages
-func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int32,
+func GetChatIDAndMessages(chatS clients.Chat, loc *time.Location, chatType, typeID int32,
 	setImage SetImage) (int32, []*models.Message, error) {
 	var (
 		newChat = &chat.Chat{
@@ -63,17 +62,13 @@ func GetChatIDAndMessages(loc *time.Location, chatType chat.ChatType, typeID int
 		err       error
 	)
 
-	// TODO delete it
-	if clients.ALL.Chat() == nil {
-		panic("clients.ALL.Chat() == nil ")
-	}
-	chatID, err = clients.ALL.Chat().GetChat(context.Background(), newChat)
+	chatID, err = chatS.GetChat(newChat)
 
 	if err != nil {
 		utils.Debug(false, "cant access to chat service", err.Error())
 		return 0, nil, err
 	}
-	pMessages, err = clients.ALL.Chat().GetChatMessages(context.Background(), chatID)
+	pMessages, err = chatS.GetChatMessages(chatID)
 	if err != nil {
 		utils.Debug(false, "cant get messages!", err.Error())
 		return 0, nil, err
@@ -115,7 +110,7 @@ func HandleMessage(conn *Connection,
 }
 
 // Message send message to connections
-func Message(lobby *Lobby, conn *Connection, message *models.Message,
+func Message(chatS clients.Chat, lobby *Lobby, conn *Connection, message *models.Message,
 	append AppendMessage, update UpdateMessage, delete DeleteMessage,
 	find FindMessage, send Sender, predicate SendPredicate, room *Room,
 	chatID int32) (err error) {
@@ -141,7 +136,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 	switch message.Action {
 	case models.Write:
 		append(message)
-		msgID, err = clients.ALL.Chat().AppendMessage(context.Background(), msg)
+		msgID, err = chatS.AppendMessage(msg)
 		if msgID != nil {
 			message.ID = msgID.Value
 		}
@@ -158,7 +153,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		}
 		update(find(message), message)
 
-		_, err = clients.ALL.Chat().UpdateMessage(context.Background(), msg)
+		_, err = chatS.UpdateMessage(msg)
 
 	case models.Delete:
 		if message.ID <= 0 {
@@ -166,7 +161,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 		}
 		delete(find(message))
 
-		_, err = clients.ALL.Chat().DeleteMessage(context.Background(), msg)
+		_, err = chatS.DeleteMessage(msg)
 
 		if lobby.config().Metrics {
 			if room != nil {
@@ -184,7 +179,7 @@ func Message(lobby *Lobby, conn *Connection, message *models.Message,
 					if room.messages.ChatID() != 0 {
 						return room.messages.ChatID(), nil
 					}
-					id, err := GetChatID(chat.ChatType_ROOM, room.info.RoomID())
+					id, err := GetChatID(chatS, chat.RoomType, room.info.RoomID())
 					if err != nil {
 						room.messages.setChatID(id)
 					}

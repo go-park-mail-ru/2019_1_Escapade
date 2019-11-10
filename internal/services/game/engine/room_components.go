@@ -1,25 +1,21 @@
 package engine
 
-import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-)
+import "github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 
 // ComponentBuilderI create room components, bind them, and add them to room
 // 	to the room
 // ABuilder Pattern
 type ComponentBuilderI interface {
-	Build(r *Room, field *Field, lobby *Lobby,
-		rs *models.RoomSettings, timeouts Timeouts, id string, chatID,
-		roomID int32)
+	Build(r *Room, ra *RoomArgs)
 
 	BuildInformation(i *RoomInformationI)
 	BuildField(f *FieldProxyI)
-	BuildSync(s *SyncI)
+	BuildSync(s *synced.SyncI)
 	BuildAPI(a *APIStrategyI)
 	BuildLobby(l *LobbyProxyI)
 	BuildModelsAdapter(m *ModelsAdapterI)
 	BuildSender(s *SendStrategyI)
-	BuildRoomConnectionEvents(c *ConnectionEventsI)
+	BuildConnectionEvents(c *ConnectionEventsStrategyI)
 	BuildPeople(p *PeopleI)
 	BuildEvents(e *EventsI)
 	BuildRecorder(r *ActionRecorderProxyI)
@@ -32,7 +28,7 @@ type ComponentBuilderI interface {
 type RoomBuilder struct {
 	info             *RoomInformation
 	field            *RoomField
-	sync             *SyncWgroup
+	sync             *synced.SyncWgroup
 	api              *RoomAPI
 	lobby            *RoomLobby
 	models           *RoomModelsAdapter
@@ -47,134 +43,131 @@ type RoomBuilder struct {
 }
 
 // Build create Room components and set them to Room object
-func (room *RoomBuilder) Build(r *Room, field *Field, lobby *Lobby,
-	rs *models.RoomSettings, timeouts Timeouts, id string, chatID,
-	roomID int32) {
+func (builder *RoomBuilder) Build(room *Room, args *RoomArgs) {
 
-	room.createComponents()
-	room.configureDependencies(r, field, lobby, rs,
-		timeouts, id, chatID, roomID)
+	builder.createComponents()
+	builder.configureDependencies(room, args)
+	builder.set(room)
 }
 
-func (room *RoomBuilder) createComponents() {
-	room.sync = &SyncWgroup{}
-	room.info = &RoomInformation{}
-	room.api = &RoomAPI{}
-	room.lobby = &RoomLobby{}
-	room.field = &RoomField{}
-	room.models = &RoomModelsAdapter{}
-	room.sender = &RoomSender{}
-	room.people = &RoomPeople{}
-	room.connEvents = &RoomConnectionEvents{}
-	room.events = &RoomEvents{}
-	room.metrics = &RoomMetrics{}
-	room.record = &RoomRecorder{}
-	room.messages = &RoomMessages{}
-	room.garbageCollector = &RoomGarbageCollector{}
+func (builder *RoomBuilder) createComponents() {
+	builder.sync = &synced.SyncWgroup{}
+	builder.info = &RoomInformation{}
+	builder.api = &RoomAPI{}
+	builder.lobby = &RoomLobby{}
+	builder.field = &RoomField{}
+	builder.models = &RoomModelsAdapter{}
+	builder.sender = &RoomSender{}
+	builder.people = &RoomPeople{}
+	builder.connEvents = &RoomConnectionEvents{}
+	builder.events = &RoomEvents{}
+	builder.metrics = &RoomMetrics{}
+	builder.record = &RoomRecorder{}
+	builder.messages = &RoomMessages{}
+	builder.garbageCollector = &RoomGarbageCollector{}
 }
 
-func (room *RoomBuilder) configureDependencies(r *Room,
-	field *Field, lobby *Lobby, rs *models.RoomSettings,
-	timeouts Timeouts, id string, chatID, roomID int32) {
-	room.sync.Init()
-	room.info.Init(rs, id, roomID)
-	room.api.Init(room)
-	room.lobby.Init(room, r, lobby)
-	room.field.Init(room, field, rs.Deathmatch)
-	room.models.Init(room)
-	room.sender.Init(room)
-	room.people.Init(room, rs)
-	room.connEvents.Init(room, rs.Deathmatch)
-	room.events.Init(room, rs)
-	room.metrics.Init(room, rs)
-	room.record.Init(room)
-	room.messages.Init(room, chatID)
-	room.garbageCollector.Init(room, timeouts)
+func (builder *RoomBuilder) configureDependencies(r *Room, args *RoomArgs) {
+	builder.sync.Init(args.c.Wait.Duration)
+	builder.info.Init(args.rs, args.id, args.DBRoomID)
+	builder.api.Init(builder)
+	builder.lobby.Init(builder, r, args.lobby)
+	builder.field.Init(builder, args.Field, args.rs.Deathmatch)
+	builder.models.Init(builder)
+	builder.sender.Init(builder)
+	builder.people.Init(builder, args.rs)
+	builder.connEvents.Init(builder, args.rs.Deathmatch)
+	builder.events.Init(builder, args.rs)
+	builder.metrics.Init(builder, args.rs)
+	builder.record.Init(builder)
+	builder.messages.Init(builder, args.lobby.ChatService, args.DBchatID)
+	builder.garbageCollector.Init(builder, args.c.GarbageCollector.Duration,
+		args.c.Timeouts)
 }
 
-func (room *RoomBuilder) set(build *Room) {
-	build.sync = room.sync
-	build.info = room.info
-	build.api = room.api
-	build.lobby = room.lobby
-	build.field = room.field
-	build.models = room.models
-	build.sender = room.sender
-	build.people = room.people
-	build.connEvents = room.connEvents
-	build.events = room.events
-	build.metrics = room.metrics
-	build.record = room.record
-	build.messages = room.messages
-	build.garbageCollector = room.garbageCollector
+func (builder *RoomBuilder) set(room *Room) {
+	room.sync = builder.sync
+	room.info = builder.info
+	room.api = builder.api
+	room.lobby = builder.lobby
+	room.field = builder.field
+	room.models = builder.models
+	room.sender = builder.sender
+	room.people = builder.people
+	room.connEvents = builder.connEvents
+	room.events = builder.events
+	room.metrics = builder.metrics
+	room.record = builder.record
+	room.messages = builder.messages
+	room.garbageCollector = builder.garbageCollector
 }
 
 // BuildInformation set RoomInformationI implementation
-func (room *RoomBuilder) BuildInformation(i *RoomInformationI) {
-	*i = room.info
+func (builder *RoomBuilder) BuildInformation(i *RoomInformationI) {
+	*i = builder.info
 }
 
 // BuildField set FieldProxyI implementation
-func (room *RoomBuilder) BuildField(f *FieldProxyI) {
-	*f = room.field
+func (builder *RoomBuilder) BuildField(f *FieldProxyI) {
+	*f = builder.field
 }
 
 // BuildSync set SyncI implementation
-func (room *RoomBuilder) BuildSync(s *SyncI) {
-	*s = room.sync
+func (builder *RoomBuilder) BuildSync(s *synced.SyncI) {
+	*s = builder.sync
 }
 
 // BuildAPI set APIStrategyI implementation
-func (room *RoomBuilder) BuildAPI(a *APIStrategyI) {
-	*a = room.api
+func (builder *RoomBuilder) BuildAPI(a *APIStrategyI) {
+	*a = builder.api
 }
 
 // BuildLobby set APIStrategyI implementation
-func (room *RoomBuilder) BuildLobby(l *LobbyProxyI) {
-	*l = room.lobby
+func (builder *RoomBuilder) BuildLobby(l *LobbyProxyI) {
+	*l = builder.lobby
 }
 
 // BuildModelsAdapter set ModelsAdapterI implementation
-func (room *RoomBuilder) BuildModelsAdapter(m *ModelsAdapterI) {
-	*m = room.models
+func (build *RoomBuilder) BuildModelsAdapter(m *ModelsAdapterI) {
+	*m = build.models
 }
 
 // BuildSender set SendStrategyI implementation
-func (room *RoomBuilder) BuildSender(s *SendStrategyI) {
-	*s = room.sender
+func (builder *RoomBuilder) BuildSender(s *SendStrategyI) {
+	*s = builder.sender
 }
 
-// BuildRoomConnectionEvents set ConnectionEventsI implementation
-func (room *RoomBuilder) BuildRoomConnectionEvents(c *ConnectionEventsI) {
-	*c = room.connEvents
+// BuildConnectionEvents set ConnectionEventsStrategyI implementation
+func (builder *RoomBuilder) BuildConnectionEvents(c *ConnectionEventsStrategyI) {
+	*c = builder.connEvents
 }
 
 // BuildPeople set PeopleI implementation
-func (room *RoomBuilder) BuildPeople(p *PeopleI) {
-	*p = room.people
+func (builder *RoomBuilder) BuildPeople(p *PeopleI) {
+	*p = builder.people
 }
 
 // BuildEvents set EventsI implementation
-func (room *RoomBuilder) BuildEvents(e *EventsI) {
-	*e = room.events
+func (builder *RoomBuilder) BuildEvents(e *EventsI) {
+	*e = builder.events
 }
 
 // BuildRecorder set ActionRecorderProxyI implementation
-func (room *RoomBuilder) BuildRecorder(r *ActionRecorderProxyI) {
-	*r = room.record
+func (builder *RoomBuilder) BuildRecorder(r *ActionRecorderProxyI) {
+	*r = builder.record
 }
 
 // BuildMetrics set MetricsStrategyI implementation
-func (room *RoomBuilder) BuildMetrics(m *MetricsStrategyI) {
-	*m = room.metrics
+func (builder *RoomBuilder) BuildMetrics(m *MetricsStrategyI) {
+	*m = builder.metrics
 }
 
 // BuildMessages set MessagesProxyI implementation
-func (room *RoomBuilder) BuildMessages(m *MessagesProxyI) {
-	*m = room.messages
+func (builder *RoomBuilder) BuildMessages(m *MessagesProxyI) {
+	*m = builder.messages
 }
 
 // BuildGarbageCollector set GarbageCollectorI implementation
-func (room *RoomBuilder) BuildGarbageCollector(g *GarbageCollectorI) {
-	*g = room.garbageCollector
+func (builder *RoomBuilder) BuildGarbageCollector(g *GarbageCollectorI) {
+	*g = builder.garbageCollector
 }

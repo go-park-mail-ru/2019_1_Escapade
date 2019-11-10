@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 )
 
@@ -14,7 +13,6 @@ Auth - auth settinds, more in structure config.Auth
 */
 type Handler struct {
 	Cookie     config.Cookie
-	Clients    *clients.Clients
 	AuthClient config.AuthClient
 	Auth       config.Auth
 }

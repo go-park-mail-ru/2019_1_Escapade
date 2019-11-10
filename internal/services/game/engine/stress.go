@@ -15,6 +15,6 @@ func (lobby *Lobby) stress(n int) {
 	for it.Next() {
 		room := it.Value()
 		var cells []Cell
-		room.field.OpenEverything(cells)
+		room.field.Field().OpenEverything(cells)
 	}
 }

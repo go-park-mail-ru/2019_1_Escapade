@@ -60,7 +60,7 @@ func (room *RoomInformation) setSettings(rs *models.RoomSettings) {
 }
 
 func (room *RoomInformation) RoomID() int32 {
-	return room.RoomID()
+	return room.dbRoomID
 }
 
 ////////////////////////// mutex

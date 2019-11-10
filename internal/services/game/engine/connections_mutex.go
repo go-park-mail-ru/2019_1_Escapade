@@ -1,5 +1,7 @@
 package engine
 
+import "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+
 // RGet return connections slice only for Read!
 func (conns *Connections) RGet() []*Connection {
 
@@ -74,19 +76,28 @@ func (conns *Connections) len() int {
 }
 
 // remove connection with index 'i' from connection slice
-func (conns *Connections) remove(i int) {
+func (conns *Connections) Remove(conn *Connection) bool {
 
+	var (
+		connectionID = conn.ID()
+		done         bool
+	)
 	conns.getM.Lock()
 	defer conns.getM.Unlock()
 	size := len(conns._get)
 	if size == 0 {
-		return
+		return false
 	}
-
-	conns._get[i], conns._get[size-1] = conns._get[size-1], conns._get[i]
-	conns._get[size-1] = nil
-	conns._get = conns._get[:size-1]
-	return
+	for i, c := range conns._get {
+		if c.ID() == connectionID {
+			conns._get[i], conns._get[size-1] = conns._get[size-1], conns._get[i]
+			conns._get[size-1] = nil
+			conns._get = conns._get[:size-1]
+			done = true
+			break
+		}
+	}
+	return done
 }
 
 // append new connection to connection slice
@@ -139,6 +150,7 @@ func (conns *Connections) EnoughPlace() bool {
 func (conns *Connections) SearchByID(connectionID int32) (index int, connection *Connection) {
 	conns.getM.RLock()
 	defer conns.getM.RUnlock()
+	utils.Debug(false, "search conns len", len(conns._get))
 	index = -1
 	for i, c := range conns._get {
 		if c.ID() == connectionID {

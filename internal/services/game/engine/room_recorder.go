@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // ActionRecorderProxyI control access to actions history
@@ -31,7 +32,7 @@ type ActionRecorderProxyI interface {
 // RoomRecorder notify actions to room history and to users
 // implements ActionRecorderProxyI
 type RoomRecorder struct {
-	s  SyncI
+	s  synced.SyncI
 	i  RoomInformationI
 	l  LobbyProxyI
 	p  PeopleI
@@ -57,7 +58,7 @@ func (room *RoomRecorder) Init(builder ComponentBuilderI) {
 }
 
 func (room *RoomRecorder) Free() {
-	go room.historyFree()
+	room.historyFree()
 }
 
 // LeaveMeta update metainformation about user leaving room
@@ -84,14 +85,14 @@ func (room *RoomRecorder) Restart(conn *Connection) {
 
 func (room *RoomRecorder) flag(conn *Connection) {
 	cell := room.p.Flag(conn.Index())
-	room.f.saveCell(&cell.Cell)
-	go room.se.NewCells(cell.Cell)
+	room.f.SaveCell(&cell.Cell)
+	room.se.NewCells(cell.Cell)
 }
 
 func (room *RoomRecorder) Kill(conn *Connection,
 	action int32, isDeathmatch bool) {
 	room.notifyAll(conn, action)
-	room.s.do(func() {
+	room.s.Do(func() {
 		if isDeathmatch {
 			room.flag(conn)
 		}
@@ -101,7 +102,7 @@ func (room *RoomRecorder) Kill(conn *Connection,
 func (room *RoomRecorder) ModelActions() []models.Action {
 	history := room.history()
 	actions := make([]models.Action, 0)
-	room.s.do(func() {
+	room.s.Do(func() {
 		for _, actionHistory := range history {
 			action := room.mo.toModelPlayerAction(actionHistory)
 			actions = append(actions, action)
@@ -116,12 +117,12 @@ func (room *RoomRecorder) Reconnect(conn *Connection) {
 
 func (room *RoomRecorder) AddPlayer(conn *Connection) {
 	room.notifyAll(conn, ActionConnectAsPlayer)
-	go room.se.PlayerEnter(conn)
+	room.se.PlayerEnter(conn)
 }
 
 func (room *RoomRecorder) AddObserver(conn *Connection) {
 	room.notifyAll(conn, ActionConnectAsObserver)
-	go room.se.ObserverEnter(conn)
+	room.se.ObserverEnter(conn)
 }
 
 func (room *RoomRecorder) AddConnection(conn *Connection, isPlayer bool, needRecover bool) {
@@ -141,12 +142,12 @@ func (room *RoomRecorder) FlagСonflict(conn *Connection) {
 }
 
 func (room *RoomRecorder) notifyAll(conn *Connection, action int32) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		pa := NewPlayerAction(conn.ID(), action)
 		room.appendAction(pa)
 		if !room.p.Empty() {
 			room.se.Action(*pa, room.se.AllExceptThat(conn))
-			go room.l.Notify()
+			room.l.Notify()
 		}
 	})
 }

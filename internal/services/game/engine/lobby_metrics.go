@@ -3,53 +3,30 @@ package engine
 import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 func (lobby *Lobby) removeFromFreeRooms(roomID string) {
-	defer utils.CatchPanic("lobby_metrics.go removeFromAllRooms")
-	if lobby.done() {
-		return
-	}
-
-	lobby.wGroup.Add(1)
-	defer lobby.wGroup.Done()
-
-	if lobby.freeRooms.Remove(roomID) && lobby.config().Metrics {
-		metrics.RecruitmentRooms.Dec()
-	}
+	lobby.s.Do(func() {
+		if lobby.freeRooms.Remove(roomID) && lobby.config().Metrics {
+			metrics.RecruitmentRooms.Dec()
+		}
+	})
 }
 
 func (lobby *Lobby) removeFromAllRooms(roomID string) {
-	defer utils.CatchPanic("lobby_metrics.go removeFromAllRooms")
-
-	if lobby.done() {
-		return
-	}
-
-	lobby.wGroup.Add(1)
-	defer lobby.wGroup.Done()
-
-	if lobby.allRooms.Remove(roomID) && lobby.config().Metrics {
-		metrics.ActiveRooms.Dec()
-	}
+	lobby.s.Do(func() {
+		if lobby.allRooms.Remove(roomID) && lobby.config().Metrics {
+			metrics.ActiveRooms.Dec()
+		}
+	})
 }
 
 func (lobby *Lobby) addRoomToSlice(room *Room, f func() bool) error {
-	defer utils.CatchPanic("lobby_metrics.go removeFromAllRooms")
-	if lobby.done() {
-		return re.ErrorRoomOrLobbyDone()
-	}
-
-	lobby.wGroup.Add(1)
-	defer lobby.wGroup.Done()
-
 	var (
 		done bool
 		err  error
 	)
-
-	room.sync.do(func() {
+	lobby.s.DoWithOther(room, func() {
 		if !f() {
 			err = re.ErrorLobbyCantCreateRoom()
 			return
@@ -114,7 +91,7 @@ func (lobby *Lobby) removeWaiter(conn *Connection) {
 	if lobby.config().Metrics {
 		metrics.InLobby.Dec()
 	}
-	go lobby.sendWaiterExit(conn, All)
+	lobby.sendWaiterExit(conn, All)
 }
 
 func (lobby *Lobby) addPlayer(conn *Connection) {
@@ -122,7 +99,7 @@ func (lobby *Lobby) addPlayer(conn *Connection) {
 	if lobby.config().Metrics {
 		metrics.InGame.Inc()
 	}
-	go lobby.sendPlayerEnter(conn, All)
+	lobby.sendPlayerEnter(conn, All)
 }
 
 func (lobby *Lobby) removePlayer(conn *Connection) {

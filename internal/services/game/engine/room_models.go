@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // ModelsAdapterI turns Game-type structures into models that can be sent
@@ -26,7 +26,7 @@ type ModelsAdapterI interface {
 
 // RoomModelsAdapter impelements ModelsAdapterI
 type RoomModelsAdapter struct {
-	s  SyncI
+	s  synced.SyncI
 	i  RoomInformationI
 	l  LobbyProxyI
 	e  EventsI
@@ -56,7 +56,7 @@ func (room *RoomModelsAdapter) Save(wg *sync.WaitGroup) error {
 	}()
 
 	var err error
-	room.s.do(func() {
+	room.s.Do(func() {
 		// made in NewRoom
 		//room.Settings.ID = room.ID()
 
@@ -129,7 +129,7 @@ func (room *RoomModelsAdapter) getGamers(gamers []models.Gamer) func(int, Player
 }
 
 func (room *RoomModelsAdapter) toModelField() models.Field {
-	return room.f.Model()
+	return room.f.Field().Model()
 }
 
 func (room *RoomModelsAdapter) toModelCells() []models.Cell {
@@ -150,7 +150,7 @@ func (room *RoomModelsAdapter) JSON() RoomJSON {
 		Observers: room.p.observers().JSON(),
 		History:   room.re.history(),
 		Messages:  room.m.Messages(),
-		Field:     room.f.JSON(),
+		Field:     room.f.Field().JSON(),
 		Date:      room.e.Date(),
 		Settings:  room.i.Settings(),
 	}
@@ -235,39 +235,33 @@ func (room *RoomModelsAdapter) responseRoom(
 
 // Load load room information from database
 func (lobby *Lobby) Load(id string) (*Room, error) {
-	if lobby.done() {
-		return nil, re.ErrorLobbyDone()
-	}
-	lobby.wGroup.Add(1)
-	defer func() {
-		lobby.wGroup.Done()
-	}()
-
 	var (
-		info models.GameInformation
 		room *Room
 		err  error
 	)
-	if info, err = lobby.db().FetchOneGame(id); err != nil {
-		return nil, err
-	}
+	lobby.s.Do(func() {
+		var info models.GameInformation
+		if info, err = lobby.db().FetchOneGame(id); err != nil {
+			return
+		}
 
-	if room, err = NewRoom(lobby.config().Field, lobby, &info.Game, id); err != nil {
-		return nil, err
-	}
+		room, err = NewRoom(lobby.rconfig(), lobby, &info.Game, id)
+		if err != nil {
+			return
+		}
 
-	room.events.configure(StatusHistory, info.Game.Date)
-	room.record.configure(info.Actions)
-	room.field.Configure(info)
-	room.people.configure(info)
+		room.events.configure(StatusHistory, info.Game.Date)
+		room.record.configure(info.Actions)
+		room.field.Configure(info)
+		room.people.configure(info)
 
-	_, messages, err := GetChatIDAndMessages(lobby.location(),
-		pChat.ChatType_ROOM, room.messages.ChatID(), lobby.SetImage)
+		_, messages, err := GetChatIDAndMessages(lobby.ChatService, lobby.location(),
+			pChat.RoomType, room.messages.ChatID(), lobby.SetImage)
 
-	if err == nil {
-		room.messages.setMessages(messages)
-	}
-
+		if err == nil {
+			room.messages.setMessages(messages)
+		}
+	})
 	return room, err
 
 	//room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)

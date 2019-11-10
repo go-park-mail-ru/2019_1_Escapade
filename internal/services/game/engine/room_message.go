@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"math/rand"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // MessagesProxyI control access to messages
@@ -42,19 +42,23 @@ type RoomMessages struct {
 	messagesM *sync.Mutex
 	_messages []*models.Message
 
-	s  SyncI
+	service clients.Chat
+
+	s  synced.SyncI
 	i  RoomInformationI
 	l  LobbyProxyI
 	se SendStrategyI
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomMessages) Init(builder ComponentBuilderI, chatID int32) {
+func (room *RoomMessages) Init(builder ComponentBuilderI,
+	service clients.Chat, chatID int32) {
 	builder.BuildInformation(&room.i)
 	builder.BuildLobby(&room.l)
 	builder.BuildSync(&room.s)
 	builder.BuildSender(&room.se)
 
+	room.service = service
 	room.messagesM = &sync.Mutex{}
 	room.dbChatID = chatID
 	room.setMessages(make([]*models.Message, 0))
@@ -77,7 +81,7 @@ func (room *RoomMessages) Proto(message *models.Message) (*chat.Message, error) 
 }
 
 func (room *RoomMessages) Fix(message *models.Message, conn *Connection) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		if conn.Index() < 0 {
 			message.Status = models.StatusObserver
 		} else {
@@ -100,7 +104,7 @@ func (room *RoomMessages) HandleError(message *models.Message, send *chat.Messag
 			if room.dbChatID != 0 {
 				return room.dbChatID, nil
 			}
-			id, err := GetChatID(chat.ChatType_ROOM, room.i.RoomID())
+			id, err := GetChatID(room.l.ChatService(), chat.RoomType, room.i.RoomID())
 			if err != nil {
 				room.dbChatID = id
 			}
@@ -114,10 +118,10 @@ func (room *RoomMessages) Send(message *models.Message) {
 
 func (room *RoomMessages) Write(message *models.Message, send *chat.Message) error {
 	var err error
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.appendMessage(message)
 		var msgID *chat.MessageID
-		msgID, err = clients.ALL.Chat().AppendMessage(context.Background(), send)
+		msgID, err = room.service.AppendMessage(send)
 		if err != nil {
 			return
 		}
@@ -133,7 +137,7 @@ func (room *RoomMessages) Write(message *models.Message, send *chat.Message) err
 
 func (room *RoomMessages) Update(message *models.Message, send *chat.Message) error {
 	var err error
-	room.s.do(func() {
+	room.s.Do(func() {
 		found := room.findMessage(message.ID)
 		if found <= 0 {
 			err = re.InvalidMessageID()
@@ -141,14 +145,14 @@ func (room *RoomMessages) Update(message *models.Message, send *chat.Message) er
 		}
 		room.setMessage(found, message)
 
-		_, err = clients.ALL.Chat().UpdateMessage(context.Background(), send)
+		_, err = room.service.UpdateMessage(send)
 	})
 	return err
 }
 
 func (room *RoomMessages) Delete(message *models.Message, send *chat.Message) error {
 	var err error
-	room.s.do(func() {
+	room.s.Do(func() {
 		if message.ID <= 0 {
 			err = re.InvalidMessageID()
 			return
@@ -156,7 +160,7 @@ func (room *RoomMessages) Delete(message *models.Message, send *chat.Message) er
 		found := room.findMessage(message.ID)
 		room.removeMessage(found)
 
-		_, err = clients.ALL.Chat().DeleteMessage(context.Background(), send)
+		_, err = room.service.DeleteMessage(send)
 		if err != nil {
 			return
 		}

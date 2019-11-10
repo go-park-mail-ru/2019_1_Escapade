@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strconv"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
@@ -9,44 +11,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
 
 	"golang.org/x/net/netutil"
 
-	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 )
 
-func Server(r *mux.Router, serverConfig config.Server, isHTTP bool,
-	port string) *http.Server {
-	var (
-		readTimeout  = time.Duration(serverConfig.ReadTimeoutS) * time.Second
-		writeTimeout = time.Duration(serverConfig.WriteTimeoutS) * time.Second
-		idleTimeout  = time.Duration(serverConfig.IdleTimeoutS) * time.Second
-		execTimeout  = time.Duration(serverConfig.WaitTimeoutS) * time.Second
-		handler      http.Handler
-	)
-
-	if serverConfig.WaitTimeoutS != 0 && isHTTP {
-		handler = http.TimeoutHandler(r, execTimeout, "ESCAPADE DEBUG Timeout!")
-	} else {
-		handler = r
-	}
-
-	utils.Debug(false, "look", readTimeout, writeTimeout, idleTimeout, execTimeout)
-	srv := &http.Server{
-		Addr:           port,
-		ReadTimeout:    readTimeout,
-		WriteTimeout:   writeTimeout,
-		IdleTimeout:    idleTimeout,
-		Handler:        handler,
-		MaxHeaderBytes: 1 << 15, // TODO в конфиг
-	}
-	return srv
-}
-
-func LaunchHTTP(server *http.Server, serverConfig config.Server, maxConn int,
+func LaunchHTTP(server *http.Server, serverConfig config.Server,
 	lastFunc func()) {
+
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 	defer func() {
@@ -65,7 +38,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, maxConn int,
 
 	defer l.Close()
 
-	l = netutil.LimitListener(l, maxConn)
+	l = netutil.LimitListener(l, serverConfig.MaxConn)
 
 	go func() {
 		utils.Debug(false, "✔✔✔ GO ✔✔✔")
@@ -74,7 +47,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, maxConn int,
 			utils.Debug(false, "Serving error:", err.Error())
 		}
 	}()
-	waitTimeout := time.Duration(serverConfig.WaitTimeoutS) * time.Second
+	waitTimeout := serverConfig.Timeouts.Wait.Duration
 	ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
 	defer cancel()
 	select {
@@ -90,7 +63,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server, maxConn int,
 	<-ctx.Done()
 }
 
-func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
+func LaunchGRPC(grpcServer *grpc.Server, serverConfig config.Server, port string, lastFunc func()) {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)
 
@@ -99,8 +72,6 @@ func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
 		close(errChan)
 		lastFunc()
 	}()
-
-	connectionCount := 20 // TODO в конфиг
 
 	l, err := net.Listen("tcp", port)
 
@@ -111,7 +82,7 @@ func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
 
 	defer l.Close()
 
-	l = netutil.LimitListener(l, connectionCount)
+	l = netutil.LimitListener(l, serverConfig.MaxConn)
 
 	signal.Notify(stopChan, os.Interrupt)
 
@@ -130,4 +101,24 @@ func LaunchGRPC(grpcServer *grpc.Server, port string, lastFunc func()) {
 	case <-stopChan:
 		grpcServer.GracefulStop()
 	}
+}
+
+func Port(port string) (string, int, error) {
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		return port, 0, err
+	}
+	return ":" + port, intPort, err
+}
+
+func GetIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return err.Error()
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
 }

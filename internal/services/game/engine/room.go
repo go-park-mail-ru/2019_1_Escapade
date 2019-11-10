@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -31,12 +32,12 @@ type ConnectionAction struct {
 type Room struct {
 	info             RoomInformationI
 	field            FieldProxyI
-	sync             SyncI
+	sync             synced.SyncI
 	api              APIStrategyI
 	lobby            LobbyProxyI
 	models           ModelsAdapterI
 	sender           SendStrategyI
-	connEvents       ConnectionEventsI
+	connEvents       ConnectionEventsStrategyI
 	people           PeopleI
 	events           EventsI
 	record           ActionRecorderProxyI
@@ -85,27 +86,46 @@ func CharacteristicsCheck(rs *models.RoomSettings) bool {
 			utils.Debug(false, "Time to play is invalid:", rs.TimeToPlay)
 			return false
 		}
-	} else {
-		panic(3)
 	}
 	return true
 }
 
+type RoomArgs struct {
+	c        *config.Room
+	lobby    *Lobby
+	rs       *models.RoomSettings
+	id       string
+	DBchatID int32
+	DBRoomID int32
+	Field    *Field
+}
+
 // NewRoom return new instance of room
-func NewRoom(config *config.Field, lobby *Lobby,
+func NewRoom(c *config.Room, lobby *Lobby,
 	game *models.Game, id string) (*Room, error) {
 	if !CharacteristicsCheck(game.Settings) || !game.Settings.FieldCheck() {
 		return nil, re.ErrorInvalidRoomSettings()
 	}
 
 	var room = &Room{}
-	chatID, dbRoomID, err := room.registerInDB(lobby, game, id)
+	dbchatID, dbRoomID, err := room.registerInDB(lobby, game, id)
 	if err != nil {
 		return room, err
 	}
-	room.configureAndStart(config, lobby, game.Settings, id, chatID, dbRoomID)
+	var ra = &RoomArgs{
+		c:        c,
+		lobby:    lobby,
+		rs:       game.Settings,
+		id:       id,
+		DBchatID: dbchatID,
+		DBRoomID: dbRoomID,
+	}
+	room.configureAndStart(ra)
 
 	return room, err
+}
+func (room *Room) GetSync() synced.SyncI {
+	return room.sync
 }
 
 func (room *Room) registerInDB(lobby *Lobby, game *models.Game, id string) (int32, int32, error) {
@@ -130,20 +150,20 @@ func (room *Room) registerInDB(lobby *Lobby, game *models.Game, id string) (int3
 }
 
 // Init init instance of room
-func (room *Room) configureAndStart(config *config.Field, lobby *Lobby,
-	rs *models.RoomSettings, id string, chatID, roomID int32) {
+func (room *Room) configureAndStart(ra *RoomArgs) {
 	var (
 		// в конфиг
-		t = Timeouts{
-			timeoutPeopleFinding:   2.,
-			timeoutRunningPlayer:   60.,
-			timeoutRunningObserver: 5.,
-			timeoutFinished:        20.,
-		}
-		field      = NewField(rs, config)
+		/*
+			t = Timeouts{
+				timeoutPeopleFinding:   2.,
+				timeoutRunningPlayer:   60.,
+				timeoutRunningObserver: 5.,
+				timeoutFinished:        20.,
+			}*/
 		components = &RoomBuilder{}
 	)
-	components.Build(room, field, lobby, rs, t, id, chatID, roomID)
+	ra.Field = NewField(ra.rs, &ra.c.Field)
+	components.Build(room, ra)
 	go room.events.Run()
 }
 

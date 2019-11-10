@@ -3,6 +3,7 @@ package chat
 import (
 
 	//
+
 	_ "github.com/lib/pq"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -11,7 +12,7 @@ import (
 
 type ChatRepositoryPQ struct{}
 
-func (db *ChatRepositoryPQ) get(Db database.DatabaseI, chat *Chat) (*ChatID, error) {
+func (db *ChatRepositoryPQ) get(tx database.TransactionI, ch *Chat) (*ChatID, error) {
 
 	var (
 		id  int32
@@ -20,17 +21,17 @@ func (db *ChatRepositoryPQ) get(Db database.DatabaseI, chat *Chat) (*ChatID, err
 
 	query := `select id from Chat where chat_type = $1 and type_id = $2;`
 
-	row := Db.QueryRow(query, chat.Type, chat.TypeId)
+	row := tx.QueryRow(query, ch.Type, ch.TypeId)
 
 	if err = row.Scan(&id); err != nil {
-		utils.Debug(false, "cant get chat", err.Error())
+		utils.Debug(false, "cant get chaaat", err.Error())
 		return &ChatID{}, err
 	}
 
 	return &ChatID{Value: id}, nil
 }
 
-func (db *ChatRepositoryPQ) create(tx database.TransactionI, chatType ChatType, typeID int32) (*ChatID, error) {
+func (db *ChatRepositoryPQ) create(tx database.TransactionI, chatType, typeID int32) (*ChatID, error) {
 	var (
 		id  int32
 		err error

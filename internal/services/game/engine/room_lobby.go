@@ -3,7 +3,10 @@ package engine
 import (
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // LobbyProxyI control access to lobby
@@ -27,13 +30,17 @@ type LobbyProxyI interface {
 
 	setWaitingRoom(conn *Connection)
 
+	config() *config.Room
+
+	ChatService() clients.Chat
+
 	Date() time.Time
 }
 
 // RoomLobby implements LobbyProxyI
 type RoomLobby struct {
 	r     *Room
-	s     SyncI
+	s     synced.SyncI
 	i     RoomInformationI
 	lobby *Lobby
 
@@ -49,23 +56,27 @@ func (room *RoomLobby) Init(builder ComponentBuilderI, r *Room, lobby *Lobby) {
 	builder.BuildInformation(&room.i)
 
 	room.needMetrics = room.lobby.config().Metrics
-	room.canClose = room.lobby.config().CanClose
+	room.canClose = room.lobby.config().Room.CanClose
+}
+
+func (room *RoomLobby) ChatService() clients.Chat {
+	return room.lobby.ChatService
 }
 
 func (room *RoomLobby) Finish() {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.lobby.roomFinish(room.i.ID())
 	})
 }
 
 func (room *RoomLobby) Notify() {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.lobby.sendRoomUpdate(room.r, All)
 	})
 }
 
 func (room *RoomLobby) Start() {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.lobby.RoomStart(room.r, room.i.ID())
 	})
 }
@@ -79,7 +90,7 @@ func (room *RoomLobby) SaveGame(info models.GameInformation) error {
 }
 
 func (room *RoomLobby) Close() {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.lobby.CloseRoom(room.i.ID())
 	})
 }
@@ -93,7 +104,7 @@ func (room *RoomLobby) BackToLobby(conn *Connection) {
 }
 
 func (room *RoomLobby) WaiterToPlayer(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		room.lobby.waiterToPlayer(conn, room.r)
 	})
 }
@@ -103,7 +114,7 @@ func (room *RoomLobby) CreateAndAddToRoom(conn *Connection) (*Room, error) {
 		newRoom *Room
 		err     error
 	)
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		newRoom, err = room.lobby.CreateAndAddToRoom(room.i.Settings(), conn)
 	})
 	return newRoom, err
@@ -115,6 +126,10 @@ func (room *RoomLobby) Date() time.Time {
 
 func (room *RoomLobby) metricsEnabled() bool {
 	return room.needMetrics
+}
+
+func (room *RoomLobby) config() *config.Room {
+	return room.lobby.rconfig()
 }
 
 func (room *RoomLobby) closeEnabled() bool {

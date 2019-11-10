@@ -8,8 +8,9 @@ import (
 
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/go-session/session"
@@ -25,21 +26,19 @@ import (
 	"gopkg.in/oauth2.v3/store"
 )
 
-func Init(accessTokenExp, refreshTokenExp time.Duration,
-	isGenerateRefresh bool, jwtSecret, link string,
-	clients []*models.Client) (*manage.Manager, *pg.TokenStore, error) {
+func Init(configuration *config.Configuration, clients []*models.Client) (*manage.Manager, *pg.TokenStore, error) {
 	manager := manage.NewDefaultManager()
 	cfg := &manage.Config{
-		AccessTokenExp:    accessTokenExp,
-		RefreshTokenExp:   refreshTokenExp,
-		IsGenerateRefresh: isGenerateRefresh,
+		AccessTokenExp:    configuration.Auth.AccessTokenExpire.Duration,
+		RefreshTokenExp:   configuration.Auth.AccessTokenExpire.Duration,
+		IsGenerateRefresh: configuration.Auth.IsGenerateRefresh,
 	}
 
 	manager.SetPasswordTokenCfg(cfg)
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
-	manager.MapAccessGenerate(generates.NewJWTAccessGenerate([]byte(jwtSecret), jwt.SigningMethodHS512))
+	manager.MapAccessGenerate(generates.NewJWTAccessGenerate([]byte(configuration.Auth.Salt), jwt.SigningMethodHS512))
 
-	pgxConnConfig, _ := pgx.ParseURI(link)
+	pgxConnConfig, _ := pgx.ParseURI(configuration.DataBase.AuthConnectionString)
 
 	pgxConn, err := pgx.Connect(pgxConnConfig)
 	if err != nil {
@@ -90,7 +89,7 @@ func addClients(store *pg.ClientStore, clients []*models.Client) error {
 	}
 }
 
-func Server(db *database.DataBase, eryDB *erydb.DB, manager *manage.Manager) *server.Server {
+func Server(db database.UserUseCaseI, eryDB *erydb.DB, manager *manage.Manager) *server.Server {
 	srv := server.NewServer(
 		&server.Config{
 			TokenType:            "Bearer",
@@ -111,7 +110,7 @@ func Server(db *database.DataBase, eryDB *erydb.DB, manager *manage.Manager) *se
 		)
 		fmt.Println("try password!", username, password)
 		if db != nil {
-			if intUserID, err = db.Login(username, password); err != nil {
+			if intUserID, err = db.EnterAccount(username, password); err != nil {
 				utils.Debug(false, "exp password check error ", re.NoUserWrapper(err))
 			}
 		}

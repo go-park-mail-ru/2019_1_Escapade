@@ -30,6 +30,7 @@ func Debug(needPanic bool, text ...interface{}) {
 	fmt.Print("    ")
 	fmt.Println(text...)
 	if needPanic {
+		fmt.Println("text:", text)
 		panic("panic called!")
 	}
 }

@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
@@ -14,7 +15,7 @@ type MetricsStrategyI interface {
 
 // RoomMetrics implements MetricsStrategyI
 type RoomMetrics struct {
-	s SyncI
+	s synced.SyncI
 	e EventsI
 	f FieldProxyI
 
@@ -44,7 +45,7 @@ func (room *RoomMetrics) Observe(needMetrics bool, cancel bool) {
 	if !needMetrics {
 		return
 	}
-	room.s.do(func() {
+	room.s.Do(func() {
 		var (
 			roomType string
 		)
@@ -58,14 +59,14 @@ func (room *RoomMetrics) Observe(needMetrics bool, cancel bool) {
 
 		utils.Debug(false, "metrics RoomPlayers", room.settings.Players)
 		metrics.RoomPlayers.WithLabelValues(roomType).Observe(float64(room.settings.Players))
-		utils.Debug(false, "metrics difficult", room.f.difficult())
-		metrics.RoomDifficult.WithLabelValues(roomType).Observe(float64(room.f.difficult()))
+		utils.Debug(false, "metrics difficult", room.f.Field().difficult())
+		metrics.RoomDifficult.WithLabelValues(roomType).Observe(float64(room.f.Field().difficult()))
 		utils.Debug(false, "metrics size", room.size)
 		metrics.RoomSize.WithLabelValues(roomType).Observe(room.size)
 		utils.Debug(false, "metrics TimeToPlay", room.settings.TimeToPlay)
 		metrics.RoomTime.WithLabelValues(roomType).Observe(float64(room.settings.TimeToPlay))
 		if !cancel {
-			openProcent := 1 - float64(float64(room.f.cellsLeft())/room.size)
+			openProcent := 1 - float64(float64(room.f.Field().cellsLeft())/room.size)
 			utils.Debug(false, "metrics openProcent", openProcent)
 			metrics.RoomOpenProcent.Observe(openProcent)
 

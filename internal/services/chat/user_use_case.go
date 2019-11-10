@@ -1,8 +1,6 @@
 package chat
 
 import (
-	context "context"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
@@ -18,7 +16,7 @@ func (db *UserUseCase) Init(user UserRepositoryI) {
 
 // InviteToChat invite user to the chat
 // to work correctly, specify user and id of the chat
-func (db *UserUseCase) InviteToChat(ctx context.Context, userInChat *UserInGroup) (*Result, error) {
+func (db *UserUseCase) InviteToChat(userInChat *UserInGroup) (*Result, error) {
 	if err := db.check(userInChat); err != nil {
 		return &Result{}, err
 	}
@@ -44,7 +42,7 @@ func (db *UserUseCase) InviteToChat(ctx context.Context, userInChat *UserInGroup
 
 // LeaveChat leave user from the chat
 // to work correctly, specify user and id of the chat
-func (db *UserUseCase) LeaveChat(ctx context.Context, userInChat *UserInGroup) (*Result, error) {
+func (db *UserUseCase) LeaveChat(userInChat *UserInGroup) (*Result, error) {
 
 	if err := db.check(userInChat); err != nil {
 		return &Result{}, err

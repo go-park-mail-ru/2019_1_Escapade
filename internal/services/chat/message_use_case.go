@@ -1,8 +1,6 @@
 package chat
 
 import (
-	context "context"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
 )
@@ -21,7 +19,7 @@ func (db *MessageUseCase) Init(message MessageRepositoryI) {
 // the operation occurs
 // Return id for this message, save it. It must be transferred to any message
 // operations
-func (db *MessageUseCase) AppendOne(ctx context.Context, message *Message) (*MessageID, error) {
+func (db *MessageUseCase) AppendOne(message *Message) (*MessageID, error) {
 	if message == nil {
 		return &MessageID{}, re.InvalidMessage()
 	}
@@ -35,7 +33,7 @@ func (db *MessageUseCase) AppendOne(ctx context.Context, message *Message) (*Mes
 }
 
 // AppendMany append messages to database
-func (db *MessageUseCase) AppendMany(ctx context.Context, messages *Messages) (*MessagesID, error) {
+func (db *MessageUseCase) AppendMany(messages *Messages) (*MessagesID, error) {
 	if messages == nil {
 		return &MessagesID{}, re.InvalidMessage()
 	}
@@ -47,7 +45,7 @@ func (db *MessageUseCase) AppendMany(ctx context.Context, messages *Messages) (*
 // Update message in database
 // to work correctly, specify the ID of the message in which
 // the operation occurs
-func (db *MessageUseCase) Update(ctx context.Context, message *Message) (*Result, error) {
+func (db *MessageUseCase) Update(message *Message) (*Result, error) {
 	if message == nil {
 		return &Result{}, re.InvalidMessage()
 	}
@@ -62,7 +60,7 @@ func (db *MessageUseCase) Update(ctx context.Context, message *Message) (*Result
 // Delete message from database
 // to work correctly, specify the ID of the message in which
 // the operation occurs
-func (db *MessageUseCase) Delete(ctx context.Context, message *Message) (*Result, error) {
+func (db *MessageUseCase) Delete(message *Message) (*Result, error) {
 	if message == nil {
 		return &Result{}, re.InvalidMessage()
 	}
@@ -75,7 +73,7 @@ func (db *MessageUseCase) Delete(ctx context.Context, message *Message) (*Result
 }
 
 // GetChatMessages get all messages from the chad with specified id
-func (db *MessageUseCase) GetAll(ctx context.Context, chatID *ChatID) (*Messages, error) {
+func (db *MessageUseCase) GetAll(chatID *ChatID) (*Messages, error) {
 
 	if chatID == nil {
 		return &Messages{}, re.InvalidMessage()

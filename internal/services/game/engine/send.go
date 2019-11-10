@@ -46,34 +46,34 @@ func SendToConnections(info api.JSONtype,
 // it will send everybody except selected one and disconnected
 func AllExceptThat(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
-		return !conn.done() && !me.done() && conn.ID() != me.ID()
+		return !conn.s.IsCleared() && !me.s.IsCleared() && conn.ID() != me.ID()
 	}
 }
 
 // All is SendPredicate to SendToConnections
 // it will send everybody, who is connected
 func All(conn *Connection) bool {
-	return !conn.done()
+	return !conn.s.IsCleared()
 }
 
 // Me is SendPredicate to SendToConnections
 // it will send only to selected connection
 func Me(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
-		return !conn.done() && !me.done() && conn.ID() == me.ID()
+		return !conn.s.IsCleared() && !me.s.IsCleared() && conn.ID() == me.ID()
 	}
 }
 
 // All is SendPredicate to SendToConnections
 // it will send everybody in room, who is connected
 func (room *RoomSender) All(conn *Connection) bool {
-	return !conn.done()
+	return !conn.s.IsCleared()
 }
 
 // AllExceptThat is SendPredicate to SendToConnections
 // it will send everybody in room, except selected one
 func (room *RoomSender) AllExceptThat(me *Connection) func(*Connection) bool {
 	return func(conn *Connection) bool {
-		return !conn.done() && !me.done() && conn != me
+		return !conn.s.IsCleared() && !me.s.IsCleared() && conn != me
 	}
 }

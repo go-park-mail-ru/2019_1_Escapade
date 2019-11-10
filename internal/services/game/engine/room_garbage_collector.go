@@ -2,63 +2,74 @@ package engine
 
 import (
 	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // GarbageCollectorI handle deleting connections, when they are disconnected
 // Strategy Pattern
 type GarbageCollectorI interface {
 	Run()
-}
-
-// Timeouts contains the timeouts required for the garbage collector to run
-type Timeouts struct {
-	timeoutPeopleFinding   float64
-	timeoutRunningPlayer   float64
-	timeoutRunningObserver float64
-	timeoutFinished        float64
+	Close()
+	SingleGoroutine() synced.SingleGoroutine
 }
 
 // RoomGarbageCollector implements GarbageCollectorI
 type RoomGarbageCollector struct {
-	s SyncI
+	s synced.SyncI
 	e EventsI
 	p PeopleI
-	c ConnectionEventsI
+	c ConnectionEventsStrategyI
 
-	tPlayer   float64
-	tObserver float64
-	t         Timeouts
+	tPlayer   time.Duration
+	tObserver time.Duration
+	t         config.GameTimeouts
+	sg        synced.SingleGoroutine
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomGarbageCollector) Init(builder ComponentBuilderI, timeouts Timeouts) {
+func (room *RoomGarbageCollector) Init(builder ComponentBuilderI,
+	interval time.Duration, timeouts config.GameTimeouts) {
+
 	builder.BuildSync(&room.s)
 	builder.BuildEvents(&room.e)
 	builder.BuildPeople(&room.p)
-	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildConnectionEvents(&room.c)
 
 	room.t = timeouts
+
+	room.sg = synced.SingleGoroutine{}
+	room.sg.Init(interval, room.Run)
 }
 
 func (room *RoomGarbageCollector) updateTimeouts() {
 	status := room.e.Status()
 	if status == StatusRecruitment {
-		room.tPlayer = room.t.timeoutPeopleFinding
-		room.tObserver = room.t.timeoutPeopleFinding
+		room.tPlayer = room.t.PeopleFinding.Duration
+		room.tObserver = room.t.PeopleFinding.Duration
 	} else if status == StatusFinished {
-		room.tPlayer = room.t.timeoutFinished
-		room.tObserver = room.t.timeoutFinished
+		room.tPlayer = room.t.Finished.Duration
+		room.tObserver = room.t.Finished.Duration
 	} else {
-		room.tPlayer = room.t.timeoutRunningPlayer
-		room.tObserver = room.t.timeoutRunningObserver
+		room.tPlayer = room.t.RunningPlayer.Duration
+		room.tObserver = room.t.RunningObserver.Duration
 	}
 }
 
+func (room *RoomGarbageCollector) SingleGoroutine() synced.SingleGoroutine {
+	return room.sg
+}
+
 func (room *RoomGarbageCollector) Run() {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.updateTimeouts()
 		room.checkPeople()
 	})
+}
+
+func (room *RoomGarbageCollector) Close() {
+	room.sg.Close()
 }
 
 func (room *RoomGarbageCollector) checkPeople() {
@@ -75,7 +86,7 @@ func (room *RoomGarbageCollector) checkPeople() {
 	})
 }
 
-func (room *RoomGarbageCollector) isExpired(conn *Connection, timeout float64) bool {
+func (room *RoomGarbageCollector) isExpired(conn *Connection, timeout time.Duration) bool {
 	t := conn.Time()
-	return conn.Disconnected() && time.Since(t).Seconds() > timeout
+	return conn.Disconnected() && time.Since(t) > timeout
 }

@@ -1,154 +1,93 @@
 package main
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
-	ametrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
+	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/handlers"
-	gmetrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"os"
 )
 
 func main() {
-	var (
-		configuration *config.Configuration
-		err           error
-	)
 
-	utils.Debug(false, "1. Check command line arguments")
-
-	if len(os.Args) < 6 {
-		utils.Debug(false, "ERROR. Game service need 5 command line arguments. But only",
-			len(os.Args)-1, "get.")
-		return
-	}
-
-	var (
-		configurationPath = os.Args[1]
-		photoPublicPath   = os.Args[2]
-		photoPrivatePath  = os.Args[3]
-		fieldPath         = os.Args[4]
-		roomPath          = os.Args[5]
-		mainPort          = os.Args[6]
-		consulPort        = os.Args[7]
-		mainPortInt       int
-	)
-
-	mainPort, mainPortInt, err = server.Port(mainPort)
+	cla, err := start.GetCommandLineArgs(7, func() *start.CommandLineArgs {
+		return &start.CommandLineArgs{
+			ConfigurationPath: os.Args[1],
+			PhotoPublicPath:   os.Args[2],
+			PhotoPrivatePath:  os.Args[3],
+			FieldPath:         os.Args[4],
+			RoomPath:          os.Args[5],
+			MainPort:          os.Args[6],
+		}
+	})
 	if err != nil {
-		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
+		utils.Debug(false, "ERROR with command line args", err.Error())
 		return
 	}
-	consulPort = server.FixPort(consulPort)
 
-	utils.Debug(false, "✔")
-	utils.Debug(false, "2. Set the configuration")
-
-	configuration, err = config.Init(configurationPath)
+	ca := &start.ConfigurationArgs{
+		HandlersMetrics: true,
+		GameMetrics:     true,
+		Photo:           true,
+		Room:            true,
+		Field:           true,
+	}
+	// second step
+	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
-		utils.Debug(false, "Initialization error with main configuration:", err.Error())
+		utils.Debug(false, "ERROR with configuration", err.Error())
 		return
 	}
 
-	err = photo.Init(photoPublicPath, photoPrivatePath)
+	lastArgs := &start.AllArgs{
+		C:           configuration,
+		CLA:         cla,
+		IsWebsocket: true,
+	}
+	// third step
+	consul := start.RegisterInConsul(lastArgs)
+	// start connection to Consul
+	err = consul.Run()
 	if err != nil {
-		utils.Debug(false, "Initialization error with photo configuration:", err.Error())
+		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
 		return
 	}
+	defer consul.Close()
 
-	err = constants.InitField(fieldPath)
+	utils.Debug(false, "3.5. Connect to grpc servers and database")
+
+	var chatService = clients.Chat{}
+	err = chatService.Init(consul, configuration.Required)
 	if err != nil {
-		utils.Debug(false, "Initialization error with field constants:", err.Error())
+		utils.Debug(false, "ERROR with grpc connection:", err.Error())
 		return
 	}
+	defer chatService.Close()
 
-	err = constants.InitRoom(roomPath)
-	if err != nil {
-		utils.Debug(false, "Initialization error with room constants:", err.Error())
-		return
-	}
+	utils.Debug(false, "✔✔")
 
-	ametrics.Init()
-	gmetrics.Init()
-
+	// start connection to database inside handlers
 	var handler handlers.GameHandler
-	err = handler.InitWithPostgresql(configuration)
+	err = handler.InitWithPostgresql(chatService, configuration)
 	if err != nil {
 		utils.Debug(false, "Database error:", err.Error())
 		return
 	}
 	defer handler.Close()
 
-	utils.Debug(false, "✔✔")
-	utils.Debug(false, "3. Register in consul")
+	// forth step
+	var srv = start.ConfigureServer(handler.Router(), lastArgs)
 
-	var (
-		serviceName = "game"
-		ttl         = time.Second * 10
-		maxConn     = 40
-	)
+	utils.Debug(false, "Service", consul.Name, "with id:", consul.ID, "ready to go on",
+		start.GetIP()+cla.MainPort)
 
-	consulAddr := os.Getenv("CONSUL_ADDRESS")
-	if consulAddr == "" {
-		consulAddr = configuration.Server.Host
-	}
-
-	newTags := []string{"game", "traefik.frontend.entryPoints=http",
-		"traefik.frontend.rule=Host:game.consul.localhost"}
-
-	consul, err := server.InitConsulService(serviceName,
-		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
-		func() (bool, error) { return false, nil }, true)
-	if err != nil {
-		utils.Debug(false, "ERROR cant get ip:", err.Error())
-		return
-	}
-
-	err = consul.Run()
-	if err != nil {
-		utils.Debug(false, "ERROR when register service ", err)
-		return
-	}
-	defer consul.Close()
-
-	utils.Debug(false, "✔✔✔")
-	utils.Debug(false, "3. Connect to grpc servers")
-
-	readyChan := make(chan error)
-	defer close(readyChan)
-	finishChan := make(chan interface{})
-	defer close(finishChan)
-
-	clients.ALL = clients.Clients{}
-	clients.ALL.Init()
-	clients.ALL.AddChat(consulAddr+consulPort, finishChan)
-
-	utils.Debug(false, "✔✔✔✔")
-	utils.Debug(false, "4. Launch the game lobby")
-
-	engine.Launch(&configuration.Game, handler.GameDB(configuration), photo.GetImages)
-	defer engine.GetLobby().Stop()
-
-	var (
-		r   = handler.Router()
-		srv = server.Server(r, configuration.Server, false, mainPort)
-	)
-
-	utils.Debug(false, "✔✔✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:",
-		server.ServiceID(serviceName), "ready to go on",
-		configuration.Server.Host+mainPort)
-
-	server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
-		finishChan <- nil
+	fmt.Println("more conf:", configuration.Game.Lobby.Intervals, configuration.Game.Lobby.ConnectionTimeout,
+		configuration.Server.MaxConn)
+	server.LaunchHTTP(srv, configuration.Server, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 	os.Exit(0)

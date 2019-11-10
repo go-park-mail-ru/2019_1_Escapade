@@ -67,21 +67,15 @@ message Messages {
   int32 block_number = 4;
 }
 
-enum ChatType {
-  LOBBY = 0;
-  ROOM = 1;
-  USER = 3;
-}
-
 message Chat {
   int32 id = 1;
-  ChatType type = 2;
+  int32 type = 2;
   int32 type_id = 3;
   repeated Messages messages = 4;
 }
 
 message ChatWithUsers {
-  ChatType type = 1;
+  int32 type = 1;
   int32 type_id = 2;
   repeated User users = 3;
 }

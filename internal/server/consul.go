@@ -62,45 +62,54 @@ type ConsulService struct {
 	enableTraefik bool
 }
 
+type ConsulInput struct {
+	Name          string
+	Port          int
+	Tags          []string
+	TTL           time.Duration
+	MaxConn       int
+	ConsulHost    string
+	ConsulPort    string
+	Check         func() (bool, error)
+	EnableTraefik bool
+}
+
 // InitConsulService return instance of ConsulService
-func InitConsulService(name string, port int,
-	tags []string, ttl time.Duration, maxConn int,
-	consulHost, consulPort string,
-	check func() (bool, error), enableTraefik bool) (*ConsulService, error) {
+func InitConsulService(input *ConsulInput) *ConsulService {
 
-	var (
-		id           = ServiceID(name)
-		weight       = CountWeight()
-		address, err = GetIP()
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	checks := []*consulapi.AgentServiceCheck{
-		&consulapi.AgentServiceCheck{
-			CheckID:                        "service:" + id,
-			TTL:                            ttl.String(),
-			DeregisterCriticalServiceAfter: time.Minute.String(),
-		}}
-	if enableTraefik {
-		tags = append(tags,
+	if input.EnableTraefik {
+		input.Tags = append(input.Tags,
 			"traefik.enable=true",
 			"traefik.port=80",
 			"traefik.docker.network=backend",
 			"traefik.backend.loadbalancer=drr",
-			"traefik.backend.maxconn.amount="+utils.String(maxConn),
+			"traefik.backend.maxconn.amount="+utils.String(input.MaxConn),
 			"traefik.backend.maxconn.extractorfunc=client.ip")
 	} else {
-		tags = append(tags, "traefik.enable=false")
+		input.Tags = append(input.Tags, "traefik.enable=false")
 	}
 
+	return generateService(input)
+}
+
+func generateService(input *ConsulInput) *ConsulService {
+	var (
+		id      = ServiceID(input.Name)
+		weight  = CountWeight()
+		address = GetIP()
+	)
+
+	checks := []*consulapi.AgentServiceCheck{
+		&consulapi.AgentServiceCheck{
+			CheckID:                        "service:" + id,
+			TTL:                            input.TTL.String(),
+			DeregisterCriticalServiceAfter: time.Minute.String(),
+		}}
 	return &ConsulService{
 		ID:      id,
-		Name:    name,
-		Address: address.String(),
-		Port:    port,
+		Name:    input.Name,
+		Address: address,
+		Port:    input.Port,
 
 		currentM:       &sync.RWMutex{},
 		_currentWeight: weight,
@@ -109,13 +118,13 @@ func InitConsulService(name string, port int,
 		_client: nil,
 
 		initWeight:    weight,
-		Tags:          tags,
-		TTL:           ttl,
-		Check:         check,
+		Tags:          input.Tags,
+		TTL:           input.TTL,
+		Check:         input.Check,
 		Checks:        checks,
-		ConsulAddr:    consulHost + consulPort,
-		enableTraefik: enableTraefik,
-	}, nil
+		ConsulAddr:    input.ConsulHost + input.ConsulPort,
+		enableTraefik: input.EnableTraefik,
+	}
 }
 
 // get the consul client
@@ -273,57 +282,6 @@ func (cs *ConsulService) update() {
 	}
 }
 
-// ----------------below is deprecated---------------------
-
-// ConsulClient register service and start healthchecking
-func ConsulClient(serviceAddress, serviceName, host, serviceID string, portInt int, tags []string,
-	consulPort string, ttl time.Duration, check func() (bool, error),
-	finish chan interface{}) (*consulapi.Client, error) {
-	var (
-		config = &consulapi.Config{
-			Address:   host + consulPort,
-			Scheme:    "http",
-			Transport: cleanhttp.DefaultPooledTransport(),
-		}
-		consul, err = consulapi.NewClient(config)
-	)
-	if err != nil {
-		return consul, err
-	}
-
-	tags = append(tags, "traefik.backend.loadbalancer=drr",
-		"traefik.backend.weight=10")
-	agent := consul.Agent()
-	err = registerService(agent, serviceID, serviceName, serviceAddress, portInt, tags, ttl)
-	if err != nil {
-		utils.Debug(false, "cant add service to consul", err)
-		return consul, err
-	}
-
-	go updateTTL(agent, serviceID, ttl, check, finish)
-	return consul, nil
-}
-
-func registerService(agent *consulapi.Agent, serviceID, serviceName,
-	serviceAddress string, port int, tags []string, ttl time.Duration) error {
-	return agent.ServiceRegister(&consulapi.AgentServiceRegistration{
-		ID:      serviceID,
-		Name:    serviceName,
-		Port:    port,
-		Address: serviceAddress,
-		Tags:    tags,
-		// https://www.consul.io/docs/agent/checks.html
-		Check: &consulapi.AgentServiceCheck{
-			TTL:                            ttl.String(),
-			DeregisterCriticalServiceAfter: time.Minute.String(),
-		},
-		Weights: &consulapi.AgentWeights{
-			Passing: 100,
-			Warning: 1,
-		},
-	})
-}
-
 // ServiceID return id of the service
 func ServiceID(serviceName string) string {
 	return serviceName + "-" + os.Getenv("HOSTNAME")
@@ -342,65 +300,6 @@ func CountWeight() int {
 	return weight
 }
 
-func updateTTL(agent *consulapi.Agent, serviceID string, ttl time.Duration,
-	check func() (bool, error), finish chan interface{}) {
-	if ttl.Seconds() > 5 {
-		ttl = ttl - 5*time.Second
-	}
-	ticker := time.NewTicker(ttl)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			update(agent, serviceID, check)
-		case <-finish:
-			close(finish)
-			return
-		}
-	}
+func (cs *ConsulService) Health() *consulapi.Health {
+	return cs.client().Health()
 }
-
-func update(agent *consulapi.Agent, serviceID string, check func() (bool, error)) {
-	var (
-		isWarning, err = check()
-		status         = consulapi.HealthPassing
-		message        = "Alive and reachable"
-	)
-	if err != nil {
-		message = err.Error()
-		if isWarning {
-			status = consulapi.HealthWarning
-			utils.Debug(false, "healthcheck function warning:", message)
-		} else {
-			status = consulapi.HealthCritical
-			utils.Debug(false, "healthcheck function error:", message)
-		}
-	}
-	err = agent.UpdateTTL("service:"+serviceID, message, status)
-	if err != nil {
-		utils.Debug(false, "agent of", serviceID, " UpdateTTL error:", err.Error())
-	}
-}
-
-// func (cs *ConsulService) WatchForService(service, tags string) error {
-// 	health, _, err := cs.client().Health().Service(service, tags, true, nil)
-// 	if err != nil {
-// 		utils.Debug(false, "cant get alive services")
-// 	}
-
-// 	servers := []string{}
-// 	for _, item := range health {
-// 		//item.Service.Address
-// 		addr := "chat1" +
-// 			":" + strconv.Itoa(item.Service.Port)
-// 		servers = append(servers, addr)
-// 	}
-
-// 	nameResolver := &testNameResolver{}
-// 	if len(servers) == 0 {
-// 		utils.Debug(false, "cant get alive services")
-// 		nameResolver.addr = ":0000"
-// 	} else {
-// 		nameResolver.addr = servers[0]
-// 	}
-// }

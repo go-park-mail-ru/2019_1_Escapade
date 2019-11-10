@@ -93,25 +93,3 @@ func (field *Field) setCellsLeft(cellsLeft int32) {
 	field._cellsLeft = cellsLeft
 	field.cellsLeftM.Unlock()
 }
-
-// checkAndSetCleared checks if the cleanup function was called. This check is
-// based on 'done'. If it is true, then the function has already been called.
-// If not, set done to True and return false.
-// IMPORTANT: this function must only be called in the cleanup function
-func (field *Field) checkAndSetCleared() bool {
-	field.doneM.Lock()
-	defer field.doneM.Unlock()
-	if field._done {
-		return true
-	}
-	field._done = true
-	return false
-}
-
-// Done returns true if the field is preparing to free memory
-func (field *Field) Done() bool {
-	field.doneM.RLock()
-	v := field._done
-	field.doneM.RUnlock()
-	return v
-}

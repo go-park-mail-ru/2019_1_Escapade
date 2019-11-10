@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
@@ -53,7 +54,7 @@ type UserRepositoryI interface {
 
 type GameUseCaseI interface {
 	idb.UserCaseI
-	Init(game GameRepositoryI)
+	Init(game GameRepositoryI, chatS clients.Chat)
 
 	Create(game *models.Game) (int32, int32, error)
 	Save(info models.GameInformation) error

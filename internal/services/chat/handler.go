@@ -2,6 +2,7 @@ package chat
 
 import (
 	context "context"
+	fmt "fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -84,30 +85,68 @@ func (h *Handler) Close() {
 	return
 }
 
+// CreateChat chat with or without users.
+// Specify the type of chat and id received from the corresponding database table
+// Return id for this chat, save it. It must be transferred to any chat operations
 func (h *Handler) CreateChat(ctx context.Context, in *ChatWithUsers) (*ChatID, error) {
-	return h.chat.Create(ctx, in)
+	fmt.Println("CreateChat")
+	return h.chat.Create(in)
 }
+
+// GetChat get the ID of the chat, based on its type and the passed ID of this type
 func (h *Handler) GetChat(ctx context.Context, in *Chat) (*ChatID, error) {
-	return h.chat.GetOne(ctx, in)
+	fmt.Println("GetChat")
+	return h.chat.GetOne(in)
 }
+
+// InviteToChat invite user to the chat
+// to work correctly, specify user and id of the chat
 func (h *Handler) InviteToChat(ctx context.Context, in *UserInGroup) (*Result, error) {
-	return h.user.InviteToChat(ctx, in)
+	fmt.Println("InviteToChat")
+	return h.user.InviteToChat(in)
 }
+
+// LeaveChat leave user from the chat
+// to work correctly, specify user and id of the chat
 func (h *Handler) LeaveChat(ctx context.Context, in *UserInGroup) (*Result, error) {
-	return h.user.LeaveChat(ctx, in)
+	fmt.Println("LeaveChat")
+	return h.user.LeaveChat(in)
 }
+
+// AppendMessage to database
+// to work correctly, specify the ID of the chat(in the message) in which
+// the operation occurs
+// Return id for this message, save it. It must be transferred to any message
+// operations
 func (h *Handler) AppendMessage(ctx context.Context, in *Message) (*MessageID, error) {
-	return h.message.AppendOne(ctx, in)
+	fmt.Println("AppendMessage")
+	return h.message.AppendOne(in)
 }
+
+// AppendMessages to database
 func (h *Handler) AppendMessages(ctx context.Context, in *Messages) (*MessagesID, error) {
-	return h.message.AppendMany(ctx, in)
+	fmt.Println("AppendMessages")
+	return h.message.AppendMany(in)
 }
+
+// UpdateMessage in database
+// to work correctly, specify the ID of the message in which
+// the operation occurs
 func (h *Handler) UpdateMessage(ctx context.Context, in *Message) (*Result, error) {
-	return h.message.Update(ctx, in)
+	fmt.Println("UpdateMessage")
+	return h.message.Update(in)
 }
+
+// DeleteMessage from database
+// to work correctly, specify the ID of the message in which
+// the operation occurs
 func (h *Handler) DeleteMessage(ctx context.Context, in *Message) (*Result, error) {
-	return h.message.Delete(ctx, in)
+	fmt.Println("DeleteMessage")
+	return h.message.Delete(in)
 }
+
+// GetChatMessages get all messages from the chad with specified id
 func (h *Handler) GetChatMessages(ctx context.Context, in *ChatID) (*Messages, error) {
-	return h.message.GetAll(ctx, in)
+	fmt.Println("GetChatMessages")
+	return h.message.GetAll(in)
 }

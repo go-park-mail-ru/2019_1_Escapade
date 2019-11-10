@@ -1,6 +1,8 @@
 package config
 
 import (
+	json "encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -13,32 +15,69 @@ import (
 // Configuration contains all types of configurations
 //easyjson:json
 type Configuration struct {
-	Server     Server     `json:"server"`
-	Cors       CORS       `json:"cors"`
-	DataBase   Database   `json:"dataBase"`
-	Game       Game       `json:"game"`
-	Cookie     Cookie     `json:"session"`
-	WebSocket  WebSocket  `json:"websocket"`
-	Service    Service    `json:"service"`
-	Auth       Auth       `json:"auth"`
-	AuthClient AuthClient `json:"authClient"`
+	Server     Server          `json:"server"`
+	Cors       CORS            `json:"cors"`
+	DataBase   Database        `json:"dataBase"`
+	Game       Game            `json:"game"`
+	Cookie     Cookie          `json:"session"`
+	WebSocket  WebSocket       `json:"websocket"`
+	Required   RequiredService `json:"required"`
+	Auth       Auth            `json:"auth"`
+	AuthClient AuthClient      `json:"authClient"`
 }
 
-// ServerConfig set host, post and buffers sizes
+type Duration struct {
+	time.Duration
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) (err error) {
+	if b[0] == '"' {
+		sd := string(b[1 : len(b)-1])
+		d.Duration, err = time.ParseDuration(sd)
+		return
+	}
+
+	var id int64
+	id, err = json.Number(string(b)).Int64()
+	d.Duration = time.Duration(id)
+
+	return
+}
+
+func (d Duration) MarshalJSON() (b []byte, err error) {
+	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
+}
+
+// Server set host, post and buffers sizes
 //easyjson:json
 type Server struct {
-	Host      string `json:"host"`
-	PortURL   string `json:"portUrl"`
-	PortValue string `json:"portValue"`
-	// timeouts in seconds
-	ReadTimeoutS  int `json:"readTimeoutS"`
-	WriteTimeoutS int `json:"writeTimeoutS"`
-	IdleTimeoutS  int `json:"idleTimeoutS"`
-	WaitTimeoutS  int `json:"waitTimeoutS"`
-	ExecTimeoutS  int `json:"execTimeoutS"`
+	Name           string   `json:"name"`
+	MaxConn        int      `json:"maxConn"`
+	MaxHeaderBytes int      `json:"maxHeaderBytes"`
+	Timeouts       Timeouts `json:"timeouts"`
 }
 
-// CORSConfig set allowable origins, headers and methods
+// RequiredService that is required for the correct working of this one
+//easyjson:json
+type RequiredService struct {
+	Name        string   `json:"name"`
+	Polling     Duration `json:"polling"`
+	CounterDrop int      `json:"drop"`
+	Tag         string   `json:"tag"`
+}
+
+// Timeouts of the connection to the server
+type Timeouts struct {
+	TTL Duration `json:"ttl"`
+
+	Read  Duration `json:"read"`
+	Write Duration `json:"write"`
+	Idle  Duration `json:"idle"`
+	Wait  Duration `json:"wait"`
+	Exec  Duration `json:"exec"`
+}
+
+// CORS set allowable origins, headers and methods
 //easyjson:json
 type CORS struct {
 	Origins     []string `json:"origins"`
@@ -47,7 +86,7 @@ type CORS struct {
 	Credentials string   `json:"credentials"`
 }
 
-// DatabaseConfig set type of database management system
+// Database set type of database management system
 //   the url of connection string, max amount of
 //   connections, tables, sizes of page  of gamers
 //   and users
@@ -64,36 +103,82 @@ type Database struct {
 
 //easyjson:json
 type Field struct {
-	MinAreaSize    int `json:"minAreaSize"`
-	MaxAreaSize    int `json:"maxAreaSize"`
-	MinProbability int `json:"minProbability"`
-	MaxProbability int `json:"maxProbability"`
+	MinAreaSize    int      `json:"minAreaSize"`
+	MaxAreaSize    int      `json:"maxAreaSize"`
+	MinProbability int      `json:"minProbability"`
+	MaxProbability int      `json:"maxProbability"`
+	Wait           Duration `json:"wait"`
 }
 
-// GameConfig set, how much rooms server can create and
+//groupWaitRoom := 60 * time.Second // TODO в конфиг
+
+//easyjson:json
+type Room struct {
+	CanClose         bool         `json:"canClose"`
+	Wait             Duration     `json:"wait"`
+	Timeouts         GameTimeouts `json:"timeouts"`
+	Field            Field        `json:"field"`
+	GarbageCollector Duration     `json:"garbage"`
+	IDLength         int          `json:"length"`
+}
+
+// IDLength 16
+
+//easyjson:json
+type Anonymous struct {
+	MinID int `json:"minID"`
+	MaxID int `json:"maxID"`
+}
+
+// Timeouts of the connection to the server
+type GameTimeouts struct {
+	PeopleFinding   Duration `json:"peopleFinding"`
+	RunningPlayer   Duration `json:"runningPlayer"`
+	RunningObserver Duration `json:"runningObserver"`
+	Finished        Duration `json:"finished"`
+}
+
+type LobbyTimersIntervals struct {
+	GarbageCollector Duration `json:"garbage"`
+	MessagesToDB     Duration `json:"messages"`
+	GamesToDB        Duration `json:"games"`
+}
+
+type Lobby struct {
+	ConnectionsCapacity int32                `json:"connections"`
+	RoomsCapacity       int32                `json:"rooms"`
+	Intervals           LobbyTimersIntervals `json:"intervals"`
+	ConnectionTimeout   Duration             `json:"connection"`
+	Wait                Duration             `json:"wait"`
+}
+
+// conectionTimeout = 10s
+
+// Game set, how much rooms server can create and
 // how much connections can join. Also there are flags:
 // can server close rooms or not(for history mode),
 // metrics should be recorded or not
 //easyjson:json
 type Game struct {
-	RoomsCapacity      int32  `json:"roomsCapacity"`
-	ConnectionCapacity int32  `json:"connectionCapacity"`
-	Location           string `json:"location"`
-	CanClose           bool   `json:"closeRoom"`
-	Metrics            bool   `json:"metrics"`
-	Field              *Field `json:"field"`
+	Lobby     Lobby     `json:"lobby"`
+	Room      Room      `json:"room"`
+	Anonymous Anonymous `json:"anonymous"`
+	Location  string    `json:"location"`
+	Metrics   bool      `json:"metrics"`
 }
 
-// AuthClient client of auth microservice
+// groupWaitTimeout := 80 * time.Second // TODO в конфиг
+
+// Auth client of auth microservice
 //easyjson:json
 type Auth struct {
-	Salt                    string       `json:"salt"`
-	AccessTokenExpireHours  int          `json:"accessTokenExpireHours"`
-	RefreshTokenExpireHours int          `json:"refreshTokenExpireHours"`
-	IsGenerateRefresh       bool         `json:"isGenerateRefresh"`
-	WithReserve             bool         `json:"withReserve"`
-	TokenType               string       `json:"tokenType"`
-	WhiteList               []AuthClient `json:"whiteList"`
+	Salt               string       `json:"salt"`
+	AccessTokenExpire  Duration     `json:"accessTokenExpire"`
+	RefreshTokenExpire Duration     `json:"refreshTokenExpire"`
+	IsGenerateRefresh  bool         `json:"isGenerateRefresh"`
+	WithReserve        bool         `json:"withReserve"`
+	TokenType          string       `json:"tokenType"`
+	WhiteList          []AuthClient `json:"whiteList"`
 }
 
 type AuthClient struct {
@@ -106,19 +191,11 @@ type AuthClient struct {
 	Config       oauth2.Config `json:"-"`
 }
 
-//easyjson:json
-type Service struct {
-	ConsulID  string   `json:"-"`
-	Name      string   `json:"name"`
-	DependsOn []string `json:"dependsOn"`
-}
-
-// SessionConfig set cookie name, path, length, expiration time
+// Cookie set cookie name, path, length, expiration time
 // and HTTPonly flag
 //easyjson:json
 type Cookie struct {
 	Path          string     `json:"path"`
-	Length        int        `json:"length"`
 	LifetimeHours int        `json:"lifetime_hours"`
 	HTTPOnly      bool       `json:"httpOnly"`
 	Auth          AuthCookie `json:"keys"`
@@ -133,40 +210,15 @@ type AuthCookie struct {
 	ReservePrefix string `json:"reservePrefix"`
 }
 
-// WebSocketConfig set timeouts
+// WebSocket set timeouts
 //easyjson:json
 type WebSocket struct {
-	WriteWait       int   `json:"writeWait"`
-	PongWait        int   `json:"pongWait"`
-	PingPeriod      int   `json:"pingPeriod"`
-	MaxMessageSize  int64 `json:"maxMessageSize"`
-	ReadBufferSize  int   `json:"readBufferSize"`
-	WriteBufferSize int   `json:"writeBufferSize"`
-}
-
-// WebSocketSettings set timeouts
-//easyjson:json
-type WebSocketSettings struct {
-	WriteWait       time.Duration `json:"writeWait"`
-	PongWait        time.Duration `json:"pongWait"`
-	PingPeriod      time.Duration `json:"pingPeriod"`
-	MaxMessageSize  int64         `json:"maxMessageSize"`
-	ReadBufferSize  int           `json:"readBufferSize"`
-	WriteBufferSize int           `json:"writeBufferSize"`
-}
-
-func set(URL, value string) {
-	if URL != "" && os.Getenv(URL) == "" {
-		os.Setenv(URL, value)
-	}
-	utils.Debug(false, "environment -", URL, " :", value)
-}
-
-// InitEnvironment set environmental variables
-func InitEnvironment(c *Configuration) {
-
-	set(c.DataBase.URL, c.DataBase.ConnectionString)
-	set(c.Server.PortURL, c.Server.PortValue)
+	WriteWait       Duration `json:"writeWait"`
+	PongWait        Duration `json:"pongWait"`
+	PingPeriod      Duration `json:"pingPeriod"`
+	MaxMessageSize  int64    `json:"maxMessageSize"`
+	ReadBufferSize  int      `json:"readBufferSize"`
+	WriteBufferSize int      `json:"writeBufferSize"`
 }
 
 // Init load configuration file and put part of parameters to Environment
@@ -179,7 +231,19 @@ func Init(path string) (conf *Configuration, err error) {
 	if err = conf.UnmarshalJSON(data); err != nil {
 		return
 	}
-	utils.Debug(false, "cookie settings", conf.Cookie.Path, conf.Cookie.LifetimeHours)
+	utils.Debug(false, " Look at config")
+	utils.Debug(false, " Info:", conf.Server.Name, conf.Server.MaxHeaderBytes)
+	utils.Debug(false, " Timeouts:", conf.Server.Timeouts.TTL,
+		conf.Server.Timeouts.Read, conf.Server.Timeouts.Write, conf.Server.Timeouts.Idle,
+		conf.Server.Timeouts.Wait, conf.Server.Timeouts.Exec)
+
+	conf.setOauth2Config()
+	conf.AuthClient.Address = os.Getenv("AUTH_ADDRESS")
+	//InitEnvironment(conf)
+	return
+}
+
+func (conf *Configuration) setOauth2Config() {
 	conf.AuthClient.Config = oauth2.Config{
 		ClientID:     conf.AuthClient.ClientID,
 		ClientSecret: conf.AuthClient.ClientSecret,
@@ -190,6 +254,4 @@ func Init(path string) (conf *Configuration, err error) {
 			TokenURL: conf.AuthClient.Address + "/auth/token",
 		},
 	}
-	InitEnvironment(conf)
-	return
 }

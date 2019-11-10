@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -24,7 +23,7 @@ func (db *PostgresSQL) Open(CDB config.Database) error {
 		database *sql.DB
 	)
 	fmt.Println("try open")
-	if database, err = sql.Open(CDB.DriverName, os.Getenv(CDB.URL)); err != nil {
+	if database, err = sql.Open(CDB.DriverName, CDB.ConnectionString); err != nil {
 		return err
 	}
 	fmt.Println("opened")
@@ -66,13 +65,13 @@ func (db *PostgresSQL) SetMaxIdleConns(n int) {
 }
 
 func (db *PostgresSQL) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return db.Db.Exec(query, args)
+	return db.Db.Exec(query, args...)
 }
 
 func (db *PostgresSQL) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return db.Db.Query(query, args)
+	return db.Db.Query(query, args...)
 }
 
 func (db *PostgresSQL) QueryRow(query string, args ...interface{}) *sql.Row {
-	return db.Db.QueryRow(query, args)
+	return db.Db.QueryRow(query, args...)
 }

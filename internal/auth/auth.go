@@ -55,7 +55,7 @@ func Check(rw http.ResponseWriter, r *http.Request,
 		err         error
 	)
 	// token given in cookie
-	if !(cc.Length == 0 && cc.LifetimeHours == 0) {
+	if !(cc.LifetimeHours == 0) {
 		utils.Debug(false, "look in cookies")
 		isReserve := false
 		token, err = cookie.GetToken(r, cc, isReserve)

@@ -14,9 +14,12 @@ done=0
 #go get github.com/golang/protobuf
 #go get github.com/golang/protobuf/proto
 #go get -u github.com/golang/protobuf/protoc-gen-go
+# $ sudo apt install golang-goprotobuf-dev
+go mod vendor
 
-export CHATPROTO=$PWD/../internal/services/chat/
-export PROTO=$GOPATH/src
+export PATH=$PATH:/usr/bin/protoc
+export CHATPROTO=$PWD/../../internal/services/chat/
+export PROTO=$PWD/../../vendor
 
 echo "  1. Copy .proto files to protobuf directory"
 
@@ -24,7 +27,7 @@ cp $CHATPROTO/chat.proto $PROTO && \
 
 echo "  2.1 Apply proto to chat" && \
 cd $PROTO && \
-protoc --go_out=plugins=grpc:. chat.proto && \
+protoc  --go_out=plugins=grpc:. chat.proto && \
 cp $PROTO/chat.pb.go $CHATPROTO && \
 
 echo "  3. Remove our .proto and .go files from GOPATH" && \

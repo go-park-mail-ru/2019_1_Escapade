@@ -5,10 +5,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	config "github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	models "github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	database "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	utils "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
@@ -147,10 +149,8 @@ Lobby - the structure that controls the slices of players and rooms.
 	 user images for chat
 */
 type Lobby struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
+	s           *synced.SyncWgroup
+	ChatService clients.Chat
 
 	allRooms  *Rooms
 	freeRooms *Rooms
@@ -193,21 +193,21 @@ type Lobby struct {
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(config *config.Game, db database.GameUseCaseI,
+func NewLobby(chatS clients.Chat, c *config.Game, db database.GameUseCaseI,
 	SetImage SetImage) *Lobby {
 
 	context, cancel := context.WithCancel(context.Background())
+	var s = &synced.SyncWgroup{}
+	s.Init(c.Lobby.Wait.Duration)
 	lobby := &Lobby{
-		wGroup: &sync.WaitGroup{},
+		s:           s,
+		ChatService: chatS,
 
-		doneM: &sync.RWMutex{},
-		_done: false,
+		allRooms:  NewRooms(c.Lobby.RoomsCapacity),
+		freeRooms: NewRooms(c.Lobby.RoomsCapacity),
 
-		allRooms:  NewRooms(config.RoomsCapacity),
-		freeRooms: NewRooms(config.RoomsCapacity),
-
-		Waiting: NewConnections(config.ConnectionCapacity),
-		Playing: NewConnections(config.ConnectionCapacity),
+		Waiting: NewConnections(c.Lobby.ConnectionsCapacity),
+		Playing: NewConnections(c.Lobby.ConnectionsCapacity),
 
 		messagesM: &sync.Mutex{},
 		_messages: make([]*models.Message, 0),
@@ -233,7 +233,7 @@ func NewLobby(config *config.Game, db database.GameUseCaseI,
 		chanBroadcast: make(chan *Request),
 		chanBreak:     make(chan interface{}),
 	}
-	lobby.SetConfiguration(config, db, SetImage)
+	lobby.SetConfiguration(c, db, SetImage)
 	return lobby
 }
 
@@ -260,28 +260,8 @@ func (lobby *Lobby) SetConfiguration(config *config.Game, db database.GameUseCas
 	return
 }
 
-// lobby singleton
-var (
-	LOBBY *Lobby
-)
-
-// Launch launchs lobby goroutine
-func Launch(gc *config.Game, db database.GameUseCaseI, si SetImage) {
-
-	if LOBBY == nil {
-		LOBBY = NewLobby(gc, db, si)
-		go LOBBY.Run()
-		//LOBBY.stress(10)
-	}
-}
-
-// GetLobby create lobby if it is nil and get it
-func GetLobby() *Lobby {
-	return LOBBY
-}
-
-// Stop lobby goroutine
-func (lobby *Lobby) Stop() {
+// Close lobby goroutine
+func (lobby *Lobby) Close() {
 	if lobby != nil {
 		utils.Debug(false, "stop called!")
 		lobby.chanBreak <- nil
@@ -290,29 +270,22 @@ func (lobby *Lobby) Stop() {
 
 // Free clean the memory allocated to the structure of the lobby
 func (lobby *Lobby) Free() {
+	lobby.s.Clear(func() {
+		utils.Debug(false, "All resources clear!")
 
-	if lobby.checkAndSetCleared() {
-		return
-	}
+		go lobby.allRooms.Free()
+		go lobby.freeRooms.Free()
+		go lobby.Waiting.Free()
+		go lobby.Playing.Free()
 
-	groupWaitTimeout := 80 * time.Second // TODO в конфиг
-	utils.WaitWithTimeout(lobby.wGroup, groupWaitTimeout)
+		lobby.cancel()
 
-	utils.Debug(false, "All resources clear!")
-
-	go lobby.allRooms.Free()
-	go lobby.freeRooms.Free()
-	go lobby.Waiting.Free()
-	go lobby.Playing.Free()
-
-	lobby.cancel()
-
-	close(lobby.chanJoin)
-	close(lobby.chanBroadcast)
-	lobby.setConfig(nil)
-	lobby.setMessages(nil)
-	lobby.db().Close()
-	lobby.setDB(nil)
-	lobby.setLocation(nil)
-	lobby = nil
+		close(lobby.chanJoin)
+		close(lobby.chanBroadcast)
+		lobby.setConfig(nil)
+		lobby.setMessages(nil)
+		lobby.db().Close()
+		lobby.setDB(nil)
+		lobby.setLocation(nil)
+	})
 }

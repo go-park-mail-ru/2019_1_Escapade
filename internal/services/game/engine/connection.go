@@ -1,9 +1,13 @@
 package engine
 
 import (
+	"fmt"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"sync"
@@ -16,10 +20,7 @@ import (
 
 // Connection is a websocket of a player, that belongs to room
 type Connection struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
+	s synced.SyncI
 
 	playingRoomM *sync.RWMutex
 	_playingRoom *Room
@@ -53,18 +54,17 @@ type Connection struct {
 }
 
 // NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) *Connection {
+func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) (*Connection, error) {
 	if ws == nil || user == nil || lobby == nil {
-		return nil
+		return nil, re.ErrorLobbyDone()
 	}
 
 	context, cancel := context.WithCancel(lobby.context)
+	var s = &synced.SyncWgroup{}
+	s.Init(0)
 
 	return &Connection{
-		wGroup: &sync.WaitGroup{},
-
-		doneM: &sync.RWMutex{},
-		_done: false,
+		s: s,
 
 		playingRoomM: &sync.RWMutex{},
 		_playingRoom: nil,
@@ -94,24 +94,18 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 
 		send:      make(chan []byte),
 		actionSem: make(chan struct{}, 1),
-	}
+	}, nil
 }
 
 // Restore set restored playing and waiting rooms, conn's index
 // in Players slice
 // It calls in lobby restore
 func (conn *Connection) Restore(copy *Connection) {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-
-	conn.setPlayingRoom(copy.PlayingRoom())
-	conn.setWaitingRoom(copy.WaitingRoom())
-	conn.SetIndex(copy.Index())
+	conn.s.Do(func() {
+		conn.setPlayingRoom(copy.PlayingRoom())
+		conn.setWaitingRoom(copy.WaitingRoom())
+		conn.SetIndex(copy.Index())
+	})
 }
 
 // IsAnonymous return true if user not registered
@@ -121,236 +115,167 @@ func (conn *Connection) IsAnonymous() bool {
 
 // PushToRoom set field 'room' to real room
 func (conn *Connection) PushToRoom(room *Room) {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-
-	conn.setPlayingRoom(room)
-	conn.setWaitingRoom(nil)
+	conn.s.Do(func() {
+		conn.setPlayingRoom(room)
+		conn.setWaitingRoom(nil)
+	})
 }
 
 // PushToLobby set field 'room' to nil
 func (conn *Connection) PushToLobby() {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-
-	conn.setPlayingRoom(nil)
-	conn.setWaitingRoom(nil)
+	conn.s.Do(func() {
+		conn.setPlayingRoom(nil)
+		conn.setWaitingRoom(nil)
+	})
 }
 
 // IsConnected check player isnt disconnected
 func (conn *Connection) IsConnected() bool {
-	if conn.done() {
-		return false
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
 	return conn.Disconnected() == false
 }
 
 // Free free memory, if flag disconnect true then connection and player will not become nil
 func (conn *Connection) Free() {
 
-	if conn.checkAndSetCleared() {
-		return
-	}
+	conn.s.Clear(func() {
+		conn.setDisconnected()
 
-	conn.wGroup.Wait()
+		conn.wsClose()
+		close(conn.send)
+		close(conn.actionSem)
+		// dont delete. conn = nil make pointer nil, but other pointers
+		// arent nil and we make 'conn.disconnected = true' for them
 
-	// dont delete. conn = nil make pointer nil, but other pointers
-	// arent nil. If conn.disconnected = true it is mean that all
-	// resources are cleared, but pointer alive, so we only make pointer = nil
-	if conn.lobby == nil {
-		return
-	}
-
-	conn.setDisconnected()
-
-	conn.wsClose()
-	close(conn.send)
-	close(conn.actionSem)
-	// dont delete. conn = nil make pointer nil, but other pointers
-	// arent nil and we make 'conn.disconnected = true' for them
-
-	conn.lobby = nil
-	conn.setPlayingRoom(nil)
-	conn.setWaitingRoom(nil)
+		conn.lobby = nil
+		conn.setPlayingRoom(nil)
+		conn.setWaitingRoom(nil)
+	})
 }
 
 // InPlayingRoom check is player in playing room
 func (conn *Connection) InPlayingRoom() bool {
-	if conn.done() {
-		return false
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
 	return conn.PlayingRoom() != nil
 }
 
 // Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
-
-	ws := config.WebSocketSettings{
-		WriteWait:       time.Duration(cw.WriteWait) * time.Second,
-		PongWait:        time.Duration(cw.PongWait) * time.Second,
-		PingPeriod:      time.Duration(cw.PingPeriod) * time.Second,
-		MaxMessageSize:  cw.MaxMessageSize,
-		ReadBufferSize:  cw.ReadBufferSize,
-		WriteBufferSize: cw.WriteBufferSize,
+	if conn.s == nil {
+		panic(99)
 	}
-	// dont place there conn.wGroup.Add(1)
-	if conn.lobby == nil || conn.lobby.context == nil {
-		utils.Debug(true, "lobby nil or hasnt context!")
-		return
-	}
+	conn.s.Do(func() {
+		// dont place there conn.wGroup.Add(1)
+		if conn.lobby == nil || conn.lobby.context == nil {
+			utils.Debug(true, "lobby nil or hasnt context!")
+			return
+		}
 
-	all := &sync.WaitGroup{}
+		all := &sync.WaitGroup{}
 
-	conn.lobby.JoinConn(conn, 3)
-	all.Add(1)
-	go conn.WriteConn(conn.context, ws, all)
-	all.Add(1)
-	go conn.ReadConn(conn.context, ws, all)
+		conn.lobby.JoinConn(conn)
+		all.Add(1)
+		go conn.WriteConn(conn.context, cw, all)
+		all.Add(1)
+		go conn.ReadConn(conn.context, cw, all)
 
-	conn.SetConnected()
+		conn.SetConnected()
 
-	if roomID != "" {
-		rs := &models.RoomSettings{}
-		rs.ID = roomID
-		conn.lobby.EnterRoom(conn, rs)
-	}
-	all.Wait()
+		if roomID != "" {
+			rs := &models.RoomSettings{}
+			rs.ID = roomID
+			conn.lobby.EnterRoom(conn, rs)
+		}
+		all.Wait()
 
-	conn.setDisconnected()
-	conn.lobby.Leave(conn, "finished")
+		conn.setDisconnected()
+		if conn == nil {
+			utils.Debug(true, "conn nil")
+		}
+		conn.lobby.Leave(conn, "finished")
+	})
 	//conn.Free()
 }
 
 // ReadConn connection goroutine to read messages from websockets
-func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
+func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocket, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-		utils.CatchPanic("connection.go WriteConn()")
-	}()
+	conn.s.Do(func() {
+		conn.setPlayingRoom(nil)
+		conn.setWaitingRoom(nil)
 
-	conn.wsInit(wsc)
-	for {
-		select {
-		case <-parent.Done():
-			utils.Debug(false, "ReadConn done catched")
-			return
-		default:
-			_, message, err := conn.wsReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-					utils.Debug(false, "IsUnexpectedCloseError:"+err.Error())
-				} else {
-					utils.Debug(false, "expected error:"+err.Error())
-				}
-				if conn.lobby != nil {
-					conn.lobby.Leave(conn, "err.Error()")
-				}
+		conn.wsInit(wsc)
+		for {
+			select {
+			case <-parent.Done():
+				utils.Debug(false, "ReadConn done catched")
 				return
-			}
-			utils.Debug(false, "#", conn.ID(), "read from conn:", string(message))
-			conn.SetConnected()
-			conn.lobby.chanBroadcast <- &Request{
-				Connection: conn,
-				Message:    message,
+			default:
+				_, message, err := conn.wsReadMessage()
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+						utils.Debug(false, "IsUnexpectedCloseError:"+err.Error())
+					} else {
+						utils.Debug(false, "expected error:"+err.Error())
+					}
+					return
+				}
+				utils.Debug(false, "#", conn.ID(), "read from conn:", string(message))
+				conn.SetConnected()
+				conn.lobby.chanBroadcast <- &Request{
+					Connection: conn,
+					Message:    message,
+				}
 			}
 		}
-	}
+	})
 }
 
 // WriteConn connection goroutine to write messages to websockets
 // dont put conn.debug here
-func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocketSettings, wg *sync.WaitGroup) {
+func (conn *Connection) WriteConn(parent context.Context, wsc config.WebSocket, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-		utils.CatchPanic("connection.go WriteConn()")
-	}()
+	conn.s.Do(func() {
+		ping := time.NewTicker(wsc.PingPeriod.Duration)
+		defer ping.Stop()
 
-	ticker := time.NewTicker(wsc.PingPeriod)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-parent.Done():
-			utils.Debug(false, "WriteConn done catched")
-			return
-		case message, ok := <-conn.send:
-
-			if !ok {
-				conn.wsWriteMessage(websocket.CloseMessage, []byte{}, wsc)
+		for {
+			select {
+			case <-parent.Done():
+				utils.Debug(false, "WriteConn done catched")
 				return
-			}
-
-			utils.ShowWebsocketMessage(message, conn.ID())
-
-			if err := conn.wsWriteInWriter(message, wsc); err != nil {
-				return
-			}
-
-		case <-ticker.C:
-			if err := conn.wsWriteMessage(websocket.PingMessage, []byte{}, wsc); err != nil {
-				return
+			case message, ok := <-conn.send:
+				if !ok {
+					conn.wsWriteMessage(websocket.CloseMessage, []byte{}, wsc)
+					return
+				}
+				utils.ShowWebsocketMessage(message, conn.ID())
+				if err := conn.wsWriteInWriter(message, wsc); err != nil {
+					return
+				}
+			case <-ping.C:
+				if err := conn.wsWriteMessage(websocket.PingMessage, []byte{}, wsc); err != nil {
+					return
+				}
 			}
 		}
-	}
+	})
 }
 
 // SendInformation send info
 func (conn *Connection) SendInformation(value handlers.JSONtype) {
-	if conn.done() {
-		return
-	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
-
-	if conn.Disconnected() {
-		return
-	}
-
-	var (
-		bytes []byte
-		err   error
-	)
-
-	bytes, err = value.MarshalJSON()
-
-	if err != nil {
-		utils.Debug(true, "cant send information")
-	} else {
-		conn.send <- bytes
-	}
+	conn.s.Do(func() {
+		if conn.Disconnected() {
+			return
+		}
+		fmt.Println("sended value:", value)
+		if bytes, err := value.MarshalJSON(); err != nil {
+			utils.Debug(true, "cant send information:", err.Error())
+		} else {
+			conn.send <- bytes
+		}
+	})
 }
 
 // sendGroupInformation send info with WaitGroup
@@ -364,28 +289,31 @@ func (conn *Connection) sendGroupInformation(value handlers.JSONtype, wg *sync.W
 
 // ID return player's id
 func (conn *Connection) ID() int32 {
-	if conn.done() {
-		return conn.User.ID
+	if conn == nil {
+		panic("why")
 	}
-	conn.wGroup.Add(1)
-	defer func() {
-		conn.wGroup.Done()
-	}()
 	if conn.User == nil {
 		return -1
 	}
-	return conn.User.ID
+	var userID int32
+	conn.s.Do(func() {
+		userID = conn.User.ID
+	})
+	return userID
 }
 
 // sendAccountTaken send the message 'AccountTaken' to the connection
 func sendAccountTaken(conn *Connection) {
-
-	response := models.Response{
-		Type: "AccountTaken",
-	}
-	if conn == nil {
-		panic("sendAccountTaken")
-	}
-	utils.Debug(false, "send sendAccountTaken")
-	conn.SendInformation(&response)
+	conn.s.Do(func() {
+		response := models.Response{
+			Type: "AccountTaken",
+		}
+		conn.SendInformation(&response)
+	})
 }
+
+func (conn *Connection) GetSync() synced.SyncI {
+	return conn.s
+}
+
+// 363 -> 305

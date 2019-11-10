@@ -1,17 +1,20 @@
 {
 	"server": {
-		"host": "http://localhost",
-		"portUrl": "PORT_CHAT_URL",
-		"portValue": ":3005",
-		"ports":[3051, 3052, 3053, 3054, 3055],
-		"readTimeoutS":10,
-		"writeTimeoutS":15,
-		"idleTimeoutS":5,
-		"waitTimeoutS":0,
-		"execTimeoutS":60
+		"name": "chat",
+		"maxConn": 100,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"10s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"5s",
+			"exec":"0s"
+		}
 	},
 	"dataBase": {
 		"driverName": "postgres",
+		"maxOpenConns": 20,
 		"url": "DATABASE_URL",
 		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable"
 	}

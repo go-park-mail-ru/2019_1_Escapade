@@ -1,35 +1,24 @@
 package engine
 
 import (
-	"time"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // FieldProxyI control access to field
 // Proxy Pattern
 type FieldProxyI interface {
 	// for models
-	Model() models.Field
 	ModelCells() []models.Cell
-	JSON() FieldJSON
+	Field() FieldI
 
 	// for events
-	Fill(flags []Flag)
-	OpenZero() []Cell
-	OpenEverything(cells []Cell)
-	Free(wait time.Duration)
 	SetFlag(conn *Connection, cell *Cell)
 	OpenCell(conn *Connection, cell *Cell)
 
-	saveCell(cell *Cell) []Cell
-
-	RandomFlag(conn *Connection) Cell
-
-	IsCleared() bool
-	cellsLeft() int32
-	difficult() float64
+	SaveCell(cell *Cell) []Cell
 
 	Configure(info models.GameInformation)
 }
@@ -37,13 +26,13 @@ type FieldProxyI interface {
 // RoomField implements FieldProxyI
 type RoomField struct {
 	//r  *Room
-	s  SyncI
+	s  synced.SyncI
 	re ActionRecorderProxyI
 	se SendStrategyI
 	e  EventsI
 	p  PeopleI
 
-	Field        *Field
+	field        *Field
 	isDeathmatch bool
 }
 
@@ -57,22 +46,22 @@ func (room *RoomField) Init(builder ComponentBuilderI, field *Field,
 	builder.BuildPeople(&room.p)
 
 	room.isDeathmatch = isDeathmatch
-	room.Field = field
+	room.field = field
 }
 
-func (room *RoomField) Free(wait time.Duration) {
-	go room.Field.Free(wait)
+func (room *RoomField) Field() FieldI {
+	return room.field
 }
 
-func (room *RoomField) saveCell(cell *Cell) []Cell {
+func (room *RoomField) SaveCell(cell *Cell) []Cell {
 	cells := make([]Cell, 0)
-	room.Field.saveCell(cell, cells)
+	room.field.saveCell(cell, &cells)
 	return cells
 }
 
 func (room *RoomField) ModelCells() []models.Cell {
 	cells := make([]models.Cell, 0)
-	for _, cellHistory := range room.Field.History() {
+	for _, cellHistory := range room.field.History() {
 		cell := models.Cell{
 			PlayerID: cellHistory.PlayerID,
 			X:        cellHistory.X,
@@ -85,36 +74,6 @@ func (room *RoomField) ModelCells() []models.Cell {
 	return cells
 }
 
-func (room *RoomField) Fill(flags []Flag) {
-	room.Field.Fill(flags, room.isDeathmatch)
-}
-
-func (room *RoomField) OpenZero() []Cell {
-	return room.Field.OpenZero()
-}
-
-func (room *RoomField) OpenEverything(cells []Cell) {
-	room.Field.OpenEverything(cells)
-}
-
-func (room *RoomField) Model() models.Field {
-	return models.Field{
-		Width:     room.Field.Width,
-		Height:    room.Field.Height,
-		CellsLeft: room.Field._cellsLeft,
-		Difficult: 0,
-		Mines:     room.Field.Mines,
-	}
-}
-
-func (room *RoomField) JSON() FieldJSON {
-	return room.Field.JSON()
-}
-
-func (room *RoomField) RandomFlag(conn *Connection) Cell {
-	return room.Field.CreateRandomFlag(conn.ID())
-}
-
 func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
 
 	var rightStatus = StatusRunning
@@ -125,7 +84,7 @@ func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
 		return re.ErrorWrongStatus()
 	}
 	// if wrong cell
-	if !room.Field.IsInside(cell) {
+	if !room.field.IsInside(cell) {
 		return re.ErrorCellOutside()
 	}
 	// if user died
@@ -135,50 +94,39 @@ func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
 	return nil
 }
 
-func (room *RoomField) cellsLeft() int32 {
-	return room.Field.cellsLeft()
-}
-
-func (room *RoomField) difficult() float64 {
-	return room.Field.Difficult
-}
-
 // OpenCell open cell
 func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if room.check(conn, cell, false) != nil {
 			return
 		}
-
+		utils.Debug(false, "open cell func")
 		// set who try open cell(for history)
 		cell.PlayerID = conn.ID()
-		cells := room.Field.OpenCell(cell)
+		cells := room.field.OpenCell(cell)
+		utils.Debug(false, "try to open", len(cells))
 		if len(cells) == 0 {
 			return
 		}
 		for _, foundCell := range cells {
 			room.p.OpenCell(conn, &foundCell)
 		}
-
-		go room.se.PlayerPoints(room.p.getPlayer(conn))
-		go room.se.NewCells(cells...)
+		utils.Debug(false, "send me", len(cells))
+		room.se.PlayerPoints(room.p.getPlayer(conn))
+		room.se.NewCells(cells...)
 
 		room.e.tryFinish()
 	})
 }
 
-func (room *RoomField) IsCleared() bool {
-	return room.Field.IsCleared()
-}
-
 // SetAndSendNewCell set and send cell to conn
 func (room *RoomField) SetAndSendNewCell(conn *Connection) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		found := true
 		// create until it become unique
 		var cell Cell
 		for found {
-			cell = room.Field.CreateRandomFlag(conn.ID())
+			cell = room.field.RandomFlag(conn.ID())
 			found, _ = room.p.flagExists(cell, nil)
 		}
 		room.p.setFlag(conn, cell)
@@ -189,14 +137,14 @@ func (room *RoomField) SetAndSendNewCell(conn *Connection) {
 // SetFlag handle user want set flag
 func (room *RoomField) SetFlag(conn *Connection, cell *Cell) {
 	var err error
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if err = room.check(conn, cell, true); err != nil {
 			return
 		}
 		if found, prevConn := room.p.flagExists(*cell, conn); found {
 			room.re.FlagСonflict(conn)
-			go room.SetAndSendNewCell(conn)
-			go room.SetAndSendNewCell(prevConn)
+			room.SetAndSendNewCell(conn)
+			room.SetAndSendNewCell(prevConn)
 			return
 		}
 		room.p.setFlag(conn, *cell)
@@ -213,14 +161,14 @@ func (room *RoomField) Configure(info models.GameInformation) {
 }
 
 func (room *RoomField) configureField(info models.Field) {
-	room.Field.Width = info.Width
-	room.Field.Height = info.Height
-	room.Field.setCellsLeft(info.CellsLeft)
-	room.Field.Mines = info.Mines
+	room.field.Width = info.Width
+	room.field.Height = info.Height
+	room.field.setCellsLeft(info.CellsLeft)
+	room.field.Mines = info.Mines
 }
 
 func (room *RoomField) configureHistory(info []models.Cell) {
-	room.Field.setHistory(make([]*Cell, 0))
+	room.field.setHistory(make([]*Cell, 0))
 	for _, cellDB := range info {
 		cell := &Cell{
 			X:        cellDB.X,
@@ -229,6 +177,8 @@ func (room *RoomField) configureHistory(info []models.Cell) {
 			PlayerID: cellDB.PlayerID,
 			Time:     cellDB.Date,
 		}
-		room.Field.setToHistory(cell)
+		room.field.setToHistory(cell)
 	}
 }
+
+// 234 -> 192

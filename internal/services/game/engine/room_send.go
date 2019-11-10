@@ -5,6 +5,7 @@ import (
 
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // SendStrategyI handle controls the distribution of responses to clients
@@ -39,12 +40,13 @@ type SendStrategyI interface {
 
 // RoomSender implements SendStrategyI
 type RoomSender struct {
-	s SyncI
+	s synced.SyncI
 	e EventsI
 	p PeopleI
-	c ConnectionEventsI
+	c ConnectionEventsStrategyI
 	i RoomInformationI
 	m ModelsAdapterI
+	f FieldProxyI
 }
 
 // Init configure dependencies with other components of the room
@@ -52,13 +54,14 @@ func (room *RoomSender) Init(builder ComponentBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildEvents(&room.e)
 	builder.BuildPeople(&room.p)
-	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildConnectionEvents(&room.c)
 	builder.BuildInformation(&room.i)
 	builder.BuildModelsAdapter(&room.m)
+	builder.BuildField(&room.f)
 }
 
 func (room *RoomSender) sendAll(info handlers.JSONtype, predicate SendPredicate) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		people := room.p.Connections()
 		SendToConnections(info, predicate, people...)
 	})
@@ -147,14 +150,14 @@ func (room *RoomSender) StatusToAll(predicate SendPredicate, status int, wg *syn
 			wg.Done()
 		}
 	}()
-	room.s.do(func() {
+	room.s.Do(func() {
 		response := room.m.responseRoomStatus(status)
 		room.sendAll(response, predicate)
 	})
 }
 
 func (room *RoomSender) StatusToOne(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		status := room.e.Status()
 		response := room.m.responseRoomStatus(status)
 		conn.SendInformation(response)
@@ -171,7 +174,7 @@ func (room *RoomSender) Action(pa PlayerAction, predicate SendPredicate) {
 }
 
 func (room *RoomSender) Error(err error, conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		response := models.Response{
 			Type:  "RoomError",
 			Value: err.Error(),
@@ -182,7 +185,7 @@ func (room *RoomSender) Error(err error, conn *Connection) {
 
 // FailFlagSet is called when room cant set flag
 func (room *RoomSender) FailFlagSet(conn *Connection, cell *Cell, err error) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		response := models.Response{
 			Type:    "FailFlagSet",
 			Message: err.Error(),
@@ -194,7 +197,7 @@ func (room *RoomSender) FailFlagSet(conn *Connection, cell *Cell, err error) {
 
 // RandomFlagSet is called when any player set his flag at the same as any other
 func (room *RoomSender) RandomFlagSet(conn *Connection, cell *Cell) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		response := models.Response{
 			Type:    "ChangeFlagSet",
 			Message: "The cell you have selected is chosen by another person.",
@@ -204,12 +207,12 @@ func (room *RoomSender) RandomFlagSet(conn *Connection, cell *Cell) {
 	})
 }
 
-// sendTAIRField send field to all in room
+// Field send field to all in room
 func (room *RoomSender) Field(predicate SendPredicate) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		response := models.Response{
 			Type:  "RoomField",
-			Value: room.Field,
+			Value: room.f.Field().JSON(),
 		}
 		room.sendAll(&response, predicate)
 	})
@@ -217,7 +220,7 @@ func (room *RoomSender) Field(predicate SendPredicate) {
 
 // sendTAIRAll send everything to one connection
 func (room *RoomSender) Room(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		isPlayer := room.c.isPlayer(conn)
 		conn.SendInformation(room.m.responseRoom(conn, isPlayer))
 	})

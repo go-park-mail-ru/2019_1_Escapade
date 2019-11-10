@@ -1,13 +1,16 @@
 {
 	"server": {
-		"host": "http://localhost",
-		"portUrl": "PORT_GAME_URL",
-		"portValue": ":3002",
-		"readTimeoutS":10,
-		"writeTimeoutS":15,
-		"idleTimeoutS":5,
-		"waitTimeoutS":5,
-		"execTimeoutS":0
+		"name": "game",
+		"maxConn": 1000,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"40s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"5s",
+			"exec":"0s"
+		}
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
@@ -48,30 +51,53 @@
 		"httpOnly": true
 	},
 	"game": {
-		"roomsCapacity": 500,
-		"connectionCapacity": 1000,
+		"lobby": {
+			"connections": 1000,
+			"rooms": 500,
+			"intervals": {
+				"garbage":"10s",
+				"messages":"20s",
+				"games":"10s"
+			},
+			"connection":"15s",
+			"wait":"120s"
+		},
+		"room": {
+			"canClose":true,
+			"wait":"20s",
+			"timeouts": {
+				"peopleFinding":"10s",
+				"runningPlayer":"120s",
+				"runningObserver":"10s",
+				"finished":"2s"
+			},
+			"field": {
+				"minAreaSize": 1,
+				"maxAreaSize": 5,
+				"minProbability": 20,
+				"maxProbability": 80
+			},
+			"garbage": "10s",
+			"length":16
+		},
+		"anonymous": {
+			"minID": 100,
+			"maxID": 99899
+		},
 		"location": "Europe/Moscow",
-		"closeRoom": true,
-		"metrics": true,
-		"field": {
-			"minAreaSize": 1,
-			"maxAreaSize": 5,
-			"minProbability": 20,
-			"maxProbability": 80
-		}
+		"metrics": true
 	},
 	"websocket": {
-		"writeWait": 60,
-		"pongWait": 10,
-		"pingPeriod": 9,
+		"writeWait": "60s",
+		"pongWait": "10s",
+		"pingPeriod": "9s",
 		"maxMessageSize": 4096,
 		"readBufferSize": 1024,
 		"writeBufferSize": 1024
 	},
-	"services": [
-		{
+	"required": {
 			"name":"chat",
-			"address":":3005"
-		}
-	]
+			"polling":"40s",
+			"drop":10
+	}
 }

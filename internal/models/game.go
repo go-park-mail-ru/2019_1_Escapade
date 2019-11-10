@@ -48,11 +48,11 @@ type Cell struct {
 // Field is the database model of game.Field
 //easyjson:json
 type Field struct {
-	Width     int32 `json:"width"`
-	Height    int32 `json:"height"`
-	CellsLeft int32 `json:"cellsLeft"`
-	Difficult int   `json:"difficult"`
-	Mines     int32 `json:"mines"`
+	Width     int32   `json:"width"`
+	Height    int32   `json:"height"`
+	CellsLeft int32   `json:"cellsLeft"`
+	Difficult float64 `json:"difficult"`
+	Mines     int32   `json:"mines"`
 }
 
 // GameInformation show everything about game and his gamer

@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 type PeopleI interface {
@@ -46,15 +48,17 @@ type PeopleI interface {
 }
 
 type RoomPeople struct {
-	s  SyncI
-	c  ConnectionEventsI
+	s  synced.SyncI
+	c  ConnectionEventsStrategyI
 	e  EventsI
 	l  LobbyProxyI
 	f  FieldProxyI
 	re ActionRecorderProxyI
 
 	pointsPerCellK float64
-	winners        []int
+
+	winnersM *sync.Mutex
+	_winners []int
 
 	//playersM *sync.RWMutex
 	Players *OnlinePlayers
@@ -67,7 +71,7 @@ type RoomPeople struct {
 
 func (room *RoomPeople) Init(builder ComponentBuilderI, rs *models.RoomSettings) {
 	builder.BuildSync(&room.s)
-	builder.BuildRoomConnectionEvents(&room.c)
+	builder.BuildConnectionEvents(&room.c)
 	builder.BuildEvents(&room.e)
 	builder.BuildLobby(&room.l)
 	builder.BuildField(&room.f)
@@ -76,9 +80,10 @@ func (room *RoomPeople) Init(builder ComponentBuilderI, rs *models.RoomSettings)
 	sq := rs.Width * rs.Height
 	room.pointsPerCellK = 1000 / float64(sq)
 
-	room.winners = nil
-	room.setKilled(0)
+	room.winnersM = &sync.Mutex{}
+	room._winners = nil
 	room.killedM = &sync.RWMutex{}
+	room.setKilled(0)
 	room.Players = newOnlinePlayers(rs.Players)
 	room.Observers = NewConnections(rs.Observers)
 }
@@ -89,20 +94,20 @@ func (room *RoomPeople) Free() {
 }
 
 func (room *RoomPeople) Start() {
-	room.s.do(func() {
-		room.f.Fill(room.Players.m.Flags())
+	room.s.Do(func() {
+		room.f.Field().Fill(room.Players.m.Flags())
 		room.Players.Init()
 	})
 }
 
 func (room *RoomPeople) Finish(group *sync.WaitGroup) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.Players.m.Finish(group)
 	})
 }
 
 func (room *RoomPeople) configure(info models.GameInformation) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.setKilled(info.Game.Settings.Players)
 		room.Players = newOnlinePlayers(info.Game.Settings.Players)
 		for i, gamer := range info.Gamers {
@@ -152,7 +157,7 @@ func (room *RoomPeople) observers() *Connections {
 }
 
 func (room *RoomPeople) ForEach(action func(c *Connection, isPlayer bool)) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		playersIterator := NewConnectionsIterator(room.Players.Connections)
 		for playersIterator.Next() {
 			player := playersIterator.Value()
@@ -167,53 +172,6 @@ func (room *RoomPeople) ForEach(action func(c *Connection, isPlayer bool)) {
 	})
 }
 
-// Winners determine who won the game
-func (room *RoomPeople) Winners() []int {
-	var winners []int
-	room.s.do(func() {
-		if room.winners == nil {
-			room.winners = make([]int, 0)
-			room.Players.ForEach(room.addWinner(room.winners))
-		}
-		winners = room.winners
-	})
-	return winners
-}
-
-// IsWinner is player wuth id playerID is winner
-func (room *RoomPeople) IsWinner(index int) bool {
-	room.s.do(func() {
-		if room.winners == nil {
-			room.winners = make([]int, 0)
-			room.Players.ForEach(room.addWinner(room.winners))
-		}
-	})
-	return room.isWinner(index)
-}
-
-func (room *RoomPeople) isWinner(index int) bool {
-	for _, i := range room.winners {
-		if i == index {
-			return true
-		}
-	}
-	return false
-}
-
-func (room *RoomPeople) addWinner(winners []int) func(int, Player) {
-	max := 0.
-	return func(index int, player Player) {
-		if !player.Died {
-			if player.Points > max {
-				max = player.Points
-				winners = []int{index}
-			} else if player.Points == max {
-				winners = append(winners, index)
-			}
-		}
-	}
-}
-
 func (room *RoomPeople) Connections() []*Connections {
 	players := room.Players.Connections
 	observers := room.Observers
@@ -224,7 +182,7 @@ func (room *RoomPeople) Connections() []*Connections {
 // Empty check room has no people
 func (room *RoomPeople) Empty() bool {
 	var result = true
-	room.s.do(func() {
+	room.s.Do(func() {
 		result = room.Players.Connections.len()+room.Observers.len() == 0
 	})
 	return result
@@ -239,7 +197,7 @@ func (room *RoomPeople) IncreasePoints(index int, points float64) {
 }
 
 func (room *RoomPeople) OpenCell(conn *Connection, cell *Cell) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		switch {
 		case cell.Value < CellMine:
 			room.openSafeCell(conn, cell)
@@ -253,7 +211,7 @@ func (room *RoomPeople) OpenCell(conn *Connection, cell *Cell) {
 
 // openFlag is called, when somebody find cell flag
 func (room *RoomPeople) openSafeCell(conn *Connection, cell *Cell) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		points := float64(cell.Value) * room.pointsPerCellK
 		room.IncreasePoints(conn.Index(), points)
 	})
@@ -261,7 +219,7 @@ func (room *RoomPeople) openSafeCell(conn *Connection, cell *Cell) {
 
 // openFlag is called, when somebody find cell flag
 func (room *RoomPeople) openMine(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		room.IncreasePoints(conn.Index(), float64(-1000))
 		room.c.Kill(conn, ActionExplode)
 	})
@@ -269,7 +227,7 @@ func (room *RoomPeople) openMine(conn *Connection) {
 
 // openFlag is called, when somebody find cell flag
 func (room *RoomPeople) openFlag(founder *Connection, found *Cell) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		var which int32
 		room.Players.ForEachFlag(room.findFlagOwner(found, &which))
 		if which == founder.ID() {
@@ -292,45 +250,6 @@ func (room *RoomPeople) findFlagOwner(found *Cell, which *int32) func(int, Flag)
 	}
 }
 
-////////////// mutex
-
-// SetFinished set player finished
-func (room *RoomPeople) SetFinished(conn *Connection) {
-	room.s.do(func() {
-		index := conn.Index()
-		if index < 0 {
-			return
-		}
-		room.Players.m.PlayerFinish(index)
-
-		room.killedM.Lock()
-		room._killed++
-		room.killedM.Unlock()
-	})
-}
-
-// done return '_killed' field
-func (room *RoomPeople) killed() int32 {
-	room.killedM.RLock()
-	v := room._killed
-	room.killedM.RUnlock()
-	return v
-}
-
-// incrementKilled increment amount of killed
-func (room *RoomPeople) incrementKilled() {
-	room.killedM.Lock()
-	room._killed++
-	room.killedM.Unlock()
-}
-
-// setKilled set new value of killed
-func (room *RoomPeople) setKilled(killed int32) {
-	room.killedM.Lock()
-	room._killed = killed
-	room.killedM.Unlock()
-}
-
 // search the connection in players slice and observers slice of room
 // return connection and flag isPlayer
 func (room *RoomPeople) Search(find *Connection) (*Connection, bool) {
@@ -347,7 +266,7 @@ func (room *RoomPeople) Search(find *Connection) (*Connection, bool) {
 
 func (room *RoomPeople) add(conn *Connection, isPlayer bool, needRecover bool) bool {
 	var result bool
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		result = room.push(conn, isPlayer, needRecover)
 		if !result {
 			return
@@ -367,13 +286,13 @@ func (room *RoomPeople) add(conn *Connection, isPlayer bool, needRecover bool) b
 // the connection remains the waiter, but gets waiting room - this one
 func (room *RoomPeople) push(conn *Connection, isPlayer bool, needRecover bool) bool {
 	var result bool
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if isPlayer {
 			if !needRecover && !room.Players.EnoughPlace() {
 				result = false
 				return
 			}
-			room.Players.Add(conn, room.f.RandomFlag(conn), needRecover)
+			room.Players.Add(conn, room.f.Field().RandomFlag(conn.ID()), needRecover)
 			if !needRecover && !room.Players.EnoughPlace() {
 				room.e.RecruitingOver()
 			}
@@ -429,8 +348,92 @@ func (room *RoomPeople) flagExists(cell Cell, this *Connection) (bool, *Connecti
 }
 
 func (room *RoomPeople) Remove(conn *Connection) {
-	room.s.do(func() {
+	room.s.Do(func() {
 		room.Players.Connections.Remove(conn)
 		room.Observers.Remove(conn)
 	})
+}
+
+////////////// mutex
+
+// SetFinished set player finished
+func (room *RoomPeople) SetFinished(conn *Connection) {
+	room.s.Do(func() {
+		index := conn.Index()
+		if index < 0 {
+			return
+		}
+		room.Players.m.PlayerFinish(index)
+
+		room.killedM.Lock()
+		room._killed++
+		room.killedM.Unlock()
+	})
+}
+
+// done return '_killed' field
+func (room *RoomPeople) killed() int32 {
+	room.killedM.RLock()
+	v := room._killed
+	room.killedM.RUnlock()
+	return v
+}
+
+// incrementKilled increment amount of killed
+func (room *RoomPeople) incrementKilled() {
+	room.killedM.Lock()
+	room._killed++
+	room.killedM.Unlock()
+}
+
+// setKilled set new value of killed
+func (room *RoomPeople) setKilled(killed int32) {
+	room.killedM.Lock()
+	room._killed = killed
+	room.killedM.Unlock()
+}
+
+// Winners determine who won the game
+func (room *RoomPeople) Winners() []int {
+	var winners []int
+	room.s.Do(func() {
+		room.winnersM.Lock()
+		if room._winners == nil {
+			room._winners = make([]int, 0)
+			room.Players.ForEach(room.addWinner(&room._winners))
+		}
+		winners = room._winners
+		room.winnersM.Unlock()
+	})
+	return winners
+}
+
+// IsWinner is player wuth id playerID is winner
+func (room *RoomPeople) IsWinner(index int) bool {
+	var found bool
+	room.s.Do(func() {
+		winners := room.Winners()
+		for _, i := range winners {
+			utils.Debug(false, "compare:", i, index)
+			if i == index {
+				found = true
+				return
+			}
+		}
+	})
+	return found
+}
+
+func (room *RoomPeople) addWinner(winners *[]int) func(int, Player) {
+	max := 0.
+	return func(index int, player Player) {
+		if !player.Died {
+			if player.Points > max {
+				max = player.Points
+				*winners = []int{index}
+			} else if player.Points == max {
+				*winners = append(*winners, index)
+			}
+		}
+	}
 }

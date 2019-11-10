@@ -2,6 +2,7 @@ package chat
 
 import (
 	"database/sql"
+	fmt "fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -156,6 +157,7 @@ func (db *MessageRepositoryPQ) getAll(Db database.DatabaseI, chatID *ChatID) (*M
 		`
 	rows, err = Db.Query(sqlStatement, chatID.Value)
 	if err != nil {
+		fmt.Println("wtf man", err.Error())
 		return &Messages{}, err
 	}
 

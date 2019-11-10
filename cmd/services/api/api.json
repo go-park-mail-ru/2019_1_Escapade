@@ -1,13 +1,16 @@
 {
 	"server": {
-		"host": "http://localhost",
-		"portUrl": "PORT_API_URL",
-		"portValue": ":3001",
-		"readTimeoutS":10,
-		"writeTimeoutS":15,
-		"idleTimeoutS":5,
-		"waitTimeoutS":0,
-		"execTimeoutS":60
+		"name": "api",
+		"maxConn": 100,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"10s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"0",
+			"exec":"60s"
+		}
 	},
 	"dataBase": {
 		"driverName": "postgres",
@@ -19,7 +22,6 @@
 	},
 	"session": {
 		"path": "/",
-		"length": 16,
 		"lifetime_hours": 604800,
 		"httpOnly": true,
 		"keys": {
@@ -38,14 +40,6 @@
 		"redirectURL": "http://auth:3003/auth/oauth2",
 		"address": "http://auth:3003"
 	},
-	"auth": {
-		"salt": "3yffZ5D03wdnfWAA",
-		"accessTokenExpireHours": 2,
-		"refreshTokenExpireHours": 336,
-		"isGenerateRefresh": true,
-		"withReserve": true,
-		"tokenType": "Bearer"
-	  },
 	"cors": {
 		"origins": [
 			"http://localhost:8080",

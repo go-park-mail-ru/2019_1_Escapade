@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -125,9 +124,8 @@ func (h *Handlers) Router() *mux.Router {
 	api.HandleFunc("/users/pages_amount", h.users.HandleUsersPageAmount).Methods("GET")
 
 	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		v, _ := server.GetIP()
-		fmt.Println("fun:", v)
-		rw.Write([]byte("all ok " + v.String()))
+
+		rw.Write([]byte("all ok " + server.GetIP()))
 	})
 
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

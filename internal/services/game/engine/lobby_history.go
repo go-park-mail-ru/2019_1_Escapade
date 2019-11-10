@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/gorilla/websocket"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -11,7 +12,7 @@ import (
 )
 
 // LaunchLobbyHistory launch local lobby with rooms from database
-func LaunchLobbyHistory(db database.GameUseCaseI,
+func LaunchLobbyHistory(chatS clients.Chat, db database.GameUseCaseI,
 	ws *websocket.Conn, user *models.UserPublicInfo,
 	cw config.WebSocket, gameSettings *config.Game,
 	si SetImage) {
@@ -23,12 +24,12 @@ func LaunchLobbyHistory(db database.GameUseCaseI,
 		return
 	}
 
-	gameSettings.RoomsCapacity = int32(len(urls) * 2)
-	lobby := NewLobby(gameSettings, db, si)
+	gameSettings.Lobby.RoomsCapacity = int32(len(urls) * 2)
+	lobby := NewLobby(chatS, gameSettings, db, si)
 
 	go lobby.Run()
 	defer func() {
-		lobby.Stop()
+		lobby.Close()
 	}()
 
 	if len(urls) > 0 {
@@ -39,6 +40,10 @@ func LaunchLobbyHistory(db database.GameUseCaseI,
 		}
 	}
 
-	conn := NewConnection(ws, user, lobby)
+	conn, err := NewConnection(ws, user, lobby)
+	if err != nil {
+		utils.Debug(false, "cant create connection")
+		return
+	}
 	conn.Launch(cw, "")
 }

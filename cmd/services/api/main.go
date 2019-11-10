@@ -1,17 +1,15 @@
 package main
 
 import (
-	"time"
+	"os"
 
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	e_server "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/metrics"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
-	"os"
+	// dont delete it for correct easyjson work
+	_ "github.com/mailru/easyjson/gen"
 )
 
 // to generate docs, call from root "swag init -g api/main.go"
@@ -23,117 +21,62 @@ import (
 // @host localhost:3001
 // @BasePath /api
 func main() {
-	var (
-		configuration *config.Configuration
-		API           = &api.Handlers{}
-		err           error
-	)
-
-	utils.Debug(false, "1. Check command line arguments")
-
-	if len(os.Args) < 6 {
-		utils.Debug(false, "ERROR. Api service need 5 command line arguments. But",
-			len(os.Args)-1, "get.")
-		return
-	}
-
-	var (
-		configurationPath = os.Args[1]
-		photoPublicPath   = os.Args[2]
-		photoPrivatePath  = os.Args[3]
-		mainPort          = os.Args[4]
-		consulPort        = os.Args[5]
-		mainPortInt       int
-	)
-
-	mainPort, mainPortInt, err = e_server.Port(mainPort)
+	// first step
+	cla, err := start.GetCommandLineArgs(5, func() *start.CommandLineArgs {
+		return &start.CommandLineArgs{
+			ConfigurationPath: os.Args[1],
+			PhotoPublicPath:   os.Args[2],
+			PhotoPrivatePath:  os.Args[3],
+			MainPort:          os.Args[4],
+		}
+	})
 	if err != nil {
-		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
+		utils.Debug(false, "ERROR with command line args", err.Error())
 		return
 	}
-	consulPort = e_server.FixPort(consulPort)
-
-	utils.Debug(false, "✔")
-	utils.Debug(false, "2. Setting the environment")
-
-	configuration, err = config.Init(configurationPath)
+	ca := &start.ConfigurationArgs{
+		HandlersMetrics: true,
+		Photo:           true,
+	}
+	// second step
+	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
-		utils.Debug(false, "ERROR with main configuration:", err.Error())
+		utils.Debug(false, "ERROR with configuration", err.Error())
 		return
 	}
 
-	err = photo.Init(photoPublicPath, photoPrivatePath)
-	if err != nil {
-		utils.Debug(false, "ERROR with photo configuration:", err.Error())
-		return
-	}
-
-	//var API api.Handler
+	// start connection to database inside handlers
+	var API = &api.Handlers{}
 	err = API.InitWithPostgreSQL(configuration)
-	//API.NEW_Init(configuration)
-	//err = API.NEW_SetPostreSQL(configuration.DataBase)
-	//API, err = api.GetHandler(configuration)
 	if err != nil {
-		utils.Debug(false, "ERROR with photo configuration:", err.Error())
+		utils.Debug(false, "ERROR with connection to database:", err.Error())
 		return
 	}
 	defer API.Close()
 
-	metrics.Init()
-
-	// в конфиг
-	var (
-		serviceName = "api"
-		ttl         = time.Second * 10
-		maxConn     = 10
-	)
-
-	//API.RandomUsers(10) // create 10 users for tests
-
-	utils.Debug(false, "✔✔")
-	utils.Debug(false, "3. Set the settings of our server and associate it with third-party")
-
-	configuration.AuthClient.Address = os.Getenv("AUTH_ADDRESS")
-
-	r := API.Router()
-	//r := api.Router(API, configuration.Cors, configuration.Cookie,
-	//		configuration.Auth, configuration.AuthClient)
-
-	srv := e_server.Server(r, configuration.Server, true, mainPort)
-
-	// /sbin/ip route|awk ' { print $7 }'
-
-	consulAddr := os.Getenv("CONSUL_ADDRESS")
-	if consulAddr == "" {
-		consulAddr = configuration.Server.Host
-	}
-
-	newTags := []string{"api", "traefik.frontend.entryPoints=http",
-		"traefik.frontend.rule=Host:api.consul.localhost"}
-
-	consul, err := e_server.InitConsulService(serviceName,
-		mainPortInt, newTags, ttl, maxConn, consulAddr, consulPort,
-		func() (bool, error) { return false, nil }, true)
-	if err != nil {
-		utils.Debug(false, "ERROR cant get ip:", err.Error())
-		return
-	}
-
+	// third step
+	consul := start.RegisterInConsul(cla, configuration)
 	consul.AddHTTPCheck("http", "/health")
 
+	// start connection to Consul
 	err = consul.Run()
 	if err != nil {
-		utils.Debug(false, "ERROR when register service ", err)
+		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
 		return
 	}
 	defer consul.Close()
 
-	utils.Debug(false, "✔✔✔")
-	utils.Debug(false, "Service", serviceName, "with id:",
-		e_server.ServiceID(serviceName), "ready to go on",
-		configuration.Server.Host+mainPort)
+	// forth step
+	server := start.ConfigureServer(API.Router(),
+		configuration.Server, cla)
 
-	e_server.LaunchHTTP(srv, configuration.Server, maxConn, func() {
+	utils.Debug(false, "Service", consul.Name, "with id:", consul.ID, "ready to go on",
+		start.GetIP()+cla.MainPort)
+
+	// go!
+	start.LaunchHTTP(server, configuration.Server, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
 }
+
+// 120 -> 62

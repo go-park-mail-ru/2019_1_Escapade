@@ -1,8 +1,6 @@
 package database
 
 import (
-	"context"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -12,11 +10,13 @@ import (
 // GameUseCase implements the interface GameuseCaseI
 type GameUseCase struct {
 	idb.UseCaseBase
-	game GameRepositoryI
+	game  GameRepositoryI
+	chatS clients.Chat
 }
 
-func (db *GameUseCase) Init(game GameRepositoryI) {
+func (db *GameUseCase) Init(game GameRepositoryI, chatS clients.Chat) {
 	db.game = game
+	db.chatS = chatS
 }
 
 func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
@@ -37,11 +37,11 @@ func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
 	}
 
 	newChat := &chat.ChatWithUsers{
-		Type:   chat.ChatType_ROOM,
+		Type:   chat.RoomType,
 		TypeId: roomID,
 	}
 
-	pbChatID, err = clients.ALL.Chat().CreateChat(context.Background(), newChat)
+	pbChatID, err = db.chatS.CreateChat(newChat)
 	if err == nil {
 		id = pbChatID.Value
 	}
@@ -49,7 +49,7 @@ func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
 	return roomID, id, err
 }
 
-// SaveGame save game to database
+// Save game to database
 func (db *GameUseCase) Save(info models.GameInformation) error {
 	var (
 		tx              idb.TransactionI
@@ -95,7 +95,7 @@ func (db *GameUseCase) Save(info models.GameInformation) error {
 	return err
 }
 
-// GetGames get list of games
+// FetchAllGames get list of games
 func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, error) {
 	var (
 		tx    idb.TransactionI
@@ -126,7 +126,7 @@ func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, er
 	return games, err
 }
 
-// GetGamesURL get games url
+// FetchAllRoomsID get games url
 func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 	var (
 		tx   idb.TransactionI
@@ -147,7 +147,7 @@ func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 	return URLs, err
 }
 
-// GetGame get all information about game:
+// FetchOneGame get all information about game:
 // game, gamers, field, history of cells and actions
 func (db *GameUseCase) FetchOneGame(roomID string) (models.GameInformation, error) {
 	var (

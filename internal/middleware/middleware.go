@@ -95,8 +95,8 @@ func Recover(next http.Handler) http.Handler {
 //Logger log request
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		ip, _ := e_server.GetIP()
-		utils.Debug(false, "listen for you on "+ip.String())
+		ip := e_server.GetIP()
+		utils.Debug(false, "listen for you on "+ip)
 		next.ServeHTTP(rw, r)
 	})
 }

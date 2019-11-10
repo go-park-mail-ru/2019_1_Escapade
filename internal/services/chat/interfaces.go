@@ -1,14 +1,18 @@
 package chat
 
 import (
-	context "context"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 )
 
+const (
+	LobbyType = 0
+	RoomType  = 1
+	UserType  = 2
+)
+
 type ChatRepositoryI interface {
-	create(tx database.TransactionI, chatType ChatType, typeID int32) (*ChatID, error)
-	get(Db database.DatabaseI, chat *Chat) (*ChatID, error)
+	create(tx database.TransactionI, chatType, typeID int32) (*ChatID, error)
+	get(tx database.TransactionI, chat *Chat) (*ChatID, error)
 }
 
 type UserRepositoryI interface {
@@ -29,25 +33,25 @@ type MessageRepositoryI interface {
 type ChatUseCaseI interface {
 	database.UserCaseI
 
-	Create(ctx context.Context, chat *ChatWithUsers) (*ChatID, error)
-	GetOne(ctx context.Context, chat *Chat) (*ChatID, error)
+	Create(chat *ChatWithUsers) (*ChatID, error)
+	GetOne(chat *Chat) (*ChatID, error)
 }
 
 type UserUseCaseI interface {
 	database.UserCaseI
 
-	InviteToChat(ctx context.Context, userInChat *UserInGroup) (*Result, error)
-	LeaveChat(ctx context.Context, userInChat *UserInGroup) (*Result, error)
+	InviteToChat(userInChat *UserInGroup) (*Result, error)
+	LeaveChat(userInChat *UserInGroup) (*Result, error)
 }
 
 type MessageUseCaseI interface {
 	database.UserCaseI
 
-	AppendOne(ctx context.Context, message *Message) (*MessageID, error)
-	AppendMany(ctx context.Context, messages *Messages) (*MessagesID, error)
+	AppendOne(message *Message) (*MessageID, error)
+	AppendMany(messages *Messages) (*MessagesID, error)
 
-	Update(ctx context.Context, message *Message) (*Result, error)
-	Delete(ctx context.Context, message *Message) (*Result, error)
+	Update(message *Message) (*Result, error)
+	Delete(message *Message) (*Result, error)
 
-	GetAll(ctx context.Context, chatID *ChatID) (*Messages, error)
+	GetAll(chatID *ChatID) (*Messages, error)
 }

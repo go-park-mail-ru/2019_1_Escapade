@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"math"
@@ -12,13 +13,27 @@ import (
 	"time"
 )
 
+type FieldI interface {
+	OpenEverything([]Cell)
+	OpenZero() []Cell
+	Fill(flags []Flag)
+
+	IsCleared() bool
+	cellsLeft() int32
+	difficult() float64
+
+	JSON() FieldJSON
+	Model() models.Field
+
+	Free()
+
+	RandomFlag(playerID int32) Cell
+}
+
 // Field send to user, if he disconnect and 'forgot' everything
 // about map or it is his first connect
 type Field struct {
-	wGroup *sync.WaitGroup
-
-	doneM *sync.RWMutex
-	_done bool
+	s *synced.SyncWgroup
 
 	matrixM *sync.RWMutex
 	_matrix [][]int32
@@ -33,19 +48,18 @@ type Field struct {
 
 	config *config.Field
 
-	Mines     int32
-	Difficult float64
+	deathmatch bool
+	Mines      int32
+	Difficult  float64
 }
 
 // NewField create new instance of field
-func NewField(rs *models.RoomSettings, config *config.Field) *Field {
+func NewField(rs *models.RoomSettings, c *config.Field) *Field {
 	matrix := generate(rs)
+	var s = &synced.SyncWgroup{}
+	s.Init(c.Wait.Duration)
 	field := &Field{
-		wGroup: &sync.WaitGroup{},
-
-		doneM: &sync.RWMutex{},
-		_done: false,
-
+		s:       s,
 		matrixM: &sync.RWMutex{},
 		_matrix: matrix,
 
@@ -53,9 +67,11 @@ func NewField(rs *models.RoomSettings, config *config.Field) *Field {
 		_history: make([]*Cell, 0, rs.Width*rs.Height),
 		Width:    rs.Width,
 		Height:   rs.Height,
-		Mines:    rs.Mines,
 
-		config: config,
+		deathmatch: rs.Deathmatch,
+		Mines:      rs.Mines,
+
+		config: c,
 
 		cellsLeftM: &sync.RWMutex{},
 	}
@@ -71,82 +87,57 @@ func NewField(rs *models.RoomSettings, config *config.Field) *Field {
 }
 
 // Free clear matrix and history
-func (field *Field) Free(timeout time.Duration) {
-
-	if field.checkAndSetCleared() {
-		return
-	}
-
-	utils.WaitWithTimeout(field.wGroup, timeout)
-
-	go field.matrixFree()
-	go field.historyFree()
+func (field *Field) Free() {
+	field.s.Clear(func() {
+		go field.matrixFree()
+		go field.historyFree()
+	})
 }
-
-// SameAs compare two fields
-/*
-func (field *Field) SameAs(another *Field) bool {
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	left1 := field.cellsLeft()
-	left2 := field.cellsLeft()
-
-	compare := field.Width == another.Width &&
-		field.Height == another.Height &&
-		left1 == left2
-
-	return compare
-}*/
 
 // OpenEverything open all cells
 func (field *Field) OpenEverything(cells []Cell) {
-	if field.Done() {
-		return
-	}
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	var i, j, v int32
-	for i = 0; i < field.Height; i++ {
-		for j = 0; j < field.Width; j++ {
-			v = field.matrixValue(i, j)
-			if v != CellOpened && v != CellFlagTaken {
-				cell := NewCell(i, j, v, 0)
-				field.saveCell(cell, cells)
-				field.setCellOpen(i, j, v)
+	field.s.Do(func() {
+		var i, j, v int32
+		for i = 0; i < field.Height; i++ {
+			for j = 0; j < field.Width; j++ {
+				v = field.matrixValue(i, j)
+				if v != CellOpened && v != CellFlagTaken {
+					cell := NewCell(i, j, v, 0)
+					field.saveCell(cell, &cells)
+					field.setCellOpen(i, j, v)
+				}
 			}
 		}
-	}
+	})
 }
 
 // openCellArea open cell area, if there is no mines around
 // in this cell
-func (field *Field) openCellArea(x, y, ID int32, cells []Cell) {
-	if !field.areCoordinatesRight(x, y) {
-		return
-	}
+func (field *Field) openCellArea(x, y, ID int32, cells *[]Cell) {
+	field.s.Do(func() {
+		if !field.areCoordinatesRight(x, y) {
+			return
+		}
 
-	v := field.matrixValue(x, y)
+		v := field.matrixValue(x, y)
 
-	if v < CellMine {
-		cell := NewCell(x, y, v, ID)
-		field.saveCell(cell, cells)
-		field.decrementCellsLeft()
-	}
-	if v == 0 {
-		field.openCellArea(x-1, y-1, ID, cells)
-		field.openCellArea(x-1, y, ID, cells)
-		field.openCellArea(x-1, y+1, ID, cells)
+		if v < CellMine {
+			field.saveCell(NewCell(x, y, v, ID), cells)
+			field.decrementCellsLeft()
+		}
+		if v == 0 {
+			field.openCellArea(x-1, y-1, ID, cells)
+			field.openCellArea(x-1, y, ID, cells)
+			field.openCellArea(x-1, y+1, ID, cells)
 
-		field.openCellArea(x, y+1, ID, cells)
-		field.openCellArea(x, y-1, ID, cells)
+			field.openCellArea(x, y+1, ID, cells)
+			field.openCellArea(x, y-1, ID, cells)
 
-		field.openCellArea(x+1, y-1, ID, cells)
-		field.openCellArea(x+1, y, ID, cells)
-		field.openCellArea(x+1, y+1, ID, cells)
-	}
-
+			field.openCellArea(x+1, y-1, ID, cells)
+			field.openCellArea(x+1, y, ID, cells)
+			field.openCellArea(x+1, y+1, ID, cells)
+		}
+	})
 }
 
 // IsCleared return true if all safe cells except flags open
@@ -156,105 +147,107 @@ func (field *Field) IsCleared() bool {
 
 // saveCell save cell to the slice 'cells' and to the slice of
 // opened cells
-func (field *Field) saveCell(cell *Cell, cells []Cell) {
-	if cell.Value != CellOpened && cell.Value != CellFlagTaken {
-		cell.Time = time.Now()
-		field.setToHistory(cell)
-		cells = append(cells, *cell)
-		field.setCellOpen(cell.X, cell.Y, cell.Value)
-	}
+func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
+	field.s.Do(func() {
+		utils.Debug(false, "cell value:", cell.Value)
+		if cell.Value != CellOpened && cell.Value != CellFlagTaken {
+			cell.Time = time.Now()
+			field.setToHistory(cell)
+			*cells = append(*cells, *cell)
+			field.setCellOpen(cell.X, cell.Y, cell.Value)
+			utils.Debug(false, "we open it ", len(*cells))
+		}
+	})
+	utils.Debug(false, "saveCell ret", len(*cells))
 }
 
 // OpenCell open 'cell' and return slice of opened cells
-func (field *Field) OpenCell(cell *Cell) (cells []Cell) {
-	if field.Done() {
-		return
-	}
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	cell.Value = field.matrixValue(cell.X, cell.Y)
-	cells = make([]Cell, 0)
-	if cell.Value < CellMine {
-		field.openCellArea(cell.X, cell.Y, cell.PlayerID, cells)
-	} else {
-		if cell.Value != FlagID(cell.PlayerID) {
-			field.saveCell(cell, cells)
+func (field *Field) OpenCell(cell *Cell) []Cell {
+	var cells = make([]Cell, 0)
+	field.s.Do(func() {
+		cell.Value = field.matrixValue(cell.X, cell.Y)
+		if cell.Value < CellMine {
+			utils.Debug(false, "openCellArea", len(cells))
+			field.openCellArea(cell.X, cell.Y, cell.PlayerID, &cells)
+		} else if cell.Value != FlagID(cell.PlayerID) {
+			utils.Debug(false, "save to sells", len(cells))
+			field.saveCell(cell, &cells)
 		}
-	}
-
-	return
+	})
+	utils.Debug(false, "OpenCell ret", len(cells))
+	return cells
 }
 
 // RandomFlags create random players flags
-func (field *Field) RandomFlags(players []Player) (flags []Flag) {
-	if field.Done() {
-		return
-	}
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	flags = make([]Flag, len(players))
-	for i, player := range players {
-		flags[i] = Flag{
-			Cell: field.CreateRandomFlag(player.ID),
-			Set:  false,
+func (field *Field) RandomFlags(players []Player) []Flag {
+	var flags = make([]Flag, len(players))
+	field.s.Do(func() {
+		for i, player := range players {
+			flags[i] = Flag{
+				Cell: field.RandomFlag(player.ID),
+				Set:  false,
+			}
 		}
-	}
+	})
 	return flags
 }
 
-// CreateRandomFlag create flag for player
-func (field *Field) CreateRandomFlag(playerID int32) Cell {
-	if field.Done() {
-		return Cell{}
-	}
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	rand.Seed(time.Now().UnixNano())
-	var x, y int32
-	x = rand.Int31n(field.Width)
-	y = rand.Int31n(field.Height)
-
-	return *NewCell(x, y, FlagID(playerID), playerID)
-}
-
-// OpenSave open n(or more) cells that do not contain any mines or flags
-func (field *Field) OpenSave(n int) (cells []Cell) {
-	cells = make([]Cell, 0)
-	size := 0
-
-	for n > size {
+// RandomFlag create flag for player
+func (field *Field) RandomFlag(playerID int32) Cell {
+	var cell Cell
+	field.s.Do(func() {
 		rand.Seed(time.Now().UnixNano())
-		i := rand.Int31n(field.Width)
-		j := rand.Int31n(field.Height)
-		if field.lessThenMine(i, j) {
-			cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
-			size = len(cells)
-		}
-	}
-	return
+		cell.X = rand.Int31n(field.Width)
+		cell.Y = rand.Int31n(field.Height)
+		cell.Value = FlagID(playerID)
+		cell.PlayerID = playerID
+		cell.Time = time.Now()
+	})
+	return cell
 }
+
+// dont delete
+// OpenSave open n(or more) cells that do not contain any mines or flags
+/*
+func (field *Field) OpenSave(n int) []Cell {
+	var cells = make([]Cell, 0)
+	field.s.do(func() {
+		var size = 0
+		for n > size {
+			rand.Seed(time.Now().UnixNano())
+			i := rand.Int31n(field.Width)
+			j := rand.Int31n(field.Height)
+			if field.lessThenMine(i, j) {
+				cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
+				size = len(cells)
+			}
+		}
+	})
+	return cells
+}*/
 
 // OpenZero open all cells around which there are no mines, or which are
 // located next to the cells in which there is no mine
-func (field *Field) OpenZero() (cells []Cell) {
-	cells = make([]Cell, 0)
-
-	var i, j int32
-	for i = 0; i < field.Width; i++ {
-		for j = 0; j < field.Height; j++ {
-			if field.matrixValue(i, j) == 0 {
-				cells = append(cells, field.OpenCell(NewCell(i, j, 0, 0))...)
+func (field *Field) OpenZero() []Cell {
+	var cells = make([]Cell, 0)
+	utils.Debug(false, "OpenZero")
+	field.s.Do(func() {
+		var i, j int32
+		for i = 0; i < field.Width; i++ {
+			for j = 0; j < field.Height; j++ {
+				utils.Debug(false, "xyz", i, j, field.matrixValue(i, j))
+				if field.matrixValue(i, j) == 0 {
+					field.openCellArea(i, j, 0, &cells)
+				}
 			}
 		}
-	}
-	return
+	})
+	utils.Debug(false, "OpenZero")
+	return cells
 }
 
 // Zero clears the entire matrix of values
-func (field *Field) Zero() {
+func (field *Field) zero() {
 	var i, j int32
 	for i = 0; i < field.Width; i++ {
 		for j = 0; j < field.Height; j++ {
@@ -264,24 +257,18 @@ func (field *Field) Zero() {
 }
 
 // Fill fill matrix with mines, flags and mines counters
-func (field *Field) Fill(flags []Flag, deathmatch bool) {
-	if field.Done() {
-		return
-	}
-	field.wGroup.Add(1)
-	defer field.wGroup.Done()
-
-	field.Zero()
-	var minesCount int32
-	if deathmatch {
-		field.setFlags(flags)
-		minesCount = field.setMinesAroundFlags(flags)
-	}
-	field.setMines(minesCount)
-	field.setMinesCounters()
+func (field *Field) Fill(flags []Flag) {
+	field.s.Do(func() {
+		field.zero()
+		var minesCount = field.Mines
+		if field.deathmatch {
+			field.setFlags(flags)
+			minesCount = field.setMinesAroundFlags(flags)
+		}
+		field.setMines(minesCount)
+		field.setMinesCounters()
+	})
 }
-
-// 75
 
 // setMinesAroundFlags  surrounds flags with mines
 func (field *Field) setMinesAroundFlags(flags []Flag) int32 {
@@ -319,7 +306,6 @@ func (field *Field) setMinesAroundFlag(b Borders, probability int, mines int32) 
 // SetMinesCounters set the counters of min - cells,
 // which are not mine or flags
 func (field *Field) setMinesCounters() {
-
 	var (
 		x, y   int32
 		width  = field.Width
@@ -352,7 +338,6 @@ func (field *Field) setMineCounters(b Borders, c Cell) {
 		}
 	}
 	field.setMatrixValue(c.X, c.Y, value)
-
 }
 
 func (field *Field) fixMineArea(area float64) float64 {
@@ -471,3 +456,19 @@ func (field *Field) setCellOpen(x, y, v int32) {
 		field.setMatrixValue(x, y, CellFlagTaken)
 	}
 }
+
+func (field *Field) Model() models.Field {
+	return models.Field{
+		Width:     field.Width,
+		Height:    field.Height,
+		CellsLeft: field._cellsLeft,
+		Difficult: field.Difficult,
+		Mines:     field.Mines,
+	}
+}
+
+func (field *Field) difficult() float64 {
+	return field.Difficult
+}
+
+// 459 -> 463

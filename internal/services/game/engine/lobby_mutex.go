@@ -4,31 +4,9 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
-
-// checkAndSetCleared checks if the cleanup function was called. This check is
-// based on 'done'. If it is true, then the function has already been called.
-// If not, set done to True and return false.
-// IMPORTANT: this function must only be called in the cleanup function
-func (lobby *Lobby) checkAndSetCleared() bool {
-	lobby.doneM.Lock()
-	defer lobby.doneM.Unlock()
-	if lobby._done {
-		return true
-	}
-	lobby._done = true
-	return false
-}
-
-// done return '_done' field
-func (lobby *Lobby) done() bool {
-	lobby.doneM.RLock()
-	v := lobby._done
-	lobby.doneM.RUnlock()
-	return v
-}
 
 // AddNotSavedMessage add message to slice of unsaved messages
 func (lobby *Lobby) AddNotSavedMessage(mwa *MessageWithAction) {
@@ -92,6 +70,14 @@ func (lobby *Lobby) config() *config.Game {
 	v := lobby._config
 	lobby.configM.RUnlock()
 	return v
+}
+
+// dbChatID get the congifuration of lobby
+func (lobby *Lobby) rconfig() *config.Room {
+	lobby.configM.RLock()
+	v := lobby._config.Room
+	lobby.configM.RUnlock()
+	return &v
 }
 
 // dbChatID set the ID of the chat associated with the lobby

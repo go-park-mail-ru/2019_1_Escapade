@@ -2,8 +2,6 @@ package engine
 
 import (
 	"sync"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Connections - slice of connections with capacity
@@ -56,19 +54,19 @@ func NewConnectionsIterator(conns *Connections) *ConnectionsIterator {
 }
 
 // Remove remove connecrion from the slice of connections
-func (conns *Connections) Remove(conn *Connection) bool {
-	if conn == nil {
-		utils.Debug(true, "no conn")
-		return false
-	}
-	i, conn := conns.SearchByID(conn.ID())
-	utils.Debug(false, "remove conn", i)
-	if i < 0 {
-		return false
-	}
-	conns.remove(i)
-	return true
-}
+// func (conns *Connections) Remove(conn *Connection) bool {
+// 	if conn == nil {
+// 		utils.Debug(true, "no conn")
+// 		return false
+// 	}
+// 	i, conn := conns.SearchByID(conn.ID())
+// 	if i < 0 {
+// 		return false
+// 	}
+// 	utils.Debug(false, "remove conn", i, conn.ID())
+// 	conns.remove(i)
+// 	return true
+// }
 
 // Restore connection
 func (conns *Connections) Restore(conn *Connection) bool {

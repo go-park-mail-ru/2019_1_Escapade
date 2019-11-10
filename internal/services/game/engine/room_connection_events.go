@@ -1,10 +1,13 @@
 package engine
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+)
 
-// ConnectionEventsI specifies the actions that a room can perform on a connection
+// ConnectionEventsStrategyI specifies the actions that a room can perform on a connection
 // Strategy Pattern
-type ConnectionEventsI interface {
+type ConnectionEventsStrategyI interface {
 	Timeout(conn *Connection)
 	Leave(conn *Connection)
 	GiveUp(conn *Connection)
@@ -19,7 +22,7 @@ type ConnectionEventsI interface {
 
 // RoomConnectionEvents implements ConnectionEventsI
 type RoomConnectionEvents struct {
-	s  SyncI
+	s  synced.SyncI
 	l  LobbyProxyI
 	re ActionRecorderProxyI
 	se SendStrategyI
@@ -48,7 +51,7 @@ func (room *RoomConnectionEvents) Timeout(conn *Connection) {
 }
 
 func (room *RoomConnectionEvents) leave(conn *Connection, action int32) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		isPlayer := room.isPlayer(conn)
 		if isPlayer {
 			if room.e.IsActive() {
@@ -77,7 +80,7 @@ func (room *RoomConnectionEvents) GiveUp(conn *Connection) {
 
 // Reconnect connection to room
 func (room *RoomConnectionEvents) Reconnect(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		found, isPlayer := room.p.Search(conn)
 		if found == nil {
 			return
@@ -89,7 +92,7 @@ func (room *RoomConnectionEvents) Reconnect(conn *Connection) {
 // Restart marks the connection as wanting to restart and informs
 // 	the room of this intention
 func (room *RoomConnectionEvents) Restart(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if room.e.Status() != StatusFinished {
 			return
 		}
@@ -105,7 +108,7 @@ func (room *RoomConnectionEvents) Restart(conn *Connection) {
 // Enter handle user joining as player or observer
 func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
 	var done bool
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if room.e.Status() == StatusRecruitment {
 			if room.p.add(conn, true, false) {
 				done = true
@@ -119,7 +122,7 @@ func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
 
 // Kill make user die and check for finish battle
 func (room *RoomConnectionEvents) Kill(conn *Connection, action int32) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		if !room.p.isAlive(conn) {
 			return
 		}
@@ -132,7 +135,7 @@ func (room *RoomConnectionEvents) Kill(conn *Connection, action int32) {
 
 // Disconnect when connection has network problems
 func (room *RoomConnectionEvents) Disconnect(conn *Connection) {
-	room.s.doWithConn(conn, func() {
+	room.s.DoWithOther(conn, func() {
 		// work in rooms structs
 		if conn.PlayingRoom() == nil {
 			room.Leave(conn)
