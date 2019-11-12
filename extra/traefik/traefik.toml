@@ -9,6 +9,15 @@ exposedByDefault = false
 prefix = "traefik"
 
 domain = "consul.localhost"
+
+[metrics]
+  [metrics.prometheus]
+    buckets = [0.1,0.3,1.2,5.0]
+    addServicesLabels = true
+
+[forwardingTimeouts]
+    dialTimeout = "10s"
+
 # Default frontEnd Rule for Consul services.
 #
 # The format is a Go Template with:

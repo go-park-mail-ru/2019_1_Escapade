@@ -7,9 +7,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
-// ActionRecorderProxyI control access to actions history
+// ActionRecorderI control access to actions history
 // Proxy Pattern
-type ActionRecorderProxyI interface {
+type ActionRecorderI interface {
 	Restart(conn *Connection)
 	Disconnect(conn *Connection)
 	FlagСonflict(conn *Connection)
@@ -37,14 +37,14 @@ type RoomRecorder struct {
 	l  LobbyProxyI
 	p  PeopleI
 	f  FieldProxyI
-	se SendStrategyI
-	mo ModelsAdapterI
+	se RSendI
+	mo RModelsI
 
 	historyM *sync.RWMutex
 	_history []*PlayerAction
 }
 
-func (room *RoomRecorder) Init(builder ComponentBuilderI) {
+func (room *RoomRecorder) Init(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildInformation(&room.i)
 	builder.BuildLobby(&room.l)

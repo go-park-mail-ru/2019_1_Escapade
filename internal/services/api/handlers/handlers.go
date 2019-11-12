@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -126,6 +127,11 @@ func (h *Handlers) Router() *mux.Router {
 	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
 		rw.Write([]byte("all ok " + server.GetIP()))
+	})
+
+	r.PathPrefix("/hard").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		time.Sleep(7 * time.Second)
+		rw.Write([]byte("hard done " + server.GetIP()))
 	})
 
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

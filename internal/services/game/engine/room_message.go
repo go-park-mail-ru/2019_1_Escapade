@@ -13,9 +13,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
-// MessagesProxyI control access to messages
+// MessagesI control access to messages
 // Proxy Pattern
-type MessagesProxyI interface {
+type MessagesI interface {
 	Fix(message *models.Message, conn *Connection)
 	Proto(message *models.Message) (*chat.Message, error)
 
@@ -47,11 +47,11 @@ type RoomMessages struct {
 	s  synced.SyncI
 	i  RoomInformationI
 	l  LobbyProxyI
-	se SendStrategyI
+	se RSendI
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomMessages) Init(builder ComponentBuilderI,
+func (room *RoomMessages) Init(builder RBuilderI,
 	service clients.Chat, chatID int32) {
 	builder.BuildInformation(&room.i)
 	builder.BuildLobby(&room.l)

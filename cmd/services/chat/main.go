@@ -36,7 +36,11 @@ func main() {
 	handler.InitWithPostgreSQL(configuration)
 	defer handler.Close()
 
-	consul := start.RegisterInConsul(cla, configuration)
+	lastArgs := &start.AllArgs{
+		C:   configuration,
+		CLA: cla,
+	}
+	consul := start.RegisterInConsul(lastArgs)
 	err = consul.Run()
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to Consul:", err.Error())

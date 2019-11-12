@@ -5,9 +5,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
-// ConnectionEventsStrategyI specifies the actions that a room can perform on a connection
-// Strategy Pattern
-type ConnectionEventsStrategyI interface {
+// RClientI specifies the actions that a room can perform on a connection
+// Room Client Interface - strategy pattern
+type RClientI interface {
 	Timeout(conn *Connection)
 	Leave(conn *Connection)
 	GiveUp(conn *Connection)
@@ -20,12 +20,12 @@ type ConnectionEventsStrategyI interface {
 	Kill(conn *Connection, action int32)
 }
 
-// RoomConnectionEvents implements ConnectionEventsI
-type RoomConnectionEvents struct {
+// RClient implements RClientI
+type RClient struct {
 	s  synced.SyncI
 	l  LobbyProxyI
-	re ActionRecorderProxyI
-	se SendStrategyI
+	re ActionRecorderI
+	se RSendI
 	e  EventsI
 	p  PeopleI
 
@@ -33,7 +33,7 @@ type RoomConnectionEvents struct {
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomConnectionEvents) Init(builder ComponentBuilderI, isDeathMatch bool) {
+func (room *RClient) Init(builder RBuilderI, isDeathMatch bool) {
 	builder.BuildSync(&room.s)
 	builder.BuildLobby(&room.l)
 	builder.BuildRecorder(&room.re)
@@ -46,11 +46,11 @@ func (room *RoomConnectionEvents) Init(builder ComponentBuilderI, isDeathMatch b
 
 // Timeout handle the situation, when the waiting time for the player
 // to return has expired
-func (room *RoomConnectionEvents) Timeout(conn *Connection) {
+func (room *RClient) Timeout(conn *Connection) {
 	room.leave(conn, ActionTimeout)
 }
 
-func (room *RoomConnectionEvents) leave(conn *Connection, action int32) {
+func (room *RClient) leave(conn *Connection, action int32) {
 	room.s.DoWithOther(conn, func() {
 		isPlayer := room.isPlayer(conn)
 		if isPlayer {
@@ -66,12 +66,12 @@ func (room *RoomConnectionEvents) leave(conn *Connection, action int32) {
 }
 
 // Leave handle player going back to lobby
-func (room *RoomConnectionEvents) Leave(conn *Connection) {
+func (room *RClient) Leave(conn *Connection) {
 	room.leave(conn, ActionGiveUp)
 }
 
 // GiveUp kill connection, that call it
-func (room *RoomConnectionEvents) GiveUp(conn *Connection) {
+func (room *RClient) GiveUp(conn *Connection) {
 	if !room.e.IsActive() {
 		return
 	}
@@ -79,7 +79,7 @@ func (room *RoomConnectionEvents) GiveUp(conn *Connection) {
 }
 
 // Reconnect connection to room
-func (room *RoomConnectionEvents) Reconnect(conn *Connection) {
+func (room *RClient) Reconnect(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
 		found, isPlayer := room.p.Search(conn)
 		if found == nil {
@@ -91,7 +91,7 @@ func (room *RoomConnectionEvents) Reconnect(conn *Connection) {
 
 // Restart marks the connection as wanting to restart and informs
 // 	the room of this intention
-func (room *RoomConnectionEvents) Restart(conn *Connection) {
+func (room *RClient) Restart(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
 		if room.e.Status() != StatusFinished {
 			return
@@ -106,7 +106,7 @@ func (room *RoomConnectionEvents) Restart(conn *Connection) {
 }
 
 // Enter handle user joining as player or observer
-func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
+func (room *RClient) Enter(conn *Connection) bool {
 	var done bool
 	room.s.DoWithOther(conn, func() {
 		if room.e.Status() == StatusRecruitment {
@@ -121,7 +121,7 @@ func (room *RoomConnectionEvents) Enter(conn *Connection) bool {
 }
 
 // Kill make user die and check for finish battle
-func (room *RoomConnectionEvents) Kill(conn *Connection, action int32) {
+func (room *RClient) Kill(conn *Connection, action int32) {
 	room.s.DoWithOther(conn, func() {
 		if !room.p.isAlive(conn) {
 			return
@@ -134,7 +134,7 @@ func (room *RoomConnectionEvents) Kill(conn *Connection, action int32) {
 }
 
 // Disconnect when connection has network problems
-func (room *RoomConnectionEvents) Disconnect(conn *Connection) {
+func (room *RClient) Disconnect(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
 		// work in rooms structs
 		if conn.PlayingRoom() == nil {
@@ -151,11 +151,11 @@ func (room *RoomConnectionEvents) Disconnect(conn *Connection) {
 	})
 }
 
-func (room *RoomConnectionEvents) isPlayer(conn *Connection) bool {
+func (room *RClient) isPlayer(conn *Connection) bool {
 	return conn.Index() >= 0
 }
 
-func (room *RoomConnectionEvents) goToNextRoom(conn *Connection) {
+func (room *RClient) goToNextRoom(conn *Connection) {
 	room.Leave(conn)
-	room.e.Next().connEvents.Enter(conn)
+	room.e.Next().client.Enter(conn)
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
-// SendStrategyI handle controls the distribution of responses to clients
+// RSendI handle controls the distribution of responses to clients
 // Strategy Pattern
-type SendStrategyI interface {
+type RSendI interface {
 	Room(conn *Connection)
 
 	ObserverExit(conn *Connection)
@@ -43,14 +43,14 @@ type RoomSender struct {
 	s synced.SyncI
 	e EventsI
 	p PeopleI
-	c ConnectionEventsStrategyI
+	c RClientI
 	i RoomInformationI
-	m ModelsAdapterI
+	m RModelsI
 	f FieldProxyI
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomSender) Init(builder ComponentBuilderI) {
+func (room *RoomSender) Init(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildEvents(&room.e)
 	builder.BuildPeople(&room.p)

@@ -1,0 +1,6 @@
+ 
+{
+ "backHost" : "http://api.consul.localhost:8081",
+ "lobbyWsAddress" : "ws://172.20.0.3:3002/game/ws",
+ "profileWsAddress" : "ws://history.consul.localhost:8081/history/ws"
+}

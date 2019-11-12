@@ -33,16 +33,16 @@ type Room struct {
 	info             RoomInformationI
 	field            FieldProxyI
 	sync             synced.SyncI
-	api              APIStrategyI
+	api              RoomRequestsI
 	lobby            LobbyProxyI
-	models           ModelsAdapterI
-	sender           SendStrategyI
-	connEvents       ConnectionEventsStrategyI
+	models           RModelsI
+	sender           RSendI
+	client           RClientI
 	people           PeopleI
 	events           EventsI
-	record           ActionRecorderProxyI
-	metrics          MetricsStrategyI
-	messages         MessagesProxyI
+	record           ActionRecorderI
+	metrics          MetricsI
+	messages         MessagesI
 	garbageCollector GarbageCollectorI
 }
 

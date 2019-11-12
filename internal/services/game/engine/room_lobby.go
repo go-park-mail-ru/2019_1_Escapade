@@ -49,7 +49,7 @@ type RoomLobby struct {
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomLobby) Init(builder ComponentBuilderI, r *Room, lobby *Lobby) {
+func (room *RoomLobby) Init(builder RBuilderI, r *Room, lobby *Lobby) {
 	room.lobby = lobby
 	room.r = r
 	builder.BuildSync(&room.s)

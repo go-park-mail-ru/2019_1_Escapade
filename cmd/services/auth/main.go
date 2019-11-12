@@ -67,8 +67,13 @@ func main() {
 	}
 	defer tokenStore.Close()
 
+	lastArgs := &start.AllArgs{
+		C:                  configuration,
+		CLA:                cla,
+		WithoutExecTimeout: true,
+	}
 	// third step
-	consul := start.RegisterInConsul(cla, configuration)
+	consul := start.RegisterInConsul(lastArgs)
 
 	// start connection to Consul
 	err = consul.Run()
@@ -81,7 +86,7 @@ func main() {
 	/// forth step
 	srv := e_oauth.Server(userDB, eryDB, manager)
 	r := a_handlers.Router(srv, tokenStore)
-	server := start.ConfigureServer(r, configuration.Server, cla)
+	server := start.ConfigureServer(r, lastArgs)
 
 	utils.Debug(false, "Service", consul.Name, "with id:", consul.ID, "ready to go on",
 		start.GetIP(), consul.Port)

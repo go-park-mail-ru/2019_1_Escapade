@@ -1,6 +1,9 @@
 package database
 
 import (
+	"time"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
@@ -10,6 +13,14 @@ type UserUseCase struct {
 	idb.UseCaseBase
 	user   UserRepositoryI
 	record RecordRepositoryI
+}
+
+func (db *UserUseCase) InitDBWithSQLPQ(CDB config.Database) error {
+	var database = &idb.PostgresSQL{}
+	db.user = &UserRepositoryPQ{}
+	db.record = &RecordRepositoryPQ{}
+	// в конфиг
+	return db.Open(CDB, 10, time.Hour, database)
 }
 
 func (db *UserUseCase) Init(user UserRepositoryI, record RecordRepositoryI) {

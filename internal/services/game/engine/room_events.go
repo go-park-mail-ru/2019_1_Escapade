@@ -45,11 +45,11 @@ type RoomEvents struct {
 	p   PeopleI
 	f   FieldProxyI
 	g   GarbageCollectorI
-	mo  ModelsAdapterI
-	met MetricsStrategyI
-	mes MessagesProxyI
-	re  ActionRecorderProxyI
-	se  SendStrategyI
+	mo  RModelsI
+	met MetricsI
+	mes MessagesI
+	re  ActionRecorderI
+	se  RSendI
 
 	play    *time.Timer
 	prepare *time.Timer
@@ -76,7 +76,7 @@ type RoomEvents struct {
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomEvents) Init(builder ComponentBuilderI, settings *models.RoomSettings) {
+func (room *RoomEvents) Init(builder RBuilderI, settings *models.RoomSettings) {
 	builder.BuildSync(&room.s)
 	builder.BuildInformation(&room.i)
 	builder.BuildLobby(&room.l)

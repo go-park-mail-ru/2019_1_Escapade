@@ -20,7 +20,7 @@ type RoomGarbageCollector struct {
 	s synced.SyncI
 	e EventsI
 	p PeopleI
-	c ConnectionEventsStrategyI
+	c RClientI
 
 	tPlayer   time.Duration
 	tObserver time.Duration
@@ -29,7 +29,7 @@ type RoomGarbageCollector struct {
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomGarbageCollector) Init(builder ComponentBuilderI,
+func (room *RoomGarbageCollector) Init(builder RBuilderI,
 	interval time.Duration, timeouts config.GameTimeouts) {
 
 	builder.BuildSync(&room.s)

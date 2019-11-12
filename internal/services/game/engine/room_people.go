@@ -49,11 +49,11 @@ type PeopleI interface {
 
 type RoomPeople struct {
 	s  synced.SyncI
-	c  ConnectionEventsStrategyI
+	c  RClientI
 	e  EventsI
 	l  LobbyProxyI
 	f  FieldProxyI
-	re ActionRecorderProxyI
+	re ActionRecorderI
 
 	pointsPerCellK float64
 
@@ -69,7 +69,7 @@ type RoomPeople struct {
 	_killed   int32 //amount of killed users
 }
 
-func (room *RoomPeople) Init(builder ComponentBuilderI, rs *models.RoomSettings) {
+func (room *RoomPeople) Init(builder RBuilderI, rs *models.RoomSettings) {
 	builder.BuildSync(&room.s)
 	builder.BuildConnectionEvents(&room.c)
 	builder.BuildEvents(&room.e)

@@ -54,8 +54,12 @@ func main() {
 	}
 	defer API.Close()
 
+	lastArgs := &start.AllArgs{
+		C:   configuration,
+		CLA: cla,
+	}
 	// third step
-	consul := start.RegisterInConsul(cla, configuration)
+	consul := start.RegisterInConsul(lastArgs)
 	consul.AddHTTPCheck("http", "/health")
 
 	// start connection to Consul
@@ -67,8 +71,7 @@ func main() {
 	defer consul.Close()
 
 	// forth step
-	server := start.ConfigureServer(API.Router(),
-		configuration.Server, cla)
+	server := start.ConfigureServer(API.Router(), lastArgs)
 
 	utils.Debug(false, "Service", consul.Name, "with id:", consul.ID, "ready to go on",
 		start.GetIP()+cla.MainPort)

@@ -2,25 +2,25 @@ package engine
 
 import "github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 
-// ComponentBuilderI create room components, bind them, and add them to room
+// RBuilderI create room components, bind them, and add them to room
 // 	to the room
 // ABuilder Pattern
-type ComponentBuilderI interface {
+type RBuilderI interface {
 	Build(r *Room, ra *RoomArgs)
 
 	BuildInformation(i *RoomInformationI)
 	BuildField(f *FieldProxyI)
 	BuildSync(s *synced.SyncI)
-	BuildAPI(a *APIStrategyI)
+	BuildAPI(a *RoomRequestsI)
 	BuildLobby(l *LobbyProxyI)
-	BuildModelsAdapter(m *ModelsAdapterI)
-	BuildSender(s *SendStrategyI)
-	BuildConnectionEvents(c *ConnectionEventsStrategyI)
+	BuildModelsAdapter(m *RModelsI)
+	BuildSender(s *RSendI)
+	BuildConnectionEvents(c *RClientI)
 	BuildPeople(p *PeopleI)
 	BuildEvents(e *EventsI)
-	BuildRecorder(r *ActionRecorderProxyI)
-	BuildMetrics(m *MetricsStrategyI)
-	BuildMessages(m *MessagesProxyI)
+	BuildRecorder(r *ActionRecorderI)
+	BuildMetrics(m *MetricsI)
+	BuildMessages(m *MessagesI)
 	BuildGarbageCollector(g *GarbageCollectorI)
 }
 
@@ -31,9 +31,9 @@ type RoomBuilder struct {
 	sync             *synced.SyncWgroup
 	api              *RoomAPI
 	lobby            *RoomLobby
-	models           *RoomModelsAdapter
+	models           *RoomModels
 	sender           *RoomSender
-	connEvents       *RoomConnectionEvents
+	client           *RClient
 	people           *RoomPeople
 	events           *RoomEvents
 	record           *RoomRecorder
@@ -56,10 +56,10 @@ func (builder *RoomBuilder) createComponents() {
 	builder.api = &RoomAPI{}
 	builder.lobby = &RoomLobby{}
 	builder.field = &RoomField{}
-	builder.models = &RoomModelsAdapter{}
+	builder.models = &RoomModels{}
 	builder.sender = &RoomSender{}
 	builder.people = &RoomPeople{}
-	builder.connEvents = &RoomConnectionEvents{}
+	builder.client = &RClient{}
 	builder.events = &RoomEvents{}
 	builder.metrics = &RoomMetrics{}
 	builder.record = &RoomRecorder{}
@@ -76,7 +76,7 @@ func (builder *RoomBuilder) configureDependencies(r *Room, args *RoomArgs) {
 	builder.models.Init(builder)
 	builder.sender.Init(builder)
 	builder.people.Init(builder, args.rs)
-	builder.connEvents.Init(builder, args.rs.Deathmatch)
+	builder.client.Init(builder, args.rs.Deathmatch)
 	builder.events.Init(builder, args.rs)
 	builder.metrics.Init(builder, args.rs)
 	builder.record.Init(builder)
@@ -94,7 +94,7 @@ func (builder *RoomBuilder) set(room *Room) {
 	room.models = builder.models
 	room.sender = builder.sender
 	room.people = builder.people
-	room.connEvents = builder.connEvents
+	room.client = builder.client
 	room.events = builder.events
 	room.metrics = builder.metrics
 	room.record = builder.record
@@ -118,7 +118,7 @@ func (builder *RoomBuilder) BuildSync(s *synced.SyncI) {
 }
 
 // BuildAPI set APIStrategyI implementation
-func (builder *RoomBuilder) BuildAPI(a *APIStrategyI) {
+func (builder *RoomBuilder) BuildAPI(a *RoomRequestsI) {
 	*a = builder.api
 }
 
@@ -128,18 +128,18 @@ func (builder *RoomBuilder) BuildLobby(l *LobbyProxyI) {
 }
 
 // BuildModelsAdapter set ModelsAdapterI implementation
-func (build *RoomBuilder) BuildModelsAdapter(m *ModelsAdapterI) {
-	*m = build.models
+func (builder *RoomBuilder) BuildModelsAdapter(m *RModelsI) {
+	*m = builder.models
 }
 
 // BuildSender set SendStrategyI implementation
-func (builder *RoomBuilder) BuildSender(s *SendStrategyI) {
+func (builder *RoomBuilder) BuildSender(s *RSendI) {
 	*s = builder.sender
 }
 
 // BuildConnectionEvents set ConnectionEventsStrategyI implementation
-func (builder *RoomBuilder) BuildConnectionEvents(c *ConnectionEventsStrategyI) {
-	*c = builder.connEvents
+func (builder *RoomBuilder) BuildConnectionEvents(c *RClientI) {
+	*c = builder.client
 }
 
 // BuildPeople set PeopleI implementation
@@ -153,17 +153,17 @@ func (builder *RoomBuilder) BuildEvents(e *EventsI) {
 }
 
 // BuildRecorder set ActionRecorderProxyI implementation
-func (builder *RoomBuilder) BuildRecorder(r *ActionRecorderProxyI) {
+func (builder *RoomBuilder) BuildRecorder(r *ActionRecorderI) {
 	*r = builder.record
 }
 
 // BuildMetrics set MetricsStrategyI implementation
-func (builder *RoomBuilder) BuildMetrics(m *MetricsStrategyI) {
+func (builder *RoomBuilder) BuildMetrics(m *MetricsI) {
 	*m = builder.metrics
 }
 
 // BuildMessages set MessagesProxyI implementation
-func (builder *RoomBuilder) BuildMessages(m *MessagesProxyI) {
+func (builder *RoomBuilder) BuildMessages(m *MessagesI) {
 	*m = builder.messages
 }
 

@@ -44,9 +44,9 @@ func main() {
 	}
 
 	lastArgs := &start.AllArgs{
-		C:           configuration,
-		CLA:         cla,
-		IsWebsocket: true,
+		C:                  configuration,
+		CLA:                cla,
+		WithoutExecTimeout: true,
 	}
 	// third step
 	consul := start.RegisterInConsul(lastArgs)

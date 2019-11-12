@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -97,11 +96,11 @@ func GetConfiguration(cla *CommandLineArgs, ca *ConfigurationArgs) (*config.Conf
 }
 
 type AllArgs struct {
-	CLA            *CommandLineArgs
-	C              *config.Configuration
-	IsHTTPS        bool
-	IsWebsocket    bool
-	DisableTraefik bool
+	CLA                *CommandLineArgs
+	C                  *config.Configuration
+	IsHTTPS            bool
+	DisableTraefik     bool
+	WithoutExecTimeout bool
 }
 
 func RegisterInConsul(aa *AllArgs) *ConsulService {
@@ -114,9 +113,7 @@ func RegisterInConsul(aa *AllArgs) *ConsulService {
 			"traefik.frontend.rule=Host:" + name + ".consul.localhost"}
 	)
 	entrypoint := "http"
-	if aa.IsWebsocket {
-		entrypoint = "http"
-	} else if aa.IsHTTPS {
+	if aa.IsHTTPS {
 		entrypoint = "https"
 	}
 	fmt.Println("entrypoint:", entrypoint)
@@ -145,7 +142,7 @@ func ConfigureServer(handler http.Handler, aa *AllArgs) *http.Server {
 		serverConfig.Timeouts.Idle.Duration)
 	var execT = serverConfig.Timeouts.Exec.Duration
 
-	if execT > time.Duration(time.Second) && !aa.IsHTTPS {
+	if execT > time.Duration(time.Second) && !aa.IsHTTPS && !aa.WithoutExecTimeout {
 		handler = http.TimeoutHandler(handler, execT, "ESCAPADE DEBUG Timeout!")
 	}
 
@@ -155,9 +152,9 @@ func ConfigureServer(handler http.Handler, aa *AllArgs) *http.Server {
 		WriteTimeout: serverConfig.Timeouts.Write.Duration,
 		IdleTimeout:  serverConfig.Timeouts.Idle.Duration,
 		Handler:      handler,
-		ConnState: func(n net.Conn, c http.ConnState) {
-			fmt.Println("--------------new conn state:", c)
-		},
+		// ConnState: func(n net.Conn, c http.ConnState) {
+		// 	fmt.Println("--------------new conn state:", c)
+		// },
 		MaxHeaderBytes: serverConfig.MaxHeaderBytes,
 	}
 	utils.Debug(false, "✔✔✔✔")

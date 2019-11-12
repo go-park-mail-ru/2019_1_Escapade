@@ -12,6 +12,7 @@ type UseCaseBase struct {
 
 func (rb *UseCaseBase) InitDBWithSQLPQ(CDB config.Database) error {
 	var database = &PostgresSQL{}
+	// в конфиг
 	return rb.Open(CDB, 10, time.Hour, database)
 }
 

@@ -85,7 +85,7 @@ func GetChatIDAndMessages(chatS clients.Chat, loc *time.Location, chatType, type
 }
 
 func HandleMessage(conn *Connection,
-	message *models.Message, handler MessagesProxyI) error {
+	message *models.Message, handler MessagesI) error {
 	handler.Fix(message, conn)
 	msg, err := handler.Proto(message)
 	if err != nil {

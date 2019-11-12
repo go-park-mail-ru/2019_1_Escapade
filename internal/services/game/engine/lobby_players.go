@@ -35,7 +35,7 @@ func (lobby *Lobby) restore(conn *Connection) bool {
 		}
 
 		if room != nil {
-			room.connEvents.Reconnect(conn)
+			room.client.Reconnect(conn)
 		}
 	})
 	return room != nil

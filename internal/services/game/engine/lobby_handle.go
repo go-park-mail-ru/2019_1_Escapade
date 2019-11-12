@@ -52,11 +52,11 @@ func (lobby *Lobby) Leave(conn *Connection, message string) {
 			}
 		}
 		if conn.PlayingRoom() != nil {
-			conn.PlayingRoom().connEvents.Disconnect(conn)
+			conn.PlayingRoom().client.Disconnect(conn)
 			// dont delete from lobby, because player not in lobby
 			return
 		} else if conn.WaitingRoom() != nil {
-			conn.WaitingRoom().connEvents.Disconnect(conn)
+			conn.WaitingRoom().client.Disconnect(conn)
 			// continue, because player in lobby
 		}
 		if conn == nil {
@@ -101,7 +101,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 			if conn.WaitingRoom().info.ID() == rs.ID {
 				return
 			}
-			conn.WaitingRoom().connEvents.Leave(conn)
+			conn.WaitingRoom().client.Leave(conn)
 		}
 
 		if rs.ID == "create" {
@@ -113,7 +113,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 		if room := lobby.allRooms.Search(rs.ID); room != nil {
 			utils.Debug(false, "lobby found required room")
-			room.connEvents.Enter(conn)
+			room.client.Enter(conn)
 		} else {
 			lobby.PickUpRoom(conn, rs)
 		}

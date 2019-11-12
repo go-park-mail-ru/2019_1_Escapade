@@ -27,8 +27,8 @@ type FieldProxyI interface {
 type RoomField struct {
 	//r  *Room
 	s  synced.SyncI
-	re ActionRecorderProxyI
-	se SendStrategyI
+	re ActionRecorderI
+	se RSendI
 	e  EventsI
 	p  PeopleI
 
@@ -37,7 +37,7 @@ type RoomField struct {
 }
 
 // Init configure dependencies with other components of the room
-func (room *RoomField) Init(builder ComponentBuilderI, field *Field,
+func (room *RoomField) Init(builder RBuilderI, field *Field,
 	isDeathmatch bool) {
 	builder.BuildSync(&room.s)
 	builder.BuildRecorder(&room.re)

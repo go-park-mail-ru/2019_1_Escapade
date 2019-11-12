@@ -231,7 +231,9 @@ func Init(path string) (conf *Configuration, err error) {
 	if err = conf.UnmarshalJSON(data); err != nil {
 		return
 	}
-	utils.Debug(false, " Look at config")
+	utils.Debug(false, " Look at config", conf.Auth.Salt, conf.Auth.AccessTokenExpire,
+		conf.Auth.RefreshTokenExpire, conf.Auth.IsGenerateRefresh, conf.Auth.WithReserve,
+		conf.Auth.TokenType, conf.Auth.WhiteList)
 	utils.Debug(false, " Info:", conf.Server.Name, conf.Server.MaxHeaderBytes)
 	utils.Debug(false, " Timeouts:", conf.Server.Timeouts.TTL,
 		conf.Server.Timeouts.Read, conf.Server.Timeouts.Write, conf.Server.Timeouts.Idle,

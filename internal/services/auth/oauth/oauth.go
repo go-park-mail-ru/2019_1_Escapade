@@ -109,6 +109,14 @@ func Server(db database.UserUseCaseI, eryDB *erydb.DB, manager *manage.Manager) 
 			err       error
 		)
 		fmt.Println("try password!", username, password)
+		if eryDB == nil {
+			fmt.Println("eryDB == nil")
+		}
+		fmt.Println("eryDB != nil")
+		if db == nil {
+			fmt.Println("db == nil")
+		}
+		fmt.Println("db != nil")
 		if db != nil {
 			if intUserID, err = db.EnterAccount(username, password); err != nil {
 				utils.Debug(false, "exp password check error ", re.NoUserWrapper(err))
