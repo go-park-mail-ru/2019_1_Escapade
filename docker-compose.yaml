@@ -88,24 +88,24 @@ services:
       options:
         max-size: 10m
 
-  ery:
-    build:
-      dockerfile: ./cmd/services/ery/Dockerfile
-      context: .
-    depends_on:
-      - "pg-ery"
-      - "consul"
-      - "auth"
-    ports:
-      - 3100:3100
-    environment:
-      - CONSUL_ADDRESS=consul-agent-1
-    command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
-    volumes:
-    - ./:/escapade
-    logging:
-      options:
-        max-size: 10m
+  # ery:
+  #   build:
+  #     dockerfile: ./cmd/services/ery/Dockerfile
+  #     context: .
+  #   depends_on:
+  #     - "pg-ery"
+  #     - "consul"
+  #     - "auth"
+  #   ports:
+  #     - 3100:3100
+  #   environment:
+  #     - CONSUL_ADDRESS=consul-agent-1
+  #   command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
+  #   volumes:
+  #   - ./:/escapade
+  #   logging:
+  #     options:
+  #       max-size: 10m
 
   chat:
     build:
