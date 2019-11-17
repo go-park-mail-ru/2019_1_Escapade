@@ -42,5 +42,6 @@ RUN ls
 RUN git checkout develop
 COPY netconfig.json .
 RUN npm install
+
 RUN npm run build
 

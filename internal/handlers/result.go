@@ -119,3 +119,9 @@ func Route(rw http.ResponseWriter, r *http.Request, mHr MethodHandlers) {
 	}
 	SendResult(rw, *result)
 }
+
+func SendError(code int, place string, err error) func(rw http.ResponseWriter, r *http.Request) Result {
+	return func(rw http.ResponseWriter, r *http.Request) Result {
+		return NewResult(code, place, nil, err)
+	}
+}

@@ -14,30 +14,16 @@ func getUserID(r *http.Request) (int, error) {
 	return ih.IntFromPath(r, "id", 1, re.ErrorInvalidUserID())
 }
 
-func getPage(r *http.Request) int {
-
-	page, _ := ih.IntFromPath(r, "page", 1, nil)
-	return page
+func getPar(r *http.Request, par string) string {
+	return ih.StringFromPath(r, par, "-")
 }
 
-func getPerPage(r *http.Request) int {
-
-	page, _ := ih.IntFromPath(r, "per_page", 100, nil)
-	return page
-}
-
-func getDifficult(r *http.Request) int {
-
-	diff, _ := ih.IntFromPath(r, "difficult", 0, nil)
-	if diff > 3 {
-		diff = 3
-	}
-	return diff
+func getDifficult(r *http.Request) string {
+	return ih.StringFromPath(r, "difficult", "0")
 }
 
 func getSort(r *http.Request) string {
-
-	return ih.StringFromPath(r, "getStringFromPath", "time")
+	return ih.StringFromPath(r, "sort", "time")
 }
 
 func getName(r *http.Request) (username string, err error) {

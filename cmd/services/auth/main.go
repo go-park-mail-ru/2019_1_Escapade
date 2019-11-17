@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/auth"
 	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	user_db "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	a_handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/handlers"
@@ -13,6 +14,15 @@ import (
 
 	"gopkg.in/oauth2.v3/models"
 )
+
+// to generate docs, call from root "swag init -g auth/main.go"
+
+// @title Escapade Explosion AUTH
+// @version 1.0
+// @description We don't have a public API, so instead of a real host(explosion.team) we specify localhost:3003. To test the following methods, git clone https://github.com/go-park-mail-ru/2019_1_Escapade, enter the root directory and run 'docker-compose up -d'
+
+// @host localhost:3003
+// @BasePath /auth
 
 /*
 curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user

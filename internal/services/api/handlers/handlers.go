@@ -109,20 +109,24 @@ func (h *Handlers) Router() *mux.Router {
 	var api = r.PathPrefix("/api").Subrouter()
 	var apiWithAuth = r.PathPrefix("/api").Subrouter()
 
-	api.HandleFunc("/user", h.user.Handle).Methods("OPTIONS", "POST")
-	apiWithAuth.HandleFunc("/user", h.user.Handle).Methods("DELETE", "PUT", "GET")
+	api.HandleFunc("/user", h.user.Handle).Methods("OPTIONS", "POST", "DELETE")
+	apiWithAuth.HandleFunc("/user", h.user.Handle).Methods("PUT", "GET")
 
-	api.HandleFunc("/session", h.session.Handle).Methods("POST", "OPTIONS", "DELETE")
+	api.HandleFunc("/session", h.session.Handle).Methods("POST", "OPTIONS")
+	apiWithAuth.HandleFunc("/session", h.session.Handle).Methods("DELETE")
 
+	// delete "/avatar/{name}" path
 	api.HandleFunc("/avatar/{name}", h.image.Handle).Methods("GET")
+
 	api.HandleFunc("/avatar", h.image.Handle).Methods("OPTIONS")
 	apiWithAuth.HandleFunc("/avatar", h.image.Handle).Methods("POST")
 
 	api.HandleFunc("/game", h.game.Handle).Methods("OPTIONS")
 	apiWithAuth.HandleFunc("/game", h.game.Handle).Methods("POST")
 
-	api.HandleFunc("/users/pages", h.users.HandleUsersPages).Methods("GET", "OPTIONS")
-	api.HandleFunc("/users/pages_amount", h.users.HandleUsersPageAmount).Methods("GET")
+	api.HandleFunc("/users/{id}", h.users.HandleGetProfile).Methods("GET", "OPTIONS")
+	api.HandleFunc("/users/pages/page", h.users.HandleUsersPages).Methods("GET", "OPTIONS")
+	api.HandleFunc("/users/pages/amount", h.users.HandleUsersPageAmount).Methods("GET")
 
 	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 

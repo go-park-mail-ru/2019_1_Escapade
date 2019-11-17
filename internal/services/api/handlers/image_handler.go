@@ -50,14 +50,7 @@ func (h *ImageHandler) Handle(rw http.ResponseWriter, r *http.Request) {
 		http.MethodOptions: nil})
 }
 
-// GetImage returns user avatar
-// @Summary Get user avatar
-// @Description Get user avatar
-// @ID GetImage
-// @Success 200 {object} models.Result "Avatar found successfully"
-// @Failure 401 {object} models.Result "Required authorization"
-// @Failure 404 {object} models.Result "Avatar not found"
-// @Router /avatar [GET]
+// delete it
 func (h *ImageHandler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "GetImage"
 	var (
@@ -88,10 +81,15 @@ func (h *ImageHandler) GetImage(rw http.ResponseWriter, r *http.Request) ih.Resu
 	return ih.NewResult(http.StatusOK, place, &url, nil)
 }
 
-// PostImage create avatar поделать курл
+// PostImage create avatar
 // @Summary Create user avatar
-// @Description Create user avatar
+// @Description Load new avatar to the current user. The current one is the one whose token is provided.
 // @ID PostImage
+// @Security OAuth2Application[write]
+// @Tags account
+// @Accept  multipart/form-data
+// @Produce  json
+// @Param file formData file true "account image"
 // @Success 201 {object} models.Result "Avatar created successfully"
 // @Failure 401 {object} models.Result "Required authorization"
 // @Failure 500 {object} models.Result "Avatar not found"

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/api"
 	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
@@ -18,7 +18,13 @@ import (
 // @version 1.0
 // @description We don't have a public API, so instead of a real host(explosion.team) we specify localhost:3001. To test the following methods, git clone https://github.com/go-park-mail-ru/2019_1_Escapade, enter the root directory and run 'docker-compose up -d'
 
-// @host localhost:3001
+// @securitydefinitions.oauth2.password OAuth2Password
+// @tokenUrl https://localhost:3003/auth/token
+// @scope.read Grants read access
+// @scope.write Grants write access
+// @scope.admin Grants read and write access to administrative information
+
+// @host virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0
 // @BasePath /api
 func main() {
 	// first step

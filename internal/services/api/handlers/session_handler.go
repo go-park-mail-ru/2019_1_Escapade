@@ -47,12 +47,16 @@ func (h *SessionHandler) Handle(rw http.ResponseWriter, r *http.Request) {
 
 // Login login
 // @Summary login
-// @Description login
+// @Description Login into account and get auth2 token.
 // @ID Login
+// @Tags account
+// @Accept  json
+// @Param information body models.UserPrivateInfo true "user's name and password"
+// @Produce  json
 // @Success 200 {object} models.UserPublicInfo "Get successfully"
 // @Failure 400 {object} models.Result "invalid name or password"
-// @Failure 404 {object} models.Result "user not found"
-// @Failure 500 {object} models.Result "error with database"
+// @Failure 404 {object} models.Result "Not found"
+// @Failure 500 {object} models.Result "Database error"
 // @Router /session [POST]
 func (h *SessionHandler) Login(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Login"
@@ -87,16 +91,20 @@ func (h *SessionHandler) Login(rw http.ResponseWriter, r *http.Request) ih.Resul
 
 // Logout logout
 // @Summary logout
-// @Description logout
+// @Description Logout from account and delete auth2 token.
 // @ID Logout
+// @Tags account
+// @Security OAuth2Application[write]
 // @Success 200 {object} models.Result "Get successfully"
-// @Failure 500 {object} models.Result "server error"
+// @Failure 500 {object} models.Result "Database error"
 // @Router /session [DELETE]
 func (h *SessionHandler) Logout(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "Logout"
 	if err := auth.DeleteToken(rw, r, h.Cookie, h.AuthClient); err != nil {
 		ih.Warning(err, "Cant delete token in auth service", place)
 	}
+
+	// send here request to auth service to delete token from database
 	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 

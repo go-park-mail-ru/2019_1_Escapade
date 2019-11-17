@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
@@ -48,12 +49,21 @@ func update(rw http.ResponseWriter, token oauth2.Token,
 
 func Check(rw http.ResponseWriter, r *http.Request,
 	cc config.Cookie, ca config.Auth, client config.AuthClient) (string, error) {
+
+	token, err := tokenFromHeadersNEW(r)
+	if err != nil {
+		err = nil //return "", err
+	} else {
+		return checkNEW(token, client)
+	}
+	// code below below will be deleted later
+	///////////////////////////////////////////////////
+
 	var (
-		token       oauth2.Token
 		accessToken string
 		updated     bool
-		err         error
 	)
+
 	// token given in cookie
 	if !(cc.LifetimeHours == 0) {
 		utils.Debug(false, "look in cookies")
@@ -93,6 +103,21 @@ func Check(rw http.ResponseWriter, r *http.Request,
 	return accessToken, err
 }
 
+func tokenFromHeadersNEW(r *http.Request) (oauth2.Token, error) {
+
+	access := r.Header.Get("Authorization")
+	if access == "" {
+		return oauth2.Token{}, re.NoHeaders()
+	}
+	elements := strings.Split(access, " ")
+	token := oauth2.Token{
+		AccessToken: elements[1],
+		TokenType:   elements[0],
+	}
+	return token, nil
+}
+
+// deprecated
 func tokenFromHeaders(r *http.Request) (oauth2.Token, error) {
 
 	token := oauth2.Token{
@@ -115,6 +140,29 @@ func setTokenToHeaders(rw http.ResponseWriter, token oauth2.Token) {
 	rw.Header().Set("Authorization-Refresh", token.RefreshToken)
 	rw.Header().Set("Authorization-Expire", token.Expiry.Format("2006-01-02 15:04:05"))
 	return
+}
+
+func checkNEW(token oauth2.Token, client config.AuthClient) (string, error) {
+
+	resp, err := http.Get(fmt.Sprintf("%s/auth/test?access_token=%s",
+		client.Address, token.AccessToken))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	tokenModel := models.Token{}
+
+	// we dont use json.Decoder cause https://ahmet.im/blog/golang-json-decoder-pitfalls/
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal(bytes, &tokenModel)
+	if err != nil {
+		return "", err
+	}
+	return tokenModel.GetUserID(), err
 }
 
 func check(rw http.ResponseWriter, r *http.Request, isReserve bool,

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
@@ -64,20 +66,17 @@ func (h *UserHandler) Handle(rw http.ResponseWriter, r *http.Request) {
 		http.MethodOptions: nil})
 }
 
-// GetMyProfile godoc
-// @Summary get public information about that user
-// @Description get public information about that user
+// GetMyProfile get user public information
+// @Summary get user public information
+// @Description  get user's best score and best time for a given difficulty, user's id, name and photo of current user. The current one is the one whose token is provided.
 // @ID GetMyProfile
+// @Security OAuth2Application[read]
+// @Tags account
+// @Accept  json
+// @Param difficult query int false "which difficult records will be given" default(0)
 // @Produce  json
-// @Param enumstring query string false "string enums" Enums(A, B, C)
-// @Param enumint query int false "int enums" Enums(1, 2, 3)
-// @Param enumnumber query number false "int enums" Enums(1.1, 1.2, 1.3)
-// @Param string query string false "string valid" minlength(5) maxlength(10)
-// @Param int query int false "int valid" mininum(1) maxinum(10)
-// @Param default query string false "string default" default(A)
-// @Success 201 {object} models.Result "Create user successfully"
-// @Header 201 {string} Token "qwerty"
-// @Failure 401 {object} models.Result "Invalid information"
+// @Success 200 {object} models.UserPublicInfo "Get user successfully"
+// @Failure 401 {object} models.Result "Authorization required"
 // @Router /user [GET]
 func (h *UserHandler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 
@@ -91,16 +90,15 @@ func (h *UserHandler) GetMyProfile(rw http.ResponseWriter, r *http.Request) ih.R
 	return h.getUser(rw, r, userID, place)
 }
 
-// CreateUser godoc
+// CreateUser create user
 // @Summary create new user
-// @Description create new user
+// @Description create new account and get oauth2 token
+// @ID CreateUser
+// @Tags account
 // @Accept  json
-// @Param name body models.UserPrivateInfo true "User info1"
+// @Param information body models.UserPrivateInfo true "user's name and password"
 // @Produce  json
-// @securitydefinitions.oauth2.password OAuth2Password
-// @ID Register
 // @Success 201 {object} models.Result "Create user successfully"
-// @Header 201 {string} Token "qwerty"
 // @Failure 400 {object} models.Result "Invalid information"
 // @Router /user [POST]
 func (h *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Result {
@@ -128,14 +126,19 @@ func (h *UserHandler) CreateUser(rw http.ResponseWriter, r *http.Request) ih.Res
 	return ih.NewResult(http.StatusCreated, place, nil, nil)
 }
 
-// UpdateProfile godoc
-// @Summary update user information
-// @Description update public info
+// UpdateProfile update user's name or password
+// @Summary update user sensitive data
+// @Description update name or/and password of current user. The current one is the one whose token is provided.
 // @ID UpdateProfile
-// @Success 200 {object} models.Result "Get successfully"
-// @Failure 400 {object} models.Result "invalid info"
-// @Failure 401 {object} models.Result "need authorization"
-// @Failure 500 {object} models.Result "error with database"
+// @Security OAuth2Application[write]
+// @Tags account
+// @Accept  json
+// @Param information body models.UserPrivateInfo true "user's name and password"
+// @Produce  json
+// @Success 200 {object} models.Result "Update successfully"
+// @Failure 400 {object} models.Result "Invalid data for update"
+// @Failure 401 {object} models.Result "Authorization required"
+// @Failure 500 {object} models.Result "Database error"
 // @Router /user [PUT]
 func (h *UserHandler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
 	const place = "UpdateProfile"
@@ -165,9 +168,13 @@ func (h *UserHandler) UpdateProfile(rw http.ResponseWriter, r *http.Request) ih.
 // @Summary delete account
 // @Description delete account
 // @ID DeleteAccount
-// @Success 200 {object} models.Result "Get successfully"
-// @Failure 400 {object} models.Result "invalid input"
-// @Failure 500 {object} models.Result "error with database"
+// @Tags account
+// @Accept  json
+// @Param information body models.UserPrivateInfo true "user's name and password.  You are required to pass in the body of the request user name and password to confirm that you are the owner of the account."
+// @Produce  json
+// @Success 200 {object} models.Result "Delete successfully"
+// @Failure 400 {object} models.Result "Invalid data for delete"
+// @Failure 500 {object} models.Result "Database error"
 // @Router /user [DELETE]
 func (h *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Result {
 
@@ -192,40 +199,22 @@ func (h *UserHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) ih.Res
 	return ih.NewResult(http.StatusOK, place, nil, nil)
 }
 
-// GetProfile godoc
-// @Summary Get public user inforamtion
-// @Description get user's best score and best time for a given difficulty, user's id, name and photo
-// @ID GetProfile
-// @Accept  json
-// @Produce  json
-// @Param name path string false "User name"
-// @Success 200 {object} models.UserPublicInfo "Profile found successfully"
-// @Failure 400 {object} models.Result "Invalid username"
-// @Failure 404 {object} models.Result "User not found"
-// @Router /users/{name}/profile [GET]
-func (h *UserHandler) GetProfile(rw http.ResponseWriter, r *http.Request) ih.Result {
-	const place = "GetProfile"
-
-	userID, err := getUserID(r)
-	if err != nil {
-		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
-	}
-
-	return h.getUser(rw, r, int32(userID), place)
-}
-
 func (h *UserHandler) getUser(rw http.ResponseWriter, r *http.Request,
 	userID int32, place string) ih.Result {
 
 	var (
 		err       error
-		difficult int
+		difficult string
 		user      *models.UserPublicInfo
 	)
 
 	difficult = getDifficult(r)
+	difficultI, err := strconv.Atoi(difficult)
+	if err != nil {
+		return ih.NewResult(http.StatusBadRequest, place, nil, re.NoUserWrapper(err))
+	}
 
-	if user, err = h.user.FetchOne(userID, difficult); err != nil {
+	if user, err = h.user.FetchOne(userID, difficultI); err != nil {
 		return ih.NewResult(http.StatusNotFound, place, nil, re.NoUserWrapper(err))
 	}
 
