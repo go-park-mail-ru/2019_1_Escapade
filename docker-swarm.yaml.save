@@ -14,26 +14,33 @@ services:
     labels:
       - "traefik.docker.network=backend"
       - "traefik.port=8080"
-    volumes:
+    networks: 
+      - backend    volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
   pg:
-    image: ./pg
+    image: .
+    networks: 
+      - backend
     ports:
       - "5429:5432"    
 
   pg-auth:
-    image: postgres:11.2-alpine
+    image: .
     environment:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
       POSTGRES_DB: 'authbase'
+    networks: 
+      - backend
     ports:
       - "5431:5432"    
 
   pg-ery:
-    image: ./pg-ery
+    image: .
+    networks: 
+      - backend
     ports:
       - "5430:5432"   
 
@@ -46,7 +53,7 @@ services:
 #http://api.consul.localhost:8081/health
 
   api:
-    image: ./api
+    image: .
     depends_on:
       - "pg"
       - "consul"
@@ -65,6 +72,8 @@ services:
       - "org.label-schema.group=monitoring"
     #dns: traefik 
     #network_mode: "host"
+    networks: 
+      - backend
     restart: on-failure
     logging:
       options:
@@ -72,13 +81,15 @@ services:
 
 
   chat:
-    image: ./chat
+    image: .
     depends_on:
       - "pg"
     environment:
       - CONSUL_ADDRESS=consul-agent
     ports:
       - 3066-3087:3060
+    networks: 
+      - backend
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
@@ -90,7 +101,7 @@ services:
   ### auth ###
 
   auth:
-    image: ./auth
+    image: .
     depends_on:
       - "pg"
       - "pg-auth"
@@ -98,6 +109,8 @@ services:
     ports:
       - 3022-3043:3003
     #dns: 127.0.0.1 
+    networks: 
+      - backend
     environment:
       - CONSUL_ADDRESS=consul-agent
       #/bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
@@ -111,11 +124,13 @@ services:
         max-size: 10m
 
   game:
-    image: ./game
+    image: .
     depends_on:
        - "pg"
     ports:
       - 3044-3055:3002
+    networks: 
+      - backend
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
@@ -127,11 +142,13 @@ services:
 
 
   prometheus:
-    image: ./prometheus
+    image: .
     container_name: prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+    networks: 
+      - backend
     ports:
       - "9090:9090"
     labels:
@@ -142,6 +159,8 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
+    networks: 
+      - backend
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -158,38 +177,44 @@ services:
 
   ## consul servers ##
   consul-server:
-    image: ./consul-server
+    image: .
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
+    networks: 
+      - backend
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
   ## consul bootstrap ##
   consul:
-    image: ./consul
+    image: .
     ports:
       - 8400:8400
       - 8500:8500
       - 8600:53/udp
+    networks: 
+      - backend
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   
   ## consul agents ##
   consul-agent:
-    image: ./consul-agent
+    image: .
     ports:
      # - 8550-8570:8500
       - 8501:8500
       - 8300:8300
       - 8301:8301
       #- 8350-8370:8301
+    networks: 
+      - backend
     command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
   front:
-    image: ./front
+    image: .
     ports:
       - "8080:8080"   
     command: npm start
@@ -205,6 +230,8 @@ services:
     restart: unless-stopped
     expose:
       - 9093
+    networks:
+      - backend
 
   nodeexporter:
     image: prom/node-exporter:v0.18.1
@@ -221,6 +248,8 @@ services:
     restart: unless-stopped
     expose:
       - 9100
+    networks:
+      - backend
 
   cadvisor:
     image: google/cadvisor:v0.33.0
@@ -234,6 +263,11 @@ services:
     restart: unless-stopped
     ports:
       - 8085:8080
+    networks:
+      - backend
     privileged: true
 
+networks:
+  backend:
+    driver: bridge
 
