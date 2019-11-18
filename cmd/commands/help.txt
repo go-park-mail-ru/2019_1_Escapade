@@ -1,4 +1,10 @@
-Commands are deprecated. Use docker-compose, newer versions of .sh are in Dockerfile's
+actual .sh:
+- swarm/...
+- proto.sh
+- swag.sh
+- easyjson.sh
+
+other deprecated
 
 // enter in container
 sudo docker-compose exec -it consul /bin/bash
