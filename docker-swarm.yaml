@@ -11,6 +11,8 @@ services:
     ports:
       - "8081:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
+    networks:
+      - backend-overlay
     labels:
       - "traefik.docker.network=backend"
       - "traefik.port=8080"
@@ -19,12 +21,16 @@ services:
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
   pg:
-    image: ./pg
+    image: smartphonejava/pg:latest
+    networks:
+      - backend-overlay
     ports:
       - "5429:5432"    
 
   pg-auth:
     image: postgres:11.2-alpine
+    networks:
+      - backend-overlay
     environment:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
@@ -33,7 +39,7 @@ services:
       - "5431:5432"    
 
   pg-ery:
-    image: ./pg-ery
+    image: smartphonejava/pg-ery:latest
     ports:
       - "5430:5432"   
 
@@ -46,13 +52,15 @@ services:
 #http://api.consul.localhost:8081/health
 
   api:
-    image: ./api
+    image: smartphonejava/api:latest
     depends_on:
       - "pg"
       - "consul"
       - "consul-server"
       - "consul-agent"
       - "auth"
+    networks:
+      - backend-overlay
     ports:
       - 3001-3021:3001
     environment:
@@ -72,11 +80,13 @@ services:
 
 
   chat:
-    image: ./chat
+    image: smartphonejava/chat:latest
     depends_on:
       - "pg"
     environment:
       - CONSUL_ADDRESS=consul-agent
+    networks:
+      - backend-overlay
     ports:
       - 3066-3087:3060
     labels:
@@ -90,7 +100,9 @@ services:
   ### auth ###
 
   auth:
-    image: ./auth
+    image: smartphonejava/auth:latest
+    networks:
+      - backend-overlay
     depends_on:
       - "pg"
       - "pg-auth"
@@ -111,7 +123,9 @@ services:
         max-size: 10m
 
   game:
-    image: ./game
+    image: smartphonejava/game:latest
+    networks:
+      - backend-overlay
     depends_on:
        - "pg"
     ports:
@@ -127,8 +141,9 @@ services:
 
 
   prometheus:
-    image: ./prometheus
-    container_name: prometheus
+    image: prom/prometheus:latest
+    networks:
+      - backend-overlay
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -141,7 +156,8 @@ services:
     
   grafana:
     image: grafana/grafana
-    container_name: grafana
+    networks:
+      - backend-overlay
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -158,7 +174,9 @@ services:
 
   ## consul servers ##
   consul-server:
-    image: ./consul-server
+    image: smartphonejava/consul-server:latest
+    networks:
+      - backend-overlay
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
@@ -166,7 +184,9 @@ services:
 
   ## consul bootstrap ##
   consul:
-    image: ./consul
+    image: smartphonejava/consul:latest 
+    networks:
+      - backend-overlay
     ports:
       - 8400:8400
       - 8500:8500
@@ -177,7 +197,9 @@ services:
   
   ## consul agents ##
   consul-agent:
-    image: ./consul-agent
+    image: smartphonejava/consul-agent:latest
+    networks:
+      - backend-overlay
     ports:
      # - 8550-8570:8500
       - 8501:8500
@@ -189,14 +211,17 @@ services:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
   front:
-    image: ./front
+    image: smartphonejava/front:latest
+    networks:
+      - backend-overlay
     ports:
       - "8080:8080"   
     command: npm start
 
   alertmanager:
     image: prom/alertmanager:v0.19.0
-    container_name: alertmanager
+    networks:
+      - backend-overlay
     volumes:
       - ./alertmanager/:/etc/alertmanager/
     command:
@@ -208,7 +233,8 @@ services:
 
   nodeexporter:
     image: prom/node-exporter:v0.18.1
-    container_name: nodeexporter
+    networks:
+      - backend-overlay
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -224,7 +250,8 @@ services:
 
   cadvisor:
     image: google/cadvisor:v0.33.0
-    container_name: cadvisor
+    networks:
+      - backend-overlay
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -236,4 +263,5 @@ services:
       - 8085:8080
     privileged: true
 
-
+networks:
+  backend-overlay:

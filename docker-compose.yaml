@@ -23,7 +23,7 @@ services:
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
   pg:
-    image: localhost:5000/2019_1_escapade/api:latest
+    image: smartphonejava/api:latest
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/main/
@@ -44,7 +44,7 @@ services:
       - "5431:5432"    
 
   pg-ery:
-    image: localhost:5000/2019_1_escapade/pg-ery:latest    
+    image: smartphonejava/pg-ery:latest    
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/ery/
@@ -62,7 +62,7 @@ services:
 #http://api.consul.localhost:8081/health
 
   api:
-    image: localhost:5000/2019_1_escapade/api:latest    
+    image: smartphonejava/api:latest    
     build:
       dockerfile: ./cmd/services/api/Dockerfile
       context: .
@@ -111,7 +111,7 @@ services:
   #       max-size: 10m
 
   chat:
-    image: localhost:5000/2019_1_escapade/chat:latest
+    image: smartphonejava/chat:latest
     build:
       dockerfile: ./cmd/services/chat/Dockerfile
       context: .
@@ -134,7 +134,7 @@ services:
   ### auth ###
 
   auth:
-    image: localhost:5000/2019_1_escapade/auth:latest
+    image: smartphonejava/auth:latest
     build:
       dockerfile: ./cmd/services/auth/Dockerfile
       context: .
@@ -174,7 +174,7 @@ services:
   #       max-size: 10m
 
   game:
-    image: localhost:5000/2019_1_escapade/game:latest
+    image: smartphonejava/game:latest
     build:
       dockerfile: ./cmd/services/game/Dockerfile
       context: .
@@ -210,9 +210,6 @@ services:
   #   command: /bin/sh -c "./bin/history"
 
   prometheus:
-    image: localhost:5000/2019_1_escapade/prometheus:latest
-    build:
-      context: ./extra/prometheus
     image: prom/prometheus:latest
     container_name: prometheus
     command:
@@ -248,7 +245,7 @@ services:
 
   ## consul servers ##
   consul-server:
-    image: localhost:5000/2019_1_escapade/consul-server:latest
+    image: smartphonejava/consul-server:latest
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
@@ -261,7 +258,7 @@ services:
 
   ## consul bootstrap ##
   consul:
-    image: localhost:5000/2019_1_escapade/consul:latest
+    image: smartphonejava/consul:latest
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
@@ -277,7 +274,7 @@ services:
   
   ## consul agents ##
   consul-agent:
-    image: localhost:5000/2019_1_escapade/consul-agent:latest
+    image: smartphonejava/consul-agent:latest
     build:
       context: ./extra/consul
       dockerfile: Dockerfile
@@ -294,7 +291,7 @@ services:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
   front:
-    image: localhost:5000/2019_1_escapade/front:latest
+    image: smartphonejava/front:latest
     build:
       dockerfile: Dockerfile
       context: ./extra/front

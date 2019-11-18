@@ -9,4 +9,8 @@ trap 'echo " stop" ' INT TERM
 
 #$1 - the IP of this node
 
-ssh root@$1 "docker swarm init --advertise-addr $1"
+ssh root@$1 "
+docker swarm init --advertise-addr $1 
+docker network rm backend-overlay
+docker network create -d overlay --attachable backend-overlay
+ "
