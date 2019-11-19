@@ -27,7 +27,7 @@ docker push smartphonejava/pg:latest
 docker push smartphonejava/pg_ery:latest
 docker push smartphonejava/consul:latest
 docker push smartphonejava/consul-server:latest
-docker push localhost:5000/2019_1_escapade/consul-agent:latest
+docker push smartphonejava/consul-agent:latest
 
 
 
