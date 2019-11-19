@@ -7,13 +7,14 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"os"
 )
 
 func main() {
-
+	synced.HandleExit()
 	cla, err := start.GetCommandLineArgs(7, func() *start.CommandLineArgs {
 		return &start.CommandLineArgs{
 			ConfigurationPath: os.Args[1],
@@ -26,7 +27,7 @@ func main() {
 	})
 	if err != nil {
 		utils.Debug(false, "ERROR with command line args", err.Error())
-		return
+		panic(synced.Exit{Code: 1})
 	}
 
 	ca := &start.ConfigurationArgs{
@@ -40,7 +41,7 @@ func main() {
 	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
 		utils.Debug(false, "ERROR with configuration", err.Error())
-		return
+		panic(synced.Exit{Code: 2})
 	}
 
 	lastArgs := &start.AllArgs{
@@ -54,7 +55,7 @@ func main() {
 	err = consul.Run()
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
-		return
+		panic(synced.Exit{Code: 3})
 	}
 	defer consul.Close()
 
@@ -64,7 +65,7 @@ func main() {
 	err = chatService.Init(consul, configuration.Required)
 	if err != nil {
 		utils.Debug(false, "ERROR with grpc connection:", err.Error())
-		return
+		panic(synced.Exit{Code: 4})
 	}
 	defer chatService.Close()
 
@@ -75,7 +76,7 @@ func main() {
 	err = handler.InitWithPostgresql(chatService, configuration)
 	if err != nil {
 		utils.Debug(false, "Database error:", err.Error())
-		return
+		panic(synced.Exit{Code: 5})
 	}
 	defer handler.Close()
 
@@ -90,5 +91,4 @@ func main() {
 	server.LaunchHTTP(srv, configuration.Server, func() {
 		utils.Debug(false, "✗✗✗ Exit ✗✗✗")
 	})
-	os.Exit(0)
 }

@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/api"
 	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	// dont delete it for correct easyjson work
@@ -27,6 +28,7 @@ import (
 // @host virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0
 // @BasePath /api
 func main() {
+	synced.HandleExit()
 	// first step
 	cla, err := start.GetCommandLineArgs(5, func() *start.CommandLineArgs {
 		return &start.CommandLineArgs{
@@ -38,7 +40,7 @@ func main() {
 	})
 	if err != nil {
 		utils.Debug(false, "ERROR with command line args", err.Error())
-		return
+		panic(synced.Exit{Code: 1})
 	}
 	ca := &start.ConfigurationArgs{
 		HandlersMetrics: true,
@@ -48,7 +50,7 @@ func main() {
 	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
 		utils.Debug(false, "ERROR with configuration", err.Error())
-		return
+		panic(synced.Exit{Code: 2})
 	}
 
 	// start connection to database inside handlers
@@ -56,7 +58,7 @@ func main() {
 	err = API.InitWithPostgreSQL(configuration)
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to database:", err.Error())
-		return
+		panic(synced.Exit{Code: 3})
 	}
 	defer API.Close()
 
@@ -72,7 +74,7 @@ func main() {
 	err = consul.Run()
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
-		return
+		panic(synced.Exit{Code: 4})
 	}
 	defer consul.Close()
 

@@ -4,6 +4,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"google.golang.org/grpc"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-
+	synced.HandleExit()
 	// first step
 	cla, err := start.GetCommandLineArgs(3, func() *start.CommandLineArgs {
 		return &start.CommandLineArgs{
@@ -21,7 +22,7 @@ func main() {
 	})
 	if err != nil {
 		utils.Debug(false, "ERROR with command line args", err.Error())
-		return
+		panic(synced.Exit{Code: 1})
 	}
 
 	ca := &start.ConfigurationArgs{}
@@ -29,7 +30,7 @@ func main() {
 	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
 		utils.Debug(false, "ERROR with configuration", err.Error())
-		return
+		panic(synced.Exit{Code: 2})
 	}
 
 	var handler chat.Handler
@@ -44,7 +45,7 @@ func main() {
 	err = consul.Run()
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
-		return
+		panic(synced.Exit{Code: 3})
 	}
 	defer consul.Close()
 

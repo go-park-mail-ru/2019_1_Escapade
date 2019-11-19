@@ -4,12 +4,12 @@ services:
   traefik:
     image: traefik:v1.7.18
     command: 
-      - "--api" 
-      - "--web"
+      - " --api" 
+      - " --web"
       - " --docker"
       - " --docker.domain=docker.localhost"  #--consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
     ports:
-      - "8081:80"     # The HTTP port
+      - "80:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     networks:
       - backend-overlay
@@ -19,13 +19,23 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
 
   pg:
     image: smartphonejava/pg:latest
     networks:
       - backend-overlay
     ports:
-      - "5429:5432"    
+      - "5429:5432" 
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   pg-auth:
     image: postgres:11.2-alpine
@@ -36,12 +46,22 @@ services:
       POSTGRES_PASSWORD: 'auth'
       POSTGRES_DB: 'authbase'
     ports:
-      - "5431:5432"    
+      - "5431:5432" 
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]    
 
   pg-ery:
     image: smartphonejava/pg-ery:latest
     ports:
       - "5430:5432"   
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
 #sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
 #curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
@@ -71,12 +91,20 @@ services:
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
-    #dns: traefik 
-    #network_mode: "host"
-    restart: on-failure
     logging:
       options:
         max-size: 10m
+    deploy:
+      mode: global
+      replicas: 3
+      update_config:
+        parallelism: 3
+        delay: 2s
+      restart_policy:
+        condition: on-failure
+        window: 5s
+      placement:
+        constraints: [node.role == worker] 
 
 
   chat:
@@ -96,6 +124,11 @@ services:
     logging:
       options:
         max-size: 10m
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   ### auth ###
 
@@ -121,6 +154,11 @@ services:
     logging:
       options:
         max-size: 10m
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   game:
     image: smartphonejava/game:latest
@@ -138,7 +176,11 @@ services:
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
     command: /bin/sh -c "./bin/game cmd/services/game/game.json internal/photo/photo.json secret.json internal/constants/field.json internal/constants/room.json 3002"
-
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   prometheus:
     image: prom/prometheus:latest
@@ -153,7 +195,12 @@ services:
      - "traefik.frontend.rule=Host:prometheus.localhost"
      - "traefik.port=9090"
      - "traefik.docker.network=inbound"
-    
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
+
   grafana:
     image: grafana/grafana
     networks:
@@ -169,7 +216,11 @@ services:
       - "traefik.port=3000"
       - "traefik.docker.network=backend"
       - "traefik.frontend.rule=Host:grafana.localhost"
-
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
   ### discovery ###
 
   ## consul servers ##
@@ -181,6 +232,11 @@ services:
       - 8529-8549:8500
       - 8329-8349:8301
     command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    deploy:
+        restart_policy:
+          condition: on-failure
+        placement:
+          constraints: [node.role == manager] 
 
   ## consul bootstrap ##
   consul:
@@ -194,6 +250,11 @@ services:
     command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
   
   ## consul agents ##
   consul-agent:
@@ -209,14 +270,24 @@ services:
     command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
- 
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
+
   front:
     image: smartphonejava/front:latest
     networks:
       - backend-overlay
     ports:
-      - "8080:8080"   
+      - "8088:8080"   
     command: npm start
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   alertmanager:
     image: prom/alertmanager:v0.19.0
@@ -227,9 +298,13 @@ services:
     command:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
-    restart: unless-stopped
-    expose:
-      - 9093
+    ports:
+      - 9093:9093
+    deploy:
+      restart_policy:
+        condition: unless-stopped
+      placement:
+        constraints: [node.role == manager] 
 
   nodeexporter:
     image: prom/node-exporter:v0.18.1
@@ -245,8 +320,13 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
-    expose:
-      - 9100
+    ports:
+      - 9100:9100
+    deploy:
+      restart_policy:
+        condition: unless-stopped
+      placement:
+        constraints: [node.role == manager] 
 
   cadvisor:
     image: google/cadvisor:v0.33.0
@@ -262,6 +342,23 @@ services:
     ports:
       - 8085:8080
     privileged: true
+    deploy:
+      mode: global
+      restart_policy:
+        condition: unless-stopped
+      placement:
+        constraints: [node.role == manager]
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8084:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager] 
 
 networks:
   backend-overlay:

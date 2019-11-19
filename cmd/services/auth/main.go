@@ -10,6 +10,7 @@ import (
 	a_handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/handlers"
 	e_oauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/oauth"
 	ery_db "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 
 	"gopkg.in/oauth2.v3/models"
@@ -28,7 +29,7 @@ import (
 curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
 */
 func main() {
-
+	synced.HandleExit()
 	// first step
 	cla, err := start.GetCommandLineArgs(3, func() *start.CommandLineArgs {
 		return &start.CommandLineArgs{
@@ -38,7 +39,7 @@ func main() {
 	})
 	if err != nil {
 		utils.Debug(false, "ERROR with command line args", err.Error())
-		return
+		panic(synced.Exit{Code: 1})
 	}
 
 	ca := &start.ConfigurationArgs{}
@@ -46,7 +47,7 @@ func main() {
 	configuration, err := start.GetConfiguration(cla, ca)
 	if err != nil {
 		utils.Debug(false, "ERROR with configuration", err.Error())
-		return
+		panic(synced.Exit{Code: 2})
 	}
 
 	// start connection to main database
@@ -59,7 +60,7 @@ func main() {
 		20, 20, time.Hour)
 	if err != nil {
 		utils.Debug(false, "ERROR with ery database:", err.Error())
-		return
+		panic(synced.Exit{Code: 3})
 	}
 	defer eryDB.Close()
 
@@ -73,7 +74,7 @@ func main() {
 	manager, tokenStore, err := e_oauth.Init(configuration, clients)
 	if err != nil {
 		utils.Debug(false, "ERROR with oauth2 equipment", err.Error())
-		return
+		panic(synced.Exit{Code: 4})
 	}
 	defer tokenStore.Close()
 
@@ -89,7 +90,7 @@ func main() {
 	err = consul.Run()
 	if err != nil {
 		utils.Debug(false, "ERROR with connection to Consul:", err.Error())
-		return
+		panic(synced.Exit{Code: 5})
 	}
 	defer consul.Close()
 
