@@ -26,6 +26,10 @@ addr3="167.172.21.178"
 addr4="167.172.21.125"
 addr5="206.81.9.205"
 
+./all/diagnostics.sh $addr1 $addr2 $addr3 $addr4 $addr5
+./all/firewall.sh $addr1 $addr2 $addr3 $addr4 $addr5
+
+
 # названия машин
 name1="api1"
 name2="api2"
@@ -34,7 +38,7 @@ name4="api4"
 name5="api5"
 
 # токен swarm менеджера
-swarm_token="SWMTKN-1-34rkcp8qfted6l0lszq8fro121h1h3jkn90qmim45js4rolqae-8qfuwtpmja336e9pb9jf7t87o"
+swarm_token="SWMTKN-1-0njltu4byk10q82oxkp4097tf7wvaog5h1q1od6addrqqay91s-2ott62721zc6rs6ma8fs3jh8x"
 
 echo "  1. Create machines"
 

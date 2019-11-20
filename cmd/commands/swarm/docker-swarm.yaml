@@ -18,7 +18,7 @@ services:
       - "traefik.port=8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-      - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+      - .../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
     deploy:
       restart_policy:
         condition: on-failure

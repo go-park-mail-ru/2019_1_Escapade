@@ -1,8 +1,8 @@
 #!/bin/sh
 echo ""
-echo "  ------------------------"
-echo "  ------Make worker-------"
-echo "  ------------------------"
+echo "  ------------------------------"
+echo "  --Make $1 worker--"
+echo "  ------------------------------"
 echo ""
 trap 'echo " stop" ' INT TERM
 #chmod +x droplet_worker.sh && ./droplet_worker.sh 1 2 3
@@ -13,5 +13,5 @@ trap 'echo " stop" ' INT TERM
 
 ssh root@$1 "
 docker swarm leave
-docker swarm join --token $2 $3:2377
+docker swarm join --advertise-addr $1:2377 --token $2 $3:2377
 "

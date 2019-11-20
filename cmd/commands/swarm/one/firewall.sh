@@ -1,8 +1,8 @@
 #!/bin/sh
 echo ""
-echo "  ------------------------------"
-echo "  -----Droplet Firewall set-----"
-echo "  ------------------------------"
+echo "  -----------------------------------"
+echo "  -----$1 Firewall set-----"
+echo "  -----------------------------------"
 echo ""
 trap 'echo " stop" ' INT TERM
 #chmod +x droplet_ufw.sh && ./droplet_ufw.sh 1
@@ -16,6 +16,7 @@ ufw allow 2377/tcp
 ufw allow 7946/tcp 
 ufw allow 7946/udp 
 ufw allow 4789/udp 
+ufw allow 8786/tcp
 ufw reload
 yes | ufw enable
 systemctl restart docker
