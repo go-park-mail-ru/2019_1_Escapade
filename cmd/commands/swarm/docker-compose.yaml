@@ -5,13 +5,13 @@ services:
     image: smartphonejava/api:latest
     build:
       dockerfile: Dockerfile
-      context: ./extra/postgresql/main/
+      context: ./../../../extra/postgresql/main/
 
   pg-ery:
     image: smartphonejava/pg-ery:latest    
     build:
       dockerfile: Dockerfile
-      context: ./extra/postgresql/ery/  
+      context: ./../../../extra/postgresql/ery/  
 
 #sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
 #curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
@@ -25,7 +25,7 @@ services:
     image: smartphonejava/api:latest    
     build:
       dockerfile: ./cmd/services/api/Dockerfile
-      context: .
+      context: ./../../../
 
   # ery:
   #   build:
@@ -50,7 +50,7 @@ services:
     image: smartphonejava/chat:latest
     build:
       dockerfile: ./cmd/services/chat/Dockerfile
-      context: .
+      context: ./../../../
 
   ### auth ###
 
@@ -58,7 +58,7 @@ services:
     image: smartphonejava/auth:latest
     build:
       dockerfile: ./cmd/services/auth/Dockerfile
-      context: .
+      context: ./../../../
         
   # loader:
   #   build:
@@ -78,7 +78,7 @@ services:
     image: smartphonejava/game:latest
     build:
       dockerfile: ./cmd/services/game/Dockerfile
-      context: .
+      context: ./../../../
 
   # history:
   #   build:
@@ -96,34 +96,17 @@ services:
   #     - PORT_HISTORY_URL=:3004
   #   command: /bin/sh -c "./bin/history"
 
-  ### discovery ###
-
-  ## consul servers ##
-  consul-server:
-    image: smartphonejava/consul-server:latest
-    build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-
-  ## consul bootstrap ##
   consul:
     image: smartphonejava/consul:latest
     build:
-      context: ./extra/consul
-      dockerfile: Dockerfile
-  
-  ## consul agents ##
-  consul-agent:
-    image: smartphonejava/consul-agent:latest
-    build:
-      context: ./extra/consul
+      context: ./../../../extra/consul
       dockerfile: Dockerfile
 
   front:
     image: smartphonejava/front:latest
     build:
       dockerfile: Dockerfile
-      context: ./extra/front
+      context: ./../../../extra/front
 
   # vault:
   #   build:

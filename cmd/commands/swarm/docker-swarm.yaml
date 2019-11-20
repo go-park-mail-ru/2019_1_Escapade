@@ -2,7 +2,7 @@ version: '3'
 services:
 
   traefik:
-    image: traefik:v1.7.18
+    image: traefik:v1.7
     ports:
       - "80:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
@@ -14,6 +14,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - $PWD/../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+    command: --web \
+      --api \
+      --docker \
+      --docker.swarmmode \
+      --docker.watch 
     deploy:
       restart_policy:
         condition: on-failure
@@ -73,7 +78,7 @@ services:
     networks:
       - backend-overlay2
     ports:
-      - 3001-3021:3001
+      - 3001:3001
     environment:
       - CONSUL_ADDRESS=app_consul-agent
       - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
@@ -203,14 +208,14 @@ services:
 
   ## consul servers ##
   consul-server:
-    image: smartphonejava/consul-server:latest
+    image: smartphonejava/consul:latest
     networks:
       - backend-overlay2
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
       # todo 142.93.79.194-> to env
-    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=./../../../extra/consul/config/server/consul-config.json
     deploy:
         restart_policy:
           condition: on-failure
@@ -227,7 +232,7 @@ services:
       - 8500:8500
       - 8600:53/udp
       # todo 142.93.79.194-> to env
-    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
+    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./../../../extra/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
@@ -245,7 +250,7 @@ services:
       - 8501:8500
       - 8300:8300
       - 8301:8301
-    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
+    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./../../../extra/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
