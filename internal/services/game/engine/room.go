@@ -3,13 +3,13 @@ package engine
 import (
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/constants"
 )
 
 // Game status

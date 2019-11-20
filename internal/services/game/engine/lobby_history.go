@@ -3,12 +3,12 @@ package engine
 import (
 	"github.com/gorilla/websocket"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/database"
 )
 
 // LaunchLobbyHistory launch local lobby with rooms from database

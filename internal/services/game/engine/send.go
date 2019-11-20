@@ -3,7 +3,7 @@ package engine
 import (
 	"sync"
 
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 )
 
 // SendPredicate - returns true if the parcel send to that conn

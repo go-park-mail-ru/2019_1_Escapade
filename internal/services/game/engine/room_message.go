@@ -5,12 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
+	ctypes "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
 )
 
 // MessagesI control access to messages
@@ -77,7 +79,7 @@ func (room *RoomMessages) setChatID(id int32) {
 }
 
 func (room *RoomMessages) Proto(message *models.Message) (*chat.Message, error) {
-	return chat.MessageToProto(message, room.dbChatID)
+	return ctypes.MessageToProto(message, room.dbChatID)
 }
 
 func (room *RoomMessages) Fix(message *models.Message, conn *Connection) {
@@ -104,7 +106,7 @@ func (room *RoomMessages) HandleError(message *models.Message, send *chat.Messag
 			if room.dbChatID != 0 {
 				return room.dbChatID, nil
 			}
-			id, err := GetChatID(room.l.ChatService(), chat.RoomType, room.i.RoomID())
+			id, err := GetChatID(room.l.ChatService(), ctypes.RoomType, room.i.RoomID())
 			if err != nil {
 				room.dbChatID = id
 			}

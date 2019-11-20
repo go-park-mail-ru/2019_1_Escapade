@@ -1,15 +1,12 @@
 package eryhandlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-
-	// erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/gorilla/mux"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
+	
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/middleware"
 )
 
 // параметры пути

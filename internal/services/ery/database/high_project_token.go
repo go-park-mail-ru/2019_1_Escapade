@@ -1,11 +1,11 @@
 package database
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
-
 	//
 	_ "github.com/jackc/pgx"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
 )
 
 // CheckPermissions функция проверки прав доступа

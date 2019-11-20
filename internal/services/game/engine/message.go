@@ -4,13 +4,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
+	cmodels "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 // Sender is the func that send information to connections
@@ -75,7 +77,7 @@ func GetChatIDAndMessages(chatS clients.Chat, loc *time.Location, chatType, type
 	}
 
 	var messages []*models.Message
-	messages, err = chat.MessagesFromProto(loc, pMessages.Messages...)
+	messages, err = cmodels.MessagesFromProto(loc, pMessages.Messages...)
 
 	for _, message := range messages {
 		setImage(message.User)
@@ -124,7 +126,7 @@ func Message(chatS clients.Chat, lobby *Lobby, conn *Connection, message *models
 		message.ID = rand.Int31n(10000000) // в конфиг?
 	}
 
-	msg, err := chat.MessageToProto(message, chatID)
+	msg, err := cmodels.MessageToProto(message, chatID)
 
 	if err != nil {
 		return err
@@ -179,7 +181,7 @@ func Message(chatS clients.Chat, lobby *Lobby, conn *Connection, message *models
 					if room.messages.ChatID() != 0 {
 						return room.messages.ChatID(), nil
 					}
-					id, err := GetChatID(chatS, chat.RoomType, room.info.RoomID())
+					id, err := GetChatID(chatS, cmodels.RoomType, room.info.RoomID())
 					if err != nil {
 						room.messages.setChatID(id)
 					}

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"github.com/gorilla/mux"
+
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 )
 
 func getUserID(r *http.Request) (int, error) {

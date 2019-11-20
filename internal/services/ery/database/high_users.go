@@ -1,11 +1,12 @@
 package database
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	//
 	_ "github.com/jackc/pgx"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 )
 
 // CreateUser создать пользователя

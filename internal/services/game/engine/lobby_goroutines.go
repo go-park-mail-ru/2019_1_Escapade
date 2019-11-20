@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
+	ctypes "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
 )
 
 /*
@@ -68,7 +70,7 @@ func (lobby *Lobby) sendMessagesToDB() {
 		// TODO change it if implement several service instances(i am about 0 )
 		if lobby.dbChatID() == 0 {
 			chatID, newMessages, err = GetChatIDAndMessages(lobby.ChatService, lobby.location(),
-				chat.LobbyType, 0, lobby.SetImage)
+			ctypes.LobbyType, 0, lobby.SetImage)
 			if err != nil {
 				utils.Debug(false, "sendMessagesToDB error:", err.Error())
 				return

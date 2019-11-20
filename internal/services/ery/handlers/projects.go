@@ -1,12 +1,12 @@
 package eryhandlers
 
 import (
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	"net/http"
+	
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-
-	"net/http"
 )
 
 func (H *Handler) projectsCreate(rw http.ResponseWriter, r *http.Request, userID int32) api.Result {

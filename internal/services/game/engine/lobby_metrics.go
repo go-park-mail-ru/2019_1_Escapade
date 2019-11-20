@@ -1,7 +1,8 @@
 package engine
 
 import (
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 )
 

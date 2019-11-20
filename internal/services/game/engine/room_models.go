@@ -4,9 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+
+	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
 )
 
 // RModelsI turns Game-type structures into models that can be sent

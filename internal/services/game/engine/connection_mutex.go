@@ -2,9 +2,10 @@ package engine
 
 import (
 	"time"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
+	
 	"github.com/gorilla/websocket"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 )
 
 // Disconnected return   '_disconnected' field

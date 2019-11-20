@@ -1,10 +1,10 @@
 package database
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-
 	_ "github.com/jackc/pgx"
 	"github.com/jmoiron/sqlx"
+	
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 )
 
 // createPlayer создать пользователя

@@ -1,18 +1,15 @@
 package database
 
 import (
-	//"time"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	//
 	_ "github.com/jackc/pgx"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
 )
 
 func (db *DB) CreateScene(userID, projectID int32, obj *models.Scene) error {

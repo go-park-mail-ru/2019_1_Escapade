@@ -1,6 +1,6 @@
 package engine
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+import "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
 // RGet return connections slice only for Read!
 func (conns *Connections) RGet() []*Connection {

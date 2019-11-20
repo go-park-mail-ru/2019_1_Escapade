@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
 	"strconv"
 
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 )
 
 //easyjson:json

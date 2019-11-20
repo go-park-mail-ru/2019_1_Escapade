@@ -1,5 +1,5 @@
 package main
-
+/*
 import (
 	"time"
 
@@ -134,3 +134,4 @@ func main() {
 	})
 	os.Exit(0)
 }
+*/

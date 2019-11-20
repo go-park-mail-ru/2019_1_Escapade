@@ -3,8 +3,8 @@ package engine
 import (
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 )
 
 // GarbageCollectorI handle deleting connections, when they are disconnected

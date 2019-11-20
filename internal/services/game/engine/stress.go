@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
 
 func (lobby *Lobby) stress(n int) {

@@ -1,6 +1,6 @@
 package engine
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
+import "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 
 // RBuilderI create room components, bind them, and add them to room
 // 	to the room

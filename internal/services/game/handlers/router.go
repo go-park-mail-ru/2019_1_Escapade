@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/router"
-
-	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/gorilla/mux"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/router"
+	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/middleware"
 )
 
 // Router return router of game operations

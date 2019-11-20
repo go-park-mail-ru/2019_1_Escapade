@@ -2,20 +2,18 @@ package engine
 
 import (
 	"fmt"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	"sync"
 	"time"
-
 	"context"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 // Connection is a websocket of a player, that belongs to room

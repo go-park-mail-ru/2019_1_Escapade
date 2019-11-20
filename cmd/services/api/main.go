@@ -3,14 +3,15 @@ package main
 import (
 	"os"
 
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/api"
-	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	// dont delete it for correct easyjson work
 	_ "github.com/mailru/easyjson/gen"
+
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/api"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
+
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/handlers"
 )
 
 // to generate docs, call from root "swag init -g api/main.go"
@@ -43,8 +44,7 @@ func main() {
 		panic(synced.Exit{Code: 1})
 	}
 	ca := &start.ConfigurationArgs{
-		HandlersMetrics: true,
-		Photo:           true,
+		Photo: true,
 	}
 	// second step
 	configuration, err := start.GetConfiguration(cla, ca)

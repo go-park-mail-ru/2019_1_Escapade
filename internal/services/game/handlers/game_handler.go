@@ -1,83 +1,108 @@
 package handlers
 
 import (
-	"fmt"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/clients"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"math/rand"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/constants"
+	gdb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine"
+	gmetrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 )
 
 type GameHandler struct {
 	c          *config.Configuration
 	upgraderWS websocket.Upgrader
 	user       database.UserUseCaseI
-	game       database.GameUseCaseI
+	game       gdb.GameUseCaseI
 	lobby      *engine.Lobby
 }
 
-func (h *GameHandler) InitWithPostgresql(chatS clients.Chat, c *config.Configuration) error {
-
-	var (
-		db     = &idb.PostgresSQL{}
-		user   = &database.UserRepositoryPQ{}
-		record = &database.RecordRepositoryPQ{}
-		game   = &database.GameRepositoryPQ{}
-	)
-	return h.Init(chatS, c, db, user, record, game)
+type DatabaseArgs struct {
+	Database idb.DatabaseI
+	User     database.UserRepositoryI
+	Record   database.RecordRepositoryI
+	Game     gdb.GameRepositoryI
 }
 
-func (h *GameHandler) Init(chatS clients.Chat, c *config.Configuration,
-	DB idb.DatabaseI,
-	userDB database.UserRepositoryI,
-	recordDB database.RecordRepositoryI,
-	gameDB database.GameRepositoryI,
-) error {
+type ConfigurationArgs struct {
+	C         *config.Configuration
+	FieldPath string
+	RoomPath  string
+}
 
-	err := DB.Open(c.DataBase)
+func (h *GameHandler) InitWithPostgresql(chatS clients.Chat, ca *ConfigurationArgs) error {
+
+	var (
+		da = &DatabaseArgs{
+			Database: &idb.PostgresSQL{},
+			User:     &database.UserRepositoryPQ{},
+			Record:   &database.RecordRepositoryPQ{},
+			Game:     &gdb.GameRepositoryPQ{},
+		}
+	)
+	return h.Init(chatS, ca, da)
+}
+
+func (h *GameHandler) Init(chatS clients.Chat, ca *ConfigurationArgs, da *DatabaseArgs) error {
+
+	err := da.Database.Open(ca.C.DataBase)
 	if err != nil {
 		return err
 	}
 
-	h.c = c
+	h.c = ca.C
 	h.upgraderWS = websocket.Upgrader{
-		ReadBufferSize:  c.WebSocket.ReadBufferSize,
-		WriteBufferSize: c.WebSocket.WriteBufferSize,
+		ReadBufferSize:  h.c.WebSocket.ReadBufferSize,
+		WriteBufferSize: h.c.WebSocket.WriteBufferSize,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 	h.user = &database.UserUseCase{}
-	h.user.Init(userDB, recordDB)
+	h.user.Init(da.User, da.Record)
 
-	err = h.user.Use(DB)
+	err = h.user.Use(da.Database)
 	if err != nil {
 		return err
 	}
 
-	h.game = &database.GameUseCase{}
-	h.game.Init(gameDB, chatS)
+	h.game = &gdb.GameUseCase{}
+	h.game.Init(da.Game, chatS)
 
-	err = h.game.Use(DB)
+	err = h.game.Use(da.Database)
 	if err != nil {
 		return err
 	}
 
-	h.lobby = engine.NewLobby(chatS, &c.Game, h.game, photo.GetImages)
+	err = constants.InitField(ca.FieldPath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with field constants:", err.Error())
+		return err
+	}
+
+	err = constants.InitRoom(ca.RoomPath)
+	if err != nil {
+		utils.Debug(false, "Initialization error with room constants:", err.Error())
+		return err
+	}
+
+	gmetrics.Init()
+
+	h.lobby = engine.NewLobby(chatS, &h.c.Game, h.game, photo.GetImages)
 	go h.lobby.Run()
 
 	return nil
@@ -90,7 +115,7 @@ func (h *GameHandler) Close() {
 }
 
 func (h *GameHandler) Handle(rw http.ResponseWriter, r *http.Request) {
-	fmt.Println("catch me!")
+	utils.Debug(false, "catch me!")
 	h.connect(rw, r)
 	// ih.Route(rw, r, ih.MethodHandlers{
 	// 	http.MethodGet:     h.connect,
@@ -99,7 +124,6 @@ func (h *GameHandler) Handle(rw http.ResponseWriter, r *http.Request) {
 
 func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Result {
 	const place = "GameOnline"
-	fmt.Println("i want!")
 	roomID := api.StringFromPath(r, "id", "")
 
 	user, err := h.prepareUser(r, h.user, h.lobby)

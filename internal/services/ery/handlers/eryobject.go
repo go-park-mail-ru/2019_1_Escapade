@@ -1,18 +1,17 @@
 package eryhandlers
 
 import (
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
+	"bytes"
+	"net/http"
+	"mime/multipart"
+
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 
-	"bytes"
-	"net/http"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
-	"mime/multipart"
 )
 
 func (h *Handler) eryobjectCreate(rw http.ResponseWriter, r *http.Request,

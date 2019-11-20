@@ -1,8 +1,8 @@
 package database
 
 import (
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
 
 // RecordRepositoryPQ implements the interface RecordRepositoryI using the sql postgres driver

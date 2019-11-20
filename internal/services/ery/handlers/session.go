@@ -1,14 +1,14 @@
 package eryhandlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"net/http"
+	
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 )
 
 // Login login

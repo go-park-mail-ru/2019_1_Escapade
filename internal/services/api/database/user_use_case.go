@@ -3,9 +3,9 @@ package database
 import (
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
 
 // UserUseCase implements the interface UserUseCaseI

@@ -1,6 +1,6 @@
 package database
 
-import idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
+import idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
 
 // ImageRepositoryPQ implements the interface ImageRepositoryI using the sql postgres driver
 type ImageRepositoryPQ struct{}

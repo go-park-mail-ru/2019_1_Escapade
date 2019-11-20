@@ -82,7 +82,7 @@ services:
     environment:
       - CONSUL_ADDRESS=app_consul-agent
       - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
-    command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001"
+    command: cmd/services/api/api.json internal/photo/photo.json secret.json 3001
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
@@ -159,7 +159,7 @@ services:
       - CONSUL_ADDRESS=app_consul-agent
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: /bin/sh -c "./bin/game cmd/services/game/game.json internal/photo/photo.json secret.json internal/constants/field.json internal/constants/room.json 3002"
+    command: /bin/sh -c "./bin/game cmd/services/game/game.json cmd/services/game/photo.json secret.json cmd/services/game/field.json cmd/services/game/room.json 3002"
     deploy:
       restart_policy:
         condition: on-failure

@@ -3,9 +3,10 @@ package engine
 import (
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/database"
 )
 
 // AddNotSavedMessage add message to slice of unsaved messages

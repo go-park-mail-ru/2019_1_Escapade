@@ -2,13 +2,12 @@ package database
 
 import (
 	"math"
-
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	"time"
+
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 // UserRepositoryPQ implements the interface UserRepositoryI using the sql postgres driver

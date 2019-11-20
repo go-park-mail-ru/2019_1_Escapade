@@ -1,27 +1,17 @@
 package eryhandlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	// erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-
 	"bytes"
 	"mime/multipart"
 	"net/http"
-	//"github.com/gorilla/mux"
-	//"github.com/prometheus/client_golang/prometheus/promhttp"
-	//httpSwagger "github.com/swaggo/http-swagger"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 )
 
 // CreateUser godoc

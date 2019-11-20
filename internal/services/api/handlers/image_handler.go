@@ -2,20 +2,18 @@ package handlers
 
 import (
 	"bytes"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"mime/multipart"
 	"net/http"
-
 	uuid "github.com/satori/go.uuid"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
 type ImageHandler struct {

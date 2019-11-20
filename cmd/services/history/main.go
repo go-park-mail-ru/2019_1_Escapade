@@ -1,5 +1,5 @@
 package main
-
+/*
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/constants"
@@ -77,3 +77,4 @@ func main() {
 		utils.Debug(false, "Serving error:", err.Error())
 	}
 }
+*/

@@ -1,12 +1,13 @@
 package eryhandlers
 
 import (
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
 	"net/http"
+	
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/models"
 )
 
 func (H *Handler) erythrocyteCreate(rw http.ResponseWriter, r *http.Request,

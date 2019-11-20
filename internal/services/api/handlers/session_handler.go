@@ -1,17 +1,16 @@
 package handlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"net/http"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
 type SessionHandler struct {

@@ -6,10 +6,11 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
 	"github.com/go-session/session"
 	pg "github.com/vgarvardt/go-oauth2-pg"
 	"gopkg.in/oauth2.v3/server"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 func deleteHandler(srv *server.Server, tokenStore *pg.TokenStore) func(w http.ResponseWriter, r *http.Request) {

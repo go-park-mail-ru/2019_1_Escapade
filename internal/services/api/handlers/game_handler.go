@@ -1,21 +1,18 @@
 package handlers
 
 import (
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/game"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"net/http"
 	//"github.com/gorilla/websocket"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
 type GameHandler struct {

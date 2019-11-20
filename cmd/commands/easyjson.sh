@@ -35,28 +35,28 @@ cp -r $SERVICES/chat $GPROJECTDIR && \
 cp -r $PROJECT/vendor $GPROJECTDIR && \
 
 echo "  2.1 Apply easyjson to constants" && \
-export CONSTANTSPATH=$GPROJECTDIR/internal/constants && \
+export CONSTANTSPATH=$GPROJECTDIR/internal/services/game/constants && \
 cd $CONSTANTSPATH && \
 easyjson . && \
-cp $CONSTANTSPATH/constants_easyjson.go $PROJECT/internal/constants && \
+cp $CONSTANTSPATH/constants_easyjson.go $PROJECT/internal/services/game/constants && \
 
 echo "  2.2 Apply easyjson to models" && \
-export MODELSPATH=$GPROJECTDIR/internal/models && \
+export MODELSPATH=$GPROJECTDIR/internal/pkg/models && \
 cd $MODELSPATH && \
 easyjson . && \
-cp $MODELSPATH/models_easyjson.go $PROJECT/internal/models && \
+cp $MODELSPATH/models_easyjson.go $PROJECT/internal/pkg/models && \
 
 echo "  2.3 Apply easyjson to config" && \
-export CONFIGPATH=$GPROJECTDIR/internal/config && \
+export CONFIGPATH=$GPROJECTDIR/internal/pkg/config && \
 cd $CONFIGPATH && \
 easyjson . && \
-cp $CONFIGPATH/config_easyjson.go $PROJECT/internal/config && \
+cp $CONFIGPATH/config_easyjson.go $PROJECT/internal/pkg/config && \
 
 echo "  2.4 Apply easyjson to photo" && \
-export PHOTOPATH=$GPROJECTDIR/internal/photo && \
+export PHOTOPATH=$GPROJECTDIR/internal/pkg/photo && \
 cd $PHOTOPATH && \
 easyjson . && \
-cp $PHOTOPATH/photo_easyjson.go $PROJECT/internal/photo && \
+cp $PHOTOPATH/photo_easyjson.go $PROJECT/internal/pkg/photo && \
 
 echo "  2.5 Apply easyjson to game" && \
 export GAMEPATH=$GPROJECTDIR/internal/services/game/engine && \

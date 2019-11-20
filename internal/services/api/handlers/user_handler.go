@@ -2,26 +2,21 @@ package handlers
 
 import (
 	"strconv"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/auth"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
-
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-
 	"net/http"
-
 	"context"
 	"time"
-
 	ran "math/rand"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
 type UserHandler struct {

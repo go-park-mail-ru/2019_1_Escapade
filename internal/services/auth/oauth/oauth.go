@@ -1,22 +1,9 @@
 package oauth
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
-
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-	erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-	"github.com/go-session/session"
-	"github.com/jackc/pgx"
-	pg "github.com/vgarvardt/go-oauth2-pg"
-	"github.com/vgarvardt/go-pg-adapter/pgxadapter"
 	"gopkg.in/oauth2.v3"
 	"gopkg.in/oauth2.v3/errors"
 	"gopkg.in/oauth2.v3/generates"
@@ -24,6 +11,19 @@ import (
 	"gopkg.in/oauth2.v3/models"
 	"gopkg.in/oauth2.v3/server"
 	"gopkg.in/oauth2.v3/store"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/go-session/session"
+	"github.com/jackc/pgx"
+	pg "github.com/vgarvardt/go-oauth2-pg"
+	"github.com/vgarvardt/go-pg-adapter/pgxadapter"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+	erydb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
 )
 
 func Init(configuration *config.Configuration, clients []*models.Client) (*manage.Manager, *pg.TokenStore, error) {
@@ -108,15 +108,6 @@ func Server(db database.UserUseCaseI, eryDB *erydb.DB, manager *manage.Manager) 
 			intUserID int32
 			err       error
 		)
-		fmt.Println("try password!", username, password)
-		if eryDB == nil {
-			fmt.Println("eryDB == nil")
-		}
-		fmt.Println("eryDB != nil")
-		if db == nil {
-			fmt.Println("db == nil")
-		}
-		fmt.Println("db != nil")
 		if db != nil {
 			if intUserID, err = db.EnterAccount(username, password); err != nil {
 				utils.Debug(false, "exp password check error ", re.NoUserWrapper(err))

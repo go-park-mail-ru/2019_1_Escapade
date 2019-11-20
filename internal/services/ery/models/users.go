@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/handlers"
+	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 )
 
 // User структура пользователя

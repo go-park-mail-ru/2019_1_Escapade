@@ -4,16 +4,17 @@ import (
 	"os"
 	"time"
 
+	"gopkg.in/oauth2.v3/models"
+
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/auth"
-	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/server"
+	start "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
+	e_oauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/oauth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+
 	user_db "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	a_handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/handlers"
-	e_oauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/oauth"
 	ery_db "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/ery/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/synced"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/utils"
-
-	"gopkg.in/oauth2.v3/models"
 )
 
 // to generate docs, call from root "swag init -g auth/main.go"
