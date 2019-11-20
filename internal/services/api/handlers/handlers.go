@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+        "fmt"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/config"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/database"
@@ -48,6 +49,7 @@ func (h *Handlers) InitWithPostgreSQL(c *config.Configuration) error {
 
 // Init open connection to database and put it to all handlers
 func (h *Handlers) Init(c *config.Configuration, db idb.DatabaseI, reps repositories) error {
+        fmt.Println("string:", c.DataBase.ConnectionString)
 	h.c = c
 	err := db.Open(c.DataBase)
 	if err != nil {

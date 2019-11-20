@@ -3,22 +3,17 @@ services:
 
   traefik:
     image: traefik:v1.7.18
-    command: 
-      - " --api" 
-      - " --web"
-      - " --docker"
-      - " --docker.domain=docker.localhost"  #--consul --consul.endpoint=consul:8500 # Enables the web UI and tells Traefik to listen to docker
     ports:
       - "80:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     networks:
-      - backend-overlay
+      - backend-overlay2
     labels:
       - "traefik.docker.network=backend"
       - "traefik.port=8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-      - .../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+      - $PWD/../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
     deploy:
       restart_policy:
         condition: on-failure
@@ -28,7 +23,7 @@ services:
   pg:
     image: smartphonejava/pg:latest
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - "5429:5432" 
     deploy:
@@ -40,7 +35,7 @@ services:
   pg-auth:
     image: postgres:11.2-alpine
     networks:
-      - backend-overlay
+      - backend-overlay2
     environment:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
@@ -57,6 +52,8 @@ services:
     image: smartphonejava/pg-ery:latest
     ports:
       - "5430:5432"   
+    networks:
+      - backend-overlay2
     deploy:
       restart_policy:
         condition: on-failure
@@ -73,20 +70,13 @@ services:
 
   api:
     image: smartphonejava/api:latest
-    depends_on:
-      - "pg"
-      - "consul"
-      - "consul-server"
-      - "consul-agent"
-      - "auth"
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - 3001-3021:3001
     environment:
-      - CONSUL_ADDRESS=consul-agent
-      - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
-      #.consul.localhost
+      - CONSUL_ADDRESS=app_consul-agent
+      - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
     command: /bin/sh -c "./bin/api cmd/services/api/api.json internal/photo/photo.json secret.json 3001"
     labels:
       - "traefik.enable=false"
@@ -95,10 +85,9 @@ services:
       options:
         max-size: 10m
     deploy:
-      mode: global
+      replicas: 5
       update_config:
         parallelism: 3
-        delay: 2s
       restart_policy:
         condition: on-failure
         window: 5s
@@ -108,12 +97,10 @@ services:
 
   chat:
     image: smartphonejava/chat:latest
-    depends_on:
-      - "pg"
     environment:
-      - CONSUL_ADDRESS=consul-agent
+      - CONSUL_ADDRESS=app_consul-agent
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - 3066-3087:3060
     labels:
@@ -134,16 +121,11 @@ services:
   auth:
     image: smartphonejava/auth:latest
     networks:
-      - backend-overlay
-    depends_on:
-      - "pg"
-      - "pg-auth"
-      - "pg-ery"
+      - backend-overlay2
     ports:
       - 3022-3043:3003
-    #dns: 127.0.0.1 
     environment:
-      - CONSUL_ADDRESS=consul-agent
+      - CONSUL_ADDRESS=app_consul-agent
       #/bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
       # ./wait-for-it.sh pg:5432 &&  ./wait-for-it.sh  pg-auth:5432 && ./wait-for-it.sh pg-ery:5432 &&
     command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003"
@@ -162,16 +144,14 @@ services:
   game:
     image: smartphonejava/game:latest
     networks:
-      - backend-overlay
-    depends_on:
-       - "pg"
+      - backend-overlay2
     ports:
       - 3044-3055:3002
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
     environment:
-      - CONSUL_ADDRESS=consul-agent
+      - CONSUL_ADDRESS=app_consul-agent
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
     command: /bin/sh -c "./bin/game cmd/services/game/game.json internal/photo/photo.json secret.json internal/constants/field.json internal/constants/room.json 3002"
@@ -184,7 +164,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     networks:
-      - backend-overlay
+      - backend-overlay2
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -203,12 +183,11 @@ services:
   grafana:
     image: grafana/grafana
     networks:
-      - backend-overlay
+      - backend-overlay2
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
      - GF_USERS_ALLOW_SIGN_UP=false
-    restart: unless-stopped
     ports:
       - 3000:3000
     labels:
@@ -226,11 +205,12 @@ services:
   consul-server:
     image: smartphonejava/consul-server:latest
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
-    command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
+      # todo 142.93.79.194-> to env
+    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=/consul/config/server/consul-config.json
     deploy:
         restart_policy:
           condition: on-failure
@@ -241,12 +221,13 @@ services:
   consul:
     image: smartphonejava/consul:latest 
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - 8400:8400
       - 8500:8500
       - 8600:53/udp
-    command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
+      # todo 142.93.79.194-> to env
+    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
@@ -259,14 +240,12 @@ services:
   consul-agent:
     image: smartphonejava/consul-agent:latest
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
-     # - 8550-8570:8500
       - 8501:8500
       - 8300:8300
       - 8301:8301
-      #- 8350-8370:8301
-    command: agent -join consul-server -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
+    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
@@ -278,7 +257,7 @@ services:
   front:
     image: smartphonejava/front:latest
     networks:
-      - backend-overlay
+      - backend-overlay2
     ports:
       - "8088:8080"   
     command: npm start
@@ -291,7 +270,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.19.0
     networks:
-      - backend-overlay
+      - backend-overlay2
     volumes:
       - ./alertmanager/:/etc/alertmanager/
     command:
@@ -306,7 +285,7 @@ services:
   nodeexporter:
     image: prom/node-exporter:v0.18.1
     networks:
-      - backend-overlay
+      - backend-overlay2
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -325,7 +304,7 @@ services:
   cadvisor:
     image: google/cadvisor:v0.33.0
     networks:
-      - backend-overlay
+      - backend-overlay2
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -334,7 +313,6 @@ services:
       - /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
     ports:
       - 8085:8080
-    privileged: true
     deploy:
       mode: global
       placement:
@@ -342,6 +320,8 @@ services:
 
   visualizer:
     image: dockersamples/visualizer:stable
+    networks:
+      - backend-overlay2
     ports:
       - "8084:8080"
     stop_grace_period: 1m30s
@@ -352,4 +332,6 @@ services:
         constraints: [node.role == manager] 
 
 networks:
-  backend-overlay:
+   backend-overlay2:
+    external:
+       name: backend-overlay2

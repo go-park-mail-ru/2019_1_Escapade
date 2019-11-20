@@ -15,7 +15,3 @@ docker network rm backend-overlay
 docker network create -d overlay --subnet 10.10.9.0/24 --attachable backend-overlay2
  "
 
-docker network rm backend-overlay
-docker network create -d overlay --subnet 10.10.9.0/24 --attachable backend-overlay
- "
-
