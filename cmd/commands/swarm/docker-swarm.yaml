@@ -92,10 +92,9 @@ services:
       options:
         max-size: 10m
     deploy:
-      mode: global
+      replicas: 5
       update_config:
         parallelism: 3
-        delay: 2s
       restart_policy:
         condition: on-failure
         window: 5s
@@ -263,7 +262,7 @@ services:
       - 8300:8300
       - 8301:8301
       #- 8350-8370:8301
-    command: agent -join consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
+    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=/consul/config/client/consul-config.json   
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:

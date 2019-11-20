@@ -12,5 +12,5 @@ trap 'echo " stop" ' INT TERM
 ssh root@$1 "
 docker swarm init --advertise-addr $1 
 docker network rm backend-overlay
-docker network create -d overlay --attachable backend-overlay
+docker network create -d overlay --subnet 10.10.9.0/24 --attachable backend-overlay
  "
