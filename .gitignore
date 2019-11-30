@@ -13,6 +13,7 @@
 *.html
 id_rsa
 id_rsa.pub
+dive_*
 
 /vendor
 /bin
