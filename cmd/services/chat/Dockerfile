@@ -1,11 +1,27 @@
 # docker build -t chat .
 
-FROM golang:alpine
-WORKDIR /escapade
+FROM golang:alpine as build
+ENV SRC_DIR=/2019_1_Escapade/
+WORKDIR $SRC_DIR
+
 COPY go.mod .
 COPY go.sum .
+
 RUN apk add --update git
 RUN apk add --update bash && rm -rf /var/cache/apk/*
 RUN go mod download
-COPY . .
-RUN go build -o bin/chat cmd/services/chat/main.go
+
+RUN mkdir -p /2019_1_Escapade/internal/pkg
+COPY /internal/pkg /2019_1_Escapade/internal/pkg
+
+RUN mkdir -p /2019_1_Escapade/internal/services/chat
+COPY /internal/services/chat /2019_1_Escapade/internal/services/chat
+
+COPY /cmd/services/chat .
+RUN go build -o bin/chat main.go
+
+FROM scratch
+ENV SRC_DIR=/2019_1_Escapade/
+WORKDIR $SRC_DIR
+COPY --from=build $SRC_DIR/bin/chat $SRC_DIR/bin/chat
+ENTRYPOINT ["./bin/chat"]  
