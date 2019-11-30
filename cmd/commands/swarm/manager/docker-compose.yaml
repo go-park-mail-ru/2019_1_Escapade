@@ -53,12 +53,6 @@ services:
       context: ./../../../../
 
   ### auth ###
-
-  auth:
-    image: smartphonejava/auth:latest
-    build:
-      dockerfile: ./cmd/services/auth/Dockerfile
-      context: ./../../../../
         
   # loader:
   #   build:

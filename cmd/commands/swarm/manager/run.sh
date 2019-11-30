@@ -9,8 +9,7 @@ trap 'echo " stop" ' INT TERM
 chmod +x images.sh
 # cd ../../..
 #sudo service docker restart
-sudo docker-compose build && \
-sudo docker-compose push && \
+docker-compose build && ./images.sh
 #docker run -d -p 5000:5000 --restart=always --name registry registry:2
 #sudo docker-compose push
 #./images.sh
