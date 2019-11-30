@@ -7,6 +7,11 @@ echo ""
 trap 'echo " stop" ' INT TERM
 #chmod +x prepare.sh && ./prepare.sh
 
+# scripts from a folder 'swarm/manager' can be called on manager node
+# scripts from a folder 'swarm/one' can be called on any internal node
+# scripts from a folder 'swarm/all' can be called on external machine
+# scripts from a folder 'swarm' can be called on external machine
+
 echo "  0. Prepare other .sh"
 chmod +x ./all/firewall.sh && \
 chmod +x ./all/diagnostics.sh && \
