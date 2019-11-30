@@ -8,7 +8,7 @@ trap 'echo " stop" ' INT TERM
 #chmod +x prepare.sh && ./prepare.sh
 
 worker() {
-    swarm_token="SWMTKN-1-0njltu4byk10q82oxkp4097tf7wvaog5h1q1od6addrqqay91s-2ott62721zc6rs6ma8fs3jh8x"
+    swarm_token="SWMTKN-1-3w0ngu7m0o1sje8pkqfzw7mft0v6s4hqs53m97e6jddslqhmkn-48iywq96luawzkybx4ksoqa8t"
     script="./one/worker.sh"
     chmod +x $script && \
     $script $1 $swarm_token $2

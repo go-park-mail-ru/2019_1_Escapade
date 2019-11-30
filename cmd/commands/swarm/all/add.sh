@@ -8,7 +8,7 @@ trap 'echo " stop" ' INT TERM
 #chmod +x prepare.sh && ./prepare.sh
 
 echo "  0. Prepare other .sh"
-chmod +x droplet_add.sh && \
+chmod +x ./one/add.sh
 # $1 - $5 - адреса серверов
 addr1=$1
 addr2=$2
@@ -31,16 +31,16 @@ name5="api5"
 echo "  1. Create machines"
 
  echo "  1.1. Create machine - "$addr1
- ./droplet_add.sh $1 $path $name1 && \
+ ./one/add.sh $addr1 $path $name1 && \
 
 echo "  1.2. Create machine - "$addr2
- ./droplet_add.sh $addr2 $path $name2 && \
+ ./one/add.sh $addr2 $path $name2 && \
 
 echo "  1.3. Create machine - "$addr3
-./droplet_add.sh $addr3 $path $name3 && \
+./one/add.sh $addr3 $path $name3 && \
 
 echo "  1.4. Create machine - "$addr4
- ./droplet_add.sh $addr4 $path $name4 && \
+ ./one/add.sh $addr4 $path $name4 && \
 
 echo "  1.5. Create machine - "$addr5
- ./droplet_add.sh $addr5 $path $name5
+ ./one/add.sh $addr5 $path $name5

@@ -117,9 +117,6 @@ func (h *GameHandler) Close() {
 func (h *GameHandler) Handle(rw http.ResponseWriter, r *http.Request) {
 	utils.Debug(false, "catch me!")
 	h.connect(rw, r)
-	// ih.Route(rw, r, ih.MethodHandlers{
-	// 	http.MethodGet:     h.connect,
-	// 	http.MethodOptions: nil})
 }
 
 func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Result {
@@ -131,6 +128,7 @@ func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Resul
 		return api.NewResult(http.StatusInternalServerError, place, nil, err)
 	}
 	utils.Debug(false, "prepared user:", user.ID)
+
 	ws, err := h.upgraderWS.Upgrade(rw, r, rw.Header())
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); ok {
@@ -140,6 +138,7 @@ func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Resul
 		}
 		return api.NewResult(http.StatusBadRequest, place, nil, err)
 	}
+
 	utils.Debug(false, "will create user:", user.ID)
 	conn, err := engine.NewConnection(ws, user, h.lobby)
 	if err != nil {
@@ -147,6 +146,7 @@ func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Resul
 		return api.NewResult(0, place, nil, err)
 	}
 	go conn.Launch(h.c.WebSocket, roomID)
+
 	utils.Debug(false, "hi user:", user.ID)
 	// code 0 mean nothing to send to client
 	return api.NewResult(0, place, nil, nil)
