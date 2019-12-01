@@ -9,14 +9,13 @@ WORKDIR $SRC_DIR
 #    second build(with cache) - 220s
 # after :
 #    first  build(no cache)   - 278s
-#    second build(with cache) - 60s
+#    second build(with cache) - 112s
 
 COPY go.mod .
 COPY go.sum .
 
 RUN apk add --update git
 RUN apk add --update bash && rm -rf /var/cache/apk/*
-RUN go clean -modcache
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \ 
     go mod download

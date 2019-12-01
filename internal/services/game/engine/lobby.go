@@ -249,7 +249,7 @@ func (lobby *Lobby) SetConfiguration(config *config.Game, db database.GameUseCas
 	)
 	location, err = time.LoadLocation(config.Location)
 	if err != nil {
-		utils.Debug(true, "cant set location!")
+		utils.Debug(true, "cant set location")
 	}
 	lobby.setMessages(make([]*models.Message, 0))
 	lobby.setConfig(config)

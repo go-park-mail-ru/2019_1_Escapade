@@ -13,83 +13,6 @@ services:
       dockerfile: Dockerfile
       context: ./../../../../extra/postgresql/ery/  
 
-#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
-#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
-#curl -H Host:api.consul.localhost http://127.0.0.1:8081
-# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
-# sudo docker-compose up --scale api=5 api
-
-#http://api.consul.localhost:8081/health
-
-  api:
-    image: smartphonejava/api:latest    
-    build:
-      dockerfile: ./cmd/services/api/Dockerfile
-      context: ./../../../../
-
-  # ery:
-  #   build:
-  #     dockerfile: ./cmd/services/ery/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg-ery"
-  #     - "consul"
-  #     - "auth"
-  #   ports:
-  #     - 3100:3100
-  #   environment:
-  #     - CONSUL_ADDRESS=consul-agent-1
-  #   command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
-  #   volumes:
-  #   - ./:/escapade
-  #   logging:
-  #     options:
-  #       max-size: 10m
-
-  chat:
-    image: smartphonejava/chat:latest
-    build:
-      dockerfile: ./cmd/services/chat/Dockerfile
-      context: ./../../../../
-
-  ### auth ###
-        
-  # loader:
-  #   build:
-  #     dockerfile: ./cmd/services/configLoader/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "consul-agent-1"
-  #     - "vault"
-  #   ports:
-  #     - 3007:3007
-  #   command: /bin/sh -c "./bin/loader config.json"
-  #   logging:
-  #     options:
-  #       max-size: 10m
-
-  game:
-    image: smartphonejava/game:latest
-    build:
-      dockerfile: ./cmd/services/game/Dockerfile
-      context: ./../../../../
-
-  # history:
-  #   build:
-  #     dockerfile: ./history/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg"
-  #     - "auth"
-  #   ports:
-  #     - 3004:3004
-  #   environment:
-  #     - CONSUL_ADDRESS=consul
-  #     - DATABASE_URL=postgres://docker:docker@pg:5432/docker?sslmode=disable
-  #     - AUTHSERVICE_URL=auth:3333
-  #     - PORT_HISTORY_URL=:3004
-  #   command: /bin/sh -c "./bin/history"
-
   consul:
     image: smartphonejava/consul:latest
     build:
@@ -101,23 +24,3 @@ services:
     build:
       dockerfile: Dockerfile
       context: ./../../../../extra/front
-
-  # vault:
-  #   build:
-  #     context: ./extra/vault
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8200:8200
-  #   volumes:
-  #     - ./extra/vault/config:/vault/config
-  #     - ./extra/vault/policies:/vault/policies
-  #     - ./extra/vault/data:/vault/data
-  #     - ./extra/vault/logs:/vault/logs
-  #   environment:
-  #     - VAULT_ADDR=http://127.0.0.1:8200
-  #   command: server -config=config/vault-config.json
-  #   cap_add:
-  #     - IPC_LOCK
-  #   depends_on:
-  #     - consul-agent-1
-
