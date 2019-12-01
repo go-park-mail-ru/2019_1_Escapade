@@ -13,7 +13,7 @@ services:
       - "traefik.port=8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-      - $PWD/../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+      - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
     command: --web \
       --api \
       --docker \
@@ -111,7 +111,7 @@ services:
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
-    command: /bin/sh -c "./bin/chat cmd/services/chat/chat.json 3060"
+    command: cmd/services/chat/chat.json 3060
     logging:
       options:
         max-size: 10m
@@ -133,7 +133,7 @@ services:
       - CONSUL_ADDRESS=app_consul-agent
       #/bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
       # ./wait-for-it.sh pg:5432 &&  ./wait-for-it.sh  pg-auth:5432 && ./wait-for-it.sh pg-ery:5432 &&
-    command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003"
+    command: cmd/services/auth/auth.json 3003
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
@@ -159,7 +159,7 @@ services:
       - CONSUL_ADDRESS=app_consul-agent
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: /bin/sh -c "./bin/game cmd/services/game/game.json cmd/services/game/photo.json secret.json cmd/services/game/field.json cmd/services/game/room.json 3002"
+    command: cmd/services/game/game.json cmd/services/game/photo.json secret.json cmd/services/game/field.json cmd/services/game/room.json 3002
     deploy:
       restart_policy:
         condition: on-failure
@@ -215,7 +215,7 @@ services:
       - 8529-8549:8500
       - 8329-8349:8301
       # todo 142.93.79.194-> to env
-    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=./../../../extra/consul/config/server/consul-config.json
+    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=./consul/config/server.json
     deploy:
         restart_policy:
           condition: on-failure
@@ -232,7 +232,7 @@ services:
       - 8500:8500
       - 8600:53/udp
       # todo 142.93.79.194-> to env
-    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./../../../extra/consul/config/bootstrap/consul-config.json
+    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./consul/config/bootstrap.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
@@ -250,7 +250,7 @@ services:
       - 8501:8500
       - 8300:8300
       - 8301:8301
-    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./../../../extra/consul/config/client/consul-config.json   
+    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./consul/config/client.json
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:

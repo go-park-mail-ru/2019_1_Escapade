@@ -23,7 +23,7 @@ RUN wget --quiet --output-document=/tmp/consul.zip https://releases.hashicorp.co
 ENV PATH="PATH=$PATH:$PWD/consul"
 
 # add the config file
-COPY . /consul/config
+COPY ./config ./consul
 
 # expose ports
 EXPOSE 8300 8400 8500 8600

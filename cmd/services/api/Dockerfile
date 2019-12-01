@@ -1,33 +1,33 @@
-# docker build -t api .
-
+# syntax = docker/dockerfile:experimental
 FROM golang:alpine as build
 ENV SRC_DIR=/2019_1_Escapade/
 WORKDIR $SRC_DIR
+
+# introducing DOCKER_BUILDKIT=1
+#    first  build(no cache)   - 225s
+#    second build(with cache) - 64s
 
 COPY go.mod .
 COPY go.sum .
 
 RUN apk add --update git
 RUN apk add --update bash && rm -rf /var/cache/apk/*
-RUN go mod download
-
-#RUN mkdir src && cd src && \
-#wget http://mirror.linux-ia64.org/gnu/gcc/releases/gcc-8.3.0/gcc-8.3.0.tar.gz && \
-#tar -xvf gcc-8.3.0.tar.gz && mkdir bld && cd bld && \
-#../src/configure --target=powerpc64le-linux --host=powerpc64le-linux --build=powerpc64le-linux --enable-threads=posix --enable-shared --enable-__cxa_atexit --enable-languages=c,c++,go --enable-secureplt --enable-checking=yes --with-long-double-128 --enable-decimal-float --disable-bootstrap --disable-alsa --disable-multilib –prefix=/usr/local && \
-#make && \ make install
+RUN --mount=type=cache,target=/root/.cache/go-build \ 
+    --mount=type=cache,target=/go/pkg/mod \ 
+    go mod download
 
 RUN mkdir -p /2019_1_Escapade/internal/pkg
-COPY /internal/pkg /2019_1_Escapade/internal/pkg
-
 RUN mkdir -p /2019_1_Escapade/internal/services/api
-COPY /internal/services/api /2019_1_Escapade/internal/services/api
+RUN mkdir /2019_1_Escapade/docs
 
-RUN mkdir -p /2019_1_Escapade/docs
+COPY /internal/pkg /2019_1_Escapade/internal/pkg
+COPY /internal/services/api /2019_1_Escapade/internal/services/api
 COPY /docs/api /2019_1_Escapade/docs/api
 
 COPY /cmd/services/api .
-RUN go build -o bin/api main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \ 
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -o bin/api main.go
 
 FROM scratch
 ENV SRC_DIR=/2019_1_Escapade/

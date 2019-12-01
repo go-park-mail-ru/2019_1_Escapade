@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 func SetCookie(w http.ResponseWriter, name, value string, cc config.Cookie) {
@@ -34,6 +35,7 @@ func DeleteCookie(w http.ResponseWriter, name string, cc config.Cookie) {
 
 func GetCookie(r *http.Request, key string) (string, error) {
 	cookie, err := r.Cookie(key)
+	utils.Debug(false, "again!!!!!")
 	if err != nil || cookie == nil {
 		return "", http.ErrNoCookie
 	}

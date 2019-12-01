@@ -365,6 +365,14 @@ services:
       - backend
     privileged: true
 
+#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
+#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
+#curl -H Host:api.consul.localhost http://127.0.0.1:8081
+# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
+# sudo docker-compose up --scale api=5 api
+
+#http://api.consul.localhost:8081/health
+
 networks:
   backend:
     driver: bridge
