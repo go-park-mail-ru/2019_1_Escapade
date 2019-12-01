@@ -1,0 +1,15 @@
+{{uiuiuik}}
+
+{"nothing":"{{uiuiuik}}"}
+
+
+[localhost]
+
+{{ key "/api/nothing" }}
+
+{{ tree "api" | explode | toJSON }}
+
+
+{{datacenters}}
+
+{{file "some.tpl"}}

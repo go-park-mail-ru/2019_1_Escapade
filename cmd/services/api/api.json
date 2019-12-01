@@ -1,0 +1,72 @@
+{
+	"server": {
+		"name": "api",
+		"maxConn": 500,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"10s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"0",
+			"exec":"60s"
+		}
+	},
+	"auth": {
+		"accessTokenExpire": "2h",
+		"refreshTokenExpire": "336h",
+		"isGenerateRefresh": true,
+		"withReserve": true,
+		"tokenType": "Bearer"
+	  },
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL1",
+		"connectionString": "postgres://rolepade:escapade@app_pg:5432/escabase?sslmode=disable",
+		"maxOpenConns": 20,
+		"PageGames": 2,
+		"PageUsers": 100
+	},
+	"session": {
+		"path": "/",
+		"lifetime_hours": 604800,
+		"httpOnly": true,
+		"keys": {
+			"accessToken": "at",
+			"tokenType": "tt",
+			"refreshToken": "rt",
+			"expire": "e",
+			"reservePrefix": "re"
+		}
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"id": "1",
+		"secret": "1",
+		"scopes": ["all"],
+		"redirectURL": "http://auth:3003/auth/oauth2",
+		"address": "http://auth:3003"
+	},
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"https://escapade-frontend.herokuapp.com",
+			"https://ser.ru.com",
+			"https://explosion.team"
+		],
+		"headers": [
+			"Content-type",
+			"Authorization-access",
+			"Authorization-type",
+			"Authorization-refresh",
+			"Authorization-expire"
+		],
+		"methods": [
+			"GET", "POST", "DELETE", "PUT", "OPTIONS"
+		],
+		"credentials": "true"
+	}
+}

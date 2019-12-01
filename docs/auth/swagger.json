@@ -1,0 +1,136 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "We don't have a public API, so instead of a real host(explosion.team) we specify localhost:3003. To test the following methods, git clone https://github.com/go-park-mail-ru/2019_1_Escapade, enter the root directory and run 'docker-compose up -d'",
+        "title": "Escapade Explosion AUTH",
+        "contact": {},
+        "license": {},
+        "version": "1.0"
+    },
+    "host": "localhost:3003",
+    "basePath": "/auth",
+    "paths": {
+        "/token": {
+            "post": {
+                "description": "Get session token for current client",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get token",
+                "operationId": "tokenHandler",
+                "parameters": [
+                    {
+                        "default": "\"password\"",
+                        "description": "'password' or 'refresh_token'",
+                        "name": "grant_type",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client id",
+                        "name": "client_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client secret",
+                        "name": "client_secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"username\"",
+                        "description": "username",
+                        "name": "username",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"password\"",
+                        "description": "password",
+                        "name": "password",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client id",
+                        "name": "refresh_token",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "token was given",
+                        "schema": {
+                            "$ref": "#/definitions/models.SessionToken"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid body parameters ",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorDescription"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.ErrorDescription": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "unsupported_grant_type"
+                },
+                "error_description": {
+                    "type": "string",
+                    "example": "The authorization grant type is not supported by the authorization server"
+                }
+            }
+        },
+        "models.SessionToken": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "123123123"
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 86400
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "321321321"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "bearer"
+                }
+            }
+        }
+    }
+}

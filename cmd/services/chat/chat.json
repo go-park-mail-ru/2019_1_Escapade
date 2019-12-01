@@ -1,0 +1,21 @@
+{
+	"server": {
+		"name": "chat",
+		"maxConn": 100,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"10s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"5s",
+			"exec":"0s"
+		}
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"maxOpenConns": 20,
+		"url": "DATABASE_URL",
+		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable"
+	}
+}

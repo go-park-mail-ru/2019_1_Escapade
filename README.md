@@ -1,6 +1,9 @@
-# Escapade [![Go Report Card](https://goreportcard.com/badge/github.com/go-park-mail-ru/2019_1_Escapade)](https://goreportcard.com/report/github.com/go-park-mail-ru/2019_1_Escapade) [![Build Status](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade.svg?branch=develop)](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade) [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/go-park-mail-ru/2019_1_Escapade)
+[![Go Report Card](https://goreportcard.com/badge/github.com/go-park-mail-ru/2019_1_Escapade)](https://goreportcard.com/report/github.com/go-park-mail-ru/2019_1_Escapade) 
+[![codebeat badge](https://codebeat.co/badges/994dc363-cd9f-411f-a8b6-75c77e2a41e3)](https://codebeat.co/projects/github-com-smartphonejava-2019_1_escapade-master)
+[![Build Status](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade.svg?branch=develop)](https://travis-ci.org/go-park-mail-ru/2019_1_Escapade) 
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/go-park-mail-ru/2019_1_Escapade) 
 
-:heart_eyes: Top backend :heart_eyes:
+# Escapade 
 
 - [Играть](https://explosion.team)
 - [Резервный сайт](https://ser.ru.com/)

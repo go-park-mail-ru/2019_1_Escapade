@@ -1,0 +1,103 @@
+{
+	"server": {
+		"name": "game",
+		"maxConn": 1000,
+		"maxHeaderBytes": 16384,
+		"timeouts": {
+			"ttl":"40s",
+			"read":"10s",
+			"write":"15s",
+			"idle":"5s",
+			"wait":"5s",
+			"exec":"0s"
+		}
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"address": ":3003"
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL",
+		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable",
+		"maxOpenConns": 20
+	},
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"https://escapade-frontend.herokuapp.com",
+			"https://explosion.team"
+		],
+		"headers": [
+			"Content-type"
+		],
+		"credentials": "true",
+		"methods": [
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS"
+		]
+	},
+	"session": {
+		"name": "sessionid",
+		"path": "/",
+		"length": 16,
+		"lifetime": 1004800,
+		"httpOnly": true
+	},
+	"game": {
+		"lobby": {
+			"connections": 1000,
+			"rooms": 500,
+			"intervals": {
+				"garbage":"10s",
+				"messages":"20s",
+				"games":"10s"
+			},
+			"connection":"15s",
+			"wait":"120s"
+		},
+		"room": {
+			"canClose":true,
+			"wait":"20s",
+			"timeouts": {
+				"peopleFinding":"10s",
+				"runningPlayer":"120s",
+				"runningObserver":"10s",
+				"finished":"2s"
+			},
+			"field": {
+				"minAreaSize": 1,
+				"maxAreaSize": 5,
+				"minProbability": 20,
+				"maxProbability": 80
+			},
+			"garbage": "10s",
+			"length":16
+		},
+		"anonymous": {
+			"minID": 100,
+			"maxID": 99899
+		},
+		"location": "Europe/Moscow",
+		"metrics": true
+	},
+	"websocket": {
+		"writeWait": "60s",
+		"pongWait": "10s",
+		"pingPeriod": "9s",
+		"maxMessageSize": 4096,
+		"readBufferSize": 1024,
+		"writeBufferSize": 1024
+	},
+	"required": {
+			"name":"chat",
+			"polling":"40s",
+			"drop":10
+	}
+}

@@ -1,0 +1,8 @@
+{
+  "datacenter": "dc1",
+  "data_dir": "/consul/data",
+  "log_level": "DEBUG",
+  "server": true,
+  "bootstrap": true,
+  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw=="
+}
