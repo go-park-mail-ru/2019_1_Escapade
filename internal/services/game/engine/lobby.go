@@ -10,9 +10,9 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/database"
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/database"
 )
 
 /*

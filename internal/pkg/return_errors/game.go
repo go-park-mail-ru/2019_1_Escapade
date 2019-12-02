@@ -37,6 +37,12 @@ func ErrorLobbyDone() error {
 	return errors.New("Lobby is turned off")
 }
 
+// NoWebSocketOrUser return an error if there is no websocket
+// connection of user
+func NoWebSocketOrUser() error {
+	return errors.New("Websocket connection or user is not set")
+}
+
 // ErrorRoomOrLobbyDone return an error if lobby or room is turned off
 func ErrorRoomOrLobbyDone() error {
 	return errors.New("Lobby or room is turned off")

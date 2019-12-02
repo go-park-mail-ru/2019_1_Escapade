@@ -39,9 +39,10 @@ type Connection struct {
 	User *models.UserPublicInfo
 
 	wsM *sync.Mutex
-	_ws *websocket.Conn
+	_ws WebsocketConnI
 
-	lobby *Lobby
+	//lobby LobbyConnectionI //*Lobby
+	Events *ConnEvents
 
 	context context.Context
 	cancel  context.CancelFunc
@@ -54,6 +55,8 @@ type Connection struct {
 func newConnection() *Connection {
 	var s = &synced.SyncWgroup{}
 	s.Init(0)
+	context, cancel := context.WithCancel(context.Background())
+
 	return &Connection{
 		s: s,
 
@@ -76,25 +79,24 @@ func newConnection() *Connection {
 		timeM: &sync.RWMutex{},
 		_time: time.Now(),
 
+		Events: NewConnEvent(),
+
+		context: context,
+		cancel:  cancel,
+
 		send:      make(chan []byte),
 		actionSem: make(chan struct{}, 1),
 	}
 }
 
 // NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) (*Connection, error) {
-	if ws == nil || user == nil || lobby == nil {
-		return nil, re.ErrorLobbyDone()
+func NewConnection(ws WebsocketConnI, user *models.UserPublicInfo) (*Connection, error) {
+	if ws == nil || user == nil {
+		return nil, re.NoWebSocketOrUser()
 	}
-
-	context, cancel := context.WithCancel(lobby.context)
-
 	conn := newConnection()
 	conn.User = user
 	conn.setWs(ws)
-	conn.lobby = lobby
-	conn.context = context
-	conn.cancel = cancel
 
 	return conn, nil
 }
@@ -143,12 +145,12 @@ func (conn *Connection) Free() {
 		conn.setDisconnected()
 
 		conn.wsClose()
+		conn.Events.Close()
 		close(conn.send)
 		close(conn.actionSem)
 		// dont delete. conn = nil make pointer nil, but other pointers
 		// arent nil and we make 'conn.disconnected = true' for them
 
-		conn.lobby = nil
 		conn.setPlayingRoom(nil)
 		conn.setWaitingRoom(nil)
 	})
@@ -161,19 +163,11 @@ func (conn *Connection) InPlayingRoom() bool {
 
 // Launch run the writer and reader goroutines and wait them to free memory
 func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
-	if conn.s == nil {
-		panic(99)
-	}
 	conn.s.Do(func() {
-		// dont place there conn.wGroup.Add(1)
-		if conn.lobby == nil || conn.lobby.context == nil {
-			utils.Debug(true, "lobby nil or hasnt context!")
-			return
-		}
+		conn.Events.Join()
 
 		all := &sync.WaitGroup{}
 
-		conn.lobby.JoinConn(conn)
 		all.Add(1)
 		go conn.WriteConn(conn.context, cw, all)
 		all.Add(1)
@@ -182,9 +176,7 @@ func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
 		conn.SetConnected()
 
 		if roomID != "" {
-			rs := &models.RoomSettings{}
-			rs.ID = roomID
-			conn.lobby.EnterRoom(conn, rs)
+			conn.Events.EnterRoom(roomID)
 		}
 		all.Wait()
 
@@ -192,7 +184,7 @@ func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
 		if conn == nil {
 			utils.Debug(true, "conn nil")
 		}
-		conn.lobby.Leave(conn, "finished")
+		conn.Events.Leave()
 	})
 	//conn.Free()
 }
@@ -224,10 +216,7 @@ func (conn *Connection) ReadConn(parent context.Context, wsc config.WebSocket, w
 				}
 				utils.Debug(false, "#", conn.ID(), "read from conn:", string(message))
 				conn.SetConnected()
-				conn.lobby.chanBroadcast <- &Request{
-					Connection: conn,
-					Message:    message,
-				}
+				conn.Events.Request(message)
 			}
 		}
 	})
@@ -291,12 +280,6 @@ func (conn *Connection) sendGroupInformation(value handlers.JSONtype, wg *sync.W
 
 // ID return player's id
 func (conn *Connection) ID() int32 {
-	if conn == nil {
-		panic("why")
-	}
-	if conn.User == nil {
-		return -1
-	}
 	var userID int32
 	conn.s.Do(func() {
 		userID = conn.User.ID

@@ -152,7 +152,7 @@ func (conn *Connection) wsClose() error {
 	return conn._ws.Close()
 }
 
-func (conn *Connection) setWs(ws *websocket.Conn) {
+func (conn *Connection) setWs(ws WebsocketConnI) {
 	conn.wsM.Lock()
 	defer conn.wsM.Unlock()
 	conn._ws = ws

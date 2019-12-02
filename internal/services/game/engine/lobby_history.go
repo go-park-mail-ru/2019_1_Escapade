@@ -40,7 +40,8 @@ func LaunchLobbyHistory(chatS clients.Chat, db database.GameUseCaseI,
 		}
 	}
 
-	conn, err := NewConnection(ws, user, lobby)
+	conn, err := NewConnection(ws, user)
+	go lobby.Observe(conn)
 	if err != nil {
 		utils.Debug(false, "cant create connection")
 		return
