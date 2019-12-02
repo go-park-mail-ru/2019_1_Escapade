@@ -1,5 +1,6 @@
 package engine
 
+/*
 import (
 	"math/rand"
 	"testing"
@@ -42,4 +43,4 @@ func TestNewCell(t *testing.T) {
 			})
 		})
 	})
-}
+}*/

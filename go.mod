@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aws/aws-sdk-go v1.19.19
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fsouza/go-dockerclient v1.6.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/spec v0.19.4 // indirect
@@ -13,11 +14,10 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/btree v1.0.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
-	github.com/gorilla/mux v1.7.1
+	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/jackc/pgx v3.5.0+incompatible
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.0
@@ -34,8 +34,7 @@ require (
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
-	google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb // indirect
-	google.golang.org/grpc v1.20.1
+	google.golang.org/grpc v1.22.0
 	gopkg.in/oauth2.v3 v3.10.1
 	gopkg.in/yaml.v2 v2.2.4 // indirect
 )

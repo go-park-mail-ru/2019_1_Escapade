@@ -2,7 +2,7 @@ package engine
 
 import (
 	"time"
-	
+
 	"github.com/gorilla/websocket"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
@@ -150,6 +150,12 @@ func (conn *Connection) wsClose() error {
 	conn.wsM.Lock()
 	defer conn.wsM.Unlock()
 	return conn._ws.Close()
+}
+
+func (conn *Connection) setWs(ws *websocket.Conn) {
+	conn.wsM.Lock()
+	defer conn.wsM.Unlock()
+	conn._ws = ws
 }
 
 func (conn *Connection) wsWriteInWriter(message []byte, wsc config.WebSocket) error {

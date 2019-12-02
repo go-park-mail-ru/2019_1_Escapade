@@ -1,10 +1,10 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
-	"context"
 
 	"github.com/gorilla/websocket"
 
@@ -51,16 +51,9 @@ type Connection struct {
 	send chan []byte
 }
 
-// NewConnection creates a new connection
-func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) (*Connection, error) {
-	if ws == nil || user == nil || lobby == nil {
-		return nil, re.ErrorLobbyDone()
-	}
-
-	context, cancel := context.WithCancel(lobby.context)
+func newConnection() *Connection {
 	var s = &synced.SyncWgroup{}
 	s.Init(0)
-
 	return &Connection{
 		s: s,
 
@@ -77,22 +70,33 @@ func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby
 		_index: -1,
 
 		UUID: utils.RandomString(16),
-		User: user,
 
 		wsM: &sync.Mutex{},
-		_ws: ws,
-
-		lobby: lobby,
-
-		context: context,
-		cancel:  cancel,
 
 		timeM: &sync.RWMutex{},
 		_time: time.Now(),
 
 		send:      make(chan []byte),
 		actionSem: make(chan struct{}, 1),
-	}, nil
+	}
+}
+
+// NewConnection creates a new connection
+func NewConnection(ws *websocket.Conn, user *models.UserPublicInfo, lobby *Lobby) (*Connection, error) {
+	if ws == nil || user == nil || lobby == nil {
+		return nil, re.ErrorLobbyDone()
+	}
+
+	context, cancel := context.WithCancel(lobby.context)
+
+	conn := newConnection()
+	conn.User = user
+	conn.setWs(ws)
+	conn.lobby = lobby
+	conn.context = context
+	conn.cancel = cancel
+
+	return conn, nil
 }
 
 // Restore set restored playing and waiting rooms, conn's index
