@@ -44,10 +44,18 @@ func TestNewConnectionWithoutDatabase(t *testing.T) {
 			conn.setWaitingRoom(waitingRoomOld)
 			conn.SetIndex(oldIndex)
 
+			So(conn.PlayingRoom(), ShouldEqual, playingRoomOld)
+			So(conn.WaitingRoom(), ShouldEqual, waitingRoomOld)
+			So(conn.Index(), ShouldEqual, oldIndex)
+
 			Convey("All pointers fields should be not nil", func() {
-				conn.setPlayingRoom(waitingRoomNew)
-				conn.setWaitingRoom(playingRoomNew)
+				conn.setPlayingRoom(playingRoomNew)
+				conn.setWaitingRoom(waitingRoomNew)
 				conn.SetIndex(newIndex)
+
+				So(conn.PlayingRoom(), ShouldEqual, playingRoomNew)
+				So(conn.WaitingRoom(), ShouldEqual, waitingRoomNew)
+				So(conn.Index(), ShouldEqual, newIndex)
 			})
 		})
 	})
