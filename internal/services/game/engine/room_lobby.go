@@ -13,14 +13,8 @@ import (
 // LobbyProxyI control access to lobby
 // Proxy Pattern
 type LobbyProxyI interface {
-	Start()
-	Finish()
-	Close()
-	Notify()
 	SaveGame(info models.GameInformation) error
 
-	Greet(conn *Connection)
-	BackToLobby(conn *Connection)
 	WaiterToPlayer(conn *Connection)
 	CreateAndAddToRoom(conn *Connection) (*Room, error)
 
@@ -36,6 +30,9 @@ type LobbyProxyI interface {
 	ChatService() clients.Chat
 
 	Date() time.Time
+
+	EventsSub() synced.SubscriberI
+	ConnectionSub() synced.SubscriberI
 }
 
 // RoomLobby implements LobbyProxyI
@@ -64,44 +61,12 @@ func (room *RoomLobby) ChatService() clients.Chat {
 	return room.lobby.ChatService
 }
 
-func (room *RoomLobby) Finish() {
-	room.s.Do(func() {
-		room.lobby.roomFinish(room.i.ID())
-	})
-}
-
-func (room *RoomLobby) Notify() {
-	room.s.Do(func() {
-		room.lobby.sendRoomUpdate(room.r, All)
-	})
-}
-
-func (room *RoomLobby) Start() {
-	room.s.Do(func() {
-		room.lobby.RoomStart(room.r, room.i.ID())
-	})
-}
-
 func (room *RoomLobby) SaveGame(info models.GameInformation) error {
 	err := room.lobby.db().Save(info)
 	if err != nil {
 		room.lobby.AddNotSavedGame(&info)
 	}
 	return err
-}
-
-func (room *RoomLobby) Close() {
-	room.s.Do(func() {
-		room.lobby.CloseRoom(room.i.ID())
-	})
-}
-
-func (room *RoomLobby) Greet(conn *Connection) {
-	room.lobby.greet(conn)
-}
-
-func (room *RoomLobby) BackToLobby(conn *Connection) {
-	go room.lobby.LeaveRoom(conn, ActionBackToLobby)
 }
 
 func (room *RoomLobby) WaiterToPlayer(conn *Connection) {
@@ -143,6 +108,14 @@ func (room *RoomLobby) SaveMessages(mwa *MessageWithAction) {
 
 func (room *RoomLobby) setWaitingRoom(conn *Connection) {
 	conn.setWaitingRoom(room.r)
+}
+
+func (room *RoomLobby) EventsSub() synced.SubscriberI {
+	return room.lobby.EventsSub(room.r)
+}
+
+func (room *RoomLobby) ConnectionSub() synced.SubscriberI {
+	return room.lobby.ConnectionSub(room.r)
 }
 
 // IsWinner is player wuth id playerID is winner

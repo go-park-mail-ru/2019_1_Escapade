@@ -6,6 +6,7 @@ import (
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
 )
 
 // RSendI handle controls the distribution of responses to clients
@@ -19,7 +20,7 @@ type RSendI interface {
 	ObserverEnter(conn *Connection)
 	StatusToOne(conn *Connection)
 
-	GameOver(timer bool, predicate SendPredicate, cells []Cell, wg *sync.WaitGroup)
+	GameOver(timer bool, predicate SendPredicate, cells []Cell)
 
 	NewCells(cells ...Cell)
 	Text(text string, predicate SendPredicate)
@@ -31,7 +32,7 @@ type RSendI interface {
 	PlayerPoints(player Player)
 
 	Message(message models.Message)
-	Action(pa PlayerAction, predicate SendPredicate)
+	Action(pa action_.PlayerAction, predicate SendPredicate)
 
 	All(conn *Connection) bool
 	AllExceptThat(me *Connection) func(*Connection) bool
@@ -89,13 +90,7 @@ func (room *RoomSender) PlayerPoints(player Player) {
 }
 
 func (room *RoomSender) GameOver(timer bool, predicate SendPredicate,
-	cells []Cell, wg *sync.WaitGroup) {
-	defer func() {
-		if wg != nil {
-			wg.Done()
-		}
-	}()
-
+	cells []Cell) {
 	response := room.m.responseRoomGameOver(timer, cells)
 	room.sendAll(response, predicate)
 }
@@ -165,7 +160,7 @@ func (room *RoomSender) StatusToOne(conn *Connection) {
 }
 
 // Action send actions history to all in room
-func (room *RoomSender) Action(pa PlayerAction, predicate SendPredicate) {
+func (room *RoomSender) Action(pa action_.PlayerAction, predicate SendPredicate) {
 	response := models.Response{
 		Type:  "RoomAction",
 		Value: pa,

@@ -5,6 +5,8 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // ActionRecorderI control access to actions history
@@ -17,16 +19,18 @@ type ActionRecorderI interface {
 	Leave(conn *Connection, action int32, isPlayer bool)
 
 	ModelActions() []models.Action
-	history() []*PlayerAction
+	history() []*action_.PlayerAction
 
 	AddConnection(conn *Connection, isPlayer bool, needRecover bool)
-	setHistory(history []*PlayerAction)
+	setHistory(history []*action_.PlayerAction)
 
 	Kill(conn *Connection, action int32, isDeathmatch bool)
 
 	configure(info []models.Action)
 
 	Free()
+
+	ConnectionSub() synced.SubscriberI
 }
 
 // RoomRecorder notify actions to room history and to users
@@ -34,27 +38,25 @@ type ActionRecorderI interface {
 type RoomRecorder struct {
 	s  synced.SyncI
 	i  RoomInformationI
-	l  LobbyProxyI
 	p  PeopleI
 	f  FieldProxyI
 	se RSendI
 	mo RModelsI
 
 	historyM *sync.RWMutex
-	_history []*PlayerAction
+	_history []*action_.PlayerAction
 }
 
 func (room *RoomRecorder) Init(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildInformation(&room.i)
-	builder.BuildLobby(&room.l)
 	builder.BuildPeople(&room.p)
 	builder.BuildField(&room.f)
 	builder.BuildSender(&room.se)
 	builder.BuildModelsAdapter(&room.mo)
 
 	room.historyM = &sync.RWMutex{}
-	room.setHistory(make([]*PlayerAction, 0))
+	room.setHistory(make([]*action_.PlayerAction, 0))
 }
 
 func (room *RoomRecorder) Free() {
@@ -72,15 +74,15 @@ func (room *RoomRecorder) Leave(conn *Connection, action int32, isPlayer bool) {
 }
 
 func (room *RoomRecorder) Disconnect(conn *Connection) {
-	room.notifyAll(conn, ActionDisconnect)
+	room.notifyAll(conn, action_.Disconnect)
 }
 
 func (room *RoomRecorder) FlagSet(conn *Connection) {
-	room.notifyAll(conn, ActionFlagSet)
+	room.notifyAll(conn, action_.FlagSet)
 }
 
 func (room *RoomRecorder) Restart(conn *Connection) {
-	room.notifyAll(conn, ActionRestart)
+	room.notifyAll(conn, action_.Restart)
 }
 
 func (room *RoomRecorder) flag(conn *Connection) {
@@ -103,25 +105,24 @@ func (room *RoomRecorder) ModelActions() []models.Action {
 	history := room.history()
 	actions := make([]models.Action, 0)
 	room.s.Do(func() {
-		for _, actionHistory := range history {
-			action := room.mo.toModelPlayerAction(actionHistory)
-			actions = append(actions, action)
+		for _, action := range history {
+			actions = append(actions, action.ToModel())
 		}
 	})
 	return actions
 }
 
 func (room *RoomRecorder) Reconnect(conn *Connection) {
-	room.notifyAll(conn, ActionReconnect)
+	room.notifyAll(conn, action_.Reconnect)
 }
 
 func (room *RoomRecorder) AddPlayer(conn *Connection) {
-	room.notifyAll(conn, ActionConnectAsPlayer)
+	room.notifyAll(conn, action_.ConnectAsPlayer)
 	room.se.PlayerEnter(conn)
 }
 
 func (room *RoomRecorder) AddObserver(conn *Connection) {
-	room.notifyAll(conn, ActionConnectAsObserver)
+	room.notifyAll(conn, action_.ConnectAsObserver)
 	room.se.ObserverEnter(conn)
 }
 
@@ -138,46 +139,43 @@ func (room *RoomRecorder) AddConnection(conn *Connection, isPlayer bool, needRec
 }
 
 func (room *RoomRecorder) FlagСonflict(conn *Connection) {
-	room.notifyAll(conn, ActionFlagСonflict)
+	room.notifyAll(conn, action_.FlagСonflict)
 }
 
 func (room *RoomRecorder) notifyAll(conn *Connection, action int32) {
 	room.s.Do(func() {
-		pa := NewPlayerAction(conn.ID(), action)
+		pa := action_.NewPlayerAction(conn.ID(), action)
 		room.appendAction(pa)
-		if !room.p.Empty() {
-			room.se.Action(*pa, room.se.AllExceptThat(conn))
-			room.l.Notify()
-		}
+		room.se.Action(*pa, room.se.AllExceptThat(conn))
 	})
 }
 
 func (room *RoomRecorder) configure(info []models.Action) {
-	room.setHistory(make([]*PlayerAction, 0))
+	room.setHistory(make([]*action_.PlayerAction, 0))
 	for _, actionDB := range info {
-		action := room.mo.fromModelPlayerAction(actionDB)
-		room.appendAction(action)
+		var action = &action_.PlayerAction{}
+		room.appendAction(action.FromModel(actionDB))
 	}
 }
 
 /////////////////////////////// mutex
 
 // history return '_history' field
-func (room *RoomRecorder) history() []*PlayerAction {
+func (room *RoomRecorder) history() []*action_.PlayerAction {
 	room.historyM.RLock()
 	v := room._history
 	room.historyM.RUnlock()
 	return v
 }
 
-func (room *RoomRecorder) setHistory(history []*PlayerAction) {
+func (room *RoomRecorder) setHistory(history []*action_.PlayerAction) {
 	room.historyM.Lock()
 	room._history = history
 	room.historyM.Unlock()
 }
 
 // appendAction append action to action slice(history)
-func (room *RoomRecorder) appendAction(action *PlayerAction) {
+func (room *RoomRecorder) appendAction(action *action_.PlayerAction) {
 	room.historyM.Lock()
 	defer room.historyM.Unlock()
 	room._history = append(room._history, action)
@@ -188,4 +186,58 @@ func (room *RoomRecorder) historyFree() {
 	room.historyM.Lock()
 	room._history = nil
 	room.historyM.Unlock()
+}
+
+///////////////////////// callbacks
+
+func (room *RoomRecorder) ConnectionSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.connectionCallback)
+}
+
+func (room *RoomRecorder) connectionCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdateConnection {
+		return
+	}
+	action, ok := msg.Content.(ConnectionMsg)
+	if !ok {
+		return
+	}
+	switch action.code {
+	case action_.BackToLobby:
+		isPlayer, ok := action.content.(bool)
+		if !ok {
+			return
+		}
+		room.Leave(action.connection, action.code, isPlayer)
+	case action_.Restart:
+		room.Restart(action.connection)
+	}
+}
+
+func (room *RoomRecorder) PeopleSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.peopleCallback)
+}
+
+func (room *RoomRecorder) peopleCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdatePeople {
+		return
+	}
+	action, ok := msg.Content.(ConnectionMsg)
+	if !ok {
+		return
+	}
+	switch action.code {
+	case room_.ObserverEnter:
+		needRecover, ok := action.content.(bool)
+		if !ok {
+			return
+		}
+		room.AddConnection(action.connection, false, needRecover)
+	case room_.PlayerEnter:
+		needRecover, ok := action.content.(bool)
+		if !ok {
+			return
+		}
+		room.AddConnection(action.connection, false, needRecover)
+	}
 }

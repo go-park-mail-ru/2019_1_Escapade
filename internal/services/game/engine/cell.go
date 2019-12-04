@@ -23,6 +23,10 @@ func NewCell(x int32, y int32, v int32, ID int32) *Cell {
 	return cell
 }
 
+func (cell *Cell) AreCoordinatesValid(width, height int32) bool {
+	return cell.X >= 0 && cell.Y >= 0 && cell.X < width && cell.Y < height
+}
+
 // Cell type
 const (
 	CellMine   = iota + 9 // +9, cause <9 - amount of mines around

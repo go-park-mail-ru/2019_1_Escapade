@@ -2,11 +2,18 @@ package rerrors
 
 import "errors"
 
+import "fmt"
+
 // ErrorWrongStatus return error, returns an error if
 // someone tries to perform an action that is valid not with current
 // room status
 func ErrorWrongStatus() error {
 	return errors.New("Action refused. Too late or too early to perform your action")
+}
+
+// ErrorWrongBordersParams return error if the borders params are wrong
+func ErrorWrongBordersParams(w, h, m int32) error {
+	return fmt.Errorf("Wrong weight('%d') or height('%d') or mines around(%d)", w, h, m)
 }
 
 // ErrorCellOutside return error if the specified cel

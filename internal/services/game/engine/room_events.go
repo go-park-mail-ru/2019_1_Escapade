@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // EventsI handle events in the game process
@@ -20,25 +21,30 @@ type EventsI interface {
 	Restart(conn *Connection) error
 	Next() *Room
 
-	prepareOver()
 	RecruitingOver()
+	PrepareOver()
 
 	tryFinish()
-	tryClose()
+
+	Timeout() bool
 
 	configure(status int, date time.Time)
 
 	Free()
-	Run()
+	Run(realRoom *Room)
 
 	playingTime() time.Duration
 	recruitmentTime() time.Duration
 
 	Date() time.Time
+
+	PeopleSub() synced.SubscriberI
 }
 
 // RoomEvents implements EventsI
 type RoomEvents struct {
+	synced.PublisherBase
+
 	s   synced.SyncI
 	i   RoomInformationI
 	l   LobbyProxyI
@@ -70,6 +76,9 @@ type RoomEvents struct {
 	_status    int
 	chanStatus chan int
 
+	timeoutM *sync.RWMutex
+	_timeout bool
+
 	isDeathmatch  bool
 	TimeToPlay    time.Duration
 	TimeToPrepare time.Duration
@@ -89,6 +98,9 @@ func (room *RoomEvents) Init(builder RBuilderI, settings *models.RoomSettings) {
 	builder.BuildRecorder(&room.re)
 	builder.BuildSender(&room.se)
 
+	room.PublisherBase = *synced.NewPublisher()
+	room.PublisherBase.Start(room.f.EventsSub(), room.l.EventsSub())
+
 	room.isDeathmatch = settings.Deathmatch
 	room.TimeToPlay = time.Second * time.Duration(settings.TimeToPlay)
 	room.TimeToPrepare = time.Second * time.Duration(settings.TimeToPrepare)
@@ -105,15 +117,29 @@ func (room *RoomEvents) Init(builder RBuilderI, settings *models.RoomSettings) {
 	room.nextM = &sync.RWMutex{}
 	room._next = nil
 
+	room.timeoutM = &sync.RWMutex{}
+	room._timeout = false
+
 	room.chanStatus = make(chan int)
 
-	room.setStatus(StatusRecruitment)
+	room.setStatus(room_.StatusRecruitment)
+}
+
+func (room *RoomEvents) Timeout() bool {
+	room.timeoutM.RLock()
+	defer room.timeoutM.RUnlock()
+	return room._timeout
+}
+
+func (room *RoomEvents) setTimeout() {
+	room.timeoutM.RLock()
+	defer room.timeoutM.RUnlock()
+	room._timeout = true
 }
 
 // initTimers launch game timers. Call it when flag placement starts
 func (room *RoomEvents) initTimers(first bool) {
 	if first {
-		utils.Debug(false, "first time ")
 		room.prepare = time.NewTimer(time.Hour * 24)
 		room.play = time.NewTimer(time.Hour * 24)
 	} else {
@@ -121,124 +147,45 @@ func (room *RoomEvents) initTimers(first bool) {
 		if room.isDeathmatch {
 			prepare = room.TimeToPrepare
 		}
-		utils.Debug(false, "!!!times:", prepare, room.TimeToPlay)
 		room.prepare.Reset(prepare)
 		room.play.Reset(room.TimeToPlay + prepare)
 	}
 	return
 }
 
-func (room *RoomEvents) RecruitingOver() {
-	room.initTimers(false)
-	if room.updateStatus(StatusFlagPlacing) {
-		if room.isDeathmatch {
-			room.se.StatusToAll(room.se.All, StatusFlagPlacing, nil)
-		}
-	}
-}
-
-func (room *RoomEvents) prepareOver() {
-	room.prepare.Stop()
-	if room.updateStatus(StatusRunning) {
-		room.se.StatusToAll(room.se.All, StatusRunning, nil)
-	}
-}
-
 func (room *RoomEvents) tryFinish() {
-	if room.p.AllKilled() || room.f.Field().IsCleared() {
-		room.playingOver()
+	if room.f.Field().IsCleared() {
+		room.chanStatus <- room_.StatusFinished
 	}
 }
 
-func (room *RoomEvents) tryClose() {
-	if room.p.Empty() {
-		room.Close()
-	}
+func (room *RoomEvents) RecruitingOver() {
+	room.chanStatus <- room_.StatusFlagPlacing
 }
 
-func (room *RoomEvents) playingOver() {
-	room.play.Stop()
-	if room.updateStatus(StatusFinished) {
-		room.se.StatusToAll(room.se.All, StatusFinished, nil)
-	}
-}
-
-func (room *RoomEvents) updateStatus(newStatus int) bool {
-	if room.Status() != newStatus {
-		go func() { room.chanStatus <- newStatus }()
-		return true
-	}
-	return false
-}
-
-// StartFlagPlacing prepare field, players and observers
-func (room *RoomEvents) StartFlagPlacing() {
-	room.s.Do(func() {
-		utils.Debug(false, "StartFlagPlacing")
-		room.setStatus(StatusFlagPlacing)
-
-		room.p.ForEach(func(c *Connection, isPlayer bool) {
-			room.se.Room(c)
-			room.l.WaiterToPlayer(c)
-		})
-
-		room.p.Start()
-		room.l.Start()
-
-		room.se.StatusToAll(room.se.All, StatusFlagPlacing, nil)
-		room.se.Field(room.se.All)
-	})
+func (room *RoomEvents) PrepareOver() {
+	room.chanStatus <- room_.StatusRunning
 }
 
 func (room *RoomEvents) CancelGame() {
 	room.s.Do(func() {
-		room.setStatus(StatusFinished)
 		room.met.Observe(room.l.metricsEnabled(), true)
-		room.l.Finish()
 	})
 }
 
 // StartGame start game
 func (room *RoomEvents) StartGame() {
 	room.s.Do(func() {
-		utils.Debug(false, "StartGame")
-		//s := room.r.Settings.Width * room.r.Settings.Height
-		//open := float64(room.r.Settings.Mines) / float64(s) * float64(100)
-		//utils.Debug(false, "opennn", open, room.Settings.Width*room.Settings.Height)
-
-		cells := room.f.Field().OpenZero() //room.Field.OpenSave(int(open))
-		room.se.NewCells(cells...)
-		room.setStatus(StatusRunning)
 		room.setDate(room.l.Date())
-		room.se.StatusToAll(room.se.All, StatusRunning, nil)
 		room.se.Text("Battle began! Destroy your enemy!", room.se.All)
 	})
 }
 
 // FinishGame finish game
-func (room *RoomEvents) FinishGame(timer bool) {
+func (room *RoomEvents) FinishGame() {
 	room.s.Do(func() {
-		room.setStatus(StatusFinished)
-
-		// save Group
-		saveAndSendGroup := &sync.WaitGroup{}
-
-		cells := make([]Cell, 0)
-		room.f.Field().OpenEverything(cells)
-
-		saveAndSendGroup.Add(1)
-		room.se.GameOver(timer, room.se.All, cells, saveAndSendGroup)
-
-		saveAndSendGroup.Add(1)
-		room.mo.Save(saveAndSendGroup)
-
-		saveAndSendGroup.Add(1)
-		room.p.Finish(saveAndSendGroup)
-		saveAndSendGroup.Wait()
-
+		room.mo.Save()
 		room.met.Observe(room.l.metricsEnabled(), false)
-
-		room.l.Finish()
 	})
 }
 
@@ -250,10 +197,6 @@ func (room *RoomEvents) Close() bool {
 		if !room.l.closeEnabled() {
 			return
 		}
-		utils.Debug(false, "We closed room :С")
-
-		go room.l.Close()
-
 		utils.Debug(false, "Prepare to free!")
 		go room.Free()
 		utils.Debug(false, "We did it")
@@ -268,21 +211,21 @@ func (room *RoomEvents) OpenCell(conn *Connection, cell *Cell) {
 			return
 		}
 		status := room.Status()
-		utils.Debug(false, "status", status)
-		if status == StatusFlagPlacing {
+		if status == room_.StatusFlagPlacing {
 			room.f.SetFlag(conn, cell)
-		} else if status == StatusRunning {
+		} else if status == room_.StatusRunning {
 			room.f.OpenCell(conn, cell)
 		}
 	})
 }
 
-func (room *RoomEvents) Run() {
+func (room *RoomEvents) Run(realRoom *Room) {
 	room.s.Do(func() {
-
 		defer room.g.Close()
-		// зассунуть в room.g оттуда доставать
 		var gc = room.g.SingleGoroutine()
+
+		//go room.Start(..)
+		defer room.Stop()
 
 		room.initTimers(true)
 		defer func() {
@@ -290,46 +233,27 @@ func (room *RoomEvents) Run() {
 			room.play.Stop()
 		}()
 
-		var beginGame, timeOut bool
+		var beginGame bool
 
 		for {
 			select {
 			case <-gc.C():
 				go gc.Do()
 			case <-room.prepare.C:
-				if beginGame {
-					room.prepareOver()
+				if !beginGame {
+					room.chanStatus <- room_.StatusRunning
 				}
 			case <-room.play.C:
 				if beginGame {
-					timeOut = true
-					room.playingOver()
+					room.setTimeout()
+					room.chanStatus <- room_.StatusFinished
 				}
 			case newStatus := <-room.chanStatus:
-				oldStatus := room.Status()
-
-				if newStatus == oldStatus || newStatus > StatusFinished {
-					continue
-				}
-				if oldStatus == StatusRecruitment {
-					room.setRecruitmentTime()
-				} else if newStatus == StatusFinished {
-					room.setPlayingTime()
-				}
-				switch newStatus {
-				case StatusFlagPlacing:
+				if newStatus == room_.StatusRunning {
 					beginGame = true
-					room.StartFlagPlacing()
-				case StatusRunning:
-					room.StartGame()
-				case StatusFinished:
-					if oldStatus == StatusRecruitment {
-						room.CancelGame()
-					} else {
-						room.FinishGame(timeOut)
-					}
-				//return
-				case StatusAborted:
+				}
+				room.updateStatus(newStatus)
+				if newStatus == room_.StatusFinished || newStatus == room_.StatusAborted {
 					return
 				}
 			}
@@ -355,7 +279,7 @@ func (room *RoomEvents) IsActive() bool {
 	var result = false
 	room.s.Do(func() {
 		status := room.Status()
-		result = status == StatusFlagPlacing || status == StatusRunning
+		result = status == room_.StatusFlagPlacing || status == room_.StatusRunning
 	})
 	return result
 }
@@ -365,13 +289,12 @@ func (room *RoomEvents) IsActive() bool {
 func (room *RoomEvents) Free() {
 
 	room.s.Clear(func() {
-		room.chanStatus <- StatusAborted
+		room.chanStatus <- room_.StatusAborted
 
-		room.setStatus(StatusFinished)
 		go room.re.Free()
 		go room.mes.Free()
-		go room.p.Free()
-		go room.f.Field().Free()
+		room.play.Stop()
+		room.prepare.Stop()
 
 		close(room.chanStatus)
 	})
@@ -388,6 +311,16 @@ func (room *RoomEvents) setStatus(status int) {
 	room.statusM.Lock()
 	room._status = status
 	room.statusM.Unlock()
+}
+
+func (room *RoomEvents) trySetStatus(status int) bool {
+	room.statusM.Lock()
+	defer room.statusM.Unlock()
+	if status == room._status {
+		return false
+	}
+	room._status = status
+	return true
 }
 
 // Status return room's current status
@@ -472,3 +405,57 @@ func (room *RoomEvents) setNext(next *Room) {
 	room._next = next
 	room.nextM.Unlock()
 }
+
+func (room *RoomEvents) updateStatus(newStatus int) bool {
+	oldStatus := room.Status()
+	done := room.trySetStatus(newStatus)
+	if !done {
+		return false
+	}
+	room.Notify(synced.Msg{
+		Code:    room_.UpdateStatus,
+		Content: newStatus,
+	})
+
+	room.se.StatusToAll(room.se.All, newStatus, nil)
+	switch newStatus {
+	case room_.StatusFlagPlacing:
+		room.initTimers(false)
+		room.se.Field(room.se.All)
+	case room_.StatusRunning:
+		room.setRecruitmentTime()
+		room.StartGame()
+	case room_.StatusFinished:
+		room.setPlayingTime()
+		if oldStatus == room_.StatusRecruitment {
+			room.CancelGame()
+		} else {
+			room.FinishGame()
+		}
+	}
+	return true
+}
+
+func (room *RoomEvents) PeopleSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.peopleCallback)
+}
+
+///////////////////////////////// callbacks
+
+func (room *RoomEvents) peopleCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdatePeople {
+		return
+	}
+	code, ok := msg.Content.(int)
+	if !ok {
+		return
+	}
+	switch code {
+	case room_.AllDied:
+		room.chanStatus <- room_.StatusFinished
+	case room_.AllExit:
+		room.Close()
+	}
+}
+
+// 494

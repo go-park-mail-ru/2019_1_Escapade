@@ -3,6 +3,8 @@ package engine
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // RClientI specifies the actions that a room can perform on a connection
@@ -13,15 +15,15 @@ type RClientI interface {
 	GiveUp(conn *Connection)
 	Reconnect(conn *Connection)
 	Restart(conn *Connection)
-	Enter(conn *Connection) bool
+	Enter(conn *Connection)
 	Disconnect(conn *Connection)
 	isPlayer(conn *Connection) bool
-
-	Kill(conn *Connection, action int32)
 }
 
 // RClient implements RClientI
 type RClient struct {
+	synced.PublisherBase
+
 	s  synced.SyncI
 	l  LobbyProxyI
 	re ActionRecorderI
@@ -30,6 +32,12 @@ type RClient struct {
 	p  PeopleI
 
 	isDeathMatch bool
+}
+
+type ConnectionMsg struct {
+	connection *Connection
+	code       int32
+	content    interface{}
 }
 
 // Init configure dependencies with other components of the room
@@ -42,40 +50,51 @@ func (room *RClient) Init(builder RBuilderI, isDeathMatch bool) {
 	builder.BuildPeople(&room.p)
 
 	room.isDeathMatch = isDeathMatch
+
+	room.PublisherBase = *synced.NewPublisher()
+	room.Start(room.l.ConnectionSub(),
+		room.re.ConnectionSub(), room.p.ConnectionSub())
+}
+
+func (room *RClient) free() {
+	room.Stop()
+}
+
+func (room *RClient) notify(conn *Connection, code int32, content interface{}) {
+	room.Notify(synced.Msg{
+		Code: room_.UpdateConnection,
+		Content: ConnectionMsg{
+			connection: conn,
+			code:       code,
+			content:    content,
+		},
+	})
 }
 
 // Timeout handle the situation, when the waiting time for the player
 // to return has expired
 func (room *RClient) Timeout(conn *Connection) {
-	room.leave(conn, ActionTimeout)
+	room.leave(conn, action_.Timeout)
 }
 
 func (room *RClient) leave(conn *Connection, action int32) {
 	room.s.DoWithOther(conn, func() {
 		isPlayer := room.isPlayer(conn)
 		if isPlayer {
-			if room.e.IsActive() {
-				room.Kill(conn, action)
-			}
+			room.notify(conn, action, nil)
 		}
-		room.p.Remove(conn)
-		room.re.Leave(conn, ActionBackToLobby, isPlayer)
-		room.e.tryClose()
-		room.l.Greet(conn)
+		room.notify(conn, action_.BackToLobby, isPlayer)
 	})
 }
 
 // Leave handle player going back to lobby
 func (room *RClient) Leave(conn *Connection) {
-	room.leave(conn, ActionGiveUp)
+	room.GiveUp(conn)
 }
 
 // GiveUp kill connection, that call it
 func (room *RClient) GiveUp(conn *Connection) {
-	if !room.e.IsActive() {
-		return
-	}
-	room.Kill(conn, ActionGiveUp)
+	room.notify(conn, action_.GiveUp, nil)
 }
 
 // Reconnect connection to room
@@ -85,7 +104,7 @@ func (room *RClient) Reconnect(conn *Connection) {
 		if found == nil {
 			return
 		}
-		room.p.add(conn, isPlayer, true)
+		room.notify(conn, action_.Reconnect, isPlayer)
 	})
 }
 
@@ -93,7 +112,7 @@ func (room *RClient) Reconnect(conn *Connection) {
 // 	the room of this intention
 func (room *RClient) Restart(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
-		if room.e.Status() != StatusFinished {
+		if room.e.Status() != room_.StatusFinished {
 			return
 		}
 		if err := room.e.Restart(conn); err != nil {
@@ -101,35 +120,18 @@ func (room *RClient) Restart(conn *Connection) {
 			return
 		}
 		room.goToNextRoom(conn)
-		room.re.Restart(conn)
+		room.notify(conn, action_.Restart, nil)
 	})
 }
 
 // Enter handle user joining as player or observer
-func (room *RClient) Enter(conn *Connection) bool {
-	var done bool
+func (room *RClient) Enter(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
-		if room.e.Status() == StatusRecruitment {
-			if room.p.add(conn, true, false) {
-				done = true
-			}
-		} else if room.p.add(conn, false, false) {
-			done = true
+		if room.e.Status() == room_.StatusRecruitment {
+			room.notify(conn, action_.ConnectAsPlayer, nil)
+		} else {
+			room.notify(conn, action_.ConnectAsObserver, nil)
 		}
-	})
-	return done
-}
-
-// Kill make user die and check for finish battle
-func (room *RClient) Kill(conn *Connection, action int32) {
-	room.s.DoWithOther(conn, func() {
-		if !room.p.isAlive(conn) {
-			return
-		}
-
-		room.p.SetFinished(conn)
-		room.re.Kill(conn, action, room.isDeathMatch)
-		room.e.tryFinish()
 	})
 }
 

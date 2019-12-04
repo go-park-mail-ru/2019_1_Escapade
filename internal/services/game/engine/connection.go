@@ -301,4 +301,8 @@ func (conn *Connection) GetSync() synced.SyncI {
 	return conn.s
 }
 
+func (conn *Connection) IsPlayer() bool {
+	return conn.Index() >= 0
+}
+
 // 363 -> 305

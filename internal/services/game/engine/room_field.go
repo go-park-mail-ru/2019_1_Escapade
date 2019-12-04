@@ -5,6 +5,7 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // FieldProxyI control access to field
@@ -21,6 +22,8 @@ type FieldProxyI interface {
 	SaveCell(cell *Cell) []Cell
 
 	Configure(info models.GameInformation)
+
+	EventsSub() synced.SubscriberI
 }
 
 // RoomField implements FieldProxyI
@@ -76,9 +79,9 @@ func (room *RoomField) ModelCells() []models.Cell {
 
 func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
 
-	var rightStatus = StatusRunning
+	var rightStatus = room_.StatusRunning
 	if setFlag {
-		rightStatus = StatusFlagPlacing
+		rightStatus = room_.StatusFlagPlacing
 	}
 	if room.e.Status() != rightStatus {
 		return re.ErrorWrongStatus()
@@ -179,6 +182,32 @@ func (room *RoomField) configureHistory(info []models.Cell) {
 		}
 		room.field.setToHistory(cell)
 	}
+}
+
+func (room *RoomField) EventsSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.eventsCallback)
+}
+
+func (room *RoomField) eventsCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdateStatus {
+		return
+	}
+	code, ok := msg.Content.(int)
+	if !ok {
+		return
+	}
+	switch code {
+	case room_.StatusRunning:
+		cells := room.Field().OpenZero() //room.Field.OpenSave(int(open))
+		room.se.NewCells(cells...)
+	case room_.StatusFinished:
+		cells := make([]Cell, 0)
+		room.Field().OpenEverything(cells)
+		room.se.GameOver(room.e.Timeout(), room.se.All, cells)
+	case room_.StatusAborted:
+		room.Field().Free()
+	}
+
 }
 
 // 234 -> 192

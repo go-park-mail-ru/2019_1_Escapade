@@ -4,6 +4,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
 )
 
 // RoomRequestsI handle requests to toom
@@ -90,15 +91,15 @@ func (room *RoomAPI) PostCell(conn *Connection, cell *Cell) {
 func (room *RoomAPI) PostAction(conn *Connection, action int) {
 	room.s.DoWithOther(conn, func() {
 		switch action {
-		case ActionBackToLobby:
+		case action_.BackToLobby:
 			room.c.Leave(conn)
-		case ActionDisconnect:
+		case action_.Disconnect:
 			room.c.Disconnect(conn)
-		case ActionReconnect:
+		case action_.Reconnect:
 			room.c.Reconnect(conn)
-		case ActionGiveUp:
+		case action_.GiveUp:
 			room.c.GiveUp(conn)
-		case ActionRestart:
+		case action_.Restart:
 			room.c.Restart(conn)
 		}
 	})

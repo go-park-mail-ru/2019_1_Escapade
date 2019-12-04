@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // GarbageCollectorI handle deleting connections, when they are disconnected
@@ -45,10 +46,10 @@ func (room *RoomGarbageCollector) Init(builder RBuilderI,
 
 func (room *RoomGarbageCollector) updateTimeouts() {
 	status := room.e.Status()
-	if status == StatusRecruitment {
+	if status == room_.StatusRecruitment {
 		room.tPlayer = room.t.PeopleFinding.Duration
 		room.tObserver = room.t.PeopleFinding.Duration
-	} else if status == StatusFinished {
+	} else if status == room_.StatusFinished {
 		room.tPlayer = room.t.Finished.Duration
 		room.tObserver = room.t.Finished.Duration
 	} else {

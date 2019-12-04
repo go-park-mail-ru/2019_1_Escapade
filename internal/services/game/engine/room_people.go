@@ -6,6 +6,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 type PeopleI interface {
@@ -23,12 +25,6 @@ type PeopleI interface {
 	players() *OnlinePlayers
 	observers() *Connections
 
-	Start()
-	Finish(group *sync.WaitGroup)
-
-	AllKilled() bool
-	Empty() bool
-
 	Flag(index int) Flag
 
 	getPlayer(conn *Connection) Player
@@ -44,26 +40,29 @@ type PeopleI interface {
 
 	flagExists(cell Cell, this *Connection) (bool, *Connection)
 
-	Free()
+	EventsSub() synced.SubscriberI
+	ConnectionSub() synced.SubscriberI
 }
 
 type RoomPeople struct {
+	synced.PublisherBase
+
 	s  synced.SyncI
+	se RSendI
 	c  RClientI
 	e  EventsI
 	l  LobbyProxyI
 	f  FieldProxyI
-	re ActionRecorderI
 
 	pointsPerCellK float64
 
 	winnersM *sync.Mutex
 	_winners []int
 
-	//playersM *sync.RWMutex
 	Players *OnlinePlayers
 
-	//observersM *sync.RWMutex
+	isDeathmatch bool
+
 	Observers *Connections
 	killedM   *sync.RWMutex
 	_killed   int32 //amount of killed users
@@ -71,11 +70,11 @@ type RoomPeople struct {
 
 func (room *RoomPeople) Init(builder RBuilderI, rs *models.RoomSettings) {
 	builder.BuildSync(&room.s)
+	builder.BuildSender(&room.se)
 	builder.BuildConnectionEvents(&room.c)
 	builder.BuildEvents(&room.e)
 	builder.BuildLobby(&room.l)
 	builder.BuildField(&room.f)
-	builder.BuildRecorder(&room.re)
 
 	sq := rs.Width * rs.Height
 	room.pointsPerCellK = 1000 / float64(sq)
@@ -86,23 +85,32 @@ func (room *RoomPeople) Init(builder RBuilderI, rs *models.RoomSettings) {
 	room.setKilled(0)
 	room.Players = newOnlinePlayers(rs.Players)
 	room.Observers = NewConnections(rs.Observers)
+	room.isDeathmatch = rs.Deathmatch
+
+	room.PublisherBase = *synced.NewPublisher()
+	room.PublisherBase.Start(room.e.PeopleSub())
 }
 
-func (room *RoomPeople) Free() {
+func (room *RoomPeople) free() {
 	go room.Players.Free()
 	go room.Observers.Free()
+	room.PublisherBase.Stop()
 }
 
-func (room *RoomPeople) Start() {
+func (room *RoomPeople) start() {
 	room.s.Do(func() {
+		room.ForEach(func(c *Connection, isPlayer bool) {
+			room.se.Room(c)
+		})
+
 		room.f.Field().Fill(room.Players.m.Flags())
 		room.Players.Init()
 	})
 }
 
-func (room *RoomPeople) Finish(group *sync.WaitGroup) {
+func (room *RoomPeople) finish() {
 	room.s.Do(func() {
-		room.Players.m.Finish(group)
+		room.Players.m.Finish()
 	})
 }
 
@@ -141,7 +149,7 @@ func (room *RoomPeople) Flag(index int) Flag {
 }
 
 func (room *RoomPeople) setFlag(conn *Connection, cell Cell) {
-	room.Players.m.SetFlag(conn, cell, room.e.prepareOver)
+	room.Players.m.SetFlag(conn, cell, room.e.PrepareOver)
 }
 
 func (room *RoomPeople) PlayersSlice() []Player {
@@ -188,10 +196,6 @@ func (room *RoomPeople) Empty() bool {
 	return result
 }
 
-func (room *RoomPeople) AllKilled() bool {
-	return room.Players.m.Capacity() <= room.killed()+1 || room.Empty()
-}
-
 func (room *RoomPeople) IncreasePoints(index int, points float64) {
 	room.Players.m.IncreasePlayerPoints(index, points)
 }
@@ -221,7 +225,7 @@ func (room *RoomPeople) openSafeCell(conn *Connection, cell *Cell) {
 func (room *RoomPeople) openMine(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
 		room.IncreasePoints(conn.Index(), float64(-1000))
-		room.c.Kill(conn, ActionExplode)
+		room.kill(conn, action_.Explode)
 	})
 }
 
@@ -237,9 +241,17 @@ func (room *RoomPeople) openFlag(founder *Connection, found *Cell) {
 		room.Players.m.IncreasePlayerPoints(founder.Index(), 300)
 		index, killConn := room.Players.Connections.SearchByID(which)
 		if index >= 0 {
-			room.c.Kill(killConn, ActionFlagLost)
+			room.kill(killConn, action_.FlagLost)
 		}
 	})
+}
+
+func (room *RoomPeople) kill(conn *Connection, action int32) {
+	if !room.isAlive(conn) || !room.e.IsActive() {
+		return
+	}
+	room.SetFinished(conn)
+	room.notifyWithConn(conn, action, room.isDeathmatch)
 }
 
 func (room *RoomPeople) findFlagOwner(found *Cell, which *int32) func(int, Flag) {
@@ -271,7 +283,11 @@ func (room *RoomPeople) add(conn *Connection, isPlayer bool, needRecover bool) b
 		if !result {
 			return
 		}
-		room.re.AddConnection(conn, isPlayer, needRecover)
+		if isPlayer {
+			room.notifyWithConn(conn, room_.PlayerEnter, needRecover)
+		} else {
+			room.notifyWithConn(conn, room_.ObserverEnter, needRecover)
+		}
 	})
 	return result
 }
@@ -304,7 +320,7 @@ func (room *RoomPeople) push(conn *Connection, isPlayer bool, needRecover bool) 
 			room.Observers.Add(conn)
 		}
 
-		if room.e.Status() != StatusRecruitment {
+		if room.e.Status() != room_.StatusRecruitment {
 			room.l.WaiterToPlayer(conn)
 		} else {
 			room.l.setWaitingRoom(conn)
@@ -313,6 +329,24 @@ func (room *RoomPeople) push(conn *Connection, isPlayer bool, needRecover bool) 
 		result = true
 	})
 	return result
+}
+
+func (room *RoomPeople) notify(code int) {
+	room.Notify(synced.Msg{
+		Code:    room_.UpdatePeople,
+		Content: code,
+	})
+}
+
+func (room *RoomPeople) notifyWithConn(conn *Connection, code int32, content interface{}) {
+	room.Notify(synced.Msg{
+		Code: room_.UpdatePeople,
+		Content: ConnectionMsg{
+			connection: conn,
+			code:       code,
+			content:    content,
+		},
+	})
 }
 
 // isAlive check if connection is player and he is not died
@@ -349,8 +383,13 @@ func (room *RoomPeople) flagExists(cell Cell, this *Connection) (bool, *Connecti
 
 func (room *RoomPeople) Remove(conn *Connection) {
 	room.s.Do(func() {
-		room.Players.Connections.Remove(conn)
+		if room.e.Status() == room_.StatusRecruitment {
+			room.Players.Connections.Remove(conn)
+		}
 		room.Observers.Remove(conn)
+		if room.Empty() {
+			room.notify(room_.AllExit)
+		}
 	})
 }
 
@@ -381,9 +420,17 @@ func (room *RoomPeople) killed() int32 {
 
 // incrementKilled increment amount of killed
 func (room *RoomPeople) incrementKilled() {
+	var (
+		allKilled bool
+		capacity  = room.players().m.Capacity()
+	)
 	room.killedM.Lock()
 	room._killed++
+	allKilled = room._killed >= capacity
 	room.killedM.Unlock()
+	if allKilled {
+		room.notify(room_.AllDied)
+	}
 }
 
 // setKilled set new value of killed
@@ -437,3 +484,61 @@ func (room *RoomPeople) addWinner(winners *[]int) func(int, Player) {
 		}
 	}
 }
+
+//////////////////////////// callbacks
+
+func (room *RoomPeople) EventsSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.eventsCallback)
+}
+
+func (room *RoomPeople) eventsCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdateStatus {
+		return
+	}
+	code, ok := msg.Content.(int)
+	if !ok {
+		return
+	}
+	switch code {
+	case room_.StatusFinished:
+		room.finish()
+	case room_.StatusAborted:
+		room.free()
+	case room_.StatusFlagPlacing:
+		room.start()
+	}
+}
+
+func (room *RoomPeople) ConnectionSub() synced.SubscriberI {
+	return synced.NewSubscriber(room.connectionCallback)
+}
+
+func (room *RoomPeople) connectionCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdateConnection {
+		return
+	}
+	action, ok := msg.Content.(ConnectionMsg)
+	if !ok {
+		return
+	}
+	switch action.code {
+	case action_.BackToLobby:
+		room.Remove(action.connection)
+		room.kill(action.connection, action.code)
+	case action_.Reconnect:
+		isPlayer, ok := action.content.(bool)
+		if !ok {
+			return
+		}
+		room.add(action.connection, isPlayer, true)
+	case action_.ConnectAsPlayer:
+		room.add(action.connection, true, false)
+	case action_.ConnectAsObserver:
+		room.add(action.connection, false, false)
+	case action_.GiveUp:
+		room.kill(action.connection, action.code)
+	}
+
+}
+
+// 445

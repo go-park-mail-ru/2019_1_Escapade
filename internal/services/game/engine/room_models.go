@@ -1,28 +1,25 @@
 package engine
 
 import (
-	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 
 	pChat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
 // RModelsI turns Game-type structures into models that can be sent
 // to the client or to databases
 // room model interface - adapter pattern
 type RModelsI interface {
-	Save(wg *sync.WaitGroup) error
+	Save() error
 	JSON() RoomJSON
 
 	responseRoomGameOver(timer bool, cells []Cell) *models.Response
 	responseRoomStatus(status int) *models.Response
 	responseRoom(conn *Connection, isPlayer bool) *models.Response
-
-	fromModelPlayerAction(action models.Action) *PlayerAction
-	toModelPlayerAction(action *PlayerAction) models.Action
 }
 
 // RoomModels impelements RModelsI
@@ -49,13 +46,7 @@ func (room *RoomModels) Init(builder RBuilderI) {
 }
 
 // Save save room information to database
-func (room *RoomModels) Save(wg *sync.WaitGroup) error {
-	defer func() {
-		if wg != nil {
-			wg.Done()
-		}
-	}()
-
+func (room *RoomModels) Save() error {
 	var err error
 	room.s.Do(func() {
 		// made in NewRoom
@@ -98,22 +89,6 @@ func (room *RoomModels) toModelGamer(index int, player Player) models.Gamer {
 		Score:     player.Points,
 		Explosion: player.Died,
 		Won:       room.p.IsWinner(index),
-	}
-}
-
-func (room *RoomModels) fromModelPlayerAction(actionDB models.Action) *PlayerAction {
-	return &PlayerAction{
-		Player: actionDB.PlayerID,
-		Action: actionDB.ActionID,
-		Time:   actionDB.Date,
-	}
-}
-
-func (room *RoomModels) toModelPlayerAction(action *PlayerAction) models.Action {
-	return models.Action{
-		PlayerID: action.Player,
-		ActionID: action.Action,
-		Date:     action.Time,
 	}
 }
 
@@ -181,9 +156,9 @@ func (room *RoomModels) responseRoomStatus(
 	status int) *models.Response {
 	var leftTime int32
 	since := int32(time.Since(room.e.Date()).Seconds())
-	if status == StatusFlagPlacing {
+	if status == room_.StatusFlagPlacing {
 		leftTime = room.i.Settings().TimeToPrepare - since
-	} else if status == StatusRunning {
+	} else if status == room_.StatusRunning {
 		leftTime = room.i.Settings().TimeToPlay - since
 	}
 	return &models.Response{
@@ -251,7 +226,7 @@ func (lobby *Lobby) Load(id string) (*Room, error) {
 			return
 		}
 
-		room.events.configure(StatusHistory, info.Game.Date)
+		room.events.configure(room_.StatusHistory, info.Game.Date)
 		room.record.configure(info.Actions)
 		room.field.Configure(info)
 		room.people.configure(info)

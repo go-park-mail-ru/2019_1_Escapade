@@ -3,14 +3,26 @@ package engine
 import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
+type SubscriberRoom struct {
+	synced.SubscriberBase
+	room  *Room
+	lobby *Lobby
+}
+
 // RoomStart - room remove from free
-func (lobby *Lobby) RoomStart(room *Room, roomID string) {
+func (lobby *Lobby) roomStart(room *Room, roomID string) {
 	lobby.s.DoWithOther(room, func() {
 		lobby.removeFromFreeRooms(roomID)
 		lobby.sendRoomUpdate(room, All)
+		room.people.ForEach(func(c *Connection, isPlayer bool) {
+			lobby.waiterToPlayer(c, room)
+		})
 	})
 }
 
@@ -23,7 +35,7 @@ func (lobby *Lobby) roomFinish(roomID string) {
 }
 
 // CloseRoom free room resources
-func (lobby *Lobby) CloseRoom(roomID string) {
+func (lobby *Lobby) roomClose(roomID string) {
 	lobby.s.Do(func() {
 		lobby.removeFromFreeRooms(roomID)
 		lobby.removeFromAllRooms(roomID)
@@ -102,3 +114,61 @@ func (lobby *Lobby) addRoom(room *Room) error {
 	})
 	return err
 }
+
+/////////////////////// callbacks
+
+func (lobby *Lobby) EventsSub(r *Room) synced.SubscriberI {
+	var sub = SubscriberRoom{
+		lobby: lobby,
+		room:  r,
+	}
+	sub.SubscriberBase = synced.NewSubscriber(sub.eventsCallback)
+	return sub
+}
+
+func (sub *SubscriberRoom) eventsCallback(msg synced.Msg) {
+	sub.lobby.s.DoWithOther(sub.room, func() {
+		if msg.Code != room_.UpdateStatus {
+			return
+		}
+		code, ok := msg.Content.(int)
+		if !ok {
+			return
+		}
+		sub.lobby.sendRoomUpdate(sub.room, All)
+		switch code {
+		case room_.StatusFlagPlacing:
+			sub.lobby.roomStart(sub.room, sub.room.info.ID())
+		case room_.StatusFinished:
+			sub.lobby.roomFinish(sub.room.info.ID())
+		case room_.StatusAborted:
+			sub.lobby.roomClose(sub.room.info.ID())
+		}
+	})
+}
+
+func (lobby *Lobby) ConnectionSub(room *Room) synced.SubscriberI {
+	var sub = SubscriberRoom{
+		lobby: lobby,
+		room:  room,
+	}
+	sub.SubscriberBase = synced.NewSubscriber(sub.connectionCallback)
+	return sub
+}
+
+func (sub *SubscriberRoom) connectionCallback(msg synced.Msg) {
+	if msg.Code != room_.UpdateConnection {
+		return
+	}
+	action, ok := msg.Content.(ConnectionMsg)
+	if !ok {
+		return
+	}
+	sub.lobby.sendRoomUpdate(sub.room, All)
+	switch action.code {
+	case action_.BackToLobby:
+		sub.lobby.LeaveRoom(action.connection, action.code)
+	}
+}
+
+// 109

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
 )
 
 // RoomJSON is a wrapper for sending Room by JSON
@@ -13,10 +14,10 @@ type RoomJSON struct {
 	Name   string `json:"name"`
 	Status int    `json:"status"`
 
-	Players   OnlinePlayersJSON `json:"players"`
-	Observers ConnectionsJSON   `json:"observers,omitempty"`
-	History   []*PlayerAction   `json:"history,omitempty"`
-	Messages  []*models.Message `json:"messages"`
+	Players   OnlinePlayersJSON       `json:"players"`
+	Observers ConnectionsJSON         `json:"observers,omitempty"`
+	History   []*action_.PlayerAction `json:"history,omitempty"`
+	Messages  []*models.Message       `json:"messages"`
 
 	Field    FieldJSON            `json:"field,omitempty"`
 	Date     time.Time            `json:"date,omitempty"`

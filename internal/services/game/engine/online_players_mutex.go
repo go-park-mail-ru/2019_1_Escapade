@@ -126,13 +126,7 @@ func (onlinePlayers *OnlinePlayersMutex) Flags() []Flag {
 }
 
 // Finish set flag finish true to all players
-func (onlinePlayers *OnlinePlayersMutex) Finish(wg *sync.WaitGroup) {
-
-	defer func() {
-		if wg != nil {
-			wg.Done()
-		}
-	}()
+func (onlinePlayers *OnlinePlayersMutex) Finish() {
 	// all players 'Finished' set true
 	onlinePlayers.playersM.Lock()
 	for _, player := range onlinePlayers._players {
