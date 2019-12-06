@@ -5,7 +5,13 @@ const (
 	UpdateStatus     = 0
 	UpdatePeople     = 1
 	UpdateConnection = 2
+	UpdateChat       = 3
 )
+
+type FinishResults struct {
+	Cancel  bool
+	Timeout bool
+}
 
 // Game status
 const (
@@ -24,4 +30,11 @@ const (
 	AllDied       = 2
 	PlayerEnter   = 3
 	ObserverEnter = 4
+)
+
+// message status
+const (
+	Add    = 0
+	Edit   = 1
+	Delete = 2
 )

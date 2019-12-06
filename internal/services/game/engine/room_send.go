@@ -36,7 +36,7 @@ type RSendI interface {
 
 	All(conn *Connection) bool
 	AllExceptThat(me *Connection) func(*Connection) bool
-	StatusToAll(predicate SendPredicate, status int, wg *sync.WaitGroup)
+	StatusToAll(predicate SendPredicate, status int32, wg *sync.WaitGroup)
 }
 
 // RoomSender implements SendStrategyI
@@ -139,7 +139,7 @@ func (room *RoomSender) ObserverExit(conn *Connection) {
 	room.sendAll(&response, room.AllExceptThat(conn))
 }
 
-func (room *RoomSender) StatusToAll(predicate SendPredicate, status int, wg *sync.WaitGroup) {
+func (room *RoomSender) StatusToAll(predicate SendPredicate, status int32, wg *sync.WaitGroup) {
 	defer func() {
 		if wg != nil {
 			wg.Done()
@@ -216,7 +216,7 @@ func (room *RoomSender) Field(predicate SendPredicate) {
 // sendTAIRAll send everything to one connection
 func (room *RoomSender) Room(conn *Connection) {
 	room.s.DoWithOther(conn, func() {
-		isPlayer := room.c.isPlayer(conn)
+		isPlayer := conn.IsPlayer()
 		conn.SendInformation(room.m.responseRoom(conn, isPlayer))
 	})
 }

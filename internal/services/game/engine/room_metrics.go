@@ -5,45 +5,67 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
+	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/metrics"
 )
-
-// MetricsI handle sending metrics
-// Strategy Pattern
-type MetricsI interface {
-	Observe(needMetrics bool, cancel bool)
-}
 
 // RoomMetrics implements MetricsStrategyI
 type RoomMetrics struct {
 	s synced.SyncI
-	e EventsI
+	i RoomInformationI
 	f FieldProxyI
 
 	size            float64
 	anonymous, mode string
+	needMetrics     bool
 
 	settings *models.RoomSettings
 }
 
-// Init configure dependencies with other components of the room
-func (room *RoomMetrics) Init(builder RBuilderI, rs *models.RoomSettings) {
-	builder.BuildSync(&room.s)
-	builder.BuildEvents(&room.e)
-	builder.BuildField(&room.f)
-
-	room.settings = rs
-	room.size = float64(rs.Width * rs.Height)
-	if !rs.NoAnonymous {
+// init struct's values
+func (room *RoomMetrics) init(settings *models.RoomSettings, needMetrics bool) {
+	room.needMetrics = needMetrics
+	room.settings = settings
+	room.size = float64(settings.Width * settings.Height)
+	if !settings.NoAnonymous {
 		room.anonymous = utils.String(1)
 	}
-	if rs.Deathmatch {
+	if settings.Deathmatch {
 		room.mode = utils.String(1)
 	}
 }
 
-func (room *RoomMetrics) Observe(needMetrics bool, cancel bool) {
-	if !needMetrics {
+// build components
+func (room *RoomMetrics) build(builder RBuilderI) {
+	builder.BuildSync(&room.s)
+	builder.BuildField(&room.f)
+	builder.BuildInformation(&room.i)
+}
+
+// subscribe to room events
+func (room *RoomMetrics) subscribe(builder RBuilderI) {
+	var (
+		events   EventsI
+		messages MessagesI
+	)
+
+	builder.BuildEvents(&events)
+	builder.BuildMessages(&messages)
+
+	room.eventsSubscribe(events)
+	room.messagesSubscribe(messages)
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomMetrics) Init(builder RBuilderI, rs *models.RoomSettings, needMetrics bool) {
+	room.init(rs, needMetrics)
+	room.build(builder)
+	room.subscribe(builder)
+}
+
+// record metrics
+func (room *RoomMetrics) record(cancel bool) {
+	if !room.needMetrics {
 		return
 	}
 	room.s.Do(func() {
@@ -71,12 +93,36 @@ func (room *RoomMetrics) Observe(needMetrics bool, cancel bool) {
 			utils.Debug(false, "metrics openProcent", openProcent)
 			metrics.RoomOpenProcent.Observe(openProcent)
 
-			utils.Debug(false, "metrics playing time", room.e.playingTime().Seconds())
-			metrics.RoomTimePlaying.Observe(room.e.playingTime().Seconds())
+			utils.Debug(false, "metrics playing time", room.i.PlayingTime().Seconds())
+			metrics.RoomTimePlaying.Observe(room.i.PlayingTime().Seconds())
 		}
 		metrics.RoomMode.WithLabelValues(roomType, room.mode).Inc()
 		metrics.RoomAnonymous.WithLabelValues(roomType, room.anonymous).Inc()
-		utils.Debug(false, "metrics recruitmentTime", room.e.recruitmentTime().Seconds())
-		metrics.RoomTimeSearchingPeople.WithLabelValues(roomType).Observe(room.e.recruitmentTime().Seconds())
+		utils.Debug(false, "metrics recruitmentTime", room.i.RecruitmentTime().Seconds())
+		metrics.RoomTimeSearchingPeople.WithLabelValues(roomType).Observe(room.i.RecruitmentTime().Seconds())
 	})
+}
+
+// eventsFinished is called when game finished
+func (room *RoomMetrics) eventsFinished(msg synced.Msg) {
+	result, ok := msg.Extra.(room_.FinishResults)
+	if !ok {
+		return
+	}
+	room.record(result.Cancel)
+}
+
+// eventsSubscribe subscibe to events associated with room's status
+func (room *RoomMetrics) eventsSubscribe(e EventsI) {
+	observer := synced.NewObserver(
+		synced.NewPair(room_.StatusFinished, room.eventsFinished))
+	e.Observe(observer.AddPublisherCode(room_.UpdateStatus))
+}
+
+// messagesSubscribe subscibe to events associated with room's chat
+func (room *RoomMetrics) messagesSubscribe(m MessagesI) {
+	observer := synced.NewObserver(
+		synced.NewPairNoArgs(room_.Delete, metrics.RoomsMessages.Dec),
+		synced.NewPairNoArgs(room_.Add, metrics.RoomsMessages.Inc))
+	m.Observe(observer.AddPublisherCode(room_.UpdateChat))
 }

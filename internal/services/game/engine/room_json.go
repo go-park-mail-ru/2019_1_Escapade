@@ -12,7 +12,7 @@ import (
 type RoomJSON struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
-	Status int    `json:"status"`
+	Status int32  `json:"status"`
 
 	Players   OnlinePlayersJSON       `json:"players"`
 	Observers ConnectionsJSON         `json:"observers,omitempty"`
@@ -37,7 +37,8 @@ func (room *Room) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	room.info.setName(temp.Name)
-	room.events.configure(temp.Status, temp.Date)
+	room.events.UpdateStatus(temp.Status)
+	room.info.SetDate(temp.Date)
 	room.record.setHistory(temp.History)
 	room.messages.setMessages(temp.Messages)
 	room.info.setSettings(temp.Settings)

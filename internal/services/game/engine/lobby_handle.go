@@ -102,7 +102,7 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 			if conn.WaitingRoom().info.ID() == rs.ID {
 				return
 			}
-			conn.WaitingRoom().client.Leave(conn)
+			conn.WaitingRoom().client.BackToLobby(conn)
 		}
 
 		if rs.ID == "create" {
@@ -114,7 +114,9 @@ func (lobby *Lobby) EnterRoom(conn *Connection, rs *models.RoomSettings) {
 
 		if room := lobby.allRooms.Search(rs.ID); room != nil {
 			utils.Debug(false, "lobby found required room")
-			room.client.Enter(conn)
+			if !room.people.Enter(conn, true, false) {
+				room.people.Enter(conn, false, false)
+			}
 		} else {
 			lobby.PickUpRoom(conn, rs)
 		}
@@ -127,7 +129,7 @@ func (lobby *Lobby) PickUpRoom(conn *Connection, rs *models.RoomSettings) {
 		freeRoomsIterator := NewRoomsIterator(lobby.freeRooms)
 		for freeRoomsIterator.Next() {
 			freeRoom := freeRoomsIterator.Value()
-			if freeRoom.info.Settings().Similar(rs) && freeRoom.people.add(conn, true, false) {
+			if freeRoom.info.Settings().Similar(rs) && freeRoom.people.Enter(conn, true, false) {
 				return
 			}
 		}

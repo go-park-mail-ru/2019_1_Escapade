@@ -1,9 +1,9 @@
 package engine
 
 import (
-	"sync"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
@@ -148,16 +148,13 @@ func (field *Field) IsCleared() bool {
 // opened cells
 func (field *Field) saveCell(cell *Cell, cells *[]Cell) {
 	field.s.Do(func() {
-		utils.Debug(false, "cell value:", cell.Value)
 		if cell.Value != CellOpened && cell.Value != CellFlagTaken {
 			cell.Time = time.Now()
 			field.setToHistory(cell)
 			*cells = append(*cells, *cell)
 			field.setCellOpen(cell.X, cell.Y, cell.Value)
-			utils.Debug(false, "we open it ", len(*cells))
 		}
 	})
-	utils.Debug(false, "saveCell ret", len(*cells))
 }
 
 // OpenCell open 'cell' and return slice of opened cells

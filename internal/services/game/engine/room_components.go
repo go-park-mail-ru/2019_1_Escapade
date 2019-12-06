@@ -19,7 +19,7 @@ type RBuilderI interface {
 	BuildPeople(p *PeopleI)
 	BuildEvents(e *EventsI)
 	BuildRecorder(r *ActionRecorderI)
-	BuildMetrics(m *MetricsI)
+	BuildMetrics(m *RoomMetrics)
 	BuildMessages(m *MessagesI)
 	BuildGarbageCollector(g *GarbageCollectorI)
 }
@@ -69,7 +69,7 @@ func (builder *RoomBuilder) createComponents() {
 
 func (builder *RoomBuilder) configureDependencies(r *Room, args *RoomArgs) {
 	builder.sync.Init(args.c.Wait.Duration)
-	builder.info.Init(args.rs, args.id, args.DBRoomID)
+	builder.info.Init(args.rs, args.id, args.DBRoomID, args.lobby.location())
 	builder.api.Init(builder)
 	builder.lobby.Init(builder, r, args.lobby)
 	builder.field.Init(builder, args.Field, args.rs.Deathmatch)
@@ -77,10 +77,11 @@ func (builder *RoomBuilder) configureDependencies(r *Room, args *RoomArgs) {
 	builder.sender.Init(builder)
 	builder.people.Init(builder, args.rs)
 	builder.client.Init(builder, args.rs.Deathmatch)
-	builder.events.Init(builder, args.rs)
-	builder.metrics.Init(builder, args.rs)
+	builder.events.Init(builder, args.rs, args.c.CanClose)
+	builder.metrics.Init(builder, args.rs, args.lobby.config().Metrics)
 	builder.record.Init(builder)
-	builder.messages.Init(builder, args.lobby.ChatService, args.DBchatID)
+	builder.messages.Init(builder, args.lobby.ChatService,
+		args.DBchatID, args.lobby.location())
 	builder.garbageCollector.Init(builder, args.c.GarbageCollector.Duration,
 		args.c.Timeouts)
 }
@@ -158,8 +159,8 @@ func (builder *RoomBuilder) BuildRecorder(r *ActionRecorderI) {
 }
 
 // BuildMetrics set MetricsStrategyI implementation
-func (builder *RoomBuilder) BuildMetrics(m *MetricsI) {
-	*m = builder.metrics
+func (builder *RoomBuilder) BuildMetrics(m *RoomMetrics) {
+	*m = *builder.metrics
 }
 
 // BuildMessages set MessagesProxyI implementation

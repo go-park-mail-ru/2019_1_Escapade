@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"time"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
@@ -18,9 +16,6 @@ type LobbyProxyI interface {
 	WaiterToPlayer(conn *Connection)
 	CreateAndAddToRoom(conn *Connection) (*Room, error)
 
-	metricsEnabled() bool
-	closeEnabled() bool
-
 	SaveMessages(mwa *MessageWithAction)
 
 	setWaitingRoom(conn *Connection)
@@ -28,11 +23,6 @@ type LobbyProxyI interface {
 	config() *config.Room
 
 	ChatService() clients.Chat
-
-	Date() time.Time
-
-	EventsSub() synced.SubscriberI
-	ConnectionSub() synced.SubscriberI
 }
 
 // RoomLobby implements LobbyProxyI
@@ -86,20 +76,8 @@ func (room *RoomLobby) CreateAndAddToRoom(conn *Connection) (*Room, error) {
 	return newRoom, err
 }
 
-func (room *RoomLobby) Date() time.Time {
-	return time.Now().In(room.lobby.location())
-}
-
-func (room *RoomLobby) metricsEnabled() bool {
-	return room.needMetrics
-}
-
 func (room *RoomLobby) config() *config.Room {
 	return room.lobby.rconfig()
-}
-
-func (room *RoomLobby) closeEnabled() bool {
-	return room.canClose
 }
 
 func (room *RoomLobby) SaveMessages(mwa *MessageWithAction) {
@@ -108,14 +86,6 @@ func (room *RoomLobby) SaveMessages(mwa *MessageWithAction) {
 
 func (room *RoomLobby) setWaitingRoom(conn *Connection) {
 	conn.setWaitingRoom(room.r)
-}
-
-func (room *RoomLobby) EventsSub() synced.SubscriberI {
-	return room.lobby.EventsSub(room.r)
-}
-
-func (room *RoomLobby) ConnectionSub() synced.SubscriberI {
-	return room.lobby.ConnectionSub(room.r)
 }
 
 // IsWinner is player wuth id playerID is winner

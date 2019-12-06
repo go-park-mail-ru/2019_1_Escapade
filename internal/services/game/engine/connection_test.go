@@ -18,6 +18,7 @@ var (
 	ws = &WebsocketConnStub{}
 )
 
+// unit
 func TestNewConnectionCorrect(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -33,6 +34,7 @@ func TestNewConnectionCorrect(t *testing.T) {
 	})
 }
 
+// unit
 func TestNewConnectionWrong(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -50,6 +52,7 @@ func TestNewConnectionWrong(t *testing.T) {
 	})
 }
 
+// unit
 func TestRestore(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -91,6 +94,7 @@ func TestRestore(t *testing.T) {
 	})
 }
 
+// unit
 func TestIsAnonymous(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -111,6 +115,7 @@ func TestIsAnonymous(t *testing.T) {
 	})
 }
 
+// unit
 func TestPushToRoom(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -137,6 +142,7 @@ func TestPushToRoom(t *testing.T) {
 	})
 }
 
+// unit
 func TestPushToLobby(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
@@ -162,6 +168,7 @@ func TestPushToLobby(t *testing.T) {
 	})
 }
 
+// unit
 func TestFree(t *testing.T) {
 
 	// Only pass t into top-level Convey calls

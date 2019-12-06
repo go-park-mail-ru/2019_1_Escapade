@@ -17,11 +17,6 @@ type RoomSettings struct {
 	Deathmatch    bool   `json:"deathmatch"`
 }
 
-// FieldCheck check room's field is valid
-func (rs *RoomSettings) FieldCheck() bool {
-	return rs.Players > 1 && rs.Width*rs.Height-rs.Players-rs.Mines > 0
-}
-
 // AnonymousCheck check that anonymous cant join to non anonymous game
 func (rs *RoomSettings) AnonymousCheck(isAnonymous bool) bool {
 	return !rs.NoAnonymous || !isAnonymous

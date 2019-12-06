@@ -9,8 +9,7 @@ import (
 	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
 
-type SubscriberRoom struct {
-	synced.SubscriberBase
+type RoomInLobby struct {
 	room  *Room
 	lobby *Lobby
 }
@@ -53,7 +52,7 @@ func (lobby *Lobby) CreateAndAddToRoom(rs *models.RoomSettings, conn *Connection
 		room, err = lobby.createRoom(rs)
 		if err == nil {
 			utils.Debug(false, "We create your own room, cool!", conn.ID())
-			room.people.add(conn, true, false)
+			room.people.Enter(conn, true, false)
 		} else {
 			utils.Debug(true, "cant create. Why?", conn.ID(), err.Error())
 		}
@@ -80,6 +79,15 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) (*Room, error) {
 		}
 	})
 	return room, err
+}
+
+func (lobby *Lobby) subscribeToRoom(room *Room) {
+	var ril = &RoomInLobby{
+		room:  room,
+		lobby: lobby,
+	}
+	ril.eventsSubscribe(room.events)
+	ril.connectionSubscribe(room.client)
 }
 
 // LoadRooms load rooms from database
@@ -115,60 +123,40 @@ func (lobby *Lobby) addRoom(room *Room) error {
 	return err
 }
 
-/////////////////////// callbacks
+/////////////////////// subsribe
 
-func (lobby *Lobby) EventsSub(r *Room) synced.SubscriberI {
-	var sub = SubscriberRoom{
-		lobby: lobby,
-		room:  r,
-	}
-	sub.SubscriberBase = synced.NewSubscriber(sub.eventsCallback)
-	return sub
-}
-
-func (sub *SubscriberRoom) eventsCallback(msg synced.Msg) {
-	sub.lobby.s.DoWithOther(sub.room, func() {
-		if msg.Code != room_.UpdateStatus {
-			return
-		}
-		code, ok := msg.Content.(int)
-		if !ok {
-			return
-		}
-		sub.lobby.sendRoomUpdate(sub.room, All)
-		switch code {
-		case room_.StatusFlagPlacing:
+// eventsSubscribe subscibe to events associated with room's status
+func (sub *RoomInLobby) eventsSubscribe(e EventsI) {
+	observer := synced.NewObserver(
+		synced.NewPairNoArgs(room_.StatusFlagPlacing, func() {
 			sub.lobby.roomStart(sub.room, sub.room.info.ID())
-		case room_.StatusFinished:
+		}),
+		synced.NewPairNoArgs(room_.StatusFinished, func() {
 			sub.lobby.roomFinish(sub.room.info.ID())
-		case room_.StatusAborted:
+		}),
+		synced.NewPairNoArgs(room_.StatusAborted, func() {
 			sub.lobby.roomClose(sub.room.info.ID())
-		}
-	})
+		}))
+	e.Observe(observer.AddPublisherCode(room_.UpdateStatus))
 }
 
-func (lobby *Lobby) ConnectionSub(room *Room) synced.SubscriberI {
-	var sub = SubscriberRoom{
-		lobby: lobby,
-		room:  room,
-	}
-	sub.SubscriberBase = synced.NewSubscriber(sub.connectionCallback)
-	return sub
-}
-
-func (sub *SubscriberRoom) connectionCallback(msg synced.Msg) {
-	if msg.Code != room_.UpdateConnection {
-		return
-	}
-	action, ok := msg.Content.(ConnectionMsg)
+// connectionBackToLobby is called when user came to lobby from room
+func (sub *RoomInLobby) connectionBackToLobby(msg synced.Msg) {
+	action, ok := msg.Extra.(ConnectionMsg)
 	if !ok {
 		return
 	}
-	sub.lobby.sendRoomUpdate(sub.room, All)
-	switch action.code {
-	case action_.BackToLobby:
-		sub.lobby.LeaveRoom(action.connection, action.code)
-	}
+	sub.lobby.LeaveRoom(action.connection, msg.Action)
 }
 
-// 109
+// connectionSubscribe subscibe to events associated with connection's events
+func (sub *RoomInLobby) connectionSubscribe(c RClientI) {
+	observer := synced.NewObserver(
+		synced.NewPair(action_.BackToLobby, sub.connectionBackToLobby))
+	c.Observe(observer.AddPublisherCode(room_.UpdateConnection).
+		AddPreAction(func() {
+			sub.lobby.sendRoomUpdate(sub.room, All)
+		}))
+}
+
+// 109 -> 154

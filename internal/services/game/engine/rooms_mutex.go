@@ -1,5 +1,7 @@
 package engine
 
+import room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
+
 // RGet return connections slice only for Read!
 func (rooms *Rooms) RGet() []*Room {
 
@@ -116,7 +118,7 @@ func (rooms *Rooms) Free() {
 	}
 	rooms.getM.RLock()
 	for _, room := range rooms._get {
-		room.events.Free()
+		room.events.UpdateStatus(room_.StatusAborted)
 	}
 	rooms._get = nil
 	rooms.getM.RUnlock()

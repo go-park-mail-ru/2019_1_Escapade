@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
@@ -31,7 +30,7 @@ type Room struct {
 	people           PeopleI
 	events           EventsI
 	record           ActionRecorderI
-	metrics          MetricsI
+	metrics          *RoomMetrics
 	messages         MessagesI
 	garbageCollector GarbageCollectorI
 }
@@ -93,8 +92,8 @@ type RoomArgs struct {
 // NewRoom return new instance of room
 func NewRoom(c *config.Room, lobby *Lobby,
 	game *models.Game, id string) (*Room, error) {
-	if !CharacteristicsCheck(game.Settings) || !game.Settings.FieldCheck() {
-		return nil, re.ErrorInvalidRoomSettings()
+	if err := constants.Check(game.Settings); err != nil {
+		return nil, err
 	}
 
 	var room = &Room{}

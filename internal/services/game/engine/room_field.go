@@ -22,13 +22,10 @@ type FieldProxyI interface {
 	SaveCell(cell *Cell) []Cell
 
 	Configure(info models.GameInformation)
-
-	EventsSub() synced.SubscriberI
 }
 
 // RoomField implements FieldProxyI
 type RoomField struct {
-	//r  *Room
 	s  synced.SyncI
 	re ActionRecorderI
 	se RSendI
@@ -39,29 +36,46 @@ type RoomField struct {
 	isDeathmatch bool
 }
 
-// Init configure dependencies with other components of the room
-func (room *RoomField) Init(builder RBuilderI, field *Field,
-	isDeathmatch bool) {
+// init struct's values
+func (room *RoomField) init(field *Field, isDeathmatch bool) {
+	room.isDeathmatch = isDeathmatch
+	room.field = field
+}
+
+// build components
+func (room *RoomField) build(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildRecorder(&room.re)
 	builder.BuildSender(&room.se)
 	builder.BuildEvents(&room.e)
 	builder.BuildPeople(&room.p)
-
-	room.isDeathmatch = isDeathmatch
-	room.field = field
 }
 
+// subscribe to room events
+func (room *RoomField) subscribe() {
+	room.eventsSubscribe()
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomField) Init(builder RBuilderI, field *Field, isDeathmatch bool) {
+	room.init(field, isDeathmatch)
+	room.build(builder)
+	room.subscribe()
+}
+
+// Field return instance of Field
 func (room *RoomField) Field() FieldI {
 	return room.field
 }
 
+// SaveCell save cell to history
 func (room *RoomField) SaveCell(cell *Cell) []Cell {
 	cells := make([]Cell, 0)
 	room.field.saveCell(cell, &cells)
 	return cells
 }
 
+// ModelCells cast []Cell to models.Cell
 func (room *RoomField) ModelCells() []models.Cell {
 	cells := make([]models.Cell, 0)
 	for _, cellHistory := range room.field.History() {
@@ -77,11 +91,14 @@ func (room *RoomField) ModelCells() []models.Cell {
 	return cells
 }
 
-func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
+// verify that this cell and the action on it are valid for execution
+func (room *RoomField) verify(conn *Connection, cell *Cell, setFlag bool) error {
 
-	var rightStatus = room_.StatusRunning
+	var rightStatus int32
 	if setFlag {
 		rightStatus = room_.StatusFlagPlacing
+	} else {
+		rightStatus = room_.StatusRunning
 	}
 	if room.e.Status() != rightStatus {
 		return re.ErrorWrongStatus()
@@ -100,7 +117,7 @@ func (room *RoomField) check(conn *Connection, cell *Cell, setFlag bool) error {
 // OpenCell open cell
 func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
 	room.s.DoWithOther(conn, func() {
-		if room.check(conn, cell, false) != nil {
+		if room.verify(conn, cell, false) != nil {
 			return
 		}
 		utils.Debug(false, "open cell func")
@@ -117,8 +134,6 @@ func (room *RoomField) OpenCell(conn *Connection, cell *Cell) {
 		utils.Debug(false, "send me", len(cells))
 		room.se.PlayerPoints(room.p.getPlayer(conn))
 		room.se.NewCells(cells...)
-
-		room.e.tryFinish()
 	})
 }
 
@@ -141,7 +156,7 @@ func (room *RoomField) SetAndSendNewCell(conn *Connection) {
 func (room *RoomField) SetFlag(conn *Connection, cell *Cell) {
 	var err error
 	room.s.DoWithOther(conn, func() {
-		if err = room.check(conn, cell, true); err != nil {
+		if err = room.verify(conn, cell, true); err != nil {
 			return
 		}
 		if found, prevConn := room.p.flagExists(*cell, conn); found {
@@ -158,11 +173,13 @@ func (room *RoomField) SetFlag(conn *Connection, cell *Cell) {
 	}
 }
 
+// Configure set matrix of cells and history of open cells
 func (room *RoomField) Configure(info models.GameInformation) {
 	room.configureField(info.Field)
 	room.configureHistory(info.Cells)
 }
 
+// configureField set matrix of cells
 func (room *RoomField) configureField(info models.Field) {
 	room.field.Width = info.Width
 	room.field.Height = info.Height
@@ -170,6 +187,7 @@ func (room *RoomField) configureField(info models.Field) {
 	room.field.Mines = info.Mines
 }
 
+// configureHistory set history of open cells
 func (room *RoomField) configureHistory(info []models.Cell) {
 	room.field.setHistory(make([]*Cell, 0))
 	for _, cellDB := range info {
@@ -184,30 +202,35 @@ func (room *RoomField) configureHistory(info []models.Cell) {
 	}
 }
 
-func (room *RoomField) EventsSub() synced.SubscriberI {
-	return synced.NewSubscriber(room.eventsCallback)
+// eventsRunning is called when game begins
+func (room *RoomField) eventsRunning(synced.Msg) {
+	cells := room.Field().OpenZero() //room.Field.OpenSave(int(open))
+	room.se.NewCells(cells...)
 }
 
-func (room *RoomField) eventsCallback(msg synced.Msg) {
-	if msg.Code != room_.UpdateStatus {
-		return
-	}
-	code, ok := msg.Content.(int)
+// eventsFinished is called when game finished
+func (room *RoomField) eventsFinished(msg synced.Msg) {
+	cells := make([]Cell, 0)
+	room.Field().OpenEverything(cells)
+	results, ok := msg.Extra.(room_.FinishResults)
 	if !ok {
 		return
 	}
-	switch code {
-	case room_.StatusRunning:
-		cells := room.Field().OpenZero() //room.Field.OpenSave(int(open))
-		room.se.NewCells(cells...)
-	case room_.StatusFinished:
-		cells := make([]Cell, 0)
-		room.Field().OpenEverything(cells)
-		room.se.GameOver(room.e.Timeout(), room.se.All, cells)
-	case room_.StatusAborted:
-		room.Field().Free()
-	}
+	room.se.GameOver(results.Timeout, room.se.All, cells)
+}
 
+// eventsAborted is called when room wanna to clear resources
+func (room *RoomField) eventsAborted(synced.Msg) {
+	room.Field().Free()
+}
+
+// eventsSubscribe subscibe to events associated with room's status
+func (room *RoomField) eventsSubscribe() {
+	observer := synced.NewObserver(
+		synced.NewPair(room_.StatusRunning, room.eventsRunning),
+		synced.NewPair(room_.StatusFinished, room.eventsFinished),
+		synced.NewPair(room_.StatusAborted, room.eventsAborted))
+	room.e.Observe(observer.AddPublisherCode(room_.UpdateStatus))
 }
 
 // 234 -> 192

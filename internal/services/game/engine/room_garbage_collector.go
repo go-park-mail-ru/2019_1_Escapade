@@ -29,21 +29,33 @@ type RoomGarbageCollector struct {
 	sg        synced.SingleGoroutine
 }
 
-// Init configure dependencies with other components of the room
-func (room *RoomGarbageCollector) Init(builder RBuilderI,
-	interval time.Duration, timeouts config.GameTimeouts) {
-
-	builder.BuildSync(&room.s)
-	builder.BuildEvents(&room.e)
-	builder.BuildPeople(&room.p)
-	builder.BuildConnectionEvents(&room.c)
-
+// init struct's values
+func (room *RoomGarbageCollector) init(interval time.Duration,
+	timeouts config.GameTimeouts) {
 	room.t = timeouts
 
 	room.sg = synced.SingleGoroutine{}
 	room.sg.Init(interval, room.Run)
 }
 
+// build components
+func (room *RoomGarbageCollector) build(builder RBuilderI) {
+	builder.BuildSync(&room.s)
+	builder.BuildEvents(&room.e)
+	builder.BuildPeople(&room.p)
+	builder.BuildConnectionEvents(&room.c)
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomGarbageCollector) Init(builder RBuilderI,
+	interval time.Duration, timeouts config.GameTimeouts) {
+	room.init(interval, timeouts)
+	room.build(builder)
+}
+
+// updateTimeouts updates the maximum waiting time for a response
+// from a connection based on it status (player, observer, or not
+// in the game)
 func (room *RoomGarbageCollector) updateTimeouts() {
 	status := room.e.Status()
 	if status == room_.StatusRecruitment {
@@ -87,6 +99,7 @@ func (room *RoomGarbageCollector) checkPeople() {
 	})
 }
 
+// isExpired check if connection offline too long
 func (room *RoomGarbageCollector) isExpired(conn *Connection, timeout time.Duration) bool {
 	t := conn.Time()
 	return conn.Disconnected() && time.Since(t) > timeout

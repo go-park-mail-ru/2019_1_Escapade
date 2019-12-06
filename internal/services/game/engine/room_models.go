@@ -18,7 +18,7 @@ type RModelsI interface {
 	JSON() RoomJSON
 
 	responseRoomGameOver(timer bool, cells []Cell) *models.Response
-	responseRoomStatus(status int) *models.Response
+	responseRoomStatus(status int32) *models.Response
 	responseRoom(conn *Connection, isPlayer bool) *models.Response
 }
 
@@ -34,7 +34,8 @@ type RoomModels struct {
 	f  FieldProxyI
 }
 
-func (room *RoomModels) Init(builder RBuilderI) {
+// build components
+func (room *RoomModels) build(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildInformation(&room.i)
 	builder.BuildLobby(&room.l)
@@ -43,6 +44,17 @@ func (room *RoomModels) Init(builder RBuilderI) {
 	builder.BuildPeople(&room.p)
 	builder.BuildRecorder(&room.re)
 	builder.BuildField(&room.f)
+}
+
+func (room *RoomModels) subscribe(builder RBuilderI) {
+	var events EventsI
+	builder.BuildEvents(&events)
+	room.eventsSubscribe(events)
+}
+
+func (room *RoomModels) Init(builder RBuilderI) {
+	room.build(builder)
+	room.subscribe(builder)
 }
 
 // Save save room information to database
@@ -75,11 +87,11 @@ func (room *RoomModels) toModelGame() models.Game {
 	return models.Game{
 		ID:              room.i.RoomID(),
 		Settings:        room.i.Settings(),
-		RecruitmentTime: room.e.recruitmentTime(),
-		PlayingTime:     room.e.playingTime(),
+		RecruitmentTime: room.i.RecruitmentTime(),
+		PlayingTime:     room.i.PlayingTime(),
 		ChatID:          room.m.ChatID(),
 		Status:          int32(room.e.Status()),
-		Date:            room.e.Date(),
+		Date:            room.i.Date(),
 	}
 }
 
@@ -127,7 +139,7 @@ func (room *RoomModels) JSON() RoomJSON {
 		History:   room.re.history(),
 		Messages:  room.m.Messages(),
 		Field:     room.f.Field().JSON(),
-		Date:      room.e.Date(),
+		Date:      room.i.Date(),
 		Settings:  room.i.Settings(),
 	}
 }
@@ -152,10 +164,9 @@ func (room *RoomModels) responseRoomGameOver(timer bool,
 	}
 }
 
-func (room *RoomModels) responseRoomStatus(
-	status int) *models.Response {
+func (room *RoomModels) responseRoomStatus(status int32) *models.Response {
 	var leftTime int32
-	since := int32(time.Since(room.e.Date()).Seconds())
+	since := int32(time.Since(room.i.Date()).Seconds())
 	if status == room_.StatusFlagPlacing {
 		leftTime = room.i.Settings().TimeToPrepare - since
 	} else if status == room_.StatusRunning {
@@ -165,7 +176,7 @@ func (room *RoomModels) responseRoomStatus(
 		Type: "RoomStatus",
 		Value: struct {
 			ID     string `json:"id"`
-			Status int    `json:"status"`
+			Status int32  `json:"status"`
 			Time   int32  `json:"time"`
 		}{
 			ID:     room.i.ID(),
@@ -226,7 +237,8 @@ func (lobby *Lobby) Load(id string) (*Room, error) {
 			return
 		}
 
-		room.events.configure(room_.StatusHistory, info.Game.Date)
+		room.events.UpdateStatus(room_.StatusHistory)
+		room.info.SetDate(info.Game.Date)
 		room.record.configure(info.Actions)
 		room.field.Configure(info)
 		room.people.configure(info)
@@ -241,4 +253,10 @@ func (lobby *Lobby) Load(id string) (*Room, error) {
 	return room, err
 
 	//room._messages, err = room.lobby.db.LoadMessages(true, info.Game.RoomID)
+}
+
+func (room *RoomModels) eventsSubscribe(events EventsI) {
+	observer := synced.NewObserver(
+		synced.NewPairNoArgs(room_.StatusFinished, func() { room.Save() }))
+	events.Observe(observer.AddPublisherCode(room_.UpdateStatus))
 }

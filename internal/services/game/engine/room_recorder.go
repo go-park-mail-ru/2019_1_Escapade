@@ -27,10 +27,6 @@ type ActionRecorderI interface {
 	Kill(conn *Connection, action int32, isDeathmatch bool)
 
 	configure(info []models.Action)
-
-	Free()
-
-	ConnectionSub() synced.SubscriberI
 }
 
 // RoomRecorder notify actions to room history and to users
@@ -47,23 +43,48 @@ type RoomRecorder struct {
 	_history []*action_.PlayerAction
 }
 
-func (room *RoomRecorder) Init(builder RBuilderI) {
+// init struct's values
+func (room *RoomRecorder) init() {
+	room.historyM = &sync.RWMutex{}
+	room.setHistory(make([]*action_.PlayerAction, 0))
+}
+
+// build components
+func (room *RoomRecorder) build(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildInformation(&room.i)
 	builder.BuildPeople(&room.p)
 	builder.BuildField(&room.f)
 	builder.BuildSender(&room.se)
 	builder.BuildModelsAdapter(&room.mo)
-
-	room.historyM = &sync.RWMutex{}
-	room.setHistory(make([]*action_.PlayerAction, 0))
 }
 
-func (room *RoomRecorder) Free() {
+// subscribe to room events
+func (room *RoomRecorder) subscribe(builder RBuilderI) {
+	var (
+		events EventsI
+		client RClientI
+	)
+	builder.BuildEvents(&events)
+	builder.BuildConnectionEvents(&client)
+
+	room.eventsSubscribe(events)
+	room.peopleSubscribe(room.p)
+	room.connectionSubscribe(client)
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomRecorder) Init(builder RBuilderI) {
+	room.init()
+	room.build(builder)
+	room.subscribe(builder)
+}
+
+func (room *RoomRecorder) finish() {
 	room.historyFree()
 }
 
-// LeaveMeta update metainformation about user leaving room
+// Leave update metainformation about user leaving room
 func (room *RoomRecorder) Leave(conn *Connection, action int32, isPlayer bool) {
 	if isPlayer {
 		room.se.PlayerExit(conn)
@@ -160,7 +181,7 @@ func (room *RoomRecorder) configure(info []models.Action) {
 
 /////////////////////////////// mutex
 
-// history return '_history' field
+// history get the history of the actions that occurred in the room
 func (room *RoomRecorder) history() []*action_.PlayerAction {
 	room.historyM.RLock()
 	v := room._history
@@ -168,76 +189,108 @@ func (room *RoomRecorder) history() []*action_.PlayerAction {
 	return v
 }
 
+// setHistory set the history of the actions that occurred in the room
 func (room *RoomRecorder) setHistory(history []*action_.PlayerAction) {
 	room.historyM.Lock()
 	room._history = history
 	room.historyM.Unlock()
 }
 
-// appendAction append action to action slice(history)
+// appendAction append action to the history of actions
 func (room *RoomRecorder) appendAction(action *action_.PlayerAction) {
 	room.historyM.Lock()
 	defer room.historyM.Unlock()
 	room._history = append(room._history, action)
 }
 
-// historyFree free action slice
+// historyFree clear the history of actions
 func (room *RoomRecorder) historyFree() {
 	room.historyM.Lock()
 	room._history = nil
 	room.historyM.Unlock()
 }
 
-///////////////////////// callbacks
+///////////////////////// subscripe
 
-func (room *RoomRecorder) ConnectionSub() synced.SubscriberI {
-	return synced.NewSubscriber(room.connectionCallback)
+// actionBackToLobby is called when connection want to go to lobby
+func (room *RoomRecorder) actionBackToLobby(msg synced.Msg) {
+	if conn, ok := room.connectionCheck(msg); ok {
+		room.Leave(conn, msg.Action, conn.IsPlayer())
+	}
 }
 
-func (room *RoomRecorder) connectionCallback(msg synced.Msg) {
-	if msg.Code != room_.UpdateConnection {
-		return
+// actionRestart is called when connection want to restart
+func (room *RoomRecorder) actionRestart(msg synced.Msg) {
+	if conn, ok := room.connectionCheck(msg); ok {
+		room.Restart(conn)
 	}
-	action, ok := msg.Content.(ConnectionMsg)
+}
+
+// actionDisconnect is called when connection disconnected
+func (room *RoomRecorder) actionDisconnect(msg synced.Msg) {
+	if conn, ok := room.connectionCheck(msg); ok {
+		room.Disconnect(conn)
+	}
+}
+
+// peoplCheck check that people publisher send correct message
+func (room *RoomRecorder) connectionCheck(msg synced.Msg) (*Connection, bool) {
+	action, ok := msg.Extra.(ConnectionMsg)
 	if !ok {
-		return
+		return nil, ok
 	}
-	switch action.code {
-	case action_.BackToLobby:
-		isPlayer, ok := action.content.(bool)
-		if !ok {
-			return
-		}
-		room.Leave(action.connection, action.code, isPlayer)
-	case action_.Restart:
-		room.Restart(action.connection)
-	}
+	return action.connection, ok
 }
 
-func (room *RoomRecorder) PeopleSub() synced.SubscriberI {
-	return synced.NewSubscriber(room.peopleCallback)
+// connectionSubscribe subscibe to events associated with room's connection requests
+func (room *RoomRecorder) connectionSubscribe(c RClientI) {
+	observer := synced.NewObserver(
+		synced.NewPair(action_.BackToLobby, room.actionBackToLobby),
+		synced.NewPair(action_.Restart, room.actionRestart),
+		synced.NewPair(action_.Disconnect, room.actionDisconnect))
+	c.Observe(observer.AddPublisherCode(room_.UpdateChat))
 }
 
-func (room *RoomRecorder) peopleCallback(msg synced.Msg) {
-	if msg.Code != room_.UpdatePeople {
-		return
-	}
-	action, ok := msg.Content.(ConnectionMsg)
+// peoplCheck check that people publisher send correct message
+func (room *RoomRecorder) peoplCheck(msg synced.Msg) (*Connection, bool, bool) {
+	action, ok := msg.Extra.(ConnectionMsg)
 	if !ok {
-		return
+		return nil, ok, ok
 	}
-	switch action.code {
-	case room_.ObserverEnter:
-		needRecover, ok := action.content.(bool)
-		if !ok {
-			return
-		}
-		room.AddConnection(action.connection, false, needRecover)
-	case room_.PlayerEnter:
-		needRecover, ok := action.content.(bool)
-		if !ok {
-			return
-		}
-		room.AddConnection(action.connection, false, needRecover)
+	needRecover, ok := action.content.(bool)
+	if !ok {
+		return nil, ok, ok
+	}
+	return action.connection, needRecover, ok
+}
+
+// peoplePlayerEnter is called when connection join room as player
+func (room *RoomRecorder) peoplePlayerEnter(msg synced.Msg) {
+	if conn, recover, ok := room.peoplCheck(msg); ok {
+		room.AddConnection(conn, true, recover)
 	}
 }
+
+// peopleObserverEnter is called when connection join room as observer
+func (room *RoomRecorder) peopleObserverEnter(msg synced.Msg) {
+	if conn, recover, ok := room.peoplCheck(msg); ok {
+		room.AddConnection(conn, false, recover)
+	}
+}
+
+// peopleSubscribe subscibe to events associated with room's members
+func (room *RoomRecorder) peopleSubscribe(p PeopleI) {
+	observer := synced.NewObserver(
+		synced.NewPair(room_.ObserverEnter, room.peopleObserverEnter),
+		synced.NewPair(room_.PlayerEnter, room.peoplePlayerEnter))
+	p.Observe(observer.AddPublisherCode(room_.UpdatePeople))
+}
+
+// eventsSubscribe subscibe to events associated with room's status
+func (room *RoomRecorder) eventsSubscribe(e EventsI) {
+	observer := synced.NewObserver(
+		synced.NewPairNoArgs(room_.StatusFinished, room.finish))
+	e.Observe(observer.AddPublisherCode(room_.UpdateStatus))
+}
+
+// 265 -> 291

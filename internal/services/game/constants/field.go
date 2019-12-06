@@ -1,9 +1,5 @@
 package constants
 
-import (
-	"io/ioutil"
-)
-
 // FieldConfiguration - the limits of the characteristics of the field
 //easyjson:json
 type fieldConfiguration struct {
@@ -18,22 +14,13 @@ type fieldConfiguration struct {
 var FIELD = fieldConfiguration{}
 
 // InitField initializes FIELD
-func InitField(path string) error {
-	var (
-		data []byte
-		err  error
-	)
-
-	if data, err = ioutil.ReadFile(path); err != nil {
+func InitField(rep RepositoryI, path string) error {
+	field, err := rep.getField(path)
+	if err != nil {
 		return err
 	}
-
-	var tmp fieldConfiguration
-	if err = tmp.UnmarshalJSON(data); err != nil {
-		return err
-	}
-	tmp.Set = true
-	FIELD = tmp
+	FIELD = field
+	FIELD.Set = true
 
 	return nil
 }

@@ -181,9 +181,6 @@ func (conn *Connection) Launch(cw config.WebSocket, roomID string) {
 		all.Wait()
 
 		conn.setDisconnected()
-		if conn == nil {
-			utils.Debug(true, "conn nil")
-		}
 		conn.Events.Leave()
 	})
 	//conn.Free()

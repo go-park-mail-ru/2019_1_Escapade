@@ -1,7 +1,9 @@
 package constants
 
 import (
-	"io/ioutil"
+	"strings"
+
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
 
 // RoomConfiguration - the limits of the characteristics of the room
@@ -23,22 +25,53 @@ type roomConfiguration struct {
 var ROOM = roomConfiguration{}
 
 // InitRoom initializes ROOM
-func InitRoom(path string) error {
-	var (
-		data []byte
-		err  error
-	)
-
-	if data, err = ioutil.ReadFile(path); err != nil {
+func InitRoom(rep RepositoryI, path string) error {
+	room, err := rep.getRoom(path)
+	if err != nil {
 		return err
 	}
+	ROOM = room
+	ROOM.Set = true
 
-	var tmp roomConfiguration
-	if err = tmp.UnmarshalJSON(data); err != nil {
-		return err
+	return nil
+}
+
+// Check room's characteristics are valid
+func Check(rs *models.RoomSettings) error {
+	if ROOM.Set && FIELD.Set {
+		rs.Name = strings.Trim(rs.Name, " ")
+		namelen := int32(len(rs.Name))
+		if namelen < ROOM.NameMin || namelen > ROOM.NameMax {
+			return ErrorRoomName(rs)
+		}
+		if rs.Width < FIELD.WidthMin || rs.Width > FIELD.WidthMax {
+			return ErrorFieldWidth(rs)
+		}
+		if rs.Height < FIELD.HeightMin || rs.Height > FIELD.HeightMax {
+			return ErrorFieldHeight(rs)
+		}
+		s := rs.Width * rs.Height
+		if rs.Players < ROOM.PlayersMin || rs.Players > ROOM.PlayersMax ||
+			rs.Players > s {
+			return ErrorPlayers(rs)
+		}
+		if rs.Observers < 0 || rs.Observers > ROOM.ObserversMax {
+			return ErrorObservers(rs)
+		}
+		p := rs.TimeToPrepare
+		if p < ROOM.TimeToPrepareMin || p > ROOM.TimeToPrepareMax {
+			return ErrorTimeToPrepare(rs)
+		}
+		p = rs.TimeToPlay
+		if p < ROOM.TimeToPlayMin || p > ROOM.TimeToPlayMax {
+			return ErrorTimeToPlay(rs)
+		}
+		max := s - rs.Players
+		if rs.Mines < 0 || rs.Mines > max {
+			return ErrorMines(rs.Mines, max)
+		}
+	} else {
+		return ErrorConstantsNotSet()
 	}
-	tmp.Set = true
-	ROOM = tmp
-
 	return nil
 }

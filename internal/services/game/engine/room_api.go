@@ -22,13 +22,17 @@ type RoomAPI struct {
 	se RSendI
 }
 
-// Init configure dependencies with other components of the room
-func (room *RoomAPI) Init(builder RBuilderI) {
+func (room *RoomAPI) build(builder RBuilderI) {
 	builder.BuildSync(&room.s)
 	builder.BuildMessages(&room.m)
 	builder.BuildConnectionEvents(&room.c)
 	builder.BuildEvents(&room.e)
 	builder.BuildSender(&room.se)
+}
+
+// Init configure dependencies with other components of the room
+func (room *RoomAPI) Init(builder RBuilderI) {
+	room.build(builder)
 }
 
 // Handle processes the request came from the user
@@ -38,7 +42,6 @@ func (room *RoomAPI) Handle(conn *Connection, rr *RoomRequest) {
 		if rr.IsGet() {
 			room.GetRoom(conn)
 		} else if rr.IsSend() {
-			utils.Debug(false, "some send")
 			room.handleSent(conn, rr.Send)
 		} else if rr.Message != nil {
 			room.handleMessage(conn, rr.Message)
@@ -92,7 +95,7 @@ func (room *RoomAPI) PostAction(conn *Connection, action int) {
 	room.s.DoWithOther(conn, func() {
 		switch action {
 		case action_.BackToLobby:
-			room.c.Leave(conn)
+			room.c.BackToLobby(conn)
 		case action_.Disconnect:
 			room.c.Disconnect(conn)
 		case action_.Reconnect:
