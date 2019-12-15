@@ -10,11 +10,14 @@
 			"idle":"5s",
 			"wait":"5s",
 			"exec":"0s"
-		}
+		},
+		"enableTraefik": true
 	},
 	"dataBase": {
 		"driverName": "postgres",
 		"maxOpenConns": 20,
+		"maxIdleConns": 10,
+		"maxLifetime": "1h",
 		"url": "DATABASE_URL",
 		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable"
 	}

@@ -42,7 +42,7 @@ func TestInit(t *testing.T) {
 	})
 }
 
-// functional
+// integration
 func TestUseCaseSingleGoroutine(t *testing.T) {
 	Convey("Given action increment a", t, func() {
 		var (
@@ -78,18 +78,6 @@ func TestUseCaseSingleGoroutine(t *testing.T) {
 			Convey("Then action will execute only 5 times", func() {
 				So(c, ShouldEqual, 5)
 				So(b, ShouldEqual, 5)
-			})
-		})
-
-		Convey("When create SingleGoroutine without real time duration", func() {
-			var sg = SingleGoroutine{}
-			sg.Init(-1, action)
-			defer sg.Close()
-
-			Convey("Then no error will happened", func() {
-				So(sg.ticker, ShouldNotBeNil)
-				So(sg.single, ShouldNotBeNil)
-				So(sg.action, ShouldEqual, action)
 			})
 		})
 	})

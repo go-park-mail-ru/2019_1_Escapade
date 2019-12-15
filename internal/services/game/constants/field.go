@@ -2,7 +2,7 @@ package constants
 
 // FieldConfiguration - the limits of the characteristics of the field
 //easyjson:json
-type fieldConfiguration struct {
+type FieldConfiguration struct {
 	Set       bool
 	WidthMin  int32 `json:"widthMin"`
 	WidthMax  int32 `json:"widthMax"`
@@ -11,11 +11,11 @@ type fieldConfiguration struct {
 }
 
 // FIELD - singleton of field constants
-var FIELD = fieldConfiguration{}
+var FIELD = FieldConfiguration{}
 
 // InitField initializes FIELD
 func InitField(rep RepositoryI, path string) error {
-	field, err := rep.getField(path)
+	field, err := rep.GetField(path)
 	if err != nil {
 		return err
 	}

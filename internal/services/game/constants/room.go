@@ -8,7 +8,7 @@ import (
 
 // RoomConfiguration - the limits of the characteristics of the room
 //easyjson:json
-type roomConfiguration struct {
+type RoomConfiguration struct {
 	Set              bool
 	NameMin          int32 `json:"nameMin"`
 	NameMax          int32 `json:"nameMax"`
@@ -22,11 +22,11 @@ type roomConfiguration struct {
 }
 
 // ROOM - singleton of room constants
-var ROOM = roomConfiguration{}
+var ROOM = RoomConfiguration{}
 
 // InitRoom initializes ROOM
 func InitRoom(rep RepositoryI, path string) error {
-	room, err := rep.getRoom(path)
+	room, err := rep.GetRoom(path)
 	if err != nil {
 		return err
 	}

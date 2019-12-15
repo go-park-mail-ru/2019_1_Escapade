@@ -5,36 +5,33 @@ import (
 	//"github.com/gorilla/websocket"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
 	//"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
+// GameHandler handle requests associated with singleplayer
 type GameHandler struct {
 	ih.Handler
 	record database.RecordUseCaseI
 }
 
-func (h *GameHandler) Init(c *config.Configuration, DB idb.DatabaseI,
-	recordDB database.RecordRepositoryI) error {
+// Init open connections to database
+func (h *GameHandler) Init(c *config.Configuration, db *database.Input) error {
 	h.Handler.Init(c)
 
-	h.record = &database.RecordUseCase{}
-	h.record.Init(recordDB)
-	err := h.record.Use(DB)
-	if err != nil {
-		return err
-	}
-	return nil
+	h.record = new(database.RecordUseCase).Init(db.Record)
+	return h.record.Use(db.Database)
 }
 
-func (h *GameHandler) Close() {
-	h.record.Close()
+// Close connections to database
+func (h *GameHandler) Close() error {
+	return h.record.Close()
 }
 
 // TODO add fetch

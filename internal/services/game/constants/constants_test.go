@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	rc = roomConfiguration{
+	rc = RoomConfiguration{
 		NameMin:          10,
 		NameMax:          30,
 		TimeToPrepareMin: 0,
@@ -21,7 +21,7 @@ var (
 		ObserversMax:     100,
 		Set:              true,
 	}
-	fc = fieldConfiguration{
+	fc = FieldConfiguration{
 		WidthMin:  5,
 		WidthMax:  100,
 		HeightMin: 5,
@@ -29,6 +29,38 @@ var (
 		Set:       true,
 	}
 )
+
+type RepositoryFake struct {
+	fieldPath, roomPath string
+}
+
+func (rfs *RepositoryFake) Init(field, room string) *RepositoryFake {
+	rfs.fieldPath = field
+	rfs.roomPath = room
+	return rfs
+}
+
+func newRepositoryFake(field, room string) *RepositoryFake {
+	return new(RepositoryFake).Init(field, room)
+}
+
+// getRoom load Room config(.json file) from FS by its path
+func (rfs *RepositoryFake) GetRoom(path string) (RoomConfiguration, error) {
+	if path != rfs.roomPath {
+		return RoomConfiguration{}, fmt.Errorf(
+			"Incorrect path to room configuration:%s", path)
+	}
+	return rc, nil
+}
+
+// getField load field config(.json file) from FS by its path
+func (rfs *RepositoryFake) GetField(path string) (FieldConfiguration, error) {
+	if path != rfs.fieldPath {
+		return FieldConfiguration{}, fmt.Errorf(
+			"Incorrect path to field configuration:%s", path)
+	}
+	return fc, nil
+}
 
 func rs() *models.RoomSettings {
 	return &models.RoomSettings{
@@ -43,32 +75,6 @@ func rs() *models.RoomSettings {
 	}
 }
 
-type repositoryFake struct {
-	fieldPath, roomPath string
-}
-
-func newRepositoryFake(field, room string) *repositoryFake {
-	return &repositoryFake{field, room}
-}
-
-// getRoom load Room config(.json file) from FS by its path
-func (rfs *repositoryFake) getRoom(path string) (roomConfiguration, error) {
-	if path != rfs.roomPath {
-		return roomConfiguration{}, fmt.Errorf(
-			"Incorrect path to room configuration:%s", path)
-	}
-	return rc, nil
-}
-
-// getField load field config(.json file) from FS by its path
-func (rfs *repositoryFake) getField(path string) (fieldConfiguration, error) {
-	if path != rfs.fieldPath {
-		return fieldConfiguration{}, fmt.Errorf(
-			"Incorrect path to field configuration:%s", path)
-	}
-	return fc, nil
-}
-
 // unit
 func TestInitRoom(t *testing.T) {
 
@@ -79,7 +85,7 @@ func TestInitRoom(t *testing.T) {
 			wrong   = "another"
 			rep     = newRepositoryFake("", correct)
 		)
-		ROOM = roomConfiguration{}
+		ROOM = RoomConfiguration{}
 		Convey("When initialize room constants with correct path", func() {
 			err := InitRoom(rep, correct)
 			Convey("Then no error should happen and room constants set", func() {
@@ -88,12 +94,12 @@ func TestInitRoom(t *testing.T) {
 			})
 		})
 
-		ROOM = roomConfiguration{}
+		ROOM = RoomConfiguration{}
 		Convey("When initialize room constants with wrong path", func() {
 			err := InitRoom(rep, wrong)
 			Convey("Then error should happen and room constants not set", func() {
 				So(err, ShouldNotBeNil)
-				So(ROOM, ShouldResemble, roomConfiguration{})
+				So(ROOM, ShouldResemble, RoomConfiguration{})
 			})
 		})
 	})
@@ -109,7 +115,7 @@ func TestInitField(t *testing.T) {
 			wrong   = "another"
 			rep     = newRepositoryFake(correct, "")
 		)
-		FIELD = fieldConfiguration{}
+		FIELD = FieldConfiguration{}
 		Convey("When initialize field constants with correct path", func() {
 			err := InitField(rep, correct)
 			Convey("Then no error should happen and field constants set", func() {
@@ -118,12 +124,12 @@ func TestInitField(t *testing.T) {
 			})
 		})
 
-		FIELD = fieldConfiguration{}
+		FIELD = FieldConfiguration{}
 		Convey("When initialize field constants with wrong path", func() {
 			err := InitField(rep, wrong)
 			Convey("Then error should happen and field constants not set", func() {
 				So(err, ShouldNotBeNil)
-				So(FIELD, ShouldResemble, fieldConfiguration{})
+				So(FIELD, ShouldResemble, FieldConfiguration{})
 			})
 		})
 	})
@@ -361,6 +367,24 @@ func TestCheckPlayers(t *testing.T) {
 			err := Check(settings)
 			Convey("Then error will be given", func() {
 				So(err, ShouldResemble, ErrorPlayers(settings))
+			})
+		})
+	})
+}
+
+// integration
+func TestUseCase(t *testing.T) {
+
+	settings := rs()
+	rep := newRepositoryFake("1", "2")
+	InitField(rep, "1")
+	InitRoom(rep, "2")
+
+	Convey("Given roomsettings", t, func() {
+		Convey("When check these settings", func() {
+			err := Check(settings)
+			Convey("Then no error will be given", func() {
+				So(err, ShouldBeNil)
 			})
 		})
 	})

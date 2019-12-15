@@ -93,7 +93,7 @@ func TestAddRemoveSub(t *testing.T) {
 	})
 }
 
-// functional
+// integration
 func TestUseCase(t *testing.T) {
 	Convey("Given several observers and publisher", t, func() {
 		publisher := NewPublisher()

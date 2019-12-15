@@ -18,7 +18,7 @@ import (
 
 type MessageRepositoryPQ struct{}
 
-func (db *MessageRepositoryPQ) createOne(Db database.DatabaseI,
+func (db *MessageRepositoryPQ) createOne(Db database.Interface,
 	message *proto.Message) (*proto.MessageID, error) {
 
 	var (
@@ -79,7 +79,7 @@ func (db *MessageRepositoryPQ) createOne(Db database.DatabaseI,
 	return &proto.MessageID{Value: id}, nil
 }
 
-func (db *MessageRepositoryPQ) createMany(Db database.DatabaseI,
+func (db *MessageRepositoryPQ) createMany(Db database.Interface,
 	messages *proto.Messages) (*proto.MessagesID, error) {
 
 	var err error
@@ -97,7 +97,7 @@ func (db *MessageRepositoryPQ) createMany(Db database.DatabaseI,
 	return &proto.MessagesID{Values: ids}, err
 }
 
-func (db *MessageRepositoryPQ) update(Db database.DatabaseI,
+func (db *MessageRepositoryPQ) update(Db database.Interface,
 	message *proto.Message) (*proto.Result, error) {
 
 	var (
@@ -119,7 +119,7 @@ func (db *MessageRepositoryPQ) update(Db database.DatabaseI,
 	return &proto.Result{Done: true}, nil
 }
 
-func (db *MessageRepositoryPQ) delete(Db database.DatabaseI,
+func (db *MessageRepositoryPQ) delete(Db database.Interface,
 	message *proto.Message) (*proto.Result, error) {
 
 	var (
@@ -141,7 +141,7 @@ func (db *MessageRepositoryPQ) delete(Db database.DatabaseI,
 	return &proto.Result{Done: true}, nil
 }
 
-func (db *MessageRepositoryPQ) getAll(Db database.DatabaseI,
+func (db *MessageRepositoryPQ) getAll(Db database.Interface,
 	chatID *proto.ChatID) (*proto.Messages, error) {
 
 	var (

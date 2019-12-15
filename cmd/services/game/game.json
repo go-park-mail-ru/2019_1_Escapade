@@ -10,7 +10,8 @@
 			"idle":"5s",
 			"wait":"5s",
 			"exec":"0s"
-		}
+		},
+		"enableTraefik": true
 	},
 	"authClient": {
 		"url": "AUTHSERVICE_URL",
@@ -20,7 +21,9 @@
 		"driverName": "postgres",
 		"url": "DATABASE_URL",
 		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable",
-		"maxOpenConns": 20
+		"maxOpenConns": 20,
+		"maxIdleConns": 10,
+		"maxLifetime": "1h"
 	},
 	"cors": {
 		"origins": [
@@ -93,7 +96,8 @@
 		"pingPeriod": "9s",
 		"maxMessageSize": 4096,
 		"readBufferSize": 1024,
-		"writeBufferSize": 1024
+		"writeBufferSize": 1024,
+		"handshakeTimeout": "1m"
 	},
 	"required": {
 			"name":"chat",

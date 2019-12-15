@@ -1,19 +1,19 @@
 package rerrors
 
-import "errors"
-
 // ErrorNoBody call it, if client
 // didnt send you body, when you need it
 func ErrorNoBody() error {
-	return errors.New("Cant found parameters")
+	return New("Cant found parameters")
 }
 
 // ErrorInvalidJSON call it, if client
 // send you invalid json
 func ErrorInvalidJSON() error {
-	return errors.New("Found invalid json")
+	return New("Found invalid json")
 }
 
+// ErrorMethodNotAllowed call it,
+//  if that method not allowed
 func ErrorMethodNotAllowed() error {
-	return errors.New("Method not allowed")
+	return New("Method not allowed")
 }

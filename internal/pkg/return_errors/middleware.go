@@ -1,34 +1,27 @@
 package rerrors
 
-import "errors"
-
 // ErrorAuthorization call it, if client
 // 	hasnt session cookie
 func ErrorAuthorization() error {
-	return errors.New("Required authorization")
+	return New("Required authorization")
 }
 
 // AuthWrapper - wrapper for authorization-related error
 func AuthWrapper(err error) error {
-	return errors.New("Required authorization. More: " + err.Error())
+	return New("Required authorization. More: " + err.Error())
 }
 
-// AuthWrapper - wrapper for authorization-related error
+// NoHeaders - no headers were given to authorize
 func NoHeaders() error {
-	return errors.New("No token headers")
+	return New("No token headers")
 }
 
 // ErrorTokenType wrong type of token
 func ErrorTokenType() error {
-	return errors.New("Wrong type of token")
+	return New("Wrong type of token")
 }
 
-// ErrorPanic shows that panic happened
-func ErrorPanic() error {
-	return errors.New("Panic happened")
-}
-
-// ErrorCORS shows that domen cant access to server by CORS
+// CORS shows that domen cant access to server by CORS
 func CORS(origin string) error {
-	return errors.New("CORS couldnt find " + origin)
+	return New("CORS couldnt find " + origin)
 }

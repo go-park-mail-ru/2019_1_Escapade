@@ -1,10 +1,14 @@
 package engine
 
 import (
+	"time"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	chatdb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
+	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 	action_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/action"
 	room_ "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/engine/room"
 )
@@ -68,17 +72,64 @@ func (lobby *Lobby) createRoom(rs *models.RoomSettings) (*Room, error) {
 		err  error
 	)
 	lobby.s.Do(func() {
-		id := utils.RandomString(lobby.rconfig().IDLength)
-		game := &models.Game{Settings: rs}
-		room, err = NewRoom(lobby.rconfig(), lobby, game, id)
+		var (
+			roomID             = utils.RandomString(lobby.rconfig().IDLength)
+			game               = &models.Game{Settings: rs}
+			dbRoomID, dbChatID int32
+		)
+
+		dbRoomID, dbChatID, err = lobby.createRoomInDB(game, roomID)
 		if err != nil {
 			return
 		}
+
+		var ra = &RoomArgs{
+			c:        lobby.rconfig(),
+			lobby:    lobby,
+			rs:       game.Settings,
+			id:       roomID,
+			DBchatID: dbChatID,
+			DBRoomID: dbRoomID,
+		}
+
+		room = new(Room)
 		if err = lobby.addRoom(room); err != nil {
+			return
+		}
+
+		if err = room.Init(ra); err != nil {
 			return
 		}
 	})
 	return room, err
+}
+
+func (lobby *Lobby) setRoomDB(game *models.Game, id string) (int32, int32, error) {
+	game.Settings.ID = id
+	if game.ID == 0 {
+		return lobby.createRoomInDB(game, id)
+	}
+	return game.ID, game.ChatID, nil
+}
+
+func (lobby *Lobby) createRoomInDB(game *models.Game, id string) (int32, int32, error) {
+	game.Date = time.Now()
+	// we create chat here, not when all people will be find, because
+	// with this chat people can message while battle is finding players
+	dbRoomID, err := lobby.db().Create(game)
+	if err != nil {
+		return 0, 0, err
+	}
+	newChat := &chat.ChatWithUsers{
+		Type:   chatdb.RoomType,
+		TypeId: dbRoomID,
+	}
+
+	chatID, err := lobby.ChatService.CreateChat(newChat)
+	if err != nil {
+		return 0, 0, err
+	}
+	return dbRoomID, chatID.Value, nil
 }
 
 func (lobby *Lobby) subscribeToRoom(room *Room) {

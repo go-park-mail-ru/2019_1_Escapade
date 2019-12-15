@@ -11,8 +11,9 @@ type RecordUseCase struct {
 	record RecordRepositoryI
 }
 
-func (db *RecordUseCase) Init(record RecordRepositoryI) {
+func (db *RecordUseCase) Init(record RecordRepositoryI) RecordUseCaseI {
 	db.record = record
+	return db
 }
 
 // UpdateRecords update records for offline game
@@ -23,7 +24,7 @@ func (db *RecordUseCase) Update(id int32, record *models.Record) error {
 	}
 	defer tx.Rollback()
 
-	if err = db.record.update(tx, id, record); err != nil {
+	if err = db.record.Update(tx, id, record); err != nil {
 		return err
 	}
 

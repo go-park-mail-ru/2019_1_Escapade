@@ -19,17 +19,17 @@ type ChatRepositoryI interface {
 
 type UserRepositoryI interface {
 	create(tx database.TransactionI, chatID int32, users ...*proto.User) error
-	delete(Db database.DatabaseI, userInGroup *proto.UserInGroup) (*proto.Result, error)
+	delete(Db database.Interface, userInGroup *proto.UserInGroup) (*proto.Result, error)
 }
 
 type MessageRepositoryI interface {
-	createOne(Db database.DatabaseI, message *proto.Message) (*proto.MessageID, error)
-	createMany(Db database.DatabaseI, messages *proto.Messages) (*proto.MessagesID, error)
+	createOne(Db database.Interface, message *proto.Message) (*proto.MessageID, error)
+	createMany(Db database.Interface, messages *proto.Messages) (*proto.MessagesID, error)
 
-	update(Db database.DatabaseI, message *proto.Message) (*proto.Result, error)
-	delete(Db database.DatabaseI, message *proto.Message) (*proto.Result, error)
+	update(Db database.Interface, message *proto.Message) (*proto.Result, error)
+	delete(Db database.Interface, message *proto.Message) (*proto.Result, error)
 
-	getAll(Db database.DatabaseI, chatID *proto.ChatID) (*proto.Messages, error)
+	getAll(Db database.Interface, chatID *proto.ChatID) (*proto.Messages, error)
 }
 
 type ChatUseCaseI interface {

@@ -7,14 +7,15 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 )
 
+//go:generate $GOPATH/bin/mockery -name "UserCaseI|TransactionI|DatabaseI"
+
 // UserCaseI interface of base user case
 type UserCaseI interface {
 	// open new db connection
-	Open(CDB config.Database, maxIdleConns int,
-		maxLifetime time.Duration, db DatabaseI) error
-	// use exeisting openned connection
-	Use(db DatabaseI) error
-	Get() DatabaseI
+	Open(CDB config.Database, db Interface) error
+	// use existing openned connection
+	Use(db Interface) error
+	Get() Interface
 	// close connection to db
 	Close() error
 }
@@ -28,8 +29,8 @@ type TransactionI interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
-// DatabaseI interface of database
-type DatabaseI interface {
+// Interface interface of database
+type Interface interface {
 	Open(cdb config.Database) error
 	Begin() (TransactionI, error)
 	SetMaxOpenConns(n int)

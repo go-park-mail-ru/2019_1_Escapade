@@ -10,7 +10,8 @@
 			"idle":"5s",
 			"wait":"0",
 			"exec":"60s"
-		}
+		},
+		"enableTraefik": true
 	},
 	"auth": {
 		"accessTokenExpire": "2h",
@@ -24,6 +25,8 @@
 		"url": "DATABASE_URL1",
 		"connectionString": "postgres://rolepade:escapade@app_pg:5432/escabase?sslmode=disable",
 		"maxOpenConns": 20,
+		"maxIdleConns": 10,
+		"maxLifetime": "1h",
 		"PageGames": 2,
 		"PageUsers": 100
 	},

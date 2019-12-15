@@ -232,7 +232,7 @@ func (lobby *Lobby) Load(id string) (*Room, error) {
 			return
 		}
 
-		room, err = NewRoom(lobby.rconfig(), lobby, &info.Game, id)
+		room, err = lobby.createRoom(info.Game.Settings)
 		if err != nil {
 			return
 		}

@@ -151,7 +151,7 @@ Lobby - the structure that controls the slices of players and rooms.
 */
 type Lobby struct {
 	s           *synced.SyncWgroup
-	ChatService clients.Chat
+	ChatService clients.ChatI
 
 	allRooms  *Rooms
 	freeRooms *Rooms
@@ -194,7 +194,7 @@ type Lobby struct {
 }
 
 // NewLobby create new instance of Lobby
-func NewLobby(chatS clients.Chat, c *config.Game, db database.GameUseCaseI,
+func NewLobby(chatS clients.ChatI, c *config.Game, db database.GameUseCaseI,
 	SetImage SetImage) *Lobby {
 
 	context, cancel := context.WithCancel(context.Background())

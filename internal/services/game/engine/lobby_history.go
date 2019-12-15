@@ -12,7 +12,7 @@ import (
 )
 
 // LaunchLobbyHistory launch local lobby with rooms from database
-func LaunchLobbyHistory(chatS clients.Chat, db database.GameUseCaseI,
+func LaunchLobbyHistory(chatS clients.ChatI, db database.GameUseCaseI,
 	ws *websocket.Conn, user *models.UserPublicInfo,
 	cw config.WebSocket, gameSettings *config.Game,
 	si SetImage) {

@@ -1,9 +1,6 @@
 package database
 
 import (
-	"time"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
@@ -15,17 +12,10 @@ type UserUseCase struct {
 	record RecordRepositoryI
 }
 
-func (db *UserUseCase) InitDBWithSQLPQ(CDB config.Database) error {
-	var database = &idb.PostgresSQL{}
-	db.user = &UserRepositoryPQ{}
-	db.record = &RecordRepositoryPQ{}
-	// в конфиг
-	return db.Open(CDB, 10, time.Hour, database)
-}
-
-func (db *UserUseCase) Init(user UserRepositoryI, record RecordRepositoryI) {
+func (db *UserUseCase) Init(user UserRepositoryI, record RecordRepositoryI) UserUseCaseI {
 	db.user = user
 	db.record = record
+	return db
 }
 
 // CreateAccount check sql-injections and is name unique
@@ -43,11 +33,11 @@ func (db *UserUseCase) CreateAccount(user *models.UserPrivateInfo) (int, error) 
 	}
 	defer tx.Rollback()
 
-	if userID, err = db.user.create(tx, user); err != nil {
+	if userID, err = db.user.Create(tx, user); err != nil {
 		return userID, err
 	}
 
-	if err = db.record.create(tx, userID); err != nil {
+	if err = db.record.Create(tx, userID); err != nil {
 		return userID, err
 	}
 
@@ -70,7 +60,7 @@ func (db *UserUseCase) EnterAccount(name, password string) (int32, error) {
 	}
 	defer tx.Rollback()
 
-	if userID, _, err = db.user.checkNamePassword(tx, name, password); err != nil {
+	if userID, _, err = db.user.CheckNamePassword(tx, name, password); err != nil {
 		return userID, err
 	}
 
@@ -92,13 +82,13 @@ func (db *UserUseCase) UpdateAccount(userID int32, user *models.UserPrivateInfo)
 	}
 	defer tx.Rollback()
 
-	if confirmedUser, err = db.user.fetchNamePassword(tx, userID); err != nil {
+	if confirmedUser, err = db.user.FetchNamePassword(tx, userID); err != nil {
 		return err
 	}
 
 	confirmedUser.Update(user)
 
-	if err = db.user.updateNamePassword(tx, user); err != nil {
+	if err = db.user.UpdateNamePassword(tx, user); err != nil {
 		return err
 	}
 
@@ -115,7 +105,7 @@ func (db *UserUseCase) DeleteAccount(user *models.UserPrivateInfo) (err error) {
 	}
 	defer tx.Rollback()
 
-	if err = db.user.delete(tx, user); err != nil {
+	if err = db.user.Delete(tx, user); err != nil {
 		return
 	}
 
@@ -162,7 +152,7 @@ func (db *UserUseCase) FetchAll(difficult int, page int, perPage int,
 		Sort:      sort,
 	}
 
-	if players, err = db.user.fetchAll(tx, params); err != nil {
+	if players, err = db.user.FetchAll(tx, params); err != nil {
 		return
 	}
 
@@ -179,7 +169,7 @@ func (db *UserUseCase) FetchOne(userID int32, difficult int) (user *models.UserP
 	}
 	defer tx.Rollback()
 
-	if user, err = db.user.fetchOne(tx, userID, difficult); err != nil {
+	if user, err = db.user.FetchOne(tx, userID, difficult); err != nil {
 		return
 	}
 
@@ -190,5 +180,5 @@ func (db *UserUseCase) FetchOne(userID int32, difficult int) (user *models.UserP
 // PagesCount returns amount of rows in table Player
 // deleted on amount of rows in one page
 func (db *UserUseCase) PagesCount(perPage int) (int, error) {
-	return db.user.pagesCount(db.Db, perPage)
+	return db.user.PagesCount(db.Db, perPage)
 }

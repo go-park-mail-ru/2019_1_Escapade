@@ -5,6 +5,8 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 )
 
+//go:generate $GOPATH/bin/mockery -name "UserUseCaseI|UserRepositoryI|RecordUseCaseI|RecordRepositoryI|ImageUseCaseI|ImageRepositoryI"
+
 /*
 	[ObjectName]UseCase opens a connection to the database, but cannot perform
 	operations on it. All operations are performed using [ObjectName]Repository
@@ -18,7 +20,7 @@ import (
 
 type UserUseCaseI interface {
 	idb.UserCaseI
-	Init(user UserRepositoryI, record RecordRepositoryI)
+	Init(user UserRepositoryI, record RecordRepositoryI) UserUseCaseI
 
 	EnterAccount(name, password string) (int32, error)
 	CreateAccount(user *models.UserPrivateInfo) (int, error)
@@ -33,39 +35,39 @@ type UserUseCaseI interface {
 }
 
 type UserRepositoryI interface {
-	create(tx idb.TransactionI, user *models.UserPrivateInfo) (int, error)
-	delete(tx idb.TransactionI, user *models.UserPrivateInfo) error
+	Create(tx idb.TransactionI, user *models.UserPrivateInfo) (int, error)
+	Delete(tx idb.TransactionI, user *models.UserPrivateInfo) error
 
-	updateNamePassword(tx idb.TransactionI, user *models.UserPrivateInfo) error
-	checkNamePassword(tx idb.TransactionI, name string,
+	UpdateNamePassword(tx idb.TransactionI, user *models.UserPrivateInfo) error
+	CheckNamePassword(tx idb.TransactionI, name string,
 		password string) (int32, *models.UserPublicInfo, error)
-	fetchNamePassword(tx idb.TransactionI,
+	FetchNamePassword(tx idb.TransactionI,
 		userID int32) (*models.UserPrivateInfo, error)
 
-	updateLastSeen(tx idb.TransactionI, id int) error
+	UpdateLastSeen(tx idb.TransactionI, id int) error
 
-	fetchAll(tx idb.TransactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error)
-	fetchOne(tx idb.TransactionI, userID int32,
+	FetchAll(tx idb.TransactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error)
+	FetchOne(tx idb.TransactionI, userID int32,
 		difficult int) (*models.UserPublicInfo, error)
 
-	pagesCount(dbI idb.DatabaseI, perPage int) (int, error)
+	PagesCount(dbI idb.Interface, perPage int) (int, error)
 }
 
 type RecordUseCaseI interface {
 	idb.UserCaseI
-	Init(record RecordRepositoryI)
+	Init(record RecordRepositoryI) RecordUseCaseI
 
 	Update(id int32, record *models.Record) error
 }
 
 type RecordRepositoryI interface {
-	create(tx idb.TransactionI, id int) error
-	update(tx idb.TransactionI, id int32, record *models.Record) error
+	Create(tx idb.TransactionI, id int) error
+	Update(tx idb.TransactionI, id int32, record *models.Record) error
 }
 
 type ImageUseCaseI interface {
 	idb.UserCaseI
-	Init(image ImageRepositoryI)
+	Init(image ImageRepositoryI) ImageUseCaseI
 
 	Update(filename string, userID int32) error
 	FetchByName(name string) (string, error)
@@ -73,7 +75,7 @@ type ImageUseCaseI interface {
 }
 
 type ImageRepositoryI interface {
-	update(dbI idb.DatabaseI, filename string, userID int32) error
-	fetchByName(dbI idb.DatabaseI, name string) (string, error)
-	fetchByID(dbI idb.DatabaseI, id int32) (string, error)
+	Update(dbI idb.Interface, filename string, userID int32) error
+	FetchByName(dbI idb.Interface, name string) (string, error)
+	FetchByID(dbI idb.Interface, id int32) (string, error)
 }

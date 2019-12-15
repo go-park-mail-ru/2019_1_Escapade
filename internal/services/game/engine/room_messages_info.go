@@ -14,11 +14,11 @@ type RoomMessageInfo struct {
 
 	dbChatID int32
 	location *time.Location
-	service  clients.Chat
+	service  clients.ChatI
 }
 
 // NewRoomMessageInfo create new instanse of RoomMessageInfo
-func NewRoomMessageInfo(c clients.Chat, id int32, l *time.Location) *RoomMessageInfo {
+func NewRoomMessageInfo(c clients.ChatI, id int32, l *time.Location) *RoomMessageInfo {
 	return &RoomMessageInfo{
 		dbChatID: id,
 		location: l,

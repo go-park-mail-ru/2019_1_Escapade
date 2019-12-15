@@ -20,7 +20,7 @@ type BaseService struct {
 	Servers      []string
 	GrcpConn     *grpc.ClientConn
 	NameResolver *testNameResolver
-	Consul       *server.ConsulService
+	Consul       server.ConsulServiceI
 	Finish       chan interface{}
 
 	C config.RequiredService
@@ -29,7 +29,7 @@ type BaseService struct {
 	_errorCounter     int
 }
 
-func (service *BaseService) Init(consul *server.ConsulService,
+func (service *BaseService) Init(consul server.ConsulServiceI,
 	required config.RequiredService) error {
 
 	service.Finish = make(chan interface{})
@@ -67,10 +67,11 @@ func (service *BaseService) Init(consul *server.ConsulService,
 	return nil
 }
 
-func (service *BaseService) Close() {
-	service.GrcpConn.Close()
+func (service *BaseService) Close() error {
+	err := service.GrcpConn.Close()
 	service.SG.Close()
 	service.Finish <- nil
+	return err
 
 }
 

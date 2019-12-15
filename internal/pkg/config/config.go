@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
@@ -28,6 +27,7 @@ type Server struct {
 	MaxConn        int      `json:"maxConn"`
 	MaxHeaderBytes int      `json:"maxHeaderBytes"`
 	Timeouts       Timeouts `json:"timeouts"`
+	EnableTraefik  bool     `json:"enableTraefik"`
 }
 
 // RequiredService that is required for the correct working of this one
@@ -65,36 +65,51 @@ type CORS struct {
 //   and users
 //easyjson:json
 type Database struct {
-	DriverName           string `json:"driverName"`
-	URL                  string `json:"url"`
-	ConnectionString     string `json:"connectionString"`
-	AuthConnectionString string `json:"authConnectionString"`
-	MaxOpenConns         int    `json:"maxOpenConns"`
-	PageGames            int    `json:"pageGames"`
-	PageUsers            int    `json:"pageUsers"`
+	DriverName           string   `json:"driverName"`
+	URL                  string   `json:"url"`
+	ConnectionString     string   `json:"connectionString"`
+	AuthConnectionString string   `json:"authConnectionString"`
+	MaxOpenConns         int      `json:"maxOpenConns"`
+	MaxIdleConns         int      `json:"maxIdleConns"`
+	MaxLifetime          Duration `json:"maxLifetime"`
+	PageGames            int      `json:"pageGames"`
+	PageUsers            int      `json:"pageUsers"`
 }
 
 // WebSocket set timeouts
 //easyjson:json
 type WebSocket struct {
-	WriteWait       Duration `json:"writeWait"`
-	PongWait        Duration `json:"pongWait"`
-	PingPeriod      Duration `json:"pingPeriod"`
-	MaxMessageSize  int64    `json:"maxMessageSize"`
-	ReadBufferSize  int      `json:"readBufferSize"`
-	WriteBufferSize int      `json:"writeBufferSize"`
+	WriteWait        Duration `json:"writeWait"`
+	PongWait         Duration `json:"pongWait"`
+	PingPeriod       Duration `json:"pingPeriod"`
+	HandshakeTimeout Duration `json:"handshakeTimeout"`
+	MaxMessageSize   int64    `json:"maxMessageSize"`
+	ReadBufferSize   int      `json:"readBufferSize"`
+	WriteBufferSize  int      `json:"writeBufferSize"`
+}
+
+func (conf *Configuration) Init(addr string) *Configuration {
+	utils.Debug(false, " Look at config", conf.Auth.Salt, conf.Auth.AccessTokenExpire,
+		conf.Auth.RefreshTokenExpire, conf.Auth.IsGenerateRefresh, conf.Auth.WithReserve,
+		conf.Auth.TokenType, conf.Auth.WhiteList)
+	utils.Debug(false, " Info:", conf.Server.Name, conf.Server.MaxHeaderBytes)
+	utils.Debug(false, " Timeouts:", conf.Server.Timeouts.TTL,
+		conf.Server.Timeouts.Read, conf.Server.Timeouts.Write, conf.Server.Timeouts.Idle,
+		conf.Server.Timeouts.Wait, conf.Server.Timeouts.Exec)
+
+	conf.setOauth2Config()
+	conf.AuthClient.Address = addr
+	return conf
 }
 
 // Init load configuration file and put part of parameters to Environment
-func Init(path string) (conf *Configuration, err error) {
-	conf = &Configuration{}
-	var data []byte
-	if data, err = ioutil.ReadFile(path); err != nil {
-		return
+func NewConfiguration(rep RepositoryI, path string) (*Configuration, error) {
+
+	conf, err := rep.Load(path)
+	if err != nil {
+		return nil, err
 	}
-	if err = conf.UnmarshalJSON(data); err != nil {
-		return
-	}
+
 	utils.Debug(false, " Look at config", conf.Auth.Salt, conf.Auth.AccessTokenExpire,
 		conf.Auth.RefreshTokenExpire, conf.Auth.IsGenerateRefresh, conf.Auth.WithReserve,
 		conf.Auth.TokenType, conf.Auth.WhiteList)
@@ -105,5 +120,5 @@ func Init(path string) (conf *Configuration, err error) {
 
 	conf.setOauth2Config()
 	conf.AuthClient.Address = os.Getenv("AUTH_ADDRESS")
-	return
+	return conf, err
 }

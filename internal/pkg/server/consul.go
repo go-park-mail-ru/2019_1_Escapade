@@ -12,6 +12,19 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
+//go:generate $GOPATH/bin/mockery -name "ConsulServiceI"
+
+type ConsulServiceI interface {
+	Init(input *ConsulInput) ConsulServiceI
+	Health() *consulapi.Health
+
+	ServiceName() string
+	ServiceID() string
+
+	Run() error
+	Close() error
+}
+
 //TODO
 // realize docker, grpc, tcp, script check - https://www.consul.io/docs/agent/checks.html
 
@@ -61,69 +74,47 @@ type ConsulService struct {
 	enableTraefik bool
 }
 
-type ConsulInput struct {
-	Name          string
-	Port          int
-	Tags          []string
-	TTL           time.Duration
-	MaxConn       int
-	ConsulHost    string
-	ConsulPort    string
-	Check         func() (bool, error)
-	EnableTraefik bool
-}
+func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 
-// InitConsulService return instance of ConsulService
-func InitConsulService(input *ConsulInput) *ConsulService {
-
-	if input.EnableTraefik {
-		input.Tags = append(input.Tags,
-			"traefik.enable=true",
-			"traefik.port=80",
-			"traefik.docker.network=backend",
-			"traefik.backend.loadbalancer=drr",
-			"traefik.backend.maxconn.amount="+utils.String(input.MaxConn),
-			"traefik.backend.maxconn.extractorfunc=client.ip")
-	} else {
-		input.Tags = append(input.Tags, "traefik.enable=false")
-	}
-
-	return generateService(input)
-}
-
-func generateService(input *ConsulInput) *ConsulService {
 	var (
 		id      = ServiceID(input.Name)
-		weight  = CountWeight()
 		address = GetIP()
 	)
 
+	cs.ID = ServiceID(input.Name)
+	cs.Name = input.Name
+	cs.Address = address
+	cs.Port = input.Port
+
+	var weight = CountWeight()
+	cs.currentM = &sync.RWMutex{}
+	cs._currentWeight = weight
+	cs.initWeight = weight
+
+	cs.clientM = &sync.RWMutex{}
+	cs._client = nil
+
+	cs.Tags = input.Tags
+	cs.TTL = input.TTL
+	cs.Check = input.Check
 	checks := []*consulapi.AgentServiceCheck{
 		&consulapi.AgentServiceCheck{
 			CheckID:                        "service:" + id,
 			TTL:                            input.TTL.String(),
 			DeregisterCriticalServiceAfter: time.Minute.String(),
 		}}
-	return &ConsulService{
-		ID:      id,
-		Name:    input.Name,
-		Address: address,
-		Port:    input.Port,
+	cs.Checks = checks
+	cs.ConsulAddr = input.ConsulHost + input.ConsulPort
+	cs.enableTraefik = input.EnableTraefik
+	return cs
+}
 
-		currentM:       &sync.RWMutex{},
-		_currentWeight: weight,
+func (cs *ConsulService) ServiceName() string {
+	return cs.Name
+}
 
-		clientM: &sync.RWMutex{},
-		_client: nil,
-
-		initWeight:    weight,
-		Tags:          input.Tags,
-		TTL:           input.TTL,
-		Check:         input.Check,
-		Checks:        checks,
-		ConsulAddr:    input.ConsulHost + input.ConsulPort,
-		enableTraefik: input.EnableTraefik,
-	}
+func (cs *ConsulService) ServiceID() string {
+	return cs.ID
 }
 
 // get the consul client

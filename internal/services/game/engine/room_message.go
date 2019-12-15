@@ -70,7 +70,7 @@ func (room *RoomMessages) subscribe(builder RBuilderI) {
 
 // Init configure dependencies with other components of the room
 func (room *RoomMessages) Init(builder RBuilderI,
-	service clients.Chat, chatID int32, location *time.Location) {
+	service clients.ChatI, chatID int32, location *time.Location) {
 
 	info := NewRoomMessageInfo(service, chatID, location)
 	room.init(info)

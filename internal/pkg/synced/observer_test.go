@@ -100,7 +100,7 @@ func TestDo(t *testing.T) {
 	})
 }
 
-// functional
+// integration
 func TestUseCase1(t *testing.T) {
 	Convey("Given observer", t, func() {
 		rand.Seed(time.Now().UnixNano())

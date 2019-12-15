@@ -8,7 +8,8 @@ import (
 // RecordRepositoryPQ implements the interface RecordRepositoryI using the sql postgres driver
 type RecordRepositoryPQ struct{}
 
-func (db *RecordRepositoryPQ) create(tx idb.TransactionI, id int) error {
+// Create user's record
+func (db *RecordRepositoryPQ) Create(tx idb.TransactionI, id int) error {
 	var err error
 	sqlInsert := `INSERT INTO Record(player_id, difficult) VALUES ($1, $2);`
 	difficultAmount := 4 // вынести в конфиг
@@ -21,7 +22,8 @@ func (db *RecordRepositoryPQ) create(tx idb.TransactionI, id int) error {
 	return err
 }
 
-func (db *RecordRepositoryPQ) update(tx idb.TransactionI, id int32,
+// Update user's record
+func (db *RecordRepositoryPQ) Update(tx idb.TransactionI, id int32,
 	record *models.Record) error {
 
 	var (

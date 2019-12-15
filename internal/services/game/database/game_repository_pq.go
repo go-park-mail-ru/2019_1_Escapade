@@ -8,7 +8,8 @@ import (
 // GameRepositoryPQ implements the interface GameRepositoryI using the sql postgres driver
 type GameRepositoryPQ struct{}
 
-func (db *GameRepositoryPQ) createGame(tx idb.TransactionI, game *models.Game) (int32, error) {
+// CreateGame create game
+func (db *GameRepositoryPQ) CreateGame(tx idb.TransactionI, game *models.Game) (int32, error) {
 	sqlInsert := `
 	INSERT INTO Game(roomID, name, players, timeToPrepare,
 		timeToPlay, date, noAnonymous, deathmatch) VALUES
@@ -25,7 +26,8 @@ func (db *GameRepositoryPQ) createGame(tx idb.TransactionI, game *models.Game) (
 	return id, err
 }
 
-func (db *GameRepositoryPQ) updateGame(tx idb.TransactionI, game *models.Game) error {
+// UpdateGame update game
+func (db *GameRepositoryPQ) UpdateGame(tx idb.TransactionI, game *models.Game) error {
 	sqlStatement := `
 	UPDATE Game 
 		SET status = $1, chatID = $2, recruitment = $3, playing = $4
@@ -41,7 +43,8 @@ func (db *GameRepositoryPQ) updateGame(tx idb.TransactionI, game *models.Game) e
 	return err
 }
 
-func (db GameRepositoryPQ) createGamers(tx idb.TransactionI, GameID int32,
+// CreateGamers create gamers
+func (db GameRepositoryPQ) CreateGamers(tx idb.TransactionI, GameID int32,
 	gamers []models.Gamer) error {
 	sqlInsert := `
 	INSERT INTO Gamer(player_id, game_id, score, time,
@@ -60,7 +63,8 @@ func (db GameRepositoryPQ) createGamers(tx idb.TransactionI, GameID int32,
 	return err
 }
 
-func (db GameRepositoryPQ) createField(tx idb.TransactionI, gameID int32,
+// CreateField create field
+func (db GameRepositoryPQ) CreateField(tx idb.TransactionI, gameID int32,
 	field models.Field) (int32, error) {
 	sqlInsert := `
 	INSERT INTO Field(game_id, width, height, cells_left, difficult,
@@ -77,7 +81,8 @@ func (db GameRepositoryPQ) createField(tx idb.TransactionI, gameID int32,
 	return id, err
 }
 
-func (db GameRepositoryPQ) createActions(tx idb.TransactionI, GameID int32, actions []models.Action) error {
+// CreateActions create actions
+func (db GameRepositoryPQ) CreateActions(tx idb.TransactionI, GameID int32, actions []models.Action) error {
 	sqlInsert := `
 	INSERT INTO Action(game_id, player_id, action, date) VALUES
     ($1, $2, $3, $4);
@@ -94,7 +99,8 @@ func (db GameRepositoryPQ) createActions(tx idb.TransactionI, GameID int32, acti
 	return err
 }
 
-func (db GameRepositoryPQ) createCells(tx idb.TransactionI, FieldID int32, cells []models.Cell) error {
+// CreateCells create cells
+func (db GameRepositoryPQ) CreateCells(tx idb.TransactionI, FieldID int32, cells []models.Cell) error {
 	sqlInsert := `
 	INSERT INTO Cell(field_id, player_id, x, y, value, date) VALUES
     ($1, $2, $3, $4, $5, $6);
@@ -111,7 +117,8 @@ func (db GameRepositoryPQ) createCells(tx idb.TransactionI, FieldID int32, cells
 	return err
 }
 
-func (db *GameRepositoryPQ) fetchOneGame(tx idb.TransactionI, roomID string) (models.Game, error) {
+// FetchOneGame fetch one game
+func (db *GameRepositoryPQ) FetchOneGame(tx idb.TransactionI, roomID string) (models.Game, error) {
 
 	getGame := `
 	SELECT id, roomID, name, players, status, timeToPrepare, timeToPlay, date 
@@ -128,8 +135,8 @@ func (db *GameRepositoryPQ) fetchOneGame(tx idb.TransactionI, roomID string) (mo
 	return game, err
 }
 
-// getGamesURL get user games URL
-func (db *GameRepositoryPQ) fetchAllRoomsID(tx idb.TransactionI, playerID int32) ([]string, error) {
+// FetchAllRoomsID get user games URL
+func (db *GameRepositoryPQ) FetchAllRoomsID(tx idb.TransactionI, playerID int32) ([]string, error) {
 	var (
 		getURLs = `SELECT roomID
 				 FROM Game
@@ -157,7 +164,8 @@ func (db *GameRepositoryPQ) fetchAllRoomsID(tx idb.TransactionI, playerID int32)
 	return URLs, err
 }
 
-func (db *GameRepositoryPQ) fetchAllGamers(tx idb.TransactionI, gameID int32) ([]models.Gamer, error) {
+// FetchAllGamers fetch all gamers
+func (db *GameRepositoryPQ) FetchAllGamers(tx idb.TransactionI, gameID int32) ([]models.Gamer, error) {
 	getGamers := `
 	SELECT GR.player_id, GR.score, EXTRACT(seconds FROM GR.time), GR.left_click,
 				GR.right_click, GR.explosion, GR.won
@@ -183,7 +191,7 @@ func (db *GameRepositoryPQ) fetchAllGamers(tx idb.TransactionI, gameID int32) ([
 	return gamers, err
 }
 
-func (db *GameRepositoryPQ) fetchOneField(tx idb.TransactionI, gameID int32) (int, models.Field, error) {
+func (db *GameRepositoryPQ) FetchOneField(tx idb.TransactionI, gameID int32) (int, models.Field, error) {
 	getField := `SELECT id, width, height, cells_left, difficult, mines
 		from Field where game_id = $1`
 	row := tx.QueryRow(getField, gameID)
@@ -196,7 +204,7 @@ func (db *GameRepositoryPQ) fetchOneField(tx idb.TransactionI, gameID int32) (in
 	return fieldID, field, err
 }
 
-func (db *GameRepositoryPQ) fetchAllActions(tx idb.TransactionI, gameID int32) ([]models.Action, error) {
+func (db *GameRepositoryPQ) FetchAllActions(tx idb.TransactionI, gameID int32) ([]models.Action, error) {
 	getActions := ` SELECT player_id, action, date 
 	from Action where game_id = $1`
 
@@ -218,7 +226,7 @@ func (db *GameRepositoryPQ) fetchAllActions(tx idb.TransactionI, gameID int32) (
 	return actions, err
 }
 
-func (db *GameRepositoryPQ) fetchAllCells(tx idb.TransactionI, fieldID int) ([]models.Cell, error) {
+func (db *GameRepositoryPQ) FetchAllCells(tx idb.TransactionI, fieldID int) ([]models.Cell, error) {
 	getCells := `SELECT player_id, x, y, value, date
 from Cell where field_id = $1`
 

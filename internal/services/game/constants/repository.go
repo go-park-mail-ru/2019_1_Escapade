@@ -1,39 +1,41 @@
 package constants
 
-import "io/ioutil"
+import (
+	"io/ioutil"
+)
 
 type RepositoryI interface {
-	getRoom(path string) (roomConfiguration, error)
-	getField(path string) (fieldConfiguration, error)
+	GetRoom(path string) (RoomConfiguration, error)
+	GetField(path string) (FieldConfiguration, error)
 }
 
 // RepositoryFS get Room and Field configuration from file system
 type RepositoryFS struct{}
 
 // getRoom load Room config(.json file) from FS by its path
-func (rfs *RepositoryFS) getRoom(path string) (roomConfiguration, error) {
+func (rfs *RepositoryFS) GetRoom(path string) (RoomConfiguration, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return roomConfiguration{}, err
+		return RoomConfiguration{}, err
 	}
 
-	var tmp *roomConfiguration
+	var tmp *RoomConfiguration
 	if err = tmp.UnmarshalJSON(data); err != nil {
-		return roomConfiguration{}, err
+		return RoomConfiguration{}, err
 	}
-	return roomConfiguration{}, nil
+	return RoomConfiguration{}, nil
 }
 
 // getField load field config(.json file) from FS by its path
-func (rfs *RepositoryFS) getField(path string) (fieldConfiguration, error) {
+func (rfs *RepositoryFS) GetField(path string) (FieldConfiguration, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return fieldConfiguration{}, err
+		return FieldConfiguration{}, err
 	}
 
-	var tmp *fieldConfiguration
+	var tmp *FieldConfiguration
 	if err = tmp.UnmarshalJSON(data); err != nil {
-		return fieldConfiguration{}, err
+		return FieldConfiguration{}, err
 	}
-	return fieldConfiguration{}, nil
+	return FieldConfiguration{}, nil
 }

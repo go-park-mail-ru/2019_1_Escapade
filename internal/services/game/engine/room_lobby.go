@@ -22,7 +22,7 @@ type LobbyProxyI interface {
 
 	config() *config.Room
 
-	ChatService() clients.Chat
+	ChatService() clients.ChatI
 }
 
 // RoomLobby implements LobbyProxyI
@@ -47,7 +47,7 @@ func (room *RoomLobby) Init(builder RBuilderI, r *Room, lobby *Lobby) {
 	room.canClose = room.lobby.config().Room.CanClose
 }
 
-func (room *RoomLobby) ChatService() clients.Chat {
+func (room *RoomLobby) ChatService() clients.ChatI {
 	return room.lobby.ChatService
 }
 

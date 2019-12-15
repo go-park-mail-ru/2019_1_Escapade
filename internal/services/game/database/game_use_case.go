@@ -3,52 +3,36 @@ package database
 import (
 	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
-	chatdb "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/database"
-	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 )
 
 // GameUseCase implements the interface GameuseCaseI
 type GameUseCase struct {
 	idb.UseCaseBase
-	game  GameRepositoryI
-	chatS clients.Chat
+	game GameRepositoryI
 }
 
-func (db *GameUseCase) Init(game GameRepositoryI, chatS clients.Chat) {
+// Init initialize struct
+func (db *GameUseCase) Init(game GameRepositoryI) GameUseCaseI {
 	db.game = game
-	db.chatS = chatS
+	return db
 }
 
-func (db *GameUseCase) Create(game *models.Game) (int32, int32, error) {
+// Create game
+func (db *GameUseCase) Create(game *models.Game) (int32, error) {
 
-	var (
-		tx       idb.TransactionI
-		roomID   int32
-		pbChatID *chat.ChatID
-		err      error
-		id       int32
-	)
-	if tx, err = db.Db.Begin(); err != nil {
-		return 0, 0, err
+	tx, err := db.Db.Begin()
+	if err != nil {
+		return 0, err
 	}
 	defer tx.Rollback()
-	if roomID, err = db.game.createGame(tx, game); err != nil {
-		return 0, 0, err
+
+	roomID, err := db.game.CreateGame(tx, game)
+	if err != nil {
+		return 0, err
 	}
 
-	newChat := &chat.ChatWithUsers{
-		Type:   chatdb.RoomType,
-		TypeId: roomID,
-	}
-
-	pbChatID, err = db.chatS.CreateChat(newChat)
-	if err == nil {
-		id = pbChatID.Value
-	}
 	err = tx.Commit()
-	return roomID, id, err
+	return roomID, err
 }
 
 // Save game to database
@@ -64,7 +48,7 @@ func (db *GameUseCase) Save(info models.GameInformation) error {
 	}
 	defer tx.Rollback()
 
-	if err = db.game.updateGame(tx, &info.Game); err != nil {
+	if err = db.game.UpdateGame(tx, &info.Game); err != nil {
 		return err
 	}
 
@@ -77,19 +61,19 @@ func (db *GameUseCase) Save(info models.GameInformation) error {
 		}
 	*/
 
-	if err = db.game.createGamers(tx, gameID, info.Gamers); err != nil {
+	if err = db.game.CreateGamers(tx, gameID, info.Gamers); err != nil {
 		return err
 	}
 
-	if fieldID, err = db.game.createField(tx, gameID, info.Field); err != nil {
+	if fieldID, err = db.game.CreateField(tx, gameID, info.Field); err != nil {
 		return err
 	}
 
-	if err = db.game.createActions(tx, gameID, info.Actions); err != nil {
+	if err = db.game.CreateActions(tx, gameID, info.Actions); err != nil {
 		return err
 	}
 
-	if err = db.game.createCells(tx, fieldID, info.Cells); err != nil {
+	if err = db.game.CreateCells(tx, fieldID, info.Cells); err != nil {
 		return err
 	}
 
@@ -111,7 +95,7 @@ func (db *GameUseCase) FetchAllGames(userID int32) ([]models.GameInformation, er
 	}
 	defer tx.Rollback()
 
-	if URLs, err = db.game.fetchAllRoomsID(tx, userID); err != nil {
+	if URLs, err = db.game.FetchAllRoomsID(tx, userID); err != nil {
 		return games, err
 	}
 
@@ -141,7 +125,7 @@ func (db *GameUseCase) FetchAllRoomsID(userID int32) ([]string, error) {
 	}
 	defer tx.Rollback()
 
-	if URLs, err = db.game.fetchAllRoomsID(tx, userID); err != nil {
+	if URLs, err = db.game.FetchAllRoomsID(tx, userID); err != nil {
 		return URLs, err
 	}
 
@@ -163,28 +147,28 @@ func (db *GameUseCase) FetchOneGame(roomID string) (models.GameInformation, erro
 	}
 	defer tx.Rollback()
 
-	game, err := db.game.fetchOneGame(tx, roomID)
+	game, err := db.game.FetchOneGame(tx, roomID)
 	if err != nil {
 		return gameInformation, err
 	}
 	gameID := game.ID
 
-	gamers, err := db.game.fetchAllGamers(tx, gameID)
+	gamers, err := db.game.FetchAllGamers(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	fieldID, field, err := db.game.fetchOneField(tx, gameID)
+	fieldID, field, err := db.game.FetchOneField(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	actions, err := db.game.fetchAllActions(tx, gameID)
+	actions, err := db.game.FetchAllActions(tx, gameID)
 	if err != nil {
 		return gameInformation, err
 	}
 
-	cells, err := db.game.fetchAllCells(tx, fieldID)
+	cells, err := db.game.FetchAllCells(tx, fieldID)
 	if err != nil {
 		return gameInformation, err
 	}

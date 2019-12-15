@@ -39,7 +39,7 @@ func (db *UserRepositoryPQ) create(tx database.TransactionI, chatID int32,
 	return err
 }
 
-func (db *UserRepositoryPQ) delete(Db database.DatabaseI,
+func (db *UserRepositoryPQ) delete(Db database.Interface,
 	userInGroup *proto.UserInGroup) (*proto.Result, error) {
 
 	var (

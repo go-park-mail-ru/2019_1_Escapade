@@ -13,6 +13,7 @@ import (
 // UserRepositoryPQ implements the interface UserRepositoryI using the sql postgres driver
 type UserRepositoryPQ struct{}
 
+// UsersSelectParams parameters to select user
 type UsersSelectParams struct {
 	Difficult int
 	Offset    int
@@ -20,7 +21,8 @@ type UsersSelectParams struct {
 	Sort      string
 }
 
-func (db *UserRepositoryPQ) create(tx idb.TransactionI, user *models.UserPrivateInfo) (int, error) {
+// Create user
+func (db *UserRepositoryPQ) Create(tx idb.TransactionI, user *models.UserPrivateInfo) (int, error) {
 	sqlInsert := `
 	INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
 		($1, $2, $3, $4)
@@ -35,8 +37,8 @@ func (db *UserRepositoryPQ) create(tx idb.TransactionI, user *models.UserPrivate
 	return id, err
 }
 
-// deletePlayer delete all information about user
-func (db *UserRepositoryPQ) delete(tx idb.TransactionI, user *models.UserPrivateInfo) error {
+// Delete delete all information about user
+func (db *UserRepositoryPQ) Delete(tx idb.TransactionI, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2
 	RETURNING ID
@@ -51,7 +53,8 @@ func (db *UserRepositoryPQ) delete(tx idb.TransactionI, user *models.UserPrivate
 	return err
 }
 
-func (db *UserRepositoryPQ) updateNamePassword(tx idb.TransactionI, user *models.UserPrivateInfo) error {
+// UpdateNamePassword update name and password of user with selected id
+func (db *UserRepositoryPQ) UpdateNamePassword(tx idb.TransactionI, user *models.UserPrivateInfo) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -69,7 +72,8 @@ func (db *UserRepositoryPQ) updateNamePassword(tx idb.TransactionI, user *models
 	return err
 }
 
-func (db *UserRepositoryPQ) checkNamePassword(tx idb.TransactionI, name string, password string) (int32, *models.UserPublicInfo, error) {
+// CheckNamePassword check that there are sych name and password
+func (db *UserRepositoryPQ) CheckNamePassword(tx idb.TransactionI, name string, password string) (int32, *models.UserPublicInfo, error) {
 	var (
 		sqlStatement = `
 			SELECT pl.id, pl.name, r.score, r.time, r.difficult
@@ -86,8 +90,8 @@ func (db *UserRepositoryPQ) checkNamePassword(tx idb.TransactionI, name string, 
 	return id, user, err
 }
 
-// fetchNamePassword get player's personal info
-func (db *UserRepositoryPQ) fetchNamePassword(tx idb.TransactionI, userID int32) (*models.UserPrivateInfo, error) {
+// FetchNamePassword get player's personal info
+func (db *UserRepositoryPQ) FetchNamePassword(tx idb.TransactionI, userID int32) (*models.UserPrivateInfo, error) {
 
 	sqlStatement := "SELECT name, password FROM Player where id = $1"
 
@@ -99,8 +103,8 @@ func (db *UserRepositoryPQ) fetchNamePassword(tx idb.TransactionI, userID int32)
 	return user, err
 }
 
-// updateLastSeen update users last date seen
-func (db *UserRepositoryPQ) updateLastSeen(tx idb.TransactionI, id int) error {
+// UpdateLastSeen update users last date seen
+func (db *UserRepositoryPQ) UpdateLastSeen(tx idb.TransactionI, id int) error {
 	var (
 		sqlStatement = `
 			UPDATE Player 
@@ -113,9 +117,8 @@ func (db *UserRepositoryPQ) updateLastSeen(tx idb.TransactionI, id int) error {
 	return err
 }
 
-// fetchAll returns information about users
-// for leaderboard
-func (db *UserRepositoryPQ) fetchAll(tx idb.TransactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error) {
+// FetchAll returns information about users
+func (db *UserRepositoryPQ) FetchAll(tx idb.TransactionI, params UsersSelectParams) ([]*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -131,6 +134,13 @@ func (db *UserRepositoryPQ) fetchAll(tx idb.TransactionI, params UsersSelectPara
 		sqlStatement += ` ORDER BY (time) `
 	}
 	sqlStatement += ` OFFSET $2 Limit $3 `
+
+	return db.fetchAll(tx, params, sqlStatement)
+}
+
+// fetchAll returns information about users
+func (db *UserRepositoryPQ) fetchAll(tx idb.TransactionI, params UsersSelectParams,
+	sqlStatement string) ([]*models.UserPublicInfo, error) {
 
 	players := make([]*models.UserPublicInfo, 0, params.Limit)
 	rows, err := tx.Query(sqlStatement, params.Difficult, params.Offset,
@@ -153,8 +163,8 @@ func (db *UserRepositoryPQ) fetchAll(tx idb.TransactionI, params UsersSelectPara
 	return players, err
 }
 
-// fetchOne returns information about user
-func (db *UserRepositoryPQ) fetchOne(tx idb.TransactionI, userID int32,
+// FetchOne returns information about user
+func (db *UserRepositoryPQ) FetchOne(tx idb.TransactionI, userID int32,
 	difficult int) (*models.UserPublicInfo, error) {
 
 	sqlStatement := `
@@ -175,7 +185,8 @@ func (db *UserRepositoryPQ) fetchOne(tx idb.TransactionI, userID int32,
 	return player, err
 }
 
-func (db *UserRepositoryPQ) pagesCount(dbI idb.DatabaseI, perPage int) (amount int, err error) {
+// PagesCount return user's pages count
+func (db *UserRepositoryPQ) PagesCount(dbI idb.Interface, perPage int) (amount int, err error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	row := dbI.QueryRow(sqlStatement)
 	if err = row.Scan(&amount); err != nil {

@@ -1,41 +1,34 @@
 package handlers
 
 import (
-	"strconv"
 	"net/http"
+	"strconv"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-
-
 )
 
+// UsersHandler handle requests associated with list of users
 type UsersHandler struct {
 	ih.Handler
 	user database.UserUseCaseI
 }
 
-func (h *UsersHandler) Init(c *config.Configuration, DB idb.DatabaseI,
-	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
+// Init open connections to database
+func (h *UsersHandler) Init(c *config.Configuration, db *database.Input) error {
 	h.Handler.Init(c)
-
-	h.user = &database.UserUseCase{}
-	h.user.Init(userDB, recordDB)
-	err := h.user.Use(DB)
-	if err != nil {
-		return err
-	}
-	return nil
+	h.user = new(database.UserUseCase).Init(db.User, db.Record)
+	return h.user.Use(db.Database)
 }
 
-func (h *UsersHandler) Close() {
-	h.user.Close()
+// Close connections to database
+func (h *UsersHandler) Close() error {
+	return h.user.Close()
 }
 
 // HandleUsersPages process any operation associated with users

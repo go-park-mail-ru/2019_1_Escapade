@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 )
 
+// Chat struct
 type Chat struct {
 	clients.BaseService
 	chat     proto.ChatServiceClient
@@ -17,7 +18,8 @@ type Chat struct {
 	postmove func(error)
 }
 
-func (c *Chat) Init(consul *server.ConsulService, required config.RequiredService) error {
+// Init initialize strcut
+func (c *Chat) Init(consul server.ConsulServiceI, required config.RequiredService) error {
 	err := c.BaseService.Init(consul, required)
 	if err != nil {
 		return err

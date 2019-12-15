@@ -1,129 +1,193 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
+	"google.golang.org/grpc"
 )
 
-type CommandLineArgs struct {
-	ConfigurationPath string
-	PhotoPublicPath   string
-	PhotoPrivatePath  string
-	MainPort          string
-	MainPortInt       int
+type ServicesI interface {
+	Run(args *Args) error
+	Close() error
 }
 
-func GetCommandLineArgs(argsNeed int, init func() *CommandLineArgs) (*CommandLineArgs, error) {
-	utils.Debug(false, "1. Check command line arguments")
-
-	argsGet := len(os.Args)
-	if argsGet < argsNeed {
-		utils.Debug(false, "ERROR. Servce need ", argsNeed, " command line arguments. But",
-			argsGet-1, "get.")
-		return nil, re.ErrorServer()
-	}
-
-	var (
-		input = init()
-		err   error
-	)
-	input.MainPort, input.MainPortInt, err = Port(input.MainPort)
-	if err != nil {
-		utils.Debug(false, "ERROR - invalid server port(cant convert to int):", err.Error())
-		return nil, err
-	}
-	utils.Debug(false, "✔")
-	return input, err
+type HandlerI interface {
+	Router() http.Handler
 }
 
-type ConfigurationArgs struct {
-	Photo bool
+type Args struct {
+	Input         InputI
+	Loader        ConfigutaionLoaderI
+	ConsulService ConsulServiceI
+	Service       ServicesI
+	Handler       HandlerI
+
+	GRPC *grpc.Server
+
+	Test bool
 }
 
-func GetConfiguration(cla *CommandLineArgs, ca *ConfigurationArgs) (*config.Configuration, error) {
-	utils.Debug(false, "2. Setting the configuration")
+const (
+	NOERROR      = 0
+	ARGSERROR    = 1
+	INPUTERROR   = 2
+	CONFIGERROR  = 3
+	CONSULERROR  = 4
+	RUNERROR     = 5
+	MAINRUNERROR = 6
+	STOPERROR    = 7
+	EXTRARROR    = 8
+)
 
-	configuration, err := config.Init(cla.ConfigurationPath)
-	if err != nil {
-		utils.Debug(false, "ERROR with main configuration:", err.Error())
-		return nil, err
+/*
+Run performs all stages of loading and starting the server
+ 1. loading input parameters
+ 2. loading configuration files
+ 3. registration in the discovery service
+ 4. server startup(at this point, the execution thread is blocked because
+	the server starts listening for incoming connections)
+ 5. Stopping the server with resource cleanup
+
+ if an error occurs at one of the stages, a panic will be triggered. It
+ will be intercepted by the synced.Exit, which will call os.Exit(code)
+*/
+func Run(args *Args) {
+	synced.HandleExit()
+
+	if args == nil || args.Input == nil || args.Loader == nil ||
+		args.ConsulService == nil || args.Service == nil {
+		panic(synced.Exit{Code: ARGSERROR})
 	}
-	if ca.Photo {
-		err = photo.Init(cla.PhotoPublicPath, cla.PhotoPrivatePath)
-		if err != nil {
-			utils.Debug(false, "ERROR with photo configuration:", err.Error())
-			return nil, err
+
+	var errorCode = runStages(args, input, load, consul, runDependencies,
+		runServer, stopDependencies)
+
+	fmt.Println("errorCode:", errorCode)
+	if errorCode != NOERROR {
+		panic(synced.Exit{Code: errorCode})
+	}
+}
+
+// runStages every stage(func taken Args and returning code error)
+func runStages(args *Args, stages ...func(*Args) int) int {
+	var code = NOERROR
+	for i, action := range stages {
+		if code = action(args); code != NOERROR {
+			printFAIL(i)
+			break
 		}
+		printOK(i)
 	}
-	utils.Debug(false, "✔✔")
-	return configuration, nil
+	return code
 }
 
-type AllArgs struct {
-	CLA                *CommandLineArgs
-	C                  *config.Configuration
-	IsHTTPS            bool
-	DisableTraefik     bool
-	WithoutExecTimeout bool
+// loading input parameters
+func input(args *Args) int {
+	if err := args.Input.CheckBefore(); err != nil {
+		utils.Debug(false, "ERROR with check before init:", err.Error())
+		return INPUTERROR
+	}
+
+	args.Input.Init()
+
+	if err := args.Input.CheckAfter(); err != nil {
+		utils.Debug(false, "ERROR with  check after init:", err.Error())
+		return INPUTERROR
+	}
+
+	// if err := args.Input.Extra(); err != nil {
+	// 	utils.Debug(false, "ERROR with input extra action:", err.Error())
+	// 	return EXTRARROR
+	// }
+
+	return NOERROR
 }
 
-func RegisterInConsul(aa *AllArgs) *ConsulService {
-	utils.Debug(false, "3. Register the service in Consul discovery")
-
-	var (
-		consulAddr = os.Getenv("CONSUL_ADDRESS")
-		name       = aa.C.Server.Name
-		tags       = []string{name, "traefik.frontend.entryPoints=http",
-			"traefik.frontend.rule=Host:" + name + ".consul.localhost"}
-	)
-	entrypoint := "http"
-	if aa.IsHTTPS {
-		entrypoint = "https"
+//  loading configuration files
+func load(args *Args) int {
+	if err := args.Loader.Load(); err != nil {
+		utils.Debug(false, "ERROR with configuration:", err.Error())
+		return CONFIGERROR
 	}
-	tags = append(tags, "traefik.frontend.entryPoints="+entrypoint)
 
-	consulInput := &ConsulInput{
-		Name:          name,
-		Port:          aa.CLA.MainPortInt,
-		Tags:          tags,
-		TTL:           aa.C.Server.Timeouts.TTL.Duration,
-		MaxConn:       aa.C.Server.MaxConn,
-		ConsulHost:    consulAddr,
-		ConsulPort:    ":8500",
-		Check:         func() (bool, error) { return false, nil },
-		EnableTraefik: !aa.DisableTraefik,
+	if err := args.Loader.Extra(); err != nil {
+		utils.Debug(false, "ERROR with configuration extra action:", err.Error())
+		return EXTRARROR
 	}
-	utils.Debug(false, "✔✔✔")
-	return InitConsulService(consulInput)
+
+	return NOERROR
 }
 
-func ConfigureServer(handler http.Handler, aa *AllArgs) *http.Server {
-	utils.Debug(false, "4. Configure server")
+// registration in the discovery service
+func consul(args *Args) int {
+	input := new(ConsulInput).Init(args.Input, args.Loader)
+	consul := args.ConsulService.Init(input)
 
-	serverConfig := aa.C.Server
-	var execT = serverConfig.Timeouts.Exec.Duration
+	if err := consul.Run(); err != nil {
+		utils.Debug(false, "ERROR with consul:", err.Error())
+		return CONSULERROR
+	}
+	return NOERROR
+}
 
-	if execT > time.Duration(time.Second) && !aa.IsHTTPS && !aa.WithoutExecTimeout {
-		handler = http.TimeoutHandler(handler, execT, "ESCAPADE DEBUG Timeout!")
+// run depencies
+func runDependencies(args *Args) int {
+	if err := args.Service.Run(args); err != nil {
+		utils.Debug(false, "ERROR with running server:", err.Error())
+		return RUNERROR
+	}
+	return NOERROR
+}
+
+// // run server
+func runServer(args *Args) int {
+	if args.Handler == nil {
+		return MAINRUNERROR
 	}
 
-	srv := &http.Server{
-		Addr:         aa.CLA.MainPort,
-		ReadTimeout:  serverConfig.Timeouts.Read.Duration,
-		WriteTimeout: serverConfig.Timeouts.Write.Duration,
-		IdleTimeout:  serverConfig.Timeouts.Idle.Duration,
-		Handler:      handler,
-		// ConnState: func(n net.Conn, c http.ConnState) {
-		// 	fmt.Println("--------------new conn state:", c)
-		// },
-		MaxHeaderBytes: serverConfig.MaxHeaderBytes,
+	var c = args.Loader.Get().Server
+	var port = args.Input.GetData().MainPort
+	var err error
+
+	utils.Debug(false, "Service", c.Name, "with id:",
+		args.ConsulService.ServiceID(), "ready to go on", GetIP()+port)
+
+	if args.GRPC != nil {
+		err = LaunchGRPC(args.GRPC, c, port, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
+	} else {
+		var srv = ConfigureServer(args.Handler.Router(), c, port)
+		err = LaunchHTTP(srv, c, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
 	}
-	utils.Debug(false, "✔✔✔✔")
-	return srv
+	if err != nil {
+		return MAINRUNERROR
+	}
+
+	return NOERROR
+}
+
+// stop depencies
+func stopDependencies(args *Args) int {
+	if err := args.Service.Close(); err != nil {
+		utils.Debug(false, "ERROR with stopping server:", err.Error())
+		return RUNERROR
+	}
+	args.ConsulService.Close()
+	return NOERROR
+}
+
+func printOK(i int) {
+	str := ""
+	for a := 0; a < i+1; a++ {
+		str += "✔"
+	}
+}
+
+func printFAIL(i int) {
+	str := ""
+	for a := 0; a < i+1; a++ {
+		str += "✕"
+	}
 }

@@ -31,7 +31,7 @@ type FindMessage func(*models.Message) int
 type DeleteMessage func(int)
 
 // GetChatID accesses the chat service to get the ID of the chat
-func GetChatID(chatS clients.Chat, chatType int32, typeID int32) (int32, error) {
+func GetChatID(chatS clients.ChatI, chatType int32, typeID int32) (int32, error) {
 	var (
 		newChat = &chat.Chat{
 			Type:   chatType,
@@ -52,7 +52,7 @@ func GetChatID(chatS clients.Chat, chatType int32, typeID int32) (int32, error) 
 
 // GetChatIDAndMessages accesses the chat service to get the ID of the chat and
 // all messages
-func GetChatIDAndMessages(chatS clients.Chat, loc *time.Location, chatType, typeID int32,
+func GetChatIDAndMessages(chatS clients.ChatI, loc *time.Location, chatType, typeID int32,
 	setImage SetImage) (int32, []*models.Message, error) {
 	var (
 		newChat = &chat.Chat{
@@ -112,7 +112,7 @@ func HandleMessage(conn *Connection,
 }
 
 // Message send message to connections
-func Message(chatS clients.Chat, lobby *Lobby, conn *Connection, message *models.Message,
+func Message(chatS clients.ChatI, lobby *Lobby, conn *Connection, message *models.Message,
 	append AppendMessage, update UpdateMessage, delete DeleteMessage,
 	find FindMessage, send Sender, predicate SendPredicate, room *Room,
 	chatID int32) (err error) {

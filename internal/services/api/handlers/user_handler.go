@@ -1,53 +1,49 @@
 package handlers
 
 import (
-	"strconv"
-	"net/http"
 	"context"
-	"time"
 	ran "math/rand"
+	"net/http"
+	"strconv"
+	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
+	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
+// UserHandler handle requests associated with the user
 type UserHandler struct {
 	ih.Handler
 	user   database.UserUseCaseI
 	record database.RecordUseCaseI
 }
 
-func (h *UserHandler) Init(c *config.Configuration, DB idb.DatabaseI,
-	userDB database.UserRepositoryI, recordDB database.RecordRepositoryI) error {
+// Init open connections to database
+func (h *UserHandler) Init(c *config.Configuration, db *database.Input) error {
 	h.Handler.Init(c)
 
-	h.user = &database.UserUseCase{}
-	h.user.Init(userDB, recordDB)
-	err := h.user.Use(DB)
-	if err != nil {
+	h.user = new(database.UserUseCase).Init(db.User, db.Record)
+	if err := h.user.Use(db.Database); err != nil {
 		return err
 	}
 
-	h.record = &database.RecordUseCase{}
-	h.record.Init(recordDB)
-	err = h.record.Use(DB)
-	if err != nil {
+	h.record = new(database.RecordUseCase).Init(db.Record)
+	if err := h.record.Use(db.Database); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *UserHandler) Close() {
-	h.user.Close()
-	h.record.Close()
+// Close connections to database
+func (h *UserHandler) Close() error {
+	return re.Close(h.user, h.record)
 }
 
 // Handle process any operation associated with user
