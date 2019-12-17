@@ -1,0 +1,73 @@
+{
+	"server": {
+		"host": "http://localhost",
+		"portUrl": "PORT_GAME_URL",
+		"portValue": ":3002"
+	},
+	"authClient": {
+		"url": "AUTHSERVICE_URL",
+		"address": ":3003"
+	},
+	"dataBase": {
+		"driverName": "postgres",
+		"url": "DATABASE_URL",
+		"connectionString": "dbname=escabase user=rolepade password=escapade sslmode=disable",
+		"maxOpenConns": 20
+	},
+	"cors": {
+		"origins": [
+			"http://localhost:8080",
+			"http://localhost:3001",
+			"http://localhost:3002",
+			"https://escapade-frontend.herokuapp.com",
+			"https://explosion.team"
+		],
+		"headers": [
+			"Content-type"
+		],
+		"credentials": "true",
+		"methods": [
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS"
+		]
+	},
+	"storage": {
+		"playersAvatarsStorage": "escapade",
+		"defaultAvatar": "1.png"
+	},
+	"aws": {
+		"region": "ru-msk",
+		"endpoint": "https://hb.bizmrg.com"
+	},
+	"session": {
+		"name": "sessionid",
+		"path": "/",
+		"length": 16,
+		"lifetime": 1004800,
+		"httpOnly": true
+	},
+	"game": {
+		"roomsCapacity": 500,
+		"connectionCapacity": 1000,
+		"location": "Europe/Moscow",
+		"closeRoom": true,
+		"metrics": false,
+		"field": {
+			"minAreaSize": 1,
+			"maxAreaSize": 5,
+			"minProbability": 20,
+			"maxProbability": 80
+		}
+	},
+	"websocket": {
+		"writeWait": 60,
+		"pongWait": 10,
+		"pingPeriod": 9,
+		"maxMessageSize": 4096,
+		"readBufferSize": 1024,
+		"writeBufferSize": 1024
+	}
+}

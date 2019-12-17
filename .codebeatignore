@@ -1,9 +1,0 @@
-cmd/*
-docs/*
-extra/*
-internal/models/models_easyjson.go
-internal/services/ery/*
-internal/services/ery/models/models_easyjson.go
-internal/services/game/engine/engine_easyjson.go
-internal/config/config_easyjson.go
-vendor/*

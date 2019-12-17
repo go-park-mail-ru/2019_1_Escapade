@@ -1,2 +1,0 @@
-CREATE USER eryuser WITH SUPERUSER PASSWORD 'nopassword';
-CREATE DATABASE erybase OWNER eryuser;
