@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	fmt "fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -81,11 +80,11 @@ func (db *MessageRepositoryPQ) createOne(Db database.Interface,
 
 func (db *MessageRepositoryPQ) createMany(Db database.Interface,
 	messages *proto.Messages) (*proto.MessagesID, error) {
-
-	var err error
 	if len(messages.Messages) == 0 {
 		return &proto.MessagesID{}, nil
 	}
+
+	var err error
 	var ids = make([]*proto.MessageID, len(messages.Messages))
 	for i, message := range messages.Messages {
 		ids[i], err = db.createOne(Db, message)
@@ -99,46 +98,27 @@ func (db *MessageRepositoryPQ) createMany(Db database.Interface,
 
 func (db *MessageRepositoryPQ) update(Db database.Interface,
 	message *proto.Message) (*proto.Result, error) {
-
-	var (
-		id  int32
-		err error
-	)
+	var id int32
 	sqlUpdate := `
-	Update Message set message = $1, edited = true where id = $2 or (not_saved_id = $2 and sender_id = $3)
-		RETURNING ID;
-		`
-	row := Db.QueryRow(sqlUpdate, message.Text, message.Id, message.From.Id)
+	Update Message set message = $1, edited = true where 
+		id = $2 or (not_saved_id = $2 and sender_id = $3)
+		RETURNING ID;`
 
-	if err = row.Scan(&id); err != nil {
-		utils.Debug(false, "sql statement:", sqlUpdate)
-		utils.Debug(false, "cant update message", err.Error())
-		return &proto.Result{Done: false}, err
-	}
+	err := Db.QueryRow(sqlUpdate, message.Text,
+		message.Id, message.From.Id).Scan(&id)
 
-	return &proto.Result{Done: true}, nil
+	return &proto.Result{Done: err == nil}, err
 }
 
 func (db *MessageRepositoryPQ) delete(Db database.Interface,
 	message *proto.Message) (*proto.Result, error) {
-
-	var (
-		id  int32
-		err error
-	)
+	var id int32
 	sqlDelete := `
-	Delete from Message where id = $1 or (not_saved_id = $1 and sender_id = $2)
-	RETURNING ID;
-		`
-	row := Db.QueryRow(sqlDelete, message.Id, message.From.Id)
+		Delete from Message where id = $1 or (not_saved_id = $1 and sender_id = $2)
+			RETURNING ID;`
 
-	if err = row.Scan(&id); err != nil {
-		utils.Debug(false, "sql statement:", sqlDelete)
-		utils.Debug(false, "cant delete message", err.Error())
-		return &proto.Result{Done: false}, err
-	}
-
-	return &proto.Result{Done: true}, nil
+	err := Db.QueryRow(sqlDelete, message.Id, message.From.Id).Scan(&id)
+	return &proto.Result{Done: err == nil}, err
 }
 
 func (db *MessageRepositoryPQ) getAll(Db database.Interface,
@@ -162,7 +142,6 @@ func (db *MessageRepositoryPQ) getAll(Db database.Interface,
 		`
 	rows, err = Db.Query(sqlStatement, chatID.Value)
 	if err != nil {
-		fmt.Println("wtf man", err.Error())
 		return &proto.Messages{}, err
 	}
 
@@ -171,19 +150,13 @@ func (db *MessageRepositoryPQ) getAll(Db database.Interface,
 
 	for rows.Next() {
 		var (
-			aFrom  = &models.MessageUserSQL{}
-			aTo    = &models.MessageUserSQL{}
-			answer = &models.MessageSQL{
-				From: aFrom,
-				To:   aTo,
-			}
-			from    = &models.MessageUserSQL{}
-			to      = &models.MessageUserSQL{}
-			message = &models.MessageSQL{
-				From: from,
-				To:   to,
-			}
-			result = &proto.Message{}
+			answer  = models.NewMessageSQL()
+			aFrom   = answer.From
+			aTo     = answer.To
+			message = models.NewMessageSQL()
+			from    = message.From
+			to      = message.To
+			result  = &proto.Message{}
 		)
 
 		if err = rows.Scan(&message.ID, &answer.ID, &from.ID, &from.Name,

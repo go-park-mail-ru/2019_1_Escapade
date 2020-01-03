@@ -13,14 +13,13 @@ import (
 type Service struct {
 	Chat     clients.ChatI
 	Constant constants.RepositoryI
-	Consul   server.ConsulServiceI
 	Database *database.Input
 
 	handler *handlers.GameHandler
 }
 
 func (s *Service) allSeT() bool {
-	return s.Chat != nil && s.Constant != nil && s.Database != nil && s.Consul != nil
+	return re.NoNil(s.Chat, s.Constant, s.Database) == nil
 }
 
 func (s *Service) Run(args *server.Args) error {
@@ -30,7 +29,7 @@ func (s *Service) Run(args *server.Args) error {
 
 	c := args.Loader.Get()
 	i := args.Input.GetData()
-	if err := s.Chat.Init(s.Consul, c.Required); err != nil {
+	if err := s.Chat.Init(args.Consul, c.Required); err != nil {
 		return err
 	}
 	//defer chatService.Close()

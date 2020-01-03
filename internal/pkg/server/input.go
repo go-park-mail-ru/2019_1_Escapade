@@ -26,14 +26,26 @@ type InputData struct {
 // Input data from user(set by funcs where server launchs)
 // If you dont set any callback no error will happen
 type Input struct {
-	//Extra
-
 	Data InputData
 
 	//set callbacks
 	CallInit        func()
 	CallCheckBefore func() error
 	CallCheckAfter  func() error
+}
+
+// InitAsCMD initialize Input as CMD input
+func (input *Input) InitAsCMD(port string, args int) *Input {
+	input.CallCheckBefore = func() error {
+		return input.CheckBeforeDefault(args)
+	}
+	input.CallCheckAfter = func() error {
+		return input.CheckAfterDefault()
+	}
+	input.CallInit = func() {
+		input.Data.MainPort = port
+	}
+	return input
 }
 
 // Init implements InputI interface

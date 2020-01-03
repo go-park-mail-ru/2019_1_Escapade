@@ -70,7 +70,7 @@ type DatabaseArgsFake struct {
 }
 
 // system
-func TestSystem(t *testing.T) {
+func ExampleSystem(t *testing.T) {
 
 	// Only pass t into top-level Convey calls
 	Convey("Test borders Init", t, func() {
@@ -87,8 +87,11 @@ func TestSystem(t *testing.T) {
 			da = &database.Input{
 				Database: db,
 
-				User: userUC,
-				Game: gameUC,
+				User:   new(madb.UserRepositoryI),
+				Game:   new(mgdb.GameRepositoryI),
+				Record: new(madb.RecordRepositoryI),
+				UserUC: userUC,
+				GameUC: gameUC,
 			}
 			err    error
 			chat   *proto.Chat
@@ -100,8 +103,8 @@ func TestSystem(t *testing.T) {
 		userUC.On("Init", user, record).Return(da.User)
 		gameUC.On("Init", game, chatS).Return(da.Game)
 
-		da.User.Init(user, record)
-		da.Game.Init(game)
+		// da.User.Init(user, record)
+		// da.Game.Init(game)
 
 		var (
 			constRep = new(RepositoryFake)

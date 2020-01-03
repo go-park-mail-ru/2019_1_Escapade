@@ -12,8 +12,9 @@ type MessageUseCase struct {
 	message MessageRepositoryI
 }
 
-func (db *MessageUseCase) Init(message MessageRepositoryI) {
+func (db *MessageUseCase) Init(message MessageRepositoryI) MessageUseCaseI {
 	db.message = message
+	return db
 }
 
 // AppendOne append message to database

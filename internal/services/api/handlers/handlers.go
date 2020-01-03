@@ -11,23 +11,20 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	mi "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/middleware"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 )
 
 type Handlers struct {
-	c       *config.Configuration
+	c  *config.Configuration
+	db *database.Input
+
 	user    *UserHandler
 	users   *UsersHandler
 	game    *GameHandler
 	session *SessionHandler
 	image   *ImageHandler
-}
-
-type HandlerI interface {
-	Init(c *config.Configuration, db *database.Input) error
 }
 
 // InitWithPostgreSQL apply postgreSQL as database
@@ -38,28 +35,33 @@ func (h *Handlers) InitWithPostgreSQL(c *config.Configuration) error {
 // Init open connection to database and put it to all handlers
 func (h *Handlers) Init(c *config.Configuration, input *database.Input) error {
 	fmt.Println("string:", c.DataBase.ConnectionString)
-	h.c = c
 
-	err := input.Database.Open(c.DataBase)
+	input.Init()
+	if err := input.IsValid(); err != nil {
+		return err
+	}
+
+	h.c = c
+	h.db = input
+
+	err := input.Connect(c.DataBase)
 	if err != nil {
 		return err
 	}
 
 	mi.Init()
 
-	h.user = new(UserHandler)
-	h.session = new(SessionHandler)
-	h.game = new(GameHandler)
-	h.users = new(UsersHandler)
-	h.image = new(ImageHandler)
-	return InitHandlers(c, input, h.user, h.session,
-		h.game, h.users, h.image)
-
+	h.user = new(UserHandler).Init(c, input)
+	h.session = new(SessionHandler).Init(c, input)
+	h.game = new(GameHandler).Init(c, input)
+	h.users = new(UsersHandler).Init(c, input)
+	h.image = new(ImageHandler).Init(c, input)
+	return nil
 }
 
 // Close connections to darabase of all handlers
 func (h *Handlers) Close() error {
-	return re.Close(h.user, h.users, h.session, h.game, h.image)
+	return h.db.Close()
 }
 
 // Router return router of api operations
@@ -115,17 +117,6 @@ func (h *Handlers) Router() *mux.Router {
 	router.Use(r, mi.CORS(h.c.Cors))
 	apiWithAuth.Use(mi.Auth(h.c.Cookie, h.c.Auth, h.c.AuthClient))
 	return r
-}
-
-func InitHandlers(c *config.Configuration, db *database.Input, handlers ...HandlerI) error {
-	var err error
-	for _, handler := range handlers {
-		err = handler.Init(c, db)
-		if err != nil {
-			break
-		}
-	}
-	return re.Wrap(err)
 }
 
 // HistoryRouter return router for history service

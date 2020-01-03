@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	pkgDB "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/photo"
@@ -37,57 +36,47 @@ type ConfigurationArgs struct {
 	RoomPath  string
 }
 
-// InitWithPostgresql initialize handler with PostgreSQL database
-func (h *GameHandler) InitWithPostgresql(chatS clients.ChatI, ca *ConfigurationArgs) error {
-	var (
-		rep = new(constants.RepositoryFS)
-		da  = new(database.Input).InitAsPSQL()
-	)
-	return h.Init(rep, chatS, ca, da)
-}
-
 // Init initialize connection handler with chat service, configuration settings and
 // 	database settings
 func (h *GameHandler) Init(rep constants.RepositoryI,
-	chatS clients.ChatI, ca *ConfigurationArgs, da *database.Input) error {
+	chatS clients.ChatI, ca *ConfigurationArgs, input *database.Input) error {
 
-	err := h.initDB(ca.C.DataBase, da)
-	if err != nil {
+	if err := h.initConstants(rep, ca); err != nil {
 		return err
 	}
 
-	err = h.initConstants(rep, ca)
-	if err != nil {
+	if err := h.initDB(input, ca.C.DataBase); err != nil {
 		return err
 	}
 
-	h.c = ca.C
-	h.upgraderWS = websocket.Upgrader{
-		HandshakeTimeout: h.c.WebSocket.HandshakeTimeout.Duration,
-		ReadBufferSize:   h.c.WebSocket.ReadBufferSize,
-		WriteBufferSize:  h.c.WebSocket.WriteBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
+	h.initUpgraderWS(ca.C.WebSocket)
 
 	gmetrics.Init()
 
-	h.lobby = engine.NewLobby(chatS, &h.c.Game, h.db.Game, photo.GetImages)
+	h.lobby = engine.NewLobby(chatS, &ca.C.Game, h.db.GameUC, photo.GetImages)
 	go h.lobby.Run()
 
 	return nil
 }
 
-// initDB initialize database
-func (h *GameHandler) initDB(c config.Database, da *database.Input) error {
-	// open database connection
-	if err := da.Database.Open(c); err != nil {
+func (h *GameHandler) initDB(input *database.Input, c config.Database) error {
+	input.Init()
+	if err := input.IsValid(); err != nil {
 		return err
 	}
-	h.db = da
+	h.db = input
+	return h.db.Connect(c)
+}
 
-	return pkgDB.Use(h.db.Database, h.db.User, h.db.Game)
+func (h *GameHandler) initUpgraderWS(w config.WebSocket) {
+	h.upgraderWS = websocket.Upgrader{
+		HandshakeTimeout: w.HandshakeTimeout.Duration,
+		ReadBufferSize:   w.ReadBufferSize,
+		WriteBufferSize:  w.WriteBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 }
 
 // initConstants initialize game configuration
@@ -106,21 +95,23 @@ func (h *GameHandler) initConstants(rep constants.RepositoryI, ca *Configuration
 
 // Close all connections to database
 func (h *GameHandler) Close() error {
-	return re.Close(h.db.User, h.db.Game)
+	return h.db.Close()
 }
 
 // Handle connections requests
 func (h *GameHandler) Handle(rw http.ResponseWriter, r *http.Request) {
-	h.connect(rw, r)
+	if err := h.connect(rw, r); err != nil {
+		utils.Debug(false, "error happened:", err.Error())
+	}
+
 }
 
-func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Result {
-	const place = "GameOnline"
+func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) error {
 	roomID := api.StringFromPath(r, "id", "")
 
 	user, err := h.prepareUser(r)
 	if err != nil {
-		return api.NewResult(http.StatusInternalServerError, place, nil, err)
+		return err
 	}
 	utils.Debug(false, "prepared user:", user.ID)
 
@@ -131,20 +122,19 @@ func (h *GameHandler) connect(rw http.ResponseWriter, r *http.Request) api.Resul
 		} else {
 			err = re.ErrorNotWebsocket()
 		}
-		return api.NewResult(http.StatusBadRequest, place, nil, err)
+		return err
 	}
 
 	utils.Debug(false, "will create user:", user.ID)
 	conn, err := engine.NewConnection(ws, user)
 	if err != nil {
-		utils.Debug(false, "cant create connection:", err.Error())
-		return api.NewResult(0, place, nil, err)
+		return err
 	}
 	go conn.Launch(h.c.WebSocket, roomID)
 
 	utils.Debug(false, "hi user:", user.ID)
-	// code 0 mean nothing to send to client
-	return api.NewResult(0, place, nil, nil)
+
+	return nil
 }
 
 // prepare user for game service
@@ -161,7 +151,7 @@ func (h *GameHandler) prepareUser(r *http.Request) (*models.UserPublicInfo, erro
 	if userID < 0 {
 		user = h.anonymousUser(userID)
 	} else {
-		if user, err = h.db.User.FetchOne(userID, 0); err != nil {
+		if user, err = h.db.UserUC.FetchOne(userID, 0); err != nil {
 			return nil, re.NoUserWrapper(err)
 		}
 	}

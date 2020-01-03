@@ -5,7 +5,6 @@ import (
 
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/auth"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/auth/clients"
@@ -30,9 +29,9 @@ const ARGSLEN = 3
 
 func main() {
 	server.Run(&server.Args{
-		Input:         generateInput(),
-		Loader:        generateLoader(),
-		ConsulService: new(server.ConsulService),
+		Input:  new(server.Input).InitAsCMD(os.Args[2], ARGSLEN),
+		Loader: new(server.Loader).InitAsFS(os.Args[1]),
+		Consul: new(server.ConsulService),
 		Service: &auth.Service{
 			Database:    new(database.Input).InitAsPSQL(),
 			RepositoryI: &clients.RepositoryHC{},
@@ -40,27 +39,4 @@ func main() {
 	})
 }
 
-func generateInput() *server.Input {
-	var input = new(server.Input)
-
-	input.CallInit = func() {
-		input.Data.MainPort = os.Args[2]
-	}
-
-	input.CallCheckBefore = func() error {
-		return input.CheckBeforeDefault(ARGSLEN)
-	}
-
-	input.CallCheckAfter = func() error {
-		return input.CheckAfterDefault()
-	}
-	return input
-}
-
-func generateLoader() *server.Loader {
-	var loader = new(server.Loader)
-	loader.Init(new(config.RepositoryFS), os.Args[1])
-	return loader
-}
-
-// 111 -> 66
+// 111 -> 66 -> 40

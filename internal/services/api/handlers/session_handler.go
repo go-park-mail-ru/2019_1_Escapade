@@ -19,11 +19,10 @@ type SessionHandler struct {
 }
 
 // Init open connections to database
-func (h *SessionHandler) Init(c *config.Configuration, db *database.Input) error {
+func (h *SessionHandler) Init(c *config.Configuration, db *database.Input) *SessionHandler {
 	h.Handler.Init(c)
-
-	h.user = new(database.UserUseCase).Init(db.User, db.Record)
-	return h.user.Use(db.Database)
+	h.user = db.UserUC
+	return h
 }
 
 // Close connections to database

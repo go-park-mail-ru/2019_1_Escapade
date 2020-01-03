@@ -1,10 +1,12 @@
 package server
 
+// WithExtraI defines groups of objects
+//  where you can set a callback action
 type WithExtraI interface {
 	Extra() error
 }
 
-// Extra action as callback, set by user
+// WithExtra action as callback, set by user
 type WithExtra struct {
 	CallExtra func() error
 }

@@ -13,9 +13,10 @@ type ChatUseCase struct {
 	user UserRepositoryI
 }
 
-func (db *ChatUseCase) Init(chat ChatRepositoryI, user UserRepositoryI) {
+func (db *ChatUseCase) Init(chat ChatRepositoryI, user UserRepositoryI) *ChatUseCase {
 	db.chat = chat
 	db.user = user
+	return db
 }
 
 // Create chat with or without users.
@@ -37,11 +38,13 @@ func (db *ChatUseCase) Create(chat *proto.ChatWithUsers) (*proto.ChatID, error) 
 	}
 	defer tx.Rollback()
 
-	if ChatID, err = db.chat.create(tx, chat.Type, chat.TypeId); err != nil {
+	ChatID, err = db.chat.create(tx, chat.Type, chat.TypeId)
+	if err != nil {
 		return ChatID, err
 	}
 
-	if err = db.user.create(tx, ChatID.Value, chat.Users...); err != nil {
+	err = db.user.create(tx, ChatID.Value, chat.Users...)
+	if err != nil {
 		return ChatID, err
 	}
 
@@ -68,7 +71,8 @@ func (db *ChatUseCase) GetOne(chat *proto.Chat) (*proto.ChatID, error) {
 	id, err := db.chat.get(tx, chat)
 	if err != nil {
 
-		if id, err = db.chat.create(tx, chat.Type, chat.TypeId); err != nil {
+		id, err = db.chat.create(tx, chat.Type, chat.TypeId)
+		if err != nil {
 			return id, err
 		}
 	}

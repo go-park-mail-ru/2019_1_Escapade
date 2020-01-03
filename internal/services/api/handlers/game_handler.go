@@ -22,11 +22,10 @@ type GameHandler struct {
 }
 
 // Init open connections to database
-func (h *GameHandler) Init(c *config.Configuration, db *database.Input) error {
+func (h *GameHandler) Init(c *config.Configuration, db *database.Input) *GameHandler {
 	h.Handler.Init(c)
-
-	h.record = new(database.RecordUseCase).Init(db.Record)
-	return h.record.Use(db.Database)
+	h.record = db.RecordUC
+	return h
 }
 
 // Close connections to database

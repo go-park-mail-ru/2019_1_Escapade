@@ -23,11 +23,10 @@ type ImageHandler struct {
 }
 
 // Init open connections to database
-func (h *ImageHandler) Init(c *config.Configuration, input *database.Input) error {
+func (h *ImageHandler) Init(c *config.Configuration, db *database.Input) *ImageHandler {
 	h.Handler.Init(c)
-
-	h.image = new(database.ImageUseCase).Init(input.Image)
-	return h.image.Use(input.Database)
+	h.image = db.ImageUC
+	return h
 }
 
 // Close connections to database
@@ -132,7 +131,11 @@ func (h *ImageHandler) getFileFromRequst(rw http.ResponseWriter, r *http.Request
 		handle *multipart.FileHeader
 	)
 
-	if file, handle, err = r.FormFile("file"); err != nil || file == nil || handle == nil {
+	file, handle, err = r.FormFile("file")
+	if err != nil {
+		return nil, re.FileWrapper(err)
+	}
+	if err = re.NoNil(file, handle); err != nil {
 		return nil, re.FileWrapper(err)
 	}
 

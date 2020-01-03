@@ -49,3 +49,12 @@ func New(message string) error {
 func Errorf(message string, args ...interface{}) error {
 	return tracerr.Errorf(message, args...)
 }
+
+func NoNil(args ...interface{}) error {
+	for _, arg := range args {
+		if arg == nil {
+			return InterfaceIsNil()
+		}
+	}
+	return nil
+}

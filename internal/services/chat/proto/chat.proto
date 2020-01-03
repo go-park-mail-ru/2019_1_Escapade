@@ -5,6 +5,7 @@ import "github.com/golang/protobuf/ptypes/timestamp/timestamp.proto";
 package proto;
 
 // no check can this user append messages to this chat or delete and etc
+// //cause we trust us :)
 service ChatService {
   rpc CreateChat(ChatWithUsers) returns (ChatID) {}
   rpc GetChat(Chat) returns (ChatID) {}

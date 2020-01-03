@@ -26,19 +26,11 @@ type UserHandler struct {
 }
 
 // Init open connections to database
-func (h *UserHandler) Init(c *config.Configuration, db *database.Input) error {
+func (h *UserHandler) Init(c *config.Configuration, db *database.Input) *UserHandler {
 	h.Handler.Init(c)
-
-	h.user = new(database.UserUseCase).Init(db.User, db.Record)
-	if err := h.user.Use(db.Database); err != nil {
-		return err
-	}
-
-	h.record = new(database.RecordUseCase).Init(db.Record)
-	if err := h.record.Use(db.Database); err != nil {
-		return err
-	}
-	return nil
+	h.user = db.UserUC
+	h.record = db.RecordUC
+	return h
 }
 
 // Close connections to database

@@ -15,19 +15,17 @@ func (db *ImageRepositoryPQ) Update(dbI idb.Interface, filename string, userID i
 // FetchByName Get avatar - filename of player image by his name
 func (db *ImageRepositoryPQ) FetchByName(dbI idb.Interface, name string) (string, error) {
 	sqlStatement := `SELECT photo_title FROM Player WHERE name like $1`
-	row := dbI.QueryRow(sqlStatement, name)
-
 	var filename string
-	err := row.Scan(&filename)
+	err := dbI.QueryRow(sqlStatement, name).Scan(&filename)
 	return filename, err
 }
 
 // FetchByID Get avatar - filename of player image by his id
 func (db *ImageRepositoryPQ) FetchByID(dbI idb.Interface, id int32) (string, error) {
 	sqlStatement := `SELECT photo_title FROM Player WHERE id=$1`
-	row := dbI.QueryRow(sqlStatement, id)
-
 	var filename string
-	err := row.Scan(&filename)
+	err := dbI.QueryRow(sqlStatement, id).Scan(&filename)
 	return filename, err
 }
+
+// 33

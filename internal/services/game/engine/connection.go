@@ -91,7 +91,7 @@ func newConnection() *Connection {
 
 // NewConnection creates a new connection
 func NewConnection(ws WebsocketConnI, user *models.UserPublicInfo) (*Connection, error) {
-	if ws == nil || user == nil {
+	if re.NoNil(ws, user) != nil {
 		return nil, re.NoWebSocketOrUser()
 	}
 	conn := newConnection()

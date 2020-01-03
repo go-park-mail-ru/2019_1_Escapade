@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
+// LaunchHTTP launch http server
 func LaunchHTTP(server *http.Server, serverConfig config.Server,
 	lastFunc func()) error {
 
@@ -61,6 +62,7 @@ func LaunchHTTP(server *http.Server, serverConfig config.Server,
 	return nil
 }
 
+// LaunchGRPC launch grpc server
 func LaunchGRPC(grpcServer *grpc.Server, serverConfig config.Server, port string, lastFunc func()) error {
 	errChan := make(chan error)
 	stopChan := make(chan os.Signal)

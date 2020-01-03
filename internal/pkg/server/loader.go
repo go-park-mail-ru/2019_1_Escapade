@@ -9,6 +9,7 @@ import (
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 )
 
+// ConfigutaionLoaderI interface of loading configuration
 type ConfigutaionLoaderI interface {
 	WithExtraI
 	Load() error
@@ -26,10 +27,15 @@ type Loader struct {
 	CallExtra func() error
 }
 
+func (loader *Loader) InitAsFS(path string) *Loader {
+	return loader.Init(new(config.RepositoryFS), path)
+}
+
 // Init initialize struct
-func (loader *Loader) Init(rep config.RepositoryI, path string) {
+func (loader *Loader) Init(rep config.RepositoryI, path string) *Loader {
 	loader.rep = rep
 	loader.path = path
+	return loader
 }
 
 // Load main configuration

@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
@@ -33,35 +32,17 @@ const ARGSLEN = 5
 
 func main() {
 	server.Run(&server.Args{
-		Input:         generateInput(),
-		Loader:        generateLoader(),
-		ConsulService: new(server.ConsulService),
+		Input:  new(server.Input).InitAsCMD(os.Args[4], ARGSLEN),
+		Loader: generateLoader(),
+		Consul: new(server.ConsulService),
 		Service: &api.Service{
 			Database: new(database.Input).InitAsPSQL(),
 		},
 	})
 }
 
-func generateInput() *server.Input {
-	var input = new(server.Input)
-
-	input.CallInit = func() {
-		input.Data.MainPort = os.Args[4]
-	}
-
-	input.CallCheckBefore = func() error {
-		return input.CheckBeforeDefault(ARGSLEN)
-	}
-
-	input.CallCheckAfter = func() error {
-		return input.CheckAfterDefault()
-	}
-	return input
-}
-
 func generateLoader() *server.Loader {
-	var loader = new(server.Loader)
-	loader.Init(new(config.RepositoryFS), os.Args[1])
+	var loader = new(server.Loader).InitAsFS(os.Args[1])
 	loader.CallExtra = func() error {
 		return loader.LoadPhoto(os.Args[2], os.Args[3])
 	}

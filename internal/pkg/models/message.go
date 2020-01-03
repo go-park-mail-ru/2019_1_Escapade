@@ -77,6 +77,13 @@ type MessageSQL struct {
 	Edited sql.NullBool    `json:"-"`
 }
 
+func NewMessageSQL() *MessageSQL {
+	return &MessageSQL{
+		From: &MessageUserSQL{},
+		To:   &MessageUserSQL{},
+	}
+}
+
 // Messages slice of the messages
 //easyjson:json
 type Messages struct {

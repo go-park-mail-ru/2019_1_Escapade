@@ -4,42 +4,63 @@ import (
 	"fmt"
 	"net/http"
 
+	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 	"google.golang.org/grpc"
 )
 
+// ServicesI interface of service
+// 	 With the Run() function the service run all it's dependencies:
+//    connections to databases, another services and so on, Also
+//    there it must initialize Args.Handler, that represent runnable
+//    server object. If it returns an error, the server startup
+//    function will stop executing the steps and the program will
+//    exit with the os command.Exit().
+//
+//  With the Close() function, the service closes connections to other
+//   services, databases, stops running gorutins, frees resources, and
+//   so on. It also can return error, As well as Run(), Close() can
+//   return an error, which will terminate the program with an error code
 type ServicesI interface {
 	Run(args *Args) error
 	Close() error
 }
 
+// HandlerI serves incoming connections
 type HandlerI interface {
 	Router() http.Handler
 }
 
 type Args struct {
-	Input         InputI
-	Loader        ConfigutaionLoaderI
-	ConsulService ConsulServiceI
-	Service       ServicesI
-	Handler       HandlerI
+	Input   InputI
+	Loader  ConfigutaionLoaderI
+	Consul  ConsulServiceI
+	Service ServicesI
+	Handler HandlerI
 
 	GRPC *grpc.Server
 
 	Test bool
 }
 
+func (args *Args) NoNil() error {
+	return re.NoNil(args, args.Input, args.Loader,
+		args.Consul, args.Service)
+}
+
 const (
-	NOERROR      = 0
-	ARGSERROR    = 1
-	INPUTERROR   = 2
-	CONFIGERROR  = 3
-	CONSULERROR  = 4
-	RUNERROR     = 5
-	MAINRUNERROR = 6
-	STOPERROR    = 7
-	EXTRARROR    = 8
+	NOERROR       = 0
+	ARGSERROR     = 1
+	INPUTERROR    = 2
+	CONFIGERROR   = 3
+	CONSULERROR   = 4
+	RUNERROR      = 5
+	MAINRUNERROR  = 6
+	STOPERROR     = 7
+	EXTRARROR     = 8
+	NOSERVERERROR = 9
 )
 
 /*
@@ -57,13 +78,12 @@ Run performs all stages of loading and starting the server
 func Run(args *Args) {
 	synced.HandleExit()
 
-	if args == nil || args.Input == nil || args.Loader == nil ||
-		args.ConsulService == nil || args.Service == nil {
+	if args.NoNil() != nil {
 		panic(synced.Exit{Code: ARGSERROR})
 	}
 
-	var errorCode = runStages(args, input, load, consul, runDependencies,
-		runServer, stopDependencies)
+	var errorCode = runStages(args, input, load, consul,
+		runDependencies, runServer, stopDependencies)
 
 	fmt.Println("errorCode:", errorCode)
 	if errorCode != NOERROR {
@@ -124,9 +144,8 @@ func load(args *Args) int {
 // registration in the discovery service
 func consul(args *Args) int {
 	input := new(ConsulInput).Init(args.Input, args.Loader)
-	consul := args.ConsulService.Init(input)
-
-	if err := consul.Run(); err != nil {
+	err := args.Consul.Init(input).Run()
+	if err != nil {
 		utils.Debug(false, "ERROR with consul:", err.Error())
 		return CONSULERROR
 	}
@@ -142,24 +161,24 @@ func runDependencies(args *Args) int {
 	return NOERROR
 }
 
-// // run server
+// run server
 func runServer(args *Args) int {
-	if args.Handler == nil {
-		return MAINRUNERROR
-	}
-
-	var c = args.Loader.Get().Server
-	var port = args.Input.GetData().MainPort
-	var err error
+	var (
+		c    = args.Loader.Get().Server
+		port = args.Input.GetData().MainPort
+		err  error
+	)
 
 	utils.Debug(false, "Service", c.Name, "with id:",
-		args.ConsulService.ServiceID(), "ready to go on", GetIP()+port)
+		args.Consul.ServiceID(), "ready to go on", GetIP()+port)
 
 	if args.GRPC != nil {
 		err = LaunchGRPC(args.GRPC, c, port, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
-	} else {
+	} else if args.Handler != nil {
 		var srv = ConfigureServer(args.Handler.Router(), c, port)
 		err = LaunchHTTP(srv, c, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
+	} else {
+		return NOSERVERERROR
 	}
 	if err != nil {
 		return MAINRUNERROR
@@ -174,7 +193,7 @@ func stopDependencies(args *Args) int {
 		utils.Debug(false, "ERROR with stopping server:", err.Error())
 		return RUNERROR
 	}
-	args.ConsulService.Close()
+	args.Consul.Close()
 	return NOERROR
 }
 

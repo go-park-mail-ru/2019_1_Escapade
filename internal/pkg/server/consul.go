@@ -74,6 +74,7 @@ type ConsulService struct {
 	enableTraefik bool
 }
 
+// Init initialize ConsulService
 func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 
 	var (
@@ -109,10 +110,12 @@ func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 	return cs
 }
 
+// ServiceName return service name
 func (cs *ConsulService) ServiceName() string {
 	return cs.Name
 }
 
+// ServiceID return service id
 func (cs *ConsulService) ServiceID() string {
 	return cs.ID
 }
@@ -290,6 +293,7 @@ func CountWeight() int {
 	return weight
 }
 
+// Health return is service health
 func (cs *ConsulService) Health() *consulapi.Health {
 	return cs.client().Health()
 }

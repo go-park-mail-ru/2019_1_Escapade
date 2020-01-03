@@ -12,8 +12,9 @@ type UserUseCase struct {
 	user UserRepositoryI
 }
 
-func (db *UserUseCase) Init(user UserRepositoryI) {
+func (db *UserUseCase) Init(user UserRepositoryI) UserUseCaseI {
 	db.user = user
+	return db
 }
 
 // InviteToChat invite user to the chat

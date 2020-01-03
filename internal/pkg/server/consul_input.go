@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
+// ConsulInput configuration of the service for its registration in consul
 type ConsulInput struct {
 	Name          string
 	Port          int
@@ -19,6 +20,7 @@ type ConsulInput struct {
 	EnableTraefik bool
 }
 
+// Init initialize ConsulInput
 func (ci *ConsulInput) Init(input InputI, loader ConfigutaionLoaderI) *ConsulInput {
 	conf := loader.Get().Server
 	ci.Name = conf.Name
@@ -33,20 +35,17 @@ func (ci *ConsulInput) Init(input InputI, loader ConfigutaionLoaderI) *ConsulInp
 	if os.Getenv("IS_HTTPS") != "" {
 		entrypoint = "https"
 	}
-	ci.addTags(entrypoint)
+	ci.Tags = []string{ci.Name}
+	ci.addTraefikTags(entrypoint)
 	return ci
 }
 
-func (ci *ConsulInput) addTags(entrypoint string) {
-	ci.Tags = []string{ci.Name,
-		"traefik.frontend.rule=Host:" + ci.Name + ".consul.localhost",
-		"traefik.frontend.entryPoints=" + entrypoint}
-	ci.addTraefikTags()
-}
-
-func (ci *ConsulInput) addTraefikTags() {
+// adds tags to interact with Traffic
+func (ci *ConsulInput) addTraefikTags(entrypoint string) {
 	if ci.EnableTraefik {
 		ci.Tags = append(ci.Tags,
+			"traefik.frontend.rule=Host:"+ci.Name+".consul.localhost",
+			"traefik.frontend.entryPoints="+entrypoint,
 			"traefik.enable=true",
 			"traefik.port=80",
 			"traefik.docker.network=backend",
