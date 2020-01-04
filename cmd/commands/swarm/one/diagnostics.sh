@@ -15,6 +15,8 @@ trap 'echo " stop" ' INT TERM
 # -n Отключить DNS и поиск номеров портов по /etc/services
 # -u Использовать для подключения UDP протокол
 
+# https://www.digitalocean.com/community/tutorials/how-to-configure-the-linux-firewall-for-docker-swarm-on-ubuntu-16-04
+
 ssh root@$1 "
 netcat -vnz $2 22
 netcat -vnz $2 2376

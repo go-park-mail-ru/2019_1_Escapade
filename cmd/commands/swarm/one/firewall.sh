@@ -5,7 +5,6 @@ echo "  -----$1 Firewall set-----"
 echo "  -----------------------------------"
 echo ""
 trap 'echo " stop" ' INT TERM
-#chmod +x droplet_ufw.sh && ./droplet_ufw.sh 1
 
 #$1 - the IP of this node
 
