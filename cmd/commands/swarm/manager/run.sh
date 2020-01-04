@@ -13,10 +13,10 @@ chmod +x push.sh
 
 # cd ../../..
 #sudo service docker restart
-./swap.sh
-./install.sh
-./build.sh
-./push.sh
+#./swap.sh
+#./install.sh
+#./build.sh
+#./push.sh
 #docker-compose build && ./images.sh
 #docker run -d -p 5000:5000 --restart=always --name registry registry:2
 #sudo docker-compose push

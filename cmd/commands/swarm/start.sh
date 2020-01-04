@@ -1,8 +1,8 @@
 #!/bin/bash
 echo ""
-echo "  ----------------------------"
-echo "  -------------test-----------"
-echo "  ----------------------------"
+echo "  -------------------"
+echo "  -------Start-------"
+echo "  -------------------"
 echo ""
 
 loadAddrs() {
@@ -36,8 +36,6 @@ loadPath() {
 }
 
 argsForAdd() {
-    # addrs=$(echo $1 | tr ' ' '\n')
-    # names=$(echo $2 | tr ' ' '\n')
     path=$3
 
     IFS=' ' read -ra addrs <<< "$1"
@@ -54,11 +52,9 @@ addrs=$(loadAddrs "info.txt")
 names=$(loadNames "info.txt")
 path=$(loadPath "info.txt")
 args=$(argsForAdd "$addrs" "$names" $path)
-echo 'args:'$args
-#./all/add_exp.sh $args
-#./all/firewall_exp.sh $addrs
-#./all/diagnostics_exp.sh $addrs
-#./all/metrics_exp.sh $addrs
-#./one/manager.sh $addr1  #dont forget to set manager token to worker.sh 
-#./all/worker.sh $addr1 $addr2 $addr3 $addr4 $addr5
+
+#./all/add.sh $args
+#./all/firewall.sh $addrs
+#./all/diagnostics.sh $addrs
+#./all/metrics.sh $addrs
 ./all/roles.sh $addrs
