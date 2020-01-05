@@ -251,10 +251,14 @@ func (cs *ConsulService) AddHTTPCheck(scheme, path string) {
 // update - send service status to Consul
 func (cs *ConsulService) update() {
 	var (
-		isWarning, err = cs.Check()
+		isWarning bool
+		err error
 		status         = consulapi.HealthPassing
 		message        = "Alive and reachable"
 	)
+	if cs.Check != nil {
+		isWarning, err = cs.Check()
+	}
 	if err != nil {
 		message = err.Error()
 		if isWarning {

@@ -7,7 +7,7 @@ services:
       - "80:80"     # The HTTP port
       - "8079:8080" # The Web UI (enabled by --api)
     networks:
-      - backend-overlay2
+      - backend-overlay
     labels:
       - "traefik.docker.network=backend"
       - "traefik.port=8080"
@@ -28,7 +28,7 @@ services:
   pg:
     image: smartphonejava/pg:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - "5429:5432" 
     deploy:
@@ -40,7 +40,7 @@ services:
   pg-auth:
     image: postgres:11.2-alpine
     networks:
-      - backend-overlay2
+      - backend-overlay
     environment:
       POSTGRES_USER: 'auth' 
       POSTGRES_PASSWORD: 'auth'
@@ -58,7 +58,7 @@ services:
     ports:
       - "5430:5432"   
     networks:
-      - backend-overlay2
+      - backend-overlay
     deploy:
       restart_policy:
         condition: on-failure
@@ -76,13 +76,15 @@ services:
   api:
     image: smartphonejava/api:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 3001:3001
     environment:
       - CONSUL_ADDRESS=app_consul-agent
       - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
-    command: cmd/services/api/api.json internal/photo/photo.json secret.json 3001
+    command: 2019_1_Escapade/cmd/services/api/api.json 2019_1_Escapade/internal/photo/photo.json 2019_1_Escapade/secret.json 3001
+    volumes:
+      - ~/2019_1_Escapade:/2019_1_Escapade
     labels:
       - "traefik.enable=false"
       - "org.label-schema.group=monitoring"
@@ -105,7 +107,7 @@ services:
     environment:
       - CONSUL_ADDRESS=app_consul-agent
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 3066-3087:3060
     labels:
@@ -126,7 +128,7 @@ services:
   auth:
     image: smartphonejava/auth:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 3022-3043:3003
     environment:
@@ -149,7 +151,7 @@ services:
   game:
     image: smartphonejava/game:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 3044-3055:3002
     labels:
@@ -169,7 +171,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -188,7 +190,7 @@ services:
   grafana:
     image: grafana/grafana
     networks:
-      - backend-overlay2
+      - backend-overlay
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -210,7 +212,7 @@ services:
   consul-server:
     image: smartphonejava/consul:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 8529-8549:8500
       - 8329-8349:8301
@@ -226,7 +228,7 @@ services:
   consul:
     image: smartphonejava/consul:latest 
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 8400:8400
       - 8500:8500
@@ -245,7 +247,7 @@ services:
   consul-agent:
     image: smartphonejava/consul-agent:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - 8501:8500
       - 8300:8300
@@ -262,7 +264,7 @@ services:
   front:
     image: smartphonejava/front:latest
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - "8088:8080"   
     command: npm start
@@ -275,7 +277,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.19.0
     networks:
-      - backend-overlay2
+      - backend-overlay
     volumes:
       - ./alertmanager/:/etc/alertmanager/
     command:
@@ -290,7 +292,7 @@ services:
   nodeexporter:
     image: prom/node-exporter:v0.18.1
     networks:
-      - backend-overlay2
+      - backend-overlay
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -309,7 +311,7 @@ services:
   cadvisor:
     image: google/cadvisor:v0.33.0
     networks:
-      - backend-overlay2
+      - backend-overlay
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -326,7 +328,7 @@ services:
   visualizer:
     image: dockersamples/visualizer:stable
     networks:
-      - backend-overlay2
+      - backend-overlay
     ports:
       - "8084:8080"
     stop_grace_period: 1m30s
@@ -337,6 +339,6 @@ services:
         constraints: [node.role == manager] 
 
 networks:
-   backend-overlay2:
+   backend-overlay:
     external:
-       name: backend-overlay2
+       name: backend-overlay

@@ -144,11 +144,14 @@ func load(args *Args) int {
 // registration in the discovery service
 func consul(args *Args) int {
 	input := new(ConsulInput).Init(args.Input, args.Loader)
+	fmt.Println("before init")
 	err := args.Consul.Init(input).Run()
+	fmt.Println("after init")
 	if err != nil {
 		utils.Debug(false, "ERROR with consul:", err.Error())
 		return CONSULERROR
 	}
+	fmt.Println("no error init")
 	return NOERROR
 }
 

@@ -2,7 +2,7 @@ version: '3'
 services:
 
   pg:
-    image: smartphonejava/api:latest
+    image: smartphonejava/pg:latest
     build:
       dockerfile: Dockerfile
       context: ./../../../../extra/postgresql/main/
@@ -16,11 +16,11 @@ services:
   consul:
     image: smartphonejava/consul:latest
     build:
-      context: ./../../../../extra/consul
       dockerfile: Dockerfile
+      context: ./../../../../extra/consul
 
   front:
     image: smartphonejava/front:latest
     build:
-      dockerfile: Dockerfile
-      context: ./../../../../extra/front
+      dockerfile: 2019_1_Escapade/extra/front/Dockerfile
+      context: ./../../../../../

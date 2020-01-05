@@ -30,6 +30,7 @@ func (ci *ConsulInput) Init(input InputI, loader ConfigutaionLoaderI) *ConsulInp
 	ci.ConsulHost = os.Getenv("CONSUL_ADDRESS")
 	ci.ConsulPort = ":8500"
 	ci.EnableTraefik = conf.EnableTraefik
+	ci.Check = func() (bool, error) {return false,nil}
 
 	entrypoint := "http"
 	if os.Getenv("IS_HTTPS") != "" {

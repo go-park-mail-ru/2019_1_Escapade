@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/auth"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
@@ -29,8 +27,8 @@ const ARGSLEN = 3
 
 func main() {
 	server.Run(&server.Args{
-		Input:  new(server.Input).InitAsCMD(os.Args[2], ARGSLEN),
-		Loader: new(server.Loader).InitAsFS(os.Args[1]),
+		Input:  new(server.Input).InitAsCMD(server.OSArg(2), ARGSLEN),
+		Loader: new(server.Loader).InitAsFS(server.OSArg(1)),
 		Consul: new(server.ConsulService),
 		Service: &auth.Service{
 			Database:    new(database.Input).InitAsPSQL(),

@@ -96,3 +96,10 @@ func (input *Input) CheckAfterDefault() error {
 	input.Data.MainPort, input.Data.MainPortInt, err = Port(input.Data.MainPort)
 	return err
 }
+
+func OSArg(i int) string {
+	if (len(os.Args) <= i) {
+		return ""
+	}
+	return os.Args[i]
+}

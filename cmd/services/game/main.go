@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/clients"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/game/constants"
@@ -28,19 +26,19 @@ func main() {
 }
 
 func generateInput() *server.Input {
-	var input = new(server.Input).InitAsCMD(os.Args[6], ARGSLEN)
+	var input = new(server.Input).InitAsCMD(server.OSArg(6), ARGSLEN)
 	input.CallInit = func() {
-		input.Data.FieldPath = os.Args[4]
-		input.Data.RoomPath = os.Args[5]
-		input.Data.MainPort = os.Args[6]
+		input.Data.FieldPath = server.OSArg(4)
+		input.Data.RoomPath = server.OSArg(5)
+		input.Data.MainPort = server.OSArg(6)
 	}
 	return input
 }
 
 func generateLoader() *server.Loader {
-	var loader = new(server.Loader).InitAsFS(os.Args[1])
+	var loader = new(server.Loader).InitAsFS(server.OSArg(1))
 	loader.CallExtra = func() error {
-		return loader.LoadPhoto(os.Args[2], os.Args[3])
+		return loader.LoadPhoto(server.OSArg(2), server.OSArg(3))
 	}
 	return loader
 }
