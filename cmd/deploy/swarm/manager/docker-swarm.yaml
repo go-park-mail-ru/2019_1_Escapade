@@ -217,7 +217,6 @@ services:
         constraints: [node.role == manager] 
   ### discovery ###
 
-  ## consul servers ##
   consul-server:
     <<: *consul
     ports:
@@ -226,7 +225,7 @@ services:
       - "8312:8302/tcp"
       - "8311:8301/udp"
       - "8312:8302/udp"
-    command: agent -join app_consul -config-file=./config/server2.json
+    command: agent -join app_consul -config-file=./config/server.json
     deploy:
       replicas: 3
       restart_policy:
@@ -234,7 +233,6 @@ services:
       placement:
         constraints: [node.role == manager] 
 
-  ## consul bootstrap ##
   consul: 
     image: consul:1.0.2 
     networks:
@@ -253,7 +251,7 @@ services:
       - "8302:8302/udp"
       - "8610:53/udp"
       #-node bootstrap
-    command: agent -server -bootstrap -config-file=./config/bootstrap2.json
+    command: agent -config-file=./config/bootstrap.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/2019_1_Escapade/extra/consul/config:/config
@@ -263,12 +261,11 @@ services:
       placement:
         constraints: [node.role == manager] 
   
-  ## consul agents ##
   consul-agent:
     <<: *consul
     ports:
       - "8501:8500"
-    command: agent -join app_consul-server -config-file=./config/client2.json 
+    command: agent -join app_consul-server -config-file=./config/client.json 
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
@@ -291,7 +288,7 @@ services:
       restart_policy:
         condition: on-failure
       placement:
-        constraints: [node.role == manager] 
+        constraints: [node.role != manager] 
 
   alertmanager:
     image: prom/alertmanager:v0.19.0

@@ -1,8 +1,18 @@
 {
-  "datacenter": "dc1",
+  "advertise_addr" : "{{ GetInterfaceIP \"eth0\" }}",
+  "bind_addr": "{{ GetInterfaceIP \"eth0\" }}",
+  "client_addr": "0.0.0.0",
   "data_dir": "/consul/data",
-  "log_level": "DEBUG",
+  "datacenter": "dc1",
+  "leave_on_terminate" : true,
+  "retry_join" : [
+    "consul.cluster"
+  ],
+  "server_name" : "server.dc1.client",
   "server": false,
-  "encrypt": "gn0/EuTWWIOvSxdqFpE3hw==",
-  "retry_join": ["172.20.0.5", "172.20.0.4", "172.20.0.3", "172.20.0.2"]
+  "ui" : true,
+  "autopilot": {
+    "cleanup_dead_servers": true
+  },
+  "disable_update_check": true
 }
