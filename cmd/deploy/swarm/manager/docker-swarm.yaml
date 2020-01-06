@@ -1,6 +1,17 @@
-version: '3'
-services:
+version: '3.7'
 
+x-consul: &consul
+  image: consul:1.0.2
+  networks:
+    backend-overlay:
+      aliases:
+        - consul.cluster
+  environment:
+    - IP=$IP
+  volumes:
+    - ~/2019_1_Escapade/extra/consul/config:/config
+
+services:
   traefik:
     image: traefik:v1.7
     ports:
@@ -80,7 +91,8 @@ services:
     ports:
       - 3001:3001
     environment:
-      - CONSUL_ADDRESS=app_consul-agent
+      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+      - CONSUL_ADDRESS=consul-agent
       - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
     command: 2019_1_Escapade/cmd/services/api/api.json 2019_1_Escapade/internal/photo/photo.json 2019_1_Escapade/secret.json 3001
     volumes:
@@ -100,7 +112,6 @@ services:
         window: 5s
       placement:
         constraints: [node.role == worker] 
-
 
   chat:
     image: smartphonejava/chat:latest
@@ -122,8 +133,6 @@ services:
         condition: on-failure
       placement:
         constraints: [node.role == manager] 
-
-  ### auth ###
 
   auth:
     image: smartphonejava/auth:latest
@@ -210,33 +219,44 @@ services:
 
   ## consul servers ##
   consul-server:
-    image: smartphonejava/consul:latest
-    networks:
-      - backend-overlay
+    <<: *consul
     ports:
-      - 8529-8549:8500
-      - 8329-8349:8301
-      # todo 142.93.79.194-> to env
-    command: agent -server -join app_consul -advertise 142.93.79.194 -ui-dir /ui -config-file=./consul/config/server.json
+      - "8511:8500"
+      - "8311:8301/tcp"
+      - "8312:8302/tcp"
+      - "8311:8301/udp"
+      - "8312:8302/udp"
+    command: agent -join app_consul -config-file=./config/server2.json
     deploy:
-        restart_policy:
-          condition: on-failure
-        placement:
-          constraints: [node.role == manager] 
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   ## consul bootstrap ##
-  consul:
-    image: smartphonejava/consul:latest 
+  consul: 
+    image: consul:1.0.2 
     networks:
-      - backend-overlay
+      backend-overlay:
+        aliases:
+          - consul.cluster
+    environment:
+      - IP=$IP
     ports:
-      - 8400:8400
-      - 8500:8500
-      - 8600:53/udp
-      # todo 142.93.79.194-> to env
-    command: agent -server -bootstrap -node bootstrap -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./consul/config/bootstrap.json
+      - "8510:8500"
+      - "8300:8300"
+      - "8400:8400"
+      - "8301:8301/tcp"
+      - "8302:8302/tcp"
+      - "8301:8301/udp"
+      - "8302:8302/udp"
+      - "8610:53/udp"
+      #-node bootstrap
+    command: agent -server -bootstrap -config-file=./config/bootstrap2.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ~/2019_1_Escapade/extra/consul/config:/config
     deploy:
       restart_policy:
         condition: on-failure
@@ -245,17 +265,14 @@ services:
   
   ## consul agents ##
   consul-agent:
-    image: smartphonejava/consul-agent:latest
-    networks:
-      - backend-overlay
+    <<: *consul
     ports:
-      - 8501:8500
-      - 8300:8300
-      - 8301:8301
-    command: agent -join app_consul-server -advertise 142.93.79.194 -client 0.0.0.0 -ui -config-file=./consul/config/client.json
+      - "8501:8500"
+    command: agent -join app_consul-server -config-file=./config/client2.json 
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
+      replicas: 3
       restart_policy:
         condition: on-failure
       placement:
@@ -265,6 +282,8 @@ services:
     image: smartphonejava/front:latest
     networks:
       - backend-overlay
+    environment:
+      - IP=$IP
     ports:
       - "8088:8080"   
     command: npm start
@@ -340,5 +359,4 @@ services:
 
 networks:
    backend-overlay:
-    external:
-       name: backend-overlay
+     external: true

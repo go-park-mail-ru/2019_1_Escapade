@@ -23,7 +23,7 @@
 	"dataBase": {
 		"driverName": "postgres",
 		"url": "DATABASE_URL1",
-		"connectionString": "postgres://rolepade:escapade@app_pg:5432/escabase?sslmode=disable",
+		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable",
 		"maxOpenConns": 20,
 		"maxIdleConns": 10,
 		"maxLifetime": "1h",

@@ -1,6 +1,8 @@
 package database
 
 import (
+	"os"
+	"fmt"
 	"context"
 	"database/sql"
 	"time"
@@ -19,7 +21,9 @@ type PostgresSQL struct {
 // Open connection to database
 func (db *PostgresSQL) Open(CDB config.Database) error {
 	var err error
-	db.Db, err = sql.Open(CDB.DriverName, CDB.ConnectionString)
+	var connStr = os.Getenv("DB_CONN_STRING") //CDB.ConnectionString
+	fmt.Println("connStr is", connStr)
+	db.Db, err = sql.Open(CDB.DriverName, connStr)
 	return err
 }
 
