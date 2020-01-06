@@ -41,6 +41,7 @@ else
 fi
 
 echo "\n4. Install golang"
+export PATH=$PATH:/usr/local/go/bin
 place=$(whereis go | grep bin)
 if [ "$?" = "0" ]; then
     echo "✔ " $place

@@ -6,7 +6,7 @@ import (
 	chat "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/service"
 )
 
-const ARGSLEN = 2
+const ARGSLEN = 3
 
 func main() {
 	args := &server.Args{

@@ -11,5 +11,5 @@ echo ""
 
 ssh root@$1 "
 docker swarm leave --force
-docker swarm join --advertise-addr $1:2377 --token $2 $3:2377
+docker swarm join --advertise-addr $1 --token $2 $3:2377
 "

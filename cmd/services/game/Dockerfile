@@ -3,15 +3,11 @@ FROM golang:alpine as build
 ENV SRC_DIR=/2019_1_Escapade/
 WORKDIR $SRC_DIR
 
-# introducing DOCKER_BUILDKIT=1
-#    without cache - 60s
-#    with cache    - 41s
-
 COPY go.mod .
 COPY go.sum .
 
-RUN apk add --update git
-RUN apk add --update bash && rm -rf /var/cache/apk/*
+# RUN apk add --update git
+# RUN apk add --update bash && rm -rf /var/cache/apk/*
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \ 
     go mod download
@@ -30,10 +26,9 @@ COPY /internal/services/api /2019_1_Escapade/internal/services/api
 COPY /cmd/services/game .
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \
-    go build -o bin/game main.go
+    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o /go/bin/game .
 
 FROM scratch
-ENV SRC_DIR=/2019_1_Escapade/
-WORKDIR $SRC_DIR
-COPY --from=build $SRC_DIR/bin/game $SRC_DIR/bin/game
-ENTRYPOINT ["./bin/game"]  
+# FROM gcr.io/distroless/base-debian10
+COPY --from=build /go/bin/game /
+ENTRYPOINT ["./game"]  

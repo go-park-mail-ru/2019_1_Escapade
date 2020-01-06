@@ -1,18 +1,43 @@
 version: '3.7'
 
+x-logging: &logging
+  logging:
+    options:
+      max-size: 10m
+
 x-consul: &consul
+  <<: *logging
   image: consul:1.0.2
   networks:
     backend-overlay:
       aliases:
         - consul.cluster
-  environment:
-    - IP=$IP
   volumes:
-    - ~/2019_1_Escapade/extra/consul/config:/config
+    - ./../../../../extra/consul/config:/config
+
+x-backend: &backend-server
+  networks:
+    - backend-overlay
+  environment:
+    - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+    - CONSUL_ADDRESS=consul-agent
+    - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
+  volumes:
+    - ./../../../..:/2019_1_Escapade
+  labels:
+    - "traefik.enable=false"
+    - "org.label-schema.group=monitoring"
+  <<: *logging
+  logging:
+    options:
+      max-size: 10m
 
 services:
+
+  ### Load balancer ###
+
   traefik:
+    <<: *logging
     image: traefik:v1.7
     ports:
       - "80:80"     # The HTTP port
@@ -36,7 +61,10 @@ services:
       placement:
         constraints: [node.role == manager]
 
+  ### Database servers ###
+
   pg:
+    <<: *logging
     image: smartphonejava/pg:latest
     networks:
       - backend-overlay
@@ -49,6 +77,7 @@ services:
         constraints: [node.role == manager] 
 
   pg-auth:
+    <<: *logging
     image: postgres:11.2-alpine
     networks:
       - backend-overlay
@@ -65,6 +94,7 @@ services:
         constraints: [node.role == manager]    
 
   pg-ery:
+    <<: *logging
     image: smartphonejava/pg-ery:latest
     ports:
       - "5430:5432"   
@@ -76,33 +106,18 @@ services:
       placement:
         constraints: [node.role == manager] 
 
-#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
-#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
-#curl -H Host:api.consul.localhost http://127.0.0.1:8081
-# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
-# sudo docker-compose up --scale api=5 api
-
-#http://api.consul.localhost:8081/health
+  ### Backend servers ###
 
   api:
+    <<: *backend-server
     image: smartphonejava/api:latest
-    networks:
-      - backend-overlay
     ports:
       - 3001:3001
     environment:
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
       - CONSUL_ADDRESS=consul-agent
-      - AUTH_ADDRESS=http://app_auth:3003 #http://auth.consul.localhost:8081 
+      - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
     command: 2019_1_Escapade/cmd/services/api/api.json 2019_1_Escapade/internal/photo/photo.json 2019_1_Escapade/secret.json 3001
-    volumes:
-      - ~/2019_1_Escapade:/2019_1_Escapade
-    labels:
-      - "traefik.enable=false"
-      - "org.label-schema.group=monitoring"
-    logging:
-      options:
-        max-size: 10m
     deploy:
       replicas: 5
       update_config:
@@ -114,20 +129,14 @@ services:
         constraints: [node.role == worker] 
 
   chat:
+    <<: *backend-server
     image: smartphonejava/chat:latest
     environment:
-      - CONSUL_ADDRESS=app_consul-agent
-    networks:
-      - backend-overlay
+      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+      - CONSUL_ADDRESS=consul-agent
     ports:
       - 3066-3087:3060
-    labels:
-      - "traefik.enable=false"
-      - "org.label-schema.group=monitoring"
-    command: cmd/services/chat/chat.json 3060
-    logging:
-      options:
-        max-size: 10m
+    command: 2019_1_Escapade/cmd/services/chat/chat.json 3060
     deploy:
       restart_policy:
         condition: on-failure
@@ -135,22 +144,14 @@ services:
         constraints: [node.role == manager] 
 
   auth:
+    <<: *backend-server
     image: smartphonejava/auth:latest
-    networks:
-      - backend-overlay
     ports:
       - 3022-3043:3003
     environment:
-      - CONSUL_ADDRESS=app_consul-agent
-      #/bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
-      # ./wait-for-it.sh pg:5432 &&  ./wait-for-it.sh  pg-auth:5432 && ./wait-for-it.sh pg-ery:5432 &&
-    command: cmd/services/auth/auth.json 3003
-    labels:
-      - "traefik.enable=false"
-      - "org.label-schema.group=monitoring"
-    logging:
-      options:
-        max-size: 10m
+      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+      - CONSUL_ADDRESS=consul-agent
+    command: 2019_1_Escapade/cmd/services/auth/auth.json 3003
     deploy:
       restart_policy:
         condition: on-failure
@@ -158,26 +159,26 @@ services:
         constraints: [node.role == manager] 
 
   game:
+    <<: *backend-server
     image: smartphonejava/game:latest
-    networks:
-      - backend-overlay
     ports:
       - 3044-3055:3002
-    labels:
-      - "traefik.enable=false"
-      - "org.label-schema.group=monitoring"
     environment:
-      - CONSUL_ADDRESS=app_consul-agent
+      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+      - CONSUL_ADDRESS=consul-agent
       - AUTHSERVICE_URL=auth:3333
       - PORT_GAME_URL=:3002
-    command: cmd/services/game/game.json cmd/services/game/photo.json secret.json cmd/services/game/field.json cmd/services/game/room.json 3002
+    command: 2019_1_Escapade/cmd/services/game/game.json 2019_1_Escapade/cmd/services/game/photo.json 2019_1_Escapade/secret.json 2019_1_Escapade/cmd/services/game/field.json 2019_1_Escapade/cmd/services/game/room.json 3002
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: [node.role == manager] 
 
+  ### Statistics collectors ###
+
   prometheus:
+    <<: *logging
     image: prom/prometheus:latest
     networks:
       - backend-overlay
@@ -197,6 +198,7 @@ services:
         constraints: [node.role == manager] 
 
   grafana:
+    <<: *logging
     image: grafana/grafana
     networks:
       - backend-overlay
@@ -215,8 +217,9 @@ services:
         condition: on-failure
       placement:
         constraints: [node.role == manager] 
-  ### discovery ###
-
+ 
+  ### Service discovery ###
+  
   consul-server:
     <<: *consul
     ports:
@@ -225,7 +228,7 @@ services:
       - "8312:8302/tcp"
       - "8311:8301/udp"
       - "8312:8302/udp"
-    command: agent -join app_consul -config-file=./config/server.json
+    command: agent -join consul -config-file=./config/server.json
     deploy:
       replicas: 3
       restart_policy:
@@ -234,15 +237,14 @@ services:
         constraints: [node.role == manager] 
 
   consul: 
+    <<: *logging
     image: consul:1.0.2 
     networks:
       backend-overlay:
         aliases:
           - consul.cluster
-    environment:
-      - IP=$IP
     ports:
-      - "8510:8500"
+      - "8500:8500"
       - "8300:8300"
       - "8400:8400"
       - "8301:8301/tcp"
@@ -254,7 +256,7 @@ services:
     command: agent -config-file=./config/bootstrap.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ~/2019_1_Escapade/extra/consul/config:/config
+      - ./../../../../extra/consul/config:/config
     deploy:
       restart_policy:
         condition: on-failure
@@ -265,7 +267,7 @@ services:
     <<: *consul
     ports:
       - "8501:8500"
-    command: agent -join app_consul-server -config-file=./config/client.json 
+    command: agent -join consul-server -config-file=./config/client.json 
     labels:
       - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
@@ -275,22 +277,26 @@ services:
       placement:
         constraints: [node.role == manager] 
 
+  ### Frontend servers ###
+
   front:
+    <<: *logging
     image: smartphonejava/front:latest
     networks:
       - backend-overlay
-    environment:
-      - IP=$IP
     ports:
       - "8088:8080"   
-    command: npm start
+    command: start
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: [node.role != manager] 
 
+  ### unused servers ###
+
   alertmanager:
+    <<: *logging
     image: prom/alertmanager:v0.19.0
     networks:
       - backend-overlay
@@ -306,6 +312,7 @@ services:
         constraints: [node.role == manager] 
 
   nodeexporter:
+    <<: *logging
     image: prom/node-exporter:v0.18.1
     networks:
       - backend-overlay
@@ -325,6 +332,7 @@ services:
         constraints: [node.role == manager] 
 
   cadvisor:
+    <<: *logging
     image: google/cadvisor:v0.33.0
     networks:
       - backend-overlay
@@ -342,6 +350,7 @@ services:
         constraints: [node.role == manager]
 
   visualizer:
+    <<: *logging
     image: dockersamples/visualizer:stable
     networks:
       - backend-overlay
@@ -357,3 +366,11 @@ services:
 networks:
    backend-overlay:
      external: true
+
+#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
+#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
+#curl -H Host:api.consul.localhost http://127.0.0.1:8081
+# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
+# sudo docker-compose up --scale api=5 api
+
+#http://api.consul.localhost:8081/health

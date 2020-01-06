@@ -3,19 +3,11 @@ FROM golang:alpine as build
 ENV SRC_DIR=/2019_1_Escapade/
 WORKDIR $SRC_DIR
 
-# introducing DOCKER_BUILDKIT=1
-# before: 
-#    first  build(no cache)   - 369s
-#    second build(with cache) - 220s
-# after :
-#    first  build(no cache)   - 278s
-#    second build(with cache) - 112s
-
 COPY go.mod .
 COPY go.sum .
 
-RUN apk add --update git
-RUN apk add --update bash && rm -rf /var/cache/apk/*
+# RUN apk add --update git
+# RUN apk add --update bash && rm -rf /var/cache/apk/*
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \ 
     go mod download
@@ -37,10 +29,9 @@ COPY /docs/auth /2019_1_Escapade/docs/auth
 COPY /cmd/services/auth .
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \
-    go build -o bin/auth -i main.go
+    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o /go/bin/auth .
 
 FROM scratch
-ENV SRC_DIR=/2019_1_Escapade/
-WORKDIR $SRC_DIR
-COPY --from=build $SRC_DIR/bin/auth $SRC_DIR/bin/auth
-ENTRYPOINT ["./bin/auth"]  
+# FROM gcr.io/distroless/base-debian10
+COPY --from=build /go/bin/auth /
+ENTRYPOINT ["./auth"]  

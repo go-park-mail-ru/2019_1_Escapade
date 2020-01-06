@@ -23,7 +23,7 @@ services:
       - ./extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
 
   pg:
-    image: smartphonejava/api:latest
+    image: smartphonejava/pg:latest
     build:
       dockerfile: Dockerfile
       context: ./extra/postgresql/main/

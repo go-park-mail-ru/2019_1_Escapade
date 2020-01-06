@@ -6,8 +6,8 @@ WORKDIR $SRC_DIR
 COPY go.mod .
 COPY go.sum .
 
-RUN apk add --update git
-RUN apk add --update bash && rm -rf /var/cache/apk/*
+# RUN apk add --update git
+# RUN apk add --update bash && rm -rf /var/cache/apk/*
 RUN --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \ 
     go mod download && go mod verify
