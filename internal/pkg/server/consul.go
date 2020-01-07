@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
+	"fmt"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
@@ -77,14 +77,11 @@ type ConsulService struct {
 // Init initialize ConsulService
 func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 
-	var (
-		id      = ServiceID(input.Name)
-		address = GetIP()
-	)
-
-	cs.ID = ServiceID(input.Name)
 	cs.Name = input.Name
-	cs.Address = address
+	cs.TTL = input.TTL
+	cs.Checks = make([]*consulapi.AgentServiceCheck, 1)
+	cs.UpdateService()
+	cs.Address = GetIP()
 	cs.Port = input.Port
 
 	var weight = CountWeight()
@@ -96,18 +93,19 @@ func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 	cs._client = nil
 
 	cs.Tags = input.Tags
-	cs.TTL = input.TTL
 	cs.Check = input.Check
-	checks := []*consulapi.AgentServiceCheck{
-		&consulapi.AgentServiceCheck{
-			CheckID:                        "service:" + id,
-			TTL:                            input.TTL.String(),
-			DeregisterCriticalServiceAfter: time.Minute.String(),
-		}}
-	cs.Checks = checks
 	cs.ConsulAddr = input.ConsulHost + input.ConsulPort
 	cs.enableTraefik = input.EnableTraefik
 	return cs
+}
+
+func (cs *ConsulService) UpdateService() {
+	cs.ID = ServiceID(cs.Name)
+	cs.Checks[0] = &consulapi.AgentServiceCheck{
+		CheckID:                        cs.ID,
+		TTL:                            cs.TTL.String(),
+		DeregisterCriticalServiceAfter: time.Minute.String(), // todo в конфиг
+	}
 }
 
 // ServiceName return service name
@@ -156,6 +154,7 @@ func (cs *ConsulService) register(tags ...string) error {
 	for try >= 0 {
 		try--
 		client := cs.client()
+		cs.UpdateService()
 		if client != nil {
 			if err = client.Agent().ServiceRegister(&consulapi.AgentServiceRegistration{
 				ID:      cs.ID,
@@ -272,8 +271,9 @@ func (cs *ConsulService) update() {
 	} else {
 		cs.checkAndSetWeight(cs.initWeight)
 	}
-	err = cs.client().Agent().UpdateTTL("service:"+cs.ID, message, status)
+	err = cs.client().Agent().UpdateTTL(cs.ID, message, status)
 	if err != nil {
+		cs.client().Agent().ServiceDeregister(cs.ID)
 		utils.Debug(false, "agent of", cs.ID, " UpdateTTL error:", err.Error())
 		cs.register()
 	}
@@ -281,7 +281,7 @@ func (cs *ConsulService) update() {
 
 // ServiceID return id of the service
 func ServiceID(serviceName string) string {
-	return serviceName + "-" + os.Getenv("HOSTNAME")
+	return serviceName + "-" + os.Getenv("HOSTNAME") + "-" + utils.RandomString(5) // todo в конфиг
 }
 
 // CountWeight return weight of the service taking into

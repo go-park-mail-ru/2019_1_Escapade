@@ -33,7 +33,7 @@ func (rfs *RepositoryFS) GetField(path string) (FieldConfiguration, error) {
 		return FieldConfiguration{}, err
 	}
 
-	var tmp *FieldConfiguration
+	var tmp = new(FieldConfiguration)
 	if err = tmp.UnmarshalJSON(data); err != nil {
 		return FieldConfiguration{}, err
 	}

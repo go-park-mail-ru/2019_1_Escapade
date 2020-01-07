@@ -25,12 +25,10 @@ x-backend: &backend-server
   volumes:
     - ./../../../..:/2019_1_Escapade
   labels:
-    - "traefik.enable=false"
+    - "traefik.enable=true"
+    - "traefik.docker.network=backend-overlay"
     - "org.label-schema.group=monitoring"
   <<: *logging
-  logging:
-    options:
-      max-size: 10m
 
 services:
 
@@ -41,12 +39,15 @@ services:
     image: traefik:v1.7
     ports:
       - "80:80"     # The HTTP port
+      - "443:443"     # The HTTPS port
       - "8079:8080" # The Web UI (enabled by --api)
     networks:
       - backend-overlay
     labels:
-      - "traefik.docker.network=backend"
-      - "traefik.port=8080"
+      - "docker.network=traefik-network"
+      - "traefik.frontend.rule=PathPrefixStrip:/testpath"
+      - "defaultentrypoints=http"
+      - "docker.network=backend-overlay"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
@@ -111,8 +112,8 @@ services:
   api:
     <<: *backend-server
     image: smartphonejava/api:latest
-    ports:
-      - 3001:3001
+    # ports:
+    #   - 3001:3001
     environment:
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
       - CONSUL_ADDRESS=consul-agent
@@ -287,6 +288,11 @@ services:
     ports:
       - "8088:8080"   
     command: start
+    labels:
+      - traefik.enable=true
+      - "traefik.frontend.rule=PathPrefixStrip: /somepath"
+      - traefik.port=8088
+      - traefil.docker.network=backend-overlay
     deploy:
       restart_policy:
         condition: on-failure
@@ -365,6 +371,7 @@ services:
 
 networks:
    backend-overlay:
+     driver: overlay
      external: true
 
 #sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1

@@ -7,7 +7,7 @@
         "license": {},
         "version": "1.0"
     },
-    "host": "localhost:3001",
+    "host": "virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0",
     "basePath": "/api",
     "paths": {
         "/avatar": {
@@ -90,7 +90,6 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.Record"
                         }
                     }
@@ -144,7 +143,6 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPrivateInfo"
                         }
                     }
@@ -201,6 +199,95 @@
                         "description": "Database error",
                         "schema": {
                             "$ref": "#/definitions/models.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/token": {
+            "post": {
+                "description": "Get session token for current client",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get token",
+                "operationId": "tokenHandler",
+                "parameters": [
+                    {
+                        "default": "\"password\"",
+                        "description": "'password' or 'refresh_token'",
+                        "name": "grant_type",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client id",
+                        "name": "client_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client secret",
+                        "name": "client_secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"username\"",
+                        "description": "username",
+                        "name": "username",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"password\"",
+                        "description": "password",
+                        "name": "password",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "default": "\"1\"",
+                        "description": "client id",
+                        "name": "refresh_token",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "token was given",
+                        "schema": {
+                            "$ref": "#/definitions/models.SessionToken"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid body parameters ",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorDescription"
                         }
                     }
                 }
@@ -278,7 +365,6 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPrivateInfo"
                         }
                     }
@@ -330,7 +416,6 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPrivateInfo"
                         }
                     }
@@ -370,7 +455,6 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
                             "$ref": "#/definitions/models.UserPrivateInfo"
                         }
                     }
@@ -566,6 +650,19 @@
         }
     },
     "definitions": {
+        "models.ErrorDescription": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "unsupported_grant_type"
+                },
+                "error_description": {
+                    "type": "string",
+                    "example": "The authorization grant type is not supported by the authorization server"
+                }
+            }
+        },
         "models.Pages": {
             "type": "object",
             "properties": {
@@ -617,6 +714,27 @@
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.SessionToken": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "123123123"
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 86400
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "321321321"
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "bearer"
                 }
             }
         },

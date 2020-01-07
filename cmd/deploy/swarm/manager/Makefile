@@ -32,7 +32,7 @@ status:	## - Status of services
 .PHONY: build
 build:	## - Build services
 	@printf "\n\033[32m Build images and push them to dockerhub \n\033[0m"
-	@COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build --parallel
+	@COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
 	@docker-compose push
 
 .PHONY: restart

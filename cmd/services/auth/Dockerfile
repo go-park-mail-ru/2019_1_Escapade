@@ -24,7 +24,7 @@ COPY /internal/pkg /2019_1_Escapade/internal/pkg
 COPY /internal/services/api /2019_1_Escapade/internal/services/api
 COPY /internal/services/auth /2019_1_Escapade/internal/services/auth
 COPY /internal/services/ery /2019_1_Escapade/internal/services/ery
-COPY /docs/auth /2019_1_Escapade/docs/auth
+COPY /docs /2019_1_Escapade/docs
 
 COPY /cmd/services/auth .
 RUN --mount=type=cache,target=/root/.cache/go-build \ 

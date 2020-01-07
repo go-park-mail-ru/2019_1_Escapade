@@ -9,7 +9,7 @@ import (
 // RoomConfiguration - the limits of the characteristics of the room
 //easyjson:json
 type RoomConfiguration struct {
-	Set              bool
+	Set              bool `json:"-"`
 	NameMin          int32 `json:"nameMin"`
 	NameMax          int32 `json:"nameMax"`
 	TimeToPrepareMin int32 `json:"timeToPrepareMin"`

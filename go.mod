@@ -8,8 +8,8 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsouza/go-dockerclient v1.6.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
-	github.com/go-openapi/jsonreference v0.19.3 // indirect
-	github.com/go-openapi/spec v0.19.4 // indirect
+	github.com/go-openapi/spec v0.19.5 // indirect
+	github.com/go-openapi/swag v0.19.6 // indirect
 	github.com/go-session/session v3.1.2+incompatible
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.2
@@ -25,20 +25,23 @@ require (
 	github.com/mailru/easyjson v0.7.0
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.4.0
+	github.com/swaggo/cli v1.22.2 // indirect
 	github.com/swaggo/http-swagger v0.0.0-20190614090009-c2865af9083e
-	github.com/swaggo/swag v1.6.3
+	github.com/swaggo/swag v1.6.4
+	github.com/urfave/cli v1.22.2 // indirect
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
 	github.com/vgarvardt/go-oauth2-pg v0.0.0-20190226204934-2d810489d985
 	github.com/vgarvardt/go-pg-adapter v0.3.0
 	github.com/ztrue/tracerr v0.3.0
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
+	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
-	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
+	golang.org/x/tools v0.0.0-20200107050322-53017a39ae36 // indirect
 	google.golang.org/grpc v1.22.0
 	gopkg.in/oauth2.v3 v3.10.1
-	gopkg.in/yaml.v2 v2.2.4 // indirect
+	gopkg.in/yaml.v2 v2.2.7 // indirect
 )

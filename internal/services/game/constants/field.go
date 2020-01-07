@@ -3,7 +3,7 @@ package constants
 // FieldConfiguration - the limits of the characteristics of the field
 //easyjson:json
 type FieldConfiguration struct {
-	Set       bool
+	Set       bool `json:"-"`
 	WidthMin  int32 `json:"widthMin"`
 	WidthMax  int32 `json:"widthMax"`
 	HeightMin int32 `json:"heightMin"`

@@ -1,5 +1,5 @@
  {
-    "backHost" : "http://localhost:3001",
-    "lobbyWsAddress" : "ws://localhost:3002/game/ws",
-    "profileWsAddress" : "ws://localhost:3005/history/ws"
+    "backHost" : "http://api:3001",
+    "lobbyWsAddress" : "ws://game:3002/game/ws",
+    "profileWsAddress" : "ws://history:3005/history/ws"
 }

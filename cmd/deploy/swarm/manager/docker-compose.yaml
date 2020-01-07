@@ -11,37 +11,37 @@ services:
     build:
       dockerfile: cmd/services/api/Dockerfile
       <<: *root
-  auth:
-    image: smartphonejava/auth:latest
-    build:
-      dockerfile: cmd/services/auth/Dockerfile
-      <<: *root
-  chat:
-    image: smartphonejava/chat:latest
-    build:
-      dockerfile: cmd/services/chat/Dockerfile
-      <<: *root
-  game:
-    image: smartphonejava/game:latest
-    build:
-      dockerfile: cmd/services/game/Dockerfile
-      <<: *root
+  # auth:
+  #   image: smartphonejava/auth:latest
+  #   build:
+  #     dockerfile: cmd/services/auth/Dockerfile
+  #     <<: *root
+  # chat:
+  #   image: smartphonejava/chat:latest
+  #   build:
+  #     dockerfile: cmd/services/chat/Dockerfile
+  #     <<: *root
+  # game:
+  #   image: smartphonejava/game:latest
+  #   build:
+  #     dockerfile: cmd/services/game/Dockerfile
+  #     <<: *root
 
-  # database servers
-  pg:
-    image: smartphonejava/pg:latest
-    build:
-      dockerfile: Dockerfile
-      context: ./../../../../extra/postgresql/main/
-  pg-ery:
-    image: smartphonejava/pg-ery:latest    
-    build:
-      dockerfile: Dockerfile
-      context: ./../../../../extra/postgresql/ery/
+  # # database servers
+  # pg:
+  #   image: smartphonejava/pg:latest
+  #   build:
+  #     dockerfile: Dockerfile
+  #     context: ./../../../../extra/postgresql/main/
+  # pg-ery:
+  #   image: smartphonejava/pg-ery:latest    
+  #   build:
+  #     dockerfile: Dockerfile
+  #     context: ./../../../../extra/postgresql/ery/
 
   # frontend servers
-  front:
-    image: smartphonejava/front:latest
-    build:
-      dockerfile: Dockerfile
-      context: ./../../../../extra/front/
+  # front:
+  #   image: smartphonejava/front:latest
+  #   build:
+  #     dockerfile: Dockerfile
+  #     context: ./../../../../extra/front/

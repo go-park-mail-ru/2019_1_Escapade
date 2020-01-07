@@ -36,8 +36,6 @@ func easyjson8a25db09DecodeGithubComGoParkMailRu20191EscapadeInternalServicesGam
 			continue
 		}
 		switch key {
-		case "Set":
-			out.Set = bool(in.Bool())
 		case "nameMin":
 			out.NameMin = int32(in.Int32())
 		case "nameMax":
@@ -71,13 +69,13 @@ func easyjson8a25db09EncodeGithubComGoParkMailRu20191EscapadeInternalServicesGam
 	first := true
 	_ = first
 	{
-		const prefix string = ",\"Set\":"
-		out.RawString(prefix[1:])
-		out.Bool(bool(in.Set))
-	}
-	{
 		const prefix string = ",\"nameMin\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.Int32(int32(in.NameMin))
 	}
 	{
@@ -165,8 +163,6 @@ func easyjson8a25db09DecodeGithubComGoParkMailRu20191EscapadeInternalServicesGam
 			continue
 		}
 		switch key {
-		case "Set":
-			out.Set = bool(in.Bool())
 		case "widthMin":
 			out.WidthMin = int32(in.Int32())
 		case "widthMax":
@@ -190,13 +186,13 @@ func easyjson8a25db09EncodeGithubComGoParkMailRu20191EscapadeInternalServicesGam
 	first := true
 	_ = first
 	{
-		const prefix string = ",\"Set\":"
-		out.RawString(prefix[1:])
-		out.Bool(bool(in.Set))
-	}
-	{
 		const prefix string = ",\"widthMin\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.Int32(int32(in.WidthMin))
 	}
 	{

@@ -7,7 +7,7 @@ import (
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/service"
 
 	// dont delete it for correct easyjson work
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/api"
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 	_ "github.com/mailru/easyjson/gen"
 )
 

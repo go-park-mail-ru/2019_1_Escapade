@@ -53,6 +53,7 @@ func testHandler(srv *server.Server) func(w http.ResponseWriter, r *http.Request
 // @Summary Get token
 // @Description Get session token for current client
 // @ID tokenHandler
+// @Tags auth
 // @Accept  json
 // @Produce  json
 // @Param grant_type body string true "'password' or 'refresh_token'" default("password")

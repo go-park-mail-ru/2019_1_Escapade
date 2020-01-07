@@ -45,11 +45,11 @@ func (ci *ConsulInput) Init(input InputI, loader ConfigutaionLoaderI) *ConsulInp
 func (ci *ConsulInput) addTraefikTags(entrypoint string) {
 	if ci.EnableTraefik {
 		ci.Tags = append(ci.Tags,
-			"traefik.frontend.rule=Host:"+ci.Name+".consul.localhost",
+			"traefik.frontend.rule=PathPrefixStrip:/"+ci.Name,
 			"traefik.frontend.entryPoints="+entrypoint,
 			"traefik.enable=true",
-			"traefik.port=80",
-			"traefik.docker.network=backend",
+			"traefik.port=3001",
+			"traefik.docker.network=backend-overlay",
 			"traefik.backend.loadbalancer=drr",
 			"traefik.backend.maxconn.amount="+utils.String(ci.MaxConn),
 			"traefik.backend.maxconn.extractorfunc=client.ip")

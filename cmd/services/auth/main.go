@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs/auth"
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 

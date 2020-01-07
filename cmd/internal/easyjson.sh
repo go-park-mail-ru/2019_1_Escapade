@@ -9,20 +9,23 @@ trap 'echo " stop" ' INT TERM
 
 # set GOPATH and PATH
 export GOPATH=$HOME/go
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:/usr/local/go/bin
 done=0
 
 # install easyjson
-#go get -u github.com/mailru/easyjson/...
-#apt install golang-easyjson
-#go mod tidy
-#go get -u
+echo "Install easyjson\n"
+place=$(whereis easyjson | grep bin)
+if [ "$?" = "0" ]; then
+    echo "✔ " $place "\n"
+else
+    go get -u github.com/mailru/easyjson/...
+    apt install golang-easyjson
+     echo "✔ installed \n"
+fi
 go mod vendor
 
 echo "  1. Copy project to GOPATH"
-# we need THISDIR to return back at the end
 export PROJECT=$PWD/../..
-export THISDIR=$PWD
 export SERVICES=$PWD/../services
 export GPROJECTDIR=$GOPATH/src/github.com/go-park-mail-ru/2019_1_Escapade
 # create folder, -p - create parents folders
@@ -34,6 +37,7 @@ cp -r $SERVICES/auth $GPROJECTDIR && \
 cp -r $SERVICES/chat $GPROJECTDIR && \
 cp -r $PROJECT/vendor $GPROJECTDIR && \
 
+echo "  2. Apply easyjson"
 echo "  2.1 Apply easyjson to constants" && \
 export CONSTANTSPATH=$GPROJECTDIR/internal/services/game/constants && \
 cd $CONSTANTSPATH && \
@@ -67,7 +71,6 @@ done=1
 
 echo "  3. Remove project from GOPATH"
 rm -R $GPROJECTDIR
-cd $THISDIR
 
 echo ""
 if [ "$done" -eq 1 ]

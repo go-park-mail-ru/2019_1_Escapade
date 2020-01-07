@@ -1,5 +1,15 @@
 basePath: /api
 definitions:
+  models.ErrorDescription:
+    properties:
+      error:
+        example: unsupported_grant_type
+        type: string
+      error_description:
+        example: The authorization grant type is not supported by the authorization
+          server
+        type: string
+    type: object
   models.Pages:
     properties:
       amount:
@@ -37,6 +47,21 @@ definitions:
       success:
         type: boolean
     type: object
+  models.SessionToken:
+    properties:
+      access_token:
+        example: "123123123"
+        type: string
+      expires_in:
+        example: 86400
+        type: integer
+      refresh_token:
+        example: "321321321"
+        type: string
+      token_type:
+        example: bearer
+        type: string
+    type: object
   models.UserPrivateInfo:
     properties:
       name:
@@ -67,7 +92,7 @@ definitions:
         maxLength: 50
         type: string
     type: object
-host: localhost:3001
+host: virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0
 info:
   contact: {}
   description: We don't have a public API, so instead of a real host(explosion.team)
@@ -125,7 +150,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/models.Record'
-          type: object
       produces:
       - application/json
       responses:
@@ -182,7 +206,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/models.UserPrivateInfo'
-          type: object
       produces:
       - application/json
       responses:
@@ -205,6 +228,66 @@ paths:
       summary: login
       tags:
       - account
+  /token:
+    post:
+      consumes:
+      - application/json
+      description: Get session token for current client
+      operationId: tokenHandler
+      parameters:
+      - default: '"password"'
+        description: '''password'' or ''refresh_token'''
+        in: body
+        name: grant_type
+        required: true
+        schema:
+          type: string
+      - default: '"1"'
+        description: client id
+        in: body
+        name: client_id
+        required: true
+        schema:
+          type: string
+      - default: '"1"'
+        description: client secret
+        in: body
+        name: client_secret
+        required: true
+        schema:
+          type: string
+      - default: '"username"'
+        description: username
+        in: body
+        name: username
+        schema:
+          type: string
+      - default: '"password"'
+        description: password
+        in: body
+        name: password
+        schema:
+          type: string
+      - default: '"1"'
+        description: client id
+        in: body
+        name: refresh_token
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token was given
+          schema:
+            $ref: '#/definitions/models.SessionToken'
+        "401":
+          description: 'invalid body parameters '
+          schema:
+            $ref: '#/definitions/models.ErrorDescription'
+      summary: Get token
+      tags:
+      - auth
   /user:
     delete:
       consumes:
@@ -220,7 +303,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/models.UserPrivateInfo'
-          type: object
       produces:
       - application/json
       responses:
@@ -281,7 +363,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/models.UserPrivateInfo'
-          type: object
       produces:
       - application/json
       responses:
@@ -309,7 +390,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/models.UserPrivateInfo'
-          type: object
       produces:
       - application/json
       responses:

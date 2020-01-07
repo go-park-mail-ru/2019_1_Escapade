@@ -18,7 +18,7 @@ RUN mkdir /2019_1_Escapade/docs
 
 COPY /internal/pkg /2019_1_Escapade/internal/pkg
 COPY /internal/services/api /2019_1_Escapade/internal/services/api
-COPY /docs/api /2019_1_Escapade/docs/api
+COPY /docs /2019_1_Escapade/docs
 
 COPY /cmd/services/api .
 RUN --mount=type=cache,target=/root/.cache/go-build \ 

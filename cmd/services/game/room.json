@@ -7,7 +7,5 @@
     "timeToPlayMax": 7200,
     "playersMin": 2,
     "playersMax": 100,
-    "a": 1,
-	"b": 30,
     "observersMax": 100
 }
