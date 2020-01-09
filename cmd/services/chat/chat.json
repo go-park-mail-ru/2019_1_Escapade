@@ -7,7 +7,7 @@
 			"ttl":"10s",
 			"read":"10s",
 			"write":"15s",
-			"idle":"5s",
+			"idle":"1s",
 			"wait":"5s",
 			"exec":"0s"
 		},

@@ -43,16 +43,26 @@ func (ci *ConsulInput) Init(input InputI, loader ConfigutaionLoaderI) *ConsulInp
 
 // adds tags to interact with Traffic
 func (ci *ConsulInput) addTraefikTags(entrypoint string) {
+	utils.Debug(false, "✔")
 	if ci.EnableTraefik {
 		ci.Tags = append(ci.Tags,
-			"traefik.frontend.rule=PathPrefixStrip:/"+ci.Name,
-			"traefik.frontend.entryPoints="+entrypoint,
 			"traefik.enable=true",
-			"traefik.port=3001",
-			"traefik.docker.network=backend-overlay",
+			"traefik.http.services.api.loadbalancer.server.port=3001",
+			"traefik.http.routers.api.service=api",
+			"traefik.http.routers.api.rule=PathPrefix(`/app_api`)",
+			"traefik.http.routers.api.entrypoints=web") 
+		/*
+		ci.Tags = append(ci.Tags,
+			"traefik.frontend.rule=PathPrefixStrip:/"+ci.Name,
+			"traefik.frontend.entryPoints="+"http", // entrypoint
+			"traefik.enable=true",
+			"traefik.port=80",
+			"traefik.backend=api",
+			"traefik.docker.network=app_backend_overlay",
 			"traefik.backend.loadbalancer=drr",
-			"traefik.backend.maxconn.amount="+utils.String(ci.MaxConn),
-			"traefik.backend.maxconn.extractorfunc=client.ip")
+			"traefik.backend.maxconn.amount="+utils.String(100)) //ci.MaxConn
+			// "traefik.backend.maxconn.extractorfunc=client.ip"
+			*/
 	} else {
 		ci.Tags = append(ci.Tags, "traefik.enable=false")
 	}

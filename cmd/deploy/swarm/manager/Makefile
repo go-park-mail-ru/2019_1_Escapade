@@ -49,6 +49,12 @@ restart-with-rebuild:	## - Stop, rebuild and start services
 	@docker-compose push
 	@docker stack deploy -c docker-swarm.yaml app
 
+.PHONY: rebuild-network
+rebuild-network:	## - Remove and add services network
+	@printf "\n\033[32m Remove and add services network \n\033[0m"
+	@docker network rm backend-overlay
+	@docker network create -d overlay --subnet 10.10.9.0/24 --attachable backend-overlay
+
 .PHONY: clear
 clear:	## - Clear dangling containers 
 	@printf "\n\033[32m Clear dangling containers \n\033[0m"

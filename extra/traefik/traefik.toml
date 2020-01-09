@@ -16,6 +16,40 @@ prefix = "traefik"
 [forwardingTimeouts]
     dialTimeout = "10s"
 
+[docker]
+  endpoint = "unix:///var/run/docker.sock"
+  watch = true
+  exposedbydefault = false
+
+[entryPoints]
+  [entryPoints.http]
+    address = ":80"
+    [entryPoints.http.transport]
+      [entryPoints.http.transport.lifeCycle]
+        requestAcceptGraceTimeout = 42
+        graceTimeOut = 42
+      [entryPoints.http.transport.respondingTimeouts]
+        readTimeout = 42
+        writeTimeout = 42
+        idleTimeout = 42
+
+[http]
+  [http.routers]
+    [http.routers.toDBr1]
+      rule = "PathPrefix(`/aka/`)"
+      service = "toDBs1"
+  [http.services]
+    [http.services.toDBs1.LoadBalancer]
+      [[http.services.toDBs1.LoadBalancer.servers]]
+        url = "http://api:3001"
+
+[accessLog]
+  format = "json"
+  logLevel = "debug"
+[log]
+  format = "json"
+  logLevel = "debug"
+
 # Default frontEnd Rule for Consul services.
 #
 # The format is a Go Template with:

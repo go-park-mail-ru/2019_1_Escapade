@@ -47,4 +47,10 @@ func generateLoader() *server.Loader {
 	return loader
 }
 
+func generateConsul() *server.ConsulService {
+	var cs = new(server.ConsulService)
+	cs.AddHTTPCheck("http","/health")
+	return cs
+}
+
 // 120 -> 62 -> 93 -> 71

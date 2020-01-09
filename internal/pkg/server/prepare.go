@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"time"
+	"net"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
@@ -34,9 +35,14 @@ func ConfigureServer(handler http.Handler, serverConfig config.Server, port stri
 		WriteTimeout: serverConfig.Timeouts.Write.Duration,
 		IdleTimeout:  serverConfig.Timeouts.Idle.Duration,
 		Handler:      handler,
-		// ConnState: func(n net.Conn, c http.ConnState) {
-		// 	fmt.Println("--------------new conn state:", c)
-		// },
+		ConnState: func(c net.Conn, cs http.ConnState) {
+			switch cs {
+			case http.StateIdle, http.StateNew:
+				c.SetReadDeadline(time.Now().Add(serverConfig.Timeouts.Idle.Duration))
+			case http.StateActive:
+				c.SetReadDeadline(time.Now().Add(serverConfig.Timeouts.Read.Duration))
+			}
+		},
 		MaxHeaderBytes: serverConfig.MaxHeaderBytes,
 	}
 	return srv

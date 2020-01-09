@@ -26,7 +26,8 @@ x-backend: &backend-server
     - ./../../../..:/2019_1_Escapade
   labels:
     - "traefik.enable=true"
-    - "traefik.docker.network=backend-overlay"
+    - "traefik.port=80"
+    - "traefik.docker.network=app_backend_overlay"
     - "org.label-schema.group=monitoring"
   <<: *logging
 
@@ -36,31 +37,69 @@ services:
 
   traefik:
     <<: *logging
-    image: traefik:v1.7
+    image: traefik:v2.1
     ports:
-      - "80:80"     # The HTTP port
-      - "443:443"     # The HTTPS port
-      - "8079:8080" # The Web UI (enabled by --api)
+      - 80:80     # The HTTP port
+      - 443:443     # The HTTPS port
+      - 8079:8080 # The Web UI (enabled by --api)
     networks:
       - backend-overlay
-    labels:
-      - "docker.network=traefik-network"
-      - "traefik.frontend.rule=PathPrefixStrip:/testpath"
-      - "defaultentrypoints=http"
-      - "docker.network=backend-overlay"
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.services.dummyService.loadbalancer.server.port=1337
+    #   - traefik.http.routers.traefik.rule=PathPrefix(`/testpath`)
+    #   - traefik.http.routers.traefik.service=api@internal
+    #   - traefik.http.routers.traefik.entrypoints=web
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-      - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
-    command: --web \
-      --api \
-      --docker \
-      --docker.swarmmode \
-      --docker.watch 
+      #- ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+    command: 
+      - --api=true
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik-public
+      - --providers.consulCatalog.endpoint.address=http://consul:8500
+      - --providers.consulCatalog.exposedByDefault=true
+      - --providers.consulcatalog.refreshInterval=10s
+      - --entrypoints.web.address=:80
+      - --serversTransport.maxIdleConnsPerHost=-1
+      - --serversTransport.forwardingTimeouts.dialTimeout=1s
+      - --serversTransport.forwardingTimeouts.responseHeaderTimeout=1s
+      - --serversTransport.forwardingTimeouts.idleConnTimeout=1s
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: [node.role == manager]
+
+  helloworld:
+    image: tutum/hello-world:latest
+    networks:
+      - backend-overlay
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.helloworld.rule=PathPrefix(`/local`)
+        - traefik.http.routers.helloworld.entrypoints=web
+        - traefik.http.services.helloworld.loadbalancer.server.port=80
+
+  whoami:
+    image: containous/whoami
+    command:
+      - --port=8082
+    deploy:
+      replicas: 2
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.whoami.loadbalancer.server.port=8082
+        - traefik.http.routers.whoami.rule=PathPrefix(`/moscow`)
+        - traefik.http.routers.whoami.service=whoami
+        - traefik.http.routers.whoami.entrypoints=web
+    networks:
+      - backend-overlay
 
   ### Database servers ###
 
@@ -112,15 +151,21 @@ services:
   api:
     <<: *backend-server
     image: smartphonejava/api:latest
-    # ports:
-    #   - 3001:3001
+    ports:
+      - 3001:3001
     environment:
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
       - CONSUL_ADDRESS=consul-agent
       - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
     command: 2019_1_Escapade/cmd/services/api/api.json 2019_1_Escapade/internal/photo/photo.json 2019_1_Escapade/secret.json 3001
     deploy:
-      replicas: 5
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.api.loadbalancer.server.port=3001
+        - traefik.http.routers.api.service=api
+        - traefik.http.routers.api.rule=PathPrefix(`/lock`)
+        - traefik.http.routers.api.entrypoints=web
+      replicas: 1
       update_config:
         parallelism: 3
       restart_policy:
