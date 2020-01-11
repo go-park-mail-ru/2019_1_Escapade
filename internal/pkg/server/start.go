@@ -23,31 +23,27 @@ import (
 //   services, databases, stops running gorutins, frees resources, and
 //   so on. It also can return error, As well as Run(), Close() can
 //   return an error, which will terminate the program with an error code
-type ServicesI interface {
+type ServiceI interface {
 	Run(args *Args) error
-	Close() error
-}
-
-// HandlerI serves incoming connections
-type HandlerI interface {
 	Router() http.Handler
+	Close() error
 }
 
 type Args struct {
 	Input   InputI
 	Loader  ConfigutaionLoaderI
 	Consul  ConsulServiceI
-	Service ServicesI
-	Handler HandlerI
+	Service ServiceI
 
 	GRPC *grpc.Server
 
 	Test bool
 }
 
-func (args *Args) NoNil() error {
+// Validate check args are correct
+func (args *Args) Validate() bool {
 	return re.NoNil(args, args.Input, args.Loader,
-		args.Consul, args.Service)
+		args.Consul, args.Service) == nil
 }
 
 const (
@@ -78,7 +74,7 @@ Run performs all stages of loading and starting the server
 func Run(args *Args) {
 	synced.HandleExit()
 
-	if args.NoNil() != nil {
+	if !args.Validate() {
 		panic(synced.Exit{Code: ARGSERROR})
 	}
 
@@ -177,12 +173,11 @@ func runServer(args *Args) int {
 
 	if args.GRPC != nil {
 		err = LaunchGRPC(args.GRPC, c, port, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
-	} else if args.Handler != nil {
-		var srv = ConfigureServer(args.Handler.Router(), c, port)
-		err = LaunchHTTP(srv, c, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
 	} else {
-		return NOSERVERERROR
+		var srv = ConfigureServer(args.Service.Router(), c, port)
+		err = LaunchHTTP(srv, c, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
 	}
+	
 	if err != nil {
 		return MAINRUNERROR
 	}

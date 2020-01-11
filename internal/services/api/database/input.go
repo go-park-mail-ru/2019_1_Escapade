@@ -49,7 +49,7 @@ func (db *Input) IsValid() error {
 }
 
 // Connect open connection to database and use it in every UseCase
-func (db *Input) Connect(c config.Database) error {
+func (db *Input) Open(c config.Database) error {
 	return database.Open(db.Database, c, db.UserUC, db.RecordUC, db.ImageUC)
 }
 

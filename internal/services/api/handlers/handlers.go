@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -29,13 +28,11 @@ type Handlers struct {
 
 // InitWithPostgreSQL apply postgreSQL as database
 func (h *Handlers) InitWithPostgreSQL(c *config.Configuration) error {
-	return h.Init(c, new(database.Input).InitAsPSQL())
+	return h.OpenDB(c, new(database.Input).InitAsPSQL())
 }
 
 // Init open connection to database and put it to all handlers
-func (h *Handlers) Init(c *config.Configuration, input *database.Input) error {
-	fmt.Println("string:", c.DataBase.ConnectionString)
-
+func (h *Handlers) OpenDB(c *config.Configuration, input *database.Input) error {
 	input.Init()
 	if err := input.IsValid(); err != nil {
 		return err
@@ -44,7 +41,7 @@ func (h *Handlers) Init(c *config.Configuration, input *database.Input) error {
 	h.c = c
 	h.db = input
 
-	err := input.Connect(c.DataBase)
+	err := input.Open(c.DataBase)
 	if err != nil {
 		return err
 	}

@@ -1,23 +1,27 @@
 version: '3.7'
 
+x-network: &network
+  networks:
+    - traefik
+
 x-logging: &logging
   logging:
     options:
       max-size: 10m
 
 x-consul: &consul
-  <<: *logging
+  <<: *logging  
   image: consul:1.0.2
   networks:
-    backend-overlay:
+    traefik:
       aliases:
         - consul.cluster
   volumes:
     - ./../../../../extra/consul/config:/config
 
 x-backend: &backend-server
-  networks:
-    - backend-overlay
+  <<: *logging
+  <<: *network
   environment:
     - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
     - CONSUL_ADDRESS=consul-agent
@@ -29,27 +33,32 @@ x-backend: &backend-server
     - "traefik.port=80"
     - "traefik.docker.network=app_backend_overlay"
     - "org.label-schema.group=monitoring"
-  <<: *logging
+
+x-manager: &manager
+  deploy:
+    restart_policy:
+      condition: on-failure
+    placement:
+      constraints: [node.role == manager] 
+
+x-worker: &worker
+  deploy:
+    placement:
+      constraints: [node.role == worker] 
 
 services:
 
   ### Load balancer ###
 
   traefik:
+    <<: *manager
     <<: *logging
+    <<: *network
     image: traefik:v2.1
     ports:
       - 80:80     # The HTTP port
       - 443:443     # The HTTPS port
       - 8079:8080 # The Web UI (enabled by --api)
-    networks:
-      - backend-overlay
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.http.services.dummyService.loadbalancer.server.port=1337
-    #   - traefik.http.routers.traefik.rule=PathPrefix(`/testpath`)
-    #   - traefik.http.routers.traefik.service=api@internal
-    #   - traefik.http.routers.traefik.entrypoints=web
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       #- ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
@@ -69,16 +78,10 @@ services:
       - --serversTransport.forwardingTimeouts.dialTimeout=1s
       - --serversTransport.forwardingTimeouts.responseHeaderTimeout=1s
       - --serversTransport.forwardingTimeouts.idleConnTimeout=1s
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager]
 
   helloworld:
+    <<: *network
     image: tutum/hello-world:latest
-    networks:
-      - backend-overlay
     deploy:
       labels:
         - traefik.enable=true
@@ -87,6 +90,7 @@ services:
         - traefik.http.services.helloworld.loadbalancer.server.port=80
 
   whoami:
+    <<: *network
     image: containous/whoami
     command:
       - --port=8082
@@ -98,57 +102,51 @@ services:
         - traefik.http.routers.whoami.rule=PathPrefix(`/moscow`)
         - traefik.http.routers.whoami.service=whoami
         - traefik.http.routers.whoami.entrypoints=web
-    networks:
-      - backend-overlay
 
   ### Database servers ###
 
   pg:
+    <<: *manager
     <<: *logging
+    <<: *network
     image: smartphonejava/pg:latest
-    networks:
-      - backend-overlay
     ports:
-      - "5429:5432" 
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+      - "5429:5432"
 
-  pg-auth:
-    <<: *logging
-    image: postgres:11.2-alpine
-    networks:
-      - backend-overlay
-    environment:
-      POSTGRES_USER: 'auth' 
-      POSTGRES_PASSWORD: 'auth'
-      POSTGRES_DB: 'authbase'
-    ports:
-      - "5431:5432" 
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager]    
+  # pg-auth:
+  #   <<: *logging
+  #   image: postgres:11.2-alpine
+  #   networks:
+  #     - backend-overlay
+  #   environment:
+  #     POSTGRES_USER: 'auth' 
+  #     POSTGRES_PASSWORD: 'auth'
+  #     POSTGRES_DB: 'authbase'
+  #   ports:
+  #     - "5431:5432" 
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager]    
 
-  pg-ery:
-    <<: *logging
-    image: smartphonejava/pg-ery:latest
-    ports:
-      - "5430:5432"   
-    networks:
-      - backend-overlay
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # pg-ery:
+  #   <<: *logging
+  #   image: smartphonejava/pg-ery:latest
+  #   ports:
+  #     - "5430:5432"   
+  #   networks:
+  #     - backend-overlay
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
   ### Backend servers ###
 
   api:
+    <<: *worker
     <<: *backend-server
     image: smartphonejava/api:latest
     ports:
@@ -157,7 +155,11 @@ services:
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
       - CONSUL_ADDRESS=consul-agent
       - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
-    command: 2019_1_Escapade/cmd/services/api/api.json 2019_1_Escapade/internal/photo/photo.json 2019_1_Escapade/secret.json 3001
+    command: 
+      - 2019_1_Escapade/cmd/services/api/api.json
+      - 2019_1_Escapade/internal/photo/photo.json
+      - 2019_1_Escapade/secret.json 
+      - "3001"
     deploy:
       labels:
         - traefik.enable=true
@@ -165,104 +167,113 @@ services:
         - traefik.http.routers.api.service=api
         - traefik.http.routers.api.rule=PathPrefix(`/lock`)
         - traefik.http.routers.api.entrypoints=web
+        - traefik.docker.network=traefik  
       replicas: 1
       update_config:
         parallelism: 3
       restart_policy:
         condition: on-failure
         window: 5s
-      placement:
-        constraints: [node.role == worker] 
 
-  chat:
-    <<: *backend-server
-    image: smartphonejava/chat:latest
-    environment:
-      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-      - CONSUL_ADDRESS=consul-agent
-    ports:
-      - 3066-3087:3060
-    command: 2019_1_Escapade/cmd/services/chat/chat.json 3060
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # chat:
+  #   <<: *backend-server
+  #   image: smartphonejava/chat:latest
+  #   environment:
+  #     - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+  #     - CONSUL_ADDRESS=consul-agent
+  #   ports:
+  #     - 3066-3087:3060
+  #   command: 
+  #     - 2019_1_Escapade/cmd/services/chat/chat.json
+  #     - "3060"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-  auth:
-    <<: *backend-server
-    image: smartphonejava/auth:latest
-    ports:
-      - 3022-3043:3003
-    environment:
-      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-      - CONSUL_ADDRESS=consul-agent
-    command: 2019_1_Escapade/cmd/services/auth/auth.json 3003
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # auth:
+  #   <<: *backend-server
+  #   image: smartphonejava/auth:latest
+  #   ports:
+  #     - 3022-3043:3003
+  #   environment:
+  #     - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+  #     - CONSUL_ADDRESS=consul-agent
+  #   command: 
+  #     - 2019_1_Escapade/cmd/services/auth/auth.json
+  #     - "3003"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-  game:
-    <<: *backend-server
-    image: smartphonejava/game:latest
-    ports:
-      - 3044-3055:3002
-    environment:
-      - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-      - CONSUL_ADDRESS=consul-agent
-      - AUTHSERVICE_URL=auth:3333
-      - PORT_GAME_URL=:3002
-    command: 2019_1_Escapade/cmd/services/game/game.json 2019_1_Escapade/cmd/services/game/photo.json 2019_1_Escapade/secret.json 2019_1_Escapade/cmd/services/game/field.json 2019_1_Escapade/cmd/services/game/room.json 3002
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # game:
+  #   <<: *backend-server
+  #   image: smartphonejava/game:latest
+  #   ports:
+  #     - 3044-3055:3002
+  #   environment:
+  #     - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+  #     - CONSUL_ADDRESS=consul-agent
+  #     - AUTHSERVICE_URL=auth:3333
+  #     - PORT_GAME_URL=:3002
+  #   command: 
+  #     - 2019_1_Escapade/cmd/services/game/game.json
+  #     - 2019_1_Escapade/cmd/services/game/photo.json
+  #     - 2019_1_Escapade/secret.json 
+  #     - 2019_1_Escapade/cmd/services/game/field.json
+  #     - 2019_1_Escapade/cmd/services/game/room.json
+  #     - "3002"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
   ### Statistics collectors ###
 
-  prometheus:
-    <<: *logging
-    image: prom/prometheus:latest
-    networks:
-      - backend-overlay
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    ports:
-      - "9090:9090"
-    labels:
-     - "traefik.frontend.rule=Host:prometheus.localhost"
-     - "traefik.port=9090"
-     - "traefik.docker.network=inbound"
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # prometheus:
+  #   <<: *logging
+  #   image: prom/prometheus:latest
+  #   networks:
+  #     - backend-overlay
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #   ports:
+  #     - "9090:9090"
+  #   labels:
+  #    - "traefik.frontend.rule=Host:prometheus.localhost"
+  #    - "traefik.port=9090"
+  #    - "traefik.docker.network=inbound"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-  grafana:
-    <<: *logging
-    image: grafana/grafana
-    networks:
-      - backend-overlay
-    environment:
-     - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
-     - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-     - GF_USERS_ALLOW_SIGN_UP=false
-    ports:
-      - 3000:3000
-    labels:
-      - "traefik.port=3000"
-      - "traefik.docker.network=backend"
-      - "traefik.frontend.rule=Host:grafana.localhost"
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
+  # grafana:
+  #   <<: *logging
+  #   image: grafana/grafana
+  #   networks:
+  #     - backend-overlay
+  #   environment:
+  #    - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+  #    - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+  #    - GF_USERS_ALLOW_SIGN_UP=false
+  #   ports:
+  #     - 3000:3000
+  #   labels:
+  #     - "traefik.port=3000"
+  #     - "traefik.docker.network=backend"
+  #     - "traefik.frontend.rule=Host:grafana.localhost"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
  
   ### Service discovery ###
   
@@ -286,7 +297,7 @@ services:
     <<: *logging
     image: consul:1.0.2 
     networks:
-      backend-overlay:
+      traefik:
         aliases:
           - consul.cluster
     ports:
@@ -325,97 +336,97 @@ services:
 
   ### Frontend servers ###
 
-  front:
-    <<: *logging
-    image: smartphonejava/front:latest
-    networks:
-      - backend-overlay
-    ports:
-      - "8088:8080"   
-    command: start
-    labels:
-      - traefik.enable=true
-      - "traefik.frontend.rule=PathPrefixStrip: /somepath"
-      - traefik.port=8088
-      - traefil.docker.network=backend-overlay
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role != manager] 
+  # front:
+  #   <<: *logging
+  #   image: smartphonejava/front:latest
+  #   networks:
+  #     - backend-overlay
+  #   ports:
+  #     - "8088:8080"   
+  #   command: start
+  #   labels:
+  #     - traefik.enable=true
+  #     - "traefik.frontend.rule=PathPrefixStrip: /somepath"
+  #     - traefik.port=8088
+  #     - traefil.docker.network=backend-overlay
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role != manager] 
 
   ### unused servers ###
 
-  alertmanager:
-    <<: *logging
-    image: prom/alertmanager:v0.19.0
-    networks:
-      - backend-overlay
-    volumes:
-      - ./alertmanager/:/etc/alertmanager/
-    command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
-    ports:
-      - 9093:9093
-    deploy:
-      placement:
-        constraints: [node.role == manager] 
+  # alertmanager:
+  #   <<: *logging
+  #   image: prom/alertmanager:v0.19.0
+  #   networks:
+  #     - backend-overlay
+  #   volumes:
+  #     - ./alertmanager/:/etc/alertmanager/
+  #   command:
+  #     - '--config.file=/etc/alertmanager/config.yml'
+  #     - '--storage.path=/alertmanager'
+  #   ports:
+  #     - 9093:9093
+  #   deploy:
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-  nodeexporter:
-    <<: *logging
-    image: prom/node-exporter:v0.18.1
-    networks:
-      - backend-overlay
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - 9100:9100
-    deploy:
-      placement:
-        constraints: [node.role == manager] 
+  # nodeexporter:
+  #   <<: *logging
+  #   image: prom/node-exporter:v0.18.1
+  #   networks:
+  #     - backend-overlay
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - '--path.procfs=/host/proc'
+  #     - '--path.rootfs=/rootfs'
+  #     - '--path.sysfs=/host/sys'
+  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+  #   ports:
+  #     - 9100:9100
+  #   deploy:
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-  cadvisor:
-    <<: *logging
-    image: google/cadvisor:v0.33.0
-    networks:
-      - backend-overlay
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
-    ports:
-      - 8085:8080
-    deploy:
-      mode: global
-      placement:
-        constraints: [node.role == manager]
+  # cadvisor:
+  #   <<: *logging
+  #   image: google/cadvisor:v0.33.0
+  #   networks:
+  #     - backend-overlay
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:rw
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #     - /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
+  #   ports:
+  #     - 8085:8080
+  #   deploy:
+  #     mode: global
+  #     placement:
+  #       constraints: [node.role == manager]
 
-  visualizer:
-    <<: *logging
-    image: dockersamples/visualizer:stable
-    networks:
-      - backend-overlay
-    ports:
-      - "8084:8080"
-    stop_grace_period: 1m30s
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      placement:
-        constraints: [node.role == manager] 
+  # visualizer:
+  #   <<: *logging
+  #   image: dockersamples/visualizer:stable
+  #   networks:
+  #     - backend-overlay
+  #   ports:
+  #     - "8084:8080"
+  #   stop_grace_period: 1m30s
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock"
+  #   deploy:
+  #     placement:
+  #       constraints: [node.role == manager] 
 
 networks:
-   backend-overlay:
+   traefik:
      driver: overlay
      external: true
 

@@ -30,16 +30,19 @@ const ARGSLEN = 5
 
 func main() {
 	server.Run(&server.Args{
-		Input:  new(server.Input).InitAsCMD(server.OSArg(4), ARGSLEN),
-		Loader: generateLoader(),
-		Consul: new(server.ConsulService),
-		Service: &api.Service{
-			Database: new(database.Input).InitAsPSQL(),
-		},
+		Input:  input(),
+		Loader: loader(),
+		Consul: consul(),
+		Service: service(),
 	})
 }
 
-func generateLoader() *server.Loader {
+func input() *server.Input {
+	return new(server.Input).InitAsCMD(
+		server.OSArg(4), ARGSLEN)
+}
+
+func loader() *server.Loader {
 	var loader = new(server.Loader).InitAsFS(server.OSArg(1))
 	loader.CallExtra = func() error {
 		return loader.LoadPhoto(server.OSArg(2), server.OSArg(3))
@@ -47,10 +50,15 @@ func generateLoader() *server.Loader {
 	return loader
 }
 
-func generateConsul() *server.ConsulService {
+func consul() *server.ConsulService {
 	var cs = new(server.ConsulService)
 	cs.AddHTTPCheck("http","/health")
 	return cs
 }
 
-// 120 -> 62 -> 93 -> 71
+func service() server.ServiceI {
+	return new(api.Service).Init(
+		new(database.Input).InitAsPSQL())
+}
+
+// 120 -> 62 -> 93 -> 71 -> 64

@@ -5,6 +5,8 @@ services:
     image: traefik:v2.0.2
     command:
       - "--api"
+      - --api.insecure=true
+      - --api.dashboard=true
       - "--providers.docker.endpoint=unix:///var/run/docker.sock"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedbydefault=false"
