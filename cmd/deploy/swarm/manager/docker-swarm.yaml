@@ -81,6 +81,7 @@ services:
       - --providers.consulCatalog.endpoint.address=http://consul:8500
       - --providers.consulCatalog.exposedByDefault=true
       - --providers.consulcatalog.refreshInterval=10s
+      - --providers.consulcatalog.prefix=traefik
       - --entrypoints.web.address=:80
       - --serversTransport.maxIdleConnsPerHost=-1
       - --serversTransport.forwardingTimeouts.dialTimeout=1s
@@ -157,8 +158,8 @@ services:
     <<: *worker
     <<: *backend-server
     image: smartphonejava/api:latest
-    ports:
-      - 3001:3001
+    # ports:
+    #   - 3001:3001
     environment:
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
       - CONSUL_ADDRESS=consul
@@ -285,21 +286,28 @@ services:
  
   ### Service discovery ###
   
-  # consul-server:
-  #   <<: *consul
-  #   ports:
-  #     - "8511:8500"
-  #     - "8311:8301/tcp"
-  #     - "8312:8302/tcp"
-  #     - "8311:8301/udp"
-  #     - "8312:8302/udp"
-  #   command: agent -join consul -config-file=./config/server.json
-  #   deploy:
-  #     replicas: 3
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: [node.role == manager] 
+  consul-server:
+    <<: *logging
+    networks:
+      traefik:
+        aliases:
+          - consul.cluster
+    image: consul:1.6.2
+    ports:
+      - "8511:8500"
+      - "8311:8301/tcp"
+      - "8312:8302/tcp"
+      - "8311:8301/udp"
+      - "8312:8302/udp"
+    command: agent -join consul -config-file=./config/server.json
+    volumes:
+      - ./../../../../extra/consul/config:/config
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   consul: 
     <<: *logging
@@ -328,23 +336,32 @@ services:
       placement:
         constraints: [node.role == manager] 
   
-  # consul-agent:
-  #   <<: *consul
-  #   ports:
-  #     - "8501:8500"
-  #     - "8321:8301/tcp"
-  #     - "8322:8302/tcp"
-  #     - "8321:8301/udp"
-  #     - "8322:8302/udp"
-  #   command: agent -join consul-server -config-file=./config/client.json 
-  #   labels:
-  #     - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
-  #   deploy:
-  #     replicas: 3
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: [node.role == manager] 
+  consul-agent:
+    <<: *logging
+    networks:
+      traefik:
+        aliases:
+          - consul.cluster
+    image: consul:1.6.2
+    ports:
+      - "8501:8500"
+      - "8321:8301/tcp"
+      - "8322:8302/tcp"
+      - "8321:8301/udp"
+      - "8322:8302/udp"
+    command: agent -join consul-server -config-file=./config/client.json 
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    volumes:
+      - ./../../../../extra/consul/config:/config
+    labels:
+      - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager] 
 
   ### Frontend servers ###
 

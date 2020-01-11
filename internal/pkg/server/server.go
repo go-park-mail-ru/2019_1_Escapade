@@ -6,8 +6,10 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"strconv"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
@@ -114,13 +116,31 @@ func Port(port string) (string, int, error) {
 }
 
 func GetIP() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+	var ips string
+	ifaces, err := net.Interfaces()
 	if err != nil {
 		return err.Error()
 	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP.String()
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			return err.Error()
+		}
+		// handle err
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+					ip = v.IP
+			case *net.IPAddr:
+					ip = v.IP
+			}
+			ips = ip.String()
+			fmt.Println("ips:", ips)
+			if (strings.HasPrefix(ips, "10.")) { //todo в конфиг
+				return ips
+			}
+		}
+	}
+	return ips
 }

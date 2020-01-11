@@ -82,6 +82,7 @@ func (cs *ConsulService) Init(input *ConsulInput) ConsulServiceI {
 	cs.Checks = make([]*consulapi.AgentServiceCheck, 1)
 	cs.UpdateService()
 	cs.Address = GetIP()
+	fmt.Println("cs.address", cs.Address)
 	cs.Port = input.Port
 
 	var weight = CountWeight()
@@ -143,9 +144,9 @@ func (cs *ConsulService) connect() error {
 // in ConsulService, only in Consul)
 //
 func (cs *ConsulService) register(tags ...string) error {
-	if cs.enableTraefik {
-		tags = append(tags, "traefik.backend.weight="+utils.String(cs.weight()))
-	}
+	// if cs.enableTraefik {
+	// 	tags = append(tags, "traefik.backend.weight="+utils.String(cs.weight()))
+	// }
 
 	var (
 		try = 3

@@ -32,7 +32,7 @@ func main() {
 	server.Run(&server.Args{
 		Input:  input(),
 		Loader: loader(),
-		Consul: consul(),
+		Consul: new(ConsulService),
 		Service: service(),
 	})
 }
@@ -50,9 +50,13 @@ func loader() *server.Loader {
 	return loader
 }
 
-func consul() *server.ConsulService {
-	var cs = new(server.ConsulService)
-	cs.AddHTTPCheck("http","/health")
+type ConsulService struct{
+	server.ConsulService
+}
+
+func (cs *ConsulService) Init(input *server.ConsulInput) server.ConsulServiceI {
+	cs.ConsulService.Init(input)
+	cs.ConsulService.AddHTTPCheck("http","/health")
 	return cs
 }
 
