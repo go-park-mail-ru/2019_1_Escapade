@@ -6,16 +6,11 @@ x-context: &root
 services:
 
   # backend servers
-  test:
-    image: smartphonejava/test:latest
+  api:
+    image: smartphonejava/api:latest
     build:
-      dockerfile: cmd/services/test/Dockerfile
+      dockerfile: cmd/services/api/Dockerfile
       <<: *root
-  # api:
-  #   image: smartphonejava/api:latest
-  #   build:
-  #     dockerfile: cmd/services/api/Dockerfile
-  #     <<: *root
   # auth:
   #   image: smartphonejava/auth:latest
   #   build:

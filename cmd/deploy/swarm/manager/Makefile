@@ -46,7 +46,7 @@ restart-with-rebuild:	## - Stop, rebuild and start services
 rebuild-network:	## - Remove and add services network
 	@printf "\n\033[32m Remove and add services network \n\033[0m"
 	@docker network rm traefik
-	@docker network create -d overlay --attachable traefik
+	@docker network create -d overlay --subnet 10.10.8.0/24 --attachable traefik
 
 clean:	## - Clean dangling containers 
 	@printf "\n\033[32m Clean dangling containers \n\033[0m"

@@ -50,7 +50,8 @@ func (ci *ConsulInput) addTraefikTags(entrypoint string) {
 			"traefik.http.services.api.loadbalancer.server.port=3001",
 			"traefik.http.routers.api.service=api",
 			"traefik.http.routers.api.rule=PathPrefix(`/app_api`)",
-			"traefik.http.routers.api.entrypoints=web") 
+			"traefik.http.routers.api.entrypoints=web",
+			"traefik.docker.network=traefik") 
 		/*
 		ci.Tags = append(ci.Tags,
 			"traefik.frontend.rule=PathPrefixStrip:/"+ci.Name,
