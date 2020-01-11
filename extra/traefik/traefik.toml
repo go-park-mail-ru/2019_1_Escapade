@@ -1,63 +1,43 @@
-################################################################
-# Consul Catalog configuration backend
-################################################################
+[api]
+  insecure = true
+  dashboard = true
 
-# Enable Consul Catalog configuration backend.
-[consulCatalog]
-endpoint = "consul:8500"
-exposedByDefault = false
-prefix = "traefik"
+[providers]
+  [providers.docker]
+    exposedByDefault=false
+    endpoint="unix:///var/run/docker.sock"
+    swarmMode=true
+    swarmModeRefreshSeconds= "30s"
+  [providers.consulCatalog]
+    exposedByDefault=false
+    refreshInterval="10s"
+    prefix="traefik"
+    [providers.consulCatalog.endpoint]
+      address="http://consul:8500"
+       endpointWaitTime = "15s"
+
+[entrypoints]
+  [entrypoints.web]
+    address=":80"
+    [entrypoints.web.transport]
+      [entrypoints.web.transport.lifeCycle]
+        graceTimeOut=10
+      [entrypoints.web.transport.respondingtimeouts]
+        readTimeout=5
+        writeTimeout=5
+        idletimeout=5
+
+[serversTransport]
+  maxIdleConnsPerHost=-1
+  [forwardingTimeouts]
+    dialTimeout="1s"
+    responseHeaderTimeout="1s"
+    idleConnTimeout="1s"
 
 [metrics]
   [metrics.prometheus]
     buckets = [0.1,0.3,1.2,5.0]
+    addentrypointslabels = true
     addServicesLabels = true
+    entrypoint = "traefik"
 
-[forwardingTimeouts]
-    dialTimeout = "10s"
-
-[docker]
-  endpoint = "unix:///var/run/docker.sock"
-  watch = true
-  exposedbydefault = false
-
-[entryPoints]
-  [entryPoints.http]
-    address = ":80"
-    [entryPoints.http.transport]
-      [entryPoints.http.transport.lifeCycle]
-        requestAcceptGraceTimeout = 42
-        graceTimeOut = 42
-      [entryPoints.http.transport.respondingTimeouts]
-        readTimeout = 42
-        writeTimeout = 42
-        idleTimeout = 42
-
-[http]
-  [http.routers]
-    [http.routers.toDBr1]
-      rule = "PathPrefix(`/aka/`)"
-      service = "toDBs1"
-  [http.services]
-    [http.services.toDBs1.LoadBalancer]
-      [[http.services.toDBs1.LoadBalancer.servers]]
-        url = "http://api:3001"
-
-[accessLog]
-  format = "json"
-  logLevel = "debug"
-[log]
-  format = "json"
-  logLevel = "debug"
-
-# Default frontEnd Rule for Consul services.
-#
-# The format is a Go Template with:
-# - ".ServiceName", ".Domain" and ".Attributes" available
-# - "getTag(name, tags, defaultValue)", "hasTag(name, tags)" and "getAttribute(name, tags, defaultValue)" functions are available
-# - "getAttribute(...)" function uses prefixed tag names based on "prefix" value
-#
-# Optional
-# Default: "Host:{{.ServiceName}}.{{.Domain}}"
-#
-#frontEndRule = "Host:{{.ServiceName}}.{{Domain}}"

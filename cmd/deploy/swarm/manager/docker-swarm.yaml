@@ -20,13 +20,6 @@ x-consul: &consul
   volumes:
     - ~/2019_1_Escapade/extra/consul/config:/config
 
-# x-consul: &consul
-#   <<: *logging  
-#   image: consul:1.6.2
-#   <<: *network
-#   volumes:
-#     - ./../../../../extra/consul/config:/config
-
 x-backend: &backend-server
   <<: *logging
   <<: *network
@@ -69,25 +62,10 @@ services:
       - 8079:8080 # The Web UI (enabled by --api)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-      #- ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+      - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
     command: 
       - --api=true
-      - --api.insecure=true
-      - --api.dashboard=true
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.swarmMode=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=traefik-public
-      - --providers.consulCatalog.endpoint.address=http://consul:8500
-      - --providers.consulCatalog.exposedByDefault=true
-      - --providers.consulcatalog.refreshInterval=10s
-      - --providers.consulcatalog.prefix=traefik
-      - --entrypoints.web.address=:80
-      - --serversTransport.maxIdleConnsPerHost=-1
-      - --serversTransport.forwardingTimeouts.dialTimeout=1s
-      - --serversTransport.forwardingTimeouts.responseHeaderTimeout=1s
-      - --serversTransport.forwardingTimeouts.idleConnTimeout=1s
-
+ 
   helloworld:
     <<: *network
     image: tutum/hello-world:latest
@@ -285,29 +263,6 @@ services:
   #       constraints: [node.role == manager] 
  
   ### Service discovery ###
-  
-  consul-server:
-    <<: *logging
-    networks:
-      traefik:
-        aliases:
-          - consul.cluster
-    image: consul:1.6.2
-    ports:
-      - "8511:8500"
-      - "8311:8301/tcp"
-      - "8312:8302/tcp"
-      - "8311:8301/udp"
-      - "8312:8302/udp"
-    command: agent -join consul -config-file=./config/server.json
-    volumes:
-      - ./../../../../extra/consul/config:/config
-    deploy:
-      replicas: 3
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
 
   consul: 
     <<: *logging
@@ -326,38 +281,13 @@ services:
       - "8302:8302/udp"
       - "8610:53/udp"
       #-node bootstrap
-    command: agent -server -bootstrap -config-file=./config/bootstrap.json
+    command: 
+      - agent 
+      - -config-file=./config/bootstrap.json
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./../../../../extra/consul/config:/config
     deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager] 
-  
-  consul-agent:
-    <<: *logging
-    networks:
-      traefik:
-        aliases:
-          - consul.cluster
-    image: consul:1.6.2
-    ports:
-      - "8501:8500"
-      - "8321:8301/tcp"
-      - "8322:8302/tcp"
-      - "8321:8301/udp"
-      - "8322:8302/udp"
-    command: agent -join consul-server -config-file=./config/client.json 
-    environment:
-      - CONSUL_BIND_INTERFACE=eth0
-    volumes:
-      - ./../../../../extra/consul/config:/config
-    labels:
-      - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
-    deploy:
-      replicas: 3
       restart_policy:
         condition: on-failure
       placement:
@@ -458,6 +388,65 @@ networks:
    traefik:
      driver: overlay
      external: true
+
+
+# x-consul: &consul
+#   <<: *logging  
+#   image: consul:1.6.2
+#   <<: *network
+#   volumes:
+#     - ./../../../../extra/consul/config:/config
+
+# consul-server:
+#   <<: *logging
+#   networks:
+#     traefik:
+#       aliases:
+#         - consul.cluster
+#   image: consul:1.6.2
+#   ports:
+#     - "8511:8500"
+#     - "8311:8301/tcp"
+#     - "8312:8302/tcp"
+#     - "8311:8301/udp"
+#     - "8312:8302/udp"
+#   command: agent -join consul -config-file=./config/server.json
+#   volumes:
+#     - ./../../../../extra/consul/config:/config
+#   deploy:
+#     replicas: 3
+#     restart_policy:
+#       condition: on-failure
+#     placement:
+#       constraints: [node.role == manager] 
+
+# consul-agent:
+#   <<: *logging
+#   networks:
+#     traefik:
+#       aliases:
+#         - consul.cluster
+#   image: consul:1.6.2
+#   ports:
+#     - "8501:8500"
+#     - "8321:8301/tcp"
+#     - "8322:8302/tcp"
+#     - "8321:8301/udp"
+#     - "8322:8302/udp"
+#   command: agent -join consul-server -config-file=./config/client.json 
+#   environment:
+#     - CONSUL_BIND_INTERFACE=eth0
+#   volumes:
+#     - ./../../../../extra/consul/config:/config
+#   labels:
+#     - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
+#   deploy:
+#     replicas: 3
+#     restart_policy:
+#       condition: on-failure
+#     placement:
+#       constraints: [node.role == manager] 
+
 
 #sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
 #curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
