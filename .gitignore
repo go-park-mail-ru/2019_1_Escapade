@@ -22,3 +22,7 @@ secret*.json
 /vault/data/*
 /consul/data/*
 /vault/logs/*
+
+/grafana/sessions
+/grafana/sessions/*
+/grafana/grafana.db
