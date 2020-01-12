@@ -1,10 +1,16 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/load_balancer"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/service_discovery"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
 	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/service"
+
+	consulapi "github.com/hashicorp/consul/api"
 
 	// dont delete it for correct easyjson work
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
@@ -26,43 +32,61 @@ import (
 // @host virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0
 // @BasePath /api
 
-const ARGSLEN = 5
+var (
+	port                                     int
+	name                                     string
+	pathToConfig, pathToSecrets, pathToPhoto string
+	subnet, consulHost                       string
+	CheckHTTPTimeout, checkHTTPInterval string
+)
+
+func init() {
+	flag.IntVar(&port, "port", 80, "port number(default: 80)")
+	flag.StringVar(&name, "name", "api", "the service name(default: api)")
+	flag.StringVar(&pathToConfig, "config", "-", "path to service configuration file")
+	flag.StringVar(&pathToSecrets, "secrets", "-", "path to secrets")
+	flag.StringVar(&pathToPhoto, "photo", "-", "path to configuration file of photo service")
+	flag.StringVar(&subnet, "subnet", ".", "first 3 bytes of network(example: 10.10.8.)")
+	flag.StringVar(&consulHost, "consul", "consul:8500", "address of consul(default: consul:8500)")
+	flag.StringVar(&CheckHTTPTimeout, "http.check.timeout", "2s", "timeout of http check(default: 2s)")
+	flag.StringVar(&checkHTTPInterval, "http.check.interval", "10s", "interval of http check(default: 10s)")
+}
 
 func main() {
+	flag.Parse()
+	println("vars:", name, pathToConfig, pathToSecrets, pathToPhoto)
+
 	server.Run(&server.Args{
-		Input:  input(),
+		Name: name,
+		Port: port,
+
+		Subnet:        subnet,
+		DiscoveryAddr: consulHost,
+
 		Loader: loader(),
-		Consul: new(ConsulService),
-		Service: service(),
+		Discovery: &service_discovery.Consul{
+			ExtraChecks: func(c *service_discovery.Consul) []*consulapi.AgentServiceCheck {
+				return []*consulapi.AgentServiceCheck{
+					c.HTTPCheck("http", "/api/health", 
+						CheckHTTPTimeout, checkHTTPInterval),
+				}
+			},
+		},
+
+		Service: new(api.Service).Init(
+			new(database.Input).InitAsPSQL()),
+
+		LoadBalancer: new(load_balancer.Traefik).Init(
+			new(load_balancer.InputEnv).Init(name, port)),
 	})
 }
 
-func input() *server.Input {
-	return new(server.Input).InitAsCMD(
-		server.OSArg(4), ARGSLEN)
-}
-
 func loader() *server.Loader {
-	var loader = new(server.Loader).InitAsFS(server.OSArg(1))
+	var loader = new(server.Loader).InitAsFS(pathToConfig)
 	loader.CallExtra = func() error {
-		return loader.LoadPhoto(server.OSArg(2), server.OSArg(3))
+		return loader.LoadPhoto(pathToPhoto, pathToSecrets)
 	}
 	return loader
 }
 
-type ConsulService struct{
-	server.ConsulService
-}
-
-func (cs *ConsulService) Init(input *server.ConsulInput) server.ConsulServiceI {
-	cs.ConsulService.Init(input)
-	cs.ConsulService.AddHTTPCheck("http","/health")
-	return cs
-}
-
-func service() server.ServiceI {
-	return new(api.Service).Init(
-		new(database.Input).InitAsPSQL())
-}
-
-// 120 -> 62 -> 93 -> 71 -> 64
+// 120 -> 62 -> 93 -> 71 -> 64 -> 81 -> 92

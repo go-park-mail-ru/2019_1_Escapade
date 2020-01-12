@@ -115,7 +115,7 @@ func Port(port string) (string, int, error) {
 	return ":" + port, intPort, err
 }
 
-func GetIP() string {
+func GetIP(subnet *string) string {
 	var ips string
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -135,12 +135,17 @@ func GetIP() string {
 			case *net.IPAddr:
 					ip = v.IP
 			}
-			ips = ip.String()
-			fmt.Println("ips:", ips)
-			if (strings.HasPrefix(ips, "10.")) { //todo в конфиг
-				return ips
+			ipsting := ip.String()
+			fmt.Println("ips:", ipsting)
+			if (subnet==nil) {
+				ips+=" " + ipsting
+			} else if (strings.HasPrefix(ipsting, *subnet)) {
+				return ipsting
 			}
 		}
 	}
-	return ips
+	if (subnet==nil) {
+		return ips
+	}
+	return "error: no networks. Change subnet!"
 }

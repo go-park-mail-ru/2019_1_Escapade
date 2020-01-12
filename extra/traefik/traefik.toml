@@ -14,7 +14,7 @@
     prefix="traefik"
     [providers.consulCatalog.endpoint]
       address="http://consul:8500"
-       endpointWaitTime = "15s"
+      endpointWaitTime = "15s"
 
 [entrypoints]
   [entrypoints.web]

@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+// ! All structs in this file are Deprecated
+
 type InputI interface {
 	//WithExtraI
 

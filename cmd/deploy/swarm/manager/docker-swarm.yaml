@@ -23,17 +23,16 @@ x-consul: &consul
 x-backend: &backend-server
   <<: *logging
   <<: *network
-  environment:
-    - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-    - CONSUL_ADDRESS=consul-agent
-    - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
   volumes:
     - ./../../../..:/2019_1_Escapade
   labels:
-    - "traefik.enable=true"
-    - "traefik.port=80"
-    - "traefik.docker.network=app_backend_overlay"
     - "org.label-schema.group=monitoring"
+  
+x-backend-env: &backend-env
+  - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
+  - CONSUL_ADDRESS=consul:8500
+  - network=traefik
+  - entrypoint=web
 
 x-manager: &manager
   deploy:
@@ -59,22 +58,12 @@ services:
     ports:
       - 80:80     # The HTTP port
       - 443:443     # The HTTPS port
-      - 8079:8080 # The Web UI (enabled by --api)
+      - 8080:8080 # The Web UI
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
     command: 
       - --api=true
- 
-  helloworld:
-    <<: *network
-    image: tutum/hello-world:latest
-    deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.helloworld.rule=PathPrefix(`/local`)
-        - traefik.http.routers.helloworld.entrypoints=web
-        - traefik.http.services.helloworld.loadbalancer.server.port=80
 
   whoami:
     <<: *network
@@ -136,26 +125,23 @@ services:
     <<: *worker
     <<: *backend-server
     image: smartphonejava/api:latest
-    # ports:
-    #   - 3001:3001
+    ports:
+      - 3001:3001
     environment:
+      - AUTH_ADDRESS=http://auth:3003 
       - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-      - CONSUL_ADDRESS=consul
-      - AUTH_ADDRESS=http://auth:3003 #http://auth.consul.localhost:8081 
+      - network=traefik
+      - entrypoint=web
     command: 
-      - 2019_1_Escapade/cmd/services/api/api.json
-      - 2019_1_Escapade/internal/photo/photo.json
-      - 2019_1_Escapade/secret.json 
-      - "3001"
+      - --config=2019_1_Escapade/cmd/services/api/api.json
+      - --photo=2019_1_Escapade/internal/photo/photo.json
+      - --secrets=2019_1_Escapade/secret.json 
+      - --port=3001
+      - --name=api
+      - --subnet=10.10.8.
+      - --consul=consul:8500
     deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.http.services.api.loadbalancer.server.port=3001
-        - traefik.http.routers.api.service=api
-        - traefik.http.routers.api.rule=PathPrefix(`/lock`)
-        - traefik.http.routers.api.entrypoints=web
-        - traefik.docker.network=traefik  
-      replicas: 1
+      replicas: 4
       update_config:
         parallelism: 3
       restart_policy:
@@ -287,6 +273,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./../../../../extra/consul/config:/config
+    labels:
+      - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
     deploy:
       restart_policy:
         condition: on-failure

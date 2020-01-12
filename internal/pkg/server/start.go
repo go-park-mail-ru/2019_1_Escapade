@@ -3,12 +3,13 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"google.golang.org/grpc"
 
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
-
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/load_balancer"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/service_discovery"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
-	"google.golang.org/grpc"
 )
 
 // ServicesI interface of service
@@ -30,10 +31,19 @@ type ServiceI interface {
 }
 
 type Args struct {
-	Input   InputI
+	Name string
+	Port int
+
+	Subnet string
+	DiscoveryAddr string
+
+	Stages []func(*Args) int
+	
 	Loader  ConfigutaionLoaderI
-	Consul  ConsulServiceI
+	Discovery  service_discovery.Interface
 	Service ServiceI
+
+	LoadBalancer load_balancer.Interface
 
 	GRPC *grpc.Server
 
@@ -42,8 +52,8 @@ type Args struct {
 
 // Validate check args are correct
 func (args *Args) Validate() bool {
-	return re.NoNil(args, args.Input, args.Loader,
-		args.Consul, args.Service) == nil
+	return re.NoNil(args, args.Loader,
+		args.Discovery, args.Service) == nil
 }
 
 const (
@@ -78,8 +88,14 @@ func Run(args *Args) {
 		panic(synced.Exit{Code: ARGSERROR})
 	}
 
-	var errorCode = runStages(args, input, load, consul,
+	stages := []func(*Args) int{}
+	if args.Stages != nil {
+		stages = append(stages, args.Stages...)
+	}
+	stages = append(stages, load, orchestration,
 		runDependencies, runServer, stopDependencies)
+
+	var errorCode = runStages(args, stages...)
 
 	fmt.Println("errorCode:", errorCode)
 	if errorCode != NOERROR {
@@ -100,28 +116,6 @@ func runStages(args *Args, stages ...func(*Args) int) int {
 	return code
 }
 
-// loading input parameters
-func input(args *Args) int {
-	if err := args.Input.CheckBefore(); err != nil {
-		utils.Debug(false, "ERROR with check before init:", err.Error())
-		return INPUTERROR
-	}
-
-	args.Input.Init()
-
-	if err := args.Input.CheckAfter(); err != nil {
-		utils.Debug(false, "ERROR with  check after init:", err.Error())
-		return INPUTERROR
-	}
-
-	// if err := args.Input.Extra(); err != nil {
-	// 	utils.Debug(false, "ERROR with input extra action:", err.Error())
-	// 	return EXTRARROR
-	// }
-
-	return NOERROR
-}
-
 //  loading configuration files
 func load(args *Args) int {
 	if err := args.Loader.Load(); err != nil {
@@ -138,16 +132,30 @@ func load(args *Args) int {
 }
 
 // registration in the discovery service
-func consul(args *Args) int {
-	input := new(ConsulInput).Init(args.Input, args.Loader)
-	fmt.Println("before init")
-	err := args.Consul.Init(input).Run()
-	fmt.Println("after init")
+func orchestration(args *Args) int {
+	var (
+			conf = args.Loader.Get().Server
+			name = conf.Name
+			port = args.Port
+			host = GetIP(&args.Subnet)
+			ttl = conf.Timeouts.TTL.Duration
+			maxconn = conf.MaxConn
+			addr = args.DiscoveryAddr
+			check = func() (bool, error) { return false, nil }
+	)
+	input := new(service_discovery.Input).Init(name, port, host, 
+		ttl, maxconn, addr, check)
+
+	if (args.LoadBalancer != nil) {
+		input.AddLoadBalancer(args.LoadBalancer)
+	}
+
+	utils.Debug(false, "args.Discovery.Init!")
+	err := args.Discovery.Init(input).Run()
 	if err != nil {
-		utils.Debug(false, "ERROR with consul:", err.Error())
 		return CONSULERROR
 	}
-	fmt.Println("no error init")
+
 	return NOERROR
 }
 
@@ -164,12 +172,12 @@ func runDependencies(args *Args) int {
 func runServer(args *Args) int {
 	var (
 		c    = args.Loader.Get().Server
-		port = args.Input.GetData().MainPort
+		port = PortString(args.Port)
 		err  error
 	)
 
 	utils.Debug(false, "Service", c.Name, "with id:",
-		args.Consul.ServiceID(), "ready to go on", GetIP()+port)
+		args.Discovery.Data().ID, "ready to go on", GetIP(&args.Subnet)+port)
 
 	if args.GRPC != nil {
 		err = LaunchGRPC(args.GRPC, c, port, func() { utils.Debug(false, "✗✗✗ Exit ✗✗✗") })
@@ -191,7 +199,7 @@ func stopDependencies(args *Args) int {
 		utils.Debug(false, "ERROR with stopping server:", err.Error())
 		return RUNERROR
 	}
-	args.Consul.Close()
+	args.Discovery.Close()
 	return NOERROR
 }
 
@@ -207,4 +215,8 @@ func printFAIL(i int) {
 	for a := 0; a < i+1; a++ {
 		str += "✕"
 	}
+}
+
+func PortString(port int) string {
+	return  ":" + utils.String(port)
 }

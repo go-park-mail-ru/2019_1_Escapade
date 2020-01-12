@@ -94,14 +94,14 @@ func (h *Handlers) Router() *mux.Router {
 	api.HandleFunc("/users/pages/page", h.users.HandleUsersPages).Methods("GET", "OPTIONS")
 	api.HandleFunc("/users/pages/amount", h.users.HandleUsersPageAmount).Methods("GET")
 
-	r.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	api.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
-		rw.Write([]byte("all ok " + server.GetIP()))
+		rw.Write([]byte("all ok " + server.GetIP(nil)))
 	})
 
-	r.PathPrefix("/hard").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	api.PathPrefix("/hard").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		time.Sleep(7 * time.Second)
-		rw.Write([]byte("hard done " + server.GetIP()))
+		rw.Write([]byte("hard done " + server.GetIP(nil)))
 	})
 
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

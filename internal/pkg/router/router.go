@@ -20,7 +20,7 @@ func Use(r *mux.Router, mwf ...mux.MiddlewareFunc) {
 		fmt.Println("StatusMethodNotAllowed")
 	})
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte("Error 404 - StatusNotFound"))
+		w.Write([]byte("Error 404 - StatusNotFound "+ req.URL.Path))
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Println("NotFoundHandler")
 	})
