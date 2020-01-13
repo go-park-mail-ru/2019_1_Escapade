@@ -1,5 +1,7 @@
 package main
 
+
+
 import (
 	"flag"
 
@@ -54,7 +56,6 @@ func init() {
 
 func main() {
 	flag.Parse()
-	println("vars:", name, pathToConfig, pathToSecrets, pathToPhoto)
 
 	server.Run(&server.Args{
 		Name: name,

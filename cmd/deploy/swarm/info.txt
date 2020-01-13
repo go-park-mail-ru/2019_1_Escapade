@@ -14,6 +14,7 @@
 # (grep addr)
 addr1 = 209.97.156.145
 addr2 = 64.225.23.106
+addr3 = 167.172.129.75
 
 # Путь до ssh ключа(по умолчанию ~/.ssh/) 
 # (grep path)
@@ -23,3 +24,4 @@ path = .ssh/id_rsa
 # (grep name)
 name1 = api1
 name2 = api2
+name3 = api3

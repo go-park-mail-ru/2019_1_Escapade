@@ -1,5 +1,7 @@
 .PHONY: help init run stop status build restart
-.PHONY: restart-with-rebuild rebuild-network clear logs
+.PHONY: restart-with-rebuild rebuild-network clear
+,PHONY: logs drain active
+
 VERSION=`git rev-parse HEAD`
 BUILD=`date +%FT%T%z`
 LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
@@ -52,7 +54,10 @@ clean:	## - Clean dangling containers
 	@printf "\n\033[32m Clean dangling containers \n\033[0m"
 	@./clear.sh
 
-test:	## - test
-	@printf "\n\033[32m test m \n\033[0m"
-	@docker stack rm test
-	@docker stack deploy -c test.yaml test
+active:	## - Mark node as active. Call me as 'make active node=<name>'
+	@./node_active.sh ${node}
+	@docker node ls
+
+drain:	## - Mark node as drain. Call me as 'make drain node=<name>'
+	@./node_drain.sh ${node}
+	@docker node ls

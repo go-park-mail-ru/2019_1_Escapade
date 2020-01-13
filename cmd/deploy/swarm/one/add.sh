@@ -6,13 +6,19 @@ echo "  -------------------------------------"
 echo ""
 
 # Input:
-# $1 - the IP of the node
-# $2 - path to ssh key
-# $3 - new name of machine
+ip=$1 # the IP of the node
+path=$2 # path to ssh key
+name=$3 # new name of machine
 
-yes | docker-machine rm $3
+if [ -z "${name}" ]; then
+    chmod +x ./../print_error.sh && ./../print_error.sh \
+        "$0 <machine ip> <path to id_rsa> <new name of machine>"
+    exit 1
+fi
+
+yes | docker-machine rm $name
 docker-machine create --driver=generic \
-    --generic-ip-address=$1 \
+    --generic-ip-address=$ip \
     --generic-ssh-user=root \
-    --generic-ssh-key=$HOME/$2 \
-        $3
+    --generic-ssh-key=$HOME/$path \
+        $name

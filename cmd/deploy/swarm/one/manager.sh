@@ -5,8 +5,15 @@ echo "  ---Make $1 manager---"
 echo "  -----------------------------"
 echo ""
 
-#$1 - the IP of this node
-ssh root@$1 "
+ip=$1   # the IP of this node
+
+if [ -z "${ip}" ]; then
+    chmod +x ./../print_error.sh && ./../print_error.sh \
+        "$0 <ip of the node>"
+    exit 1
+fi
+
+ssh root@$ip "
 docker swarm leave --force
 docker swarm init --advertise-addr $1:2377
 docker network rm backend-overlay

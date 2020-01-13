@@ -5,6 +5,7 @@ echo "  -----$1 Firewall set-----"
 echo "  -----------------------------------"
 echo ""
 trap 'echo " stop" ' INT TERM
+#chmod +x github_clone.sh && ./github_clone.sh 1
 
 ip=$1   # the IP of this node
 
@@ -15,14 +16,6 @@ if [ -z "${ip}" ]; then
 fi
 
 ssh root@$ip "
-ufw allow 22/tcp
-ufw allow 2376/tcp
-ufw allow 2377/tcp
-ufw allow 7946/tcp 
-ufw allow 7946/udp 
-ufw allow 4789/udp 
-ufw allow 8786/tcp
-ufw reload
-yes | ufw enable
-systemctl restart docker
-ufw status verbose"
+git clone https://github.com/go-park-mail-ru/2019_1_Escapade.git
+cd 2019_1_Escapade
+git checkout develop"

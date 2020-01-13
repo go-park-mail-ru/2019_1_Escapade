@@ -15,7 +15,7 @@ func Init() {
 		subsystem = "api"
 	)
 	Hits = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name:      "api",
+		Name:      "requests",
 		Subsystem: subsystem,
 	}, []string{"status", "path", "method"})
 

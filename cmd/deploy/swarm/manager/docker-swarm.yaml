@@ -56,21 +56,6 @@ services:
     deploy: 
       <<: *manager
     
-
-  whoami:
-    <<: *network
-    image: containous/whoami
-    command:
-      - --port=8082
-    deploy:
-      replicas: 2
-      labels:
-        - traefik.enable=true
-        - traefik.http.services.whoami.loadbalancer.server.port=8082
-        - traefik.http.routers.whoami.rule=PathPrefix(`/moscow`)
-        - traefik.http.routers.whoami.service=whoami
-        - traefik.http.routers.whoami.entrypoints=web
-
 #   ### Database servers ###
 
   pg:
@@ -231,7 +216,16 @@ services:
       labels:
         - traefik.enable=true
         - traefik.http.services.prometheus.loadbalancer.server.port=9090
-        - traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`)
+        - traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`. `/graph`)
+       
+        - traefik.http.middlewares.pr-chain.chain.middlewares=pr-strip,pr-add
+        - traefik.http.middlewares.pr-strip.stripprefix.prefixes=/prometheus
+        - traefik.http.middlewares.pr-add.addprefix.prefix=/prometheus
+
+        # - "traefik.http.middlewares.example.stripprefix.prefixes=/prometheus"
+        # - "traefik.http.middlewares.example.stripprefix.forceslash=false"
+        # - traefik.http.routers.prometheus.middlewares=example
+        - traefik.http.routers.prometheus.middlewares=pr-strip
         - traefik.http.routers.prometheus.service=prometheus
         - traefik.http.routers.prometheus.entrypoints=web
         - traefik.docker.network=traefik
@@ -361,56 +355,24 @@ services:
 
 #   ### Frontend servers ###
 
-#   # front:
-#   #   <<: *logging
-#   #   image: smartphonejava/front:latest
-#   #   networks:
-#   #     - backend-overlay
-#   #   ports:
-#   #     - "8088:8080"   
-#   #   command: start
-#   #   labels:
-#   #     - traefik.enable=true
-#   #     - "traefik.frontend.rule=PathPrefixStrip: /somepath"
-#   #     - traefik.port=8088
-#   #     - traefil.docker.network=backend-overlay
-#   #   deploy:
-#   #     restart_policy:
-#   #       condition: on-failure
-#   #     placement:
-#   #       constraints: [node.role != manager] 
-
-#   ### unused servers ###
-
-#   # alertmanager:
-#   #   <<: *logging
-#   #   image: prom/alertmanager:v0.19.0
-#   #   networks:
-#   #     - backend-overlay
-#   #   volumes:
-#   #     - ./alertmanager/:/etc/alertmanager/
-#   #   command:
-#   #     - '--config.file=/etc/alertmanager/config.yml'
-#   #     - '--storage.path=/alertmanager'
-#   #   ports:
-#   #     - 9093:9093
-#   #   deploy:
-#   #     placement:
-#   #       constraints: [node.role == manager] 
-
-#   # visualizer:
-#   #   <<: *logging
-#   #   image: dockersamples/visualizer:stable
-#   #   networks:
-#   #     - backend-overlay
-#   #   ports:
-#   #     - "8084:8080"
-#   #   stop_grace_period: 1m30s
-#   #   volumes:
-#   #     - "/var/run/docker.sock:/var/run/docker.sock"
-#   #   deploy:
-#   #     placement:
-#   #       constraints: [node.role == manager] 
+  # front:
+  #   <<: *logging
+  #   image: smartphonejava/front:latest
+  #   networks:
+  #     - backend-overlay
+  #   ports:
+  #     - "8088:8080"   
+  #   command: start
+  #   labels:
+  #     - traefik.enable=true
+  #     - "traefik.frontend.rule=PathPrefixStrip: /somepath"
+  #     - traefik.port=8088
+  #     - traefil.docker.network=backend-overlay
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role != manager] 
 
 # # volumes
 
@@ -507,12 +469,3 @@ configs:
 #       condition: on-failure
 #     placement:
 #       constraints: [node.role == manager] 
-
-
-#sudo docker inspect --format '{{(index .NetworkSettings.Networks "2019_1_escapade_default").IPAddress }}' 2019_1_escapade_api_1
-#curl -H Host:api.2019-1-escapade.docker.localhost http://127.0.0.1/api/user
-#curl -H Host:api.consul.localhost http://127.0.0.1:8081
-# ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
-# sudo docker-compose up --scale api=5 api
-
-# http://api.consul.localhost:8081/health

@@ -46,8 +46,6 @@ func (h *Handlers) OpenDB(c *config.Configuration, input *database.Input) error 
 		return err
 	}
 
-	mi.Init()
-
 	h.user = new(UserHandler).Init(c, input)
 	h.session = new(SessionHandler).Init(c, input)
 	h.game = new(GameHandler).Init(c, input)
@@ -70,6 +68,9 @@ func (h *Handlers) Router() *mux.Router {
 		httpSwagger.URL("swagger/doc.json"), //The url pointing to API definition"
 	))
 
+	mi.Init()
+
+	http.Handle("/metrics", promhttp.Handler())
 	r.PathPrefix("/metrics").Handler(promhttp.Handler())
 
 	var api = r.PathPrefix("/api").Subrouter()
@@ -95,9 +96,12 @@ func (h *Handlers) Router() *mux.Router {
 	api.HandleFunc("/users/pages/amount", h.users.HandleUsersPageAmount).Methods("GET")
 
 	api.PathPrefix("/health").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-
 		rw.Write([]byte("all ok " + server.GetIP(nil)))
 	})
+
+	api.PathPrefix("/post").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte("post ok " + server.GetIP(nil)))
+	}).Methods("POST")
 
 	api.PathPrefix("/hard").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		time.Sleep(7 * time.Second)
@@ -111,7 +115,8 @@ func (h *Handlers) Router() *mux.Router {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	router.Use(r, mi.CORS(h.c.Cors))
+	router.Use(r, mi.CORS(h.c.Cors), mi.Metrics)
+	router.Use(api, mi.Metrics)
 	apiWithAuth.Use(mi.Auth(h.c.Cookie, h.c.Auth, h.c.AuthClient))
 	return r
 }

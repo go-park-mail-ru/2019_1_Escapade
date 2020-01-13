@@ -3,18 +3,16 @@ package middleware
 import (
 	"context"
 
+	"net/http"
+
+	"github.com/gorilla/mux"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
-
-	"strconv"
-
-	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 type respWriterStatusCode struct {
@@ -102,6 +100,7 @@ func Metrics(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		goodRW := &respWriterStatusCode{rw, 200}
 		next.ServeHTTP(goodRW, r)
-		Hits.WithLabelValues(strconv.Itoa(goodRW.status), r.URL.Path, r.Method).Inc()
+		utils.Debug(false, "metrics get "+utils.String(goodRW.status))
+		Hits.WithLabelValues(utils.String(goodRW.status), r.URL.Path, r.Method).Inc()
 	})
 }
