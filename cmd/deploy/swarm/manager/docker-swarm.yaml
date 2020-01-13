@@ -27,31 +27,22 @@ x-backend: &backend-server
     - ./../../../..:/2019_1_Escapade
   labels:
     - "org.label-schema.group=monitoring"
-  
-x-backend-env: &backend-env
-  - DB_CONN_STRING=postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable
-  - CONSUL_ADDRESS=consul:8500
-  - network=traefik
-  - entrypoint=web
 
 x-manager: &manager
-  deploy:
-    restart_policy:
-      condition: on-failure
-    placement:
-      constraints: [node.role == manager] 
+  restart_policy:
+    condition: on-failure
+  placement:
+    constraints: [node.role == manager] 
 
 x-worker: &worker
-  deploy:
-    placement:
-      constraints: [node.role == worker] 
+  placement:
+    constraints: [node.role == worker] 
 
 services:
 
   ### Load balancer ###
 
   traefik:
-    <<: *manager
     <<: *logging
     <<: *network
     image: traefik:v2.1
@@ -62,8 +53,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
       - ./../../../../extra/traefik/traefik.toml:/traefik.toml # Traefik configuration file
-    command: 
-      - --api=true
+    deploy: 
+      <<: *manager
+    
 
   whoami:
     <<: *network
@@ -79,50 +71,57 @@ services:
         - traefik.http.routers.whoami.service=whoami
         - traefik.http.routers.whoami.entrypoints=web
 
-  ### Database servers ###
+#   ### Database servers ###
 
   pg:
-    <<: *manager
     <<: *logging
     <<: *network
-    image: smartphonejava/pg:latest
-    ports:
-      - "5429:5432"
+    image: postgres:11.1
+    secrets:
+      - source: db_create_user
+        target: "/docker-entrypoint-initdb.d/1.sql"
+        mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
+        uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
+      - source: db_create_tables
+        target: "/docker-entrypoint-initdb.d/2.sql"
+        mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
+        uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
+    deploy: 
+      <<: *manager
 
-  # pg-auth:
-  #   <<: *logging
-  #   image: postgres:11.2-alpine
-  #   networks:
-  #     - backend-overlay
-  #   environment:
-  #     POSTGRES_USER: 'auth' 
-  #     POSTGRES_PASSWORD: 'auth'
-  #     POSTGRES_DB: 'authbase'
-  #   ports:
-  #     - "5431:5432" 
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: [node.role == manager]    
+#   # pg-auth:
+#   #   <<: *logging
+#   #   image: postgres:11.2-alpine
+#   #   networks:
+#   #     - backend-overlay
+#   #   environment:
+#   #     POSTGRES_USER: 'auth' 
+#   #     POSTGRES_PASSWORD: 'auth'
+#   #     POSTGRES_DB: 'authbase'
+#   #   ports:
+#   #     - "5431:5432" 
+#   #   deploy:
+#   #     restart_policy:
+#   #       condition: on-failure
+#   #     placement:
+#   #       constraints: [node.role == manager]    
 
-  # pg-ery:
-  #   <<: *logging
-  #   image: smartphonejava/pg-ery:latest
-  #   ports:
-  #     - "5430:5432"   
-  #   networks:
-  #     - backend-overlay
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: [node.role == manager] 
+#   # pg-ery:
+#   #   <<: *logging
+#   #   image: smartphonejava/pg-ery:latest
+#   #   ports:
+#   #     - "5430:5432"   
+#   #   networks:
+#   #     - backend-overlay
+#   #   deploy:
+#   #     restart_policy:
+#   #       condition: on-failure
+#   #     placement:
+#   #       constraints: [node.role == manager] 
 
-  ### Backend servers ###
+#   ### Backend servers ###
 
   api:
-    <<: *worker
     <<: *backend-server
     image: smartphonejava/api:latest
     ports:
@@ -141,6 +140,7 @@ services:
       - --subnet=10.10.8.
       - --consul=consul:8500
     deploy:
+      <<: *worker
       replicas: 4
       update_config:
         parallelism: 3
@@ -205,21 +205,29 @@ services:
   #     placement:
   #       constraints: [node.role == manager] 
 
-  ### Statistics collectors ###
+#   ### Monitoring services ###
 
   prometheus:
-    <<: *manager
     <<: *logging
     <<: *network
-    image: prom/prometheus:latest
-    volumes:
-      - ./../../../../extra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    image: prom/prometheus:v2.5.0
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      # - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=${PROMETHEUS_RETENTION:-24h}'
+    volumes:
+      - prometheus:/prometheus
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+      - source: node_rules
+        target: /etc/prometheus/swarm_node.rules.yml
+      - source: task_rules
+        target: /etc/prometheus/swarm_task.rules.yml
     ports:
       - "9090:9090"
     deploy:
+      <<: *manager
       labels:
         - traefik.enable=true
         - traefik.http.services.prometheus.loadbalancer.server.port=9090
@@ -227,30 +235,79 @@ services:
         - traefik.http.routers.prometheus.service=prometheus
         - traefik.http.routers.prometheus.entrypoints=web
         - traefik.docker.network=traefik
+      resources:
+        limits:
+          memory: 2048M
+        reservations:
+          memory: 128M
 
-  nodeexporter:
+  dockerd-exporter:
     <<: *logging
     <<: *network
-    image: prom/node-exporter:v0.18.1
+    image: stefanprodan/caddy
+    environment:
+      - DOCKER_GWBRIDGE_IP=172.19.0.1
+    configs:
+      - source: dockerd_config
+        target: /etc/caddy/Caddyfile
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  cadvisor:
+    <<: *logging
+    <<: *network
+    image: google/cadvisor
+    command: 
+      - -logtostderr 
+      - -docker_only
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  node-exporter:
+    <<: *logging
+    <<: *network
+    image: stefanprodan/swarmprom-node-exporter:v0.16.0
+    environment:
+      - NODE_ID={{.Node.ID}}
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      - /etc/hostname:/etc/nodename
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
+      - '--path.procfs=/host/proc'
+      - '--collector.textfile.directory=/etc/node-exporter/'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - 9100:9100
+      - '--no-collector.ipvs'
     deploy:
       mode: global
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
 
   grafana:
-    <<: *manager
     <<: *logging
     <<: *network
-    image: grafana/grafana:5.0.0
+    image: stefanprodan/swarmprom-grafana:5.3.4
     environment:
      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -258,8 +315,9 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - ./../../../../extra/grafana:/var/lib/grafana
+      - grafana:/var/lib/grafana
     deploy:
+      <<: *manager
       labels:
         - traefik.enable=true
         - traefik.http.services.grafana.loadbalancer.server.port=3000
@@ -267,12 +325,16 @@ services:
         - traefik.http.routers.grafana.service=grafana
         - traefik.http.routers.grafana.entrypoints=web
         - traefik.docker.network=traefik
- 
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
   ### Service discovery ###
 
   consul: 
     <<: *logging
-    <<: *manager
     networks:
       traefik:
         aliases:
@@ -294,82 +356,99 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./../../../../extra/consul/config:/config
+    deploy:
+      <<: *manager
 
-  ### Frontend servers ###
+#   ### Frontend servers ###
 
-  # front:
-  #   <<: *logging
-  #   image: smartphonejava/front:latest
-  #   networks:
-  #     - backend-overlay
-  #   ports:
-  #     - "8088:8080"   
-  #   command: start
-  #   labels:
-  #     - traefik.enable=true
-  #     - "traefik.frontend.rule=PathPrefixStrip: /somepath"
-  #     - traefik.port=8088
-  #     - traefil.docker.network=backend-overlay
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: [node.role != manager] 
+#   # front:
+#   #   <<: *logging
+#   #   image: smartphonejava/front:latest
+#   #   networks:
+#   #     - backend-overlay
+#   #   ports:
+#   #     - "8088:8080"   
+#   #   command: start
+#   #   labels:
+#   #     - traefik.enable=true
+#   #     - "traefik.frontend.rule=PathPrefixStrip: /somepath"
+#   #     - traefik.port=8088
+#   #     - traefil.docker.network=backend-overlay
+#   #   deploy:
+#   #     restart_policy:
+#   #       condition: on-failure
+#   #     placement:
+#   #       constraints: [node.role != manager] 
 
-  ### unused servers ###
+#   ### unused servers ###
 
-  # alertmanager:
-  #   <<: *logging
-  #   image: prom/alertmanager:v0.19.0
-  #   networks:
-  #     - backend-overlay
-  #   volumes:
-  #     - ./alertmanager/:/etc/alertmanager/
-  #   command:
-  #     - '--config.file=/etc/alertmanager/config.yml'
-  #     - '--storage.path=/alertmanager'
-  #   ports:
-  #     - 9093:9093
-  #   deploy:
-  #     placement:
-  #       constraints: [node.role == manager] 
+#   # alertmanager:
+#   #   <<: *logging
+#   #   image: prom/alertmanager:v0.19.0
+#   #   networks:
+#   #     - backend-overlay
+#   #   volumes:
+#   #     - ./alertmanager/:/etc/alertmanager/
+#   #   command:
+#   #     - '--config.file=/etc/alertmanager/config.yml'
+#   #     - '--storage.path=/alertmanager'
+#   #   ports:
+#   #     - 9093:9093
+#   #   deploy:
+#   #     placement:
+#   #       constraints: [node.role == manager] 
 
-  # cadvisor:
-  #   <<: *logging
-  #   image: google/cadvisor:v0.33.0
-  #   networks:
-  #     - backend-overlay
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:rw
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
-  #   ports:
-  #     - 8085:8080
-  #   deploy:
-  #     mode: global
-  #     placement:
-  #       constraints: [node.role == manager]
+#   # visualizer:
+#   #   <<: *logging
+#   #   image: dockersamples/visualizer:stable
+#   #   networks:
+#   #     - backend-overlay
+#   #   ports:
+#   #     - "8084:8080"
+#   #   stop_grace_period: 1m30s
+#   #   volumes:
+#   #     - "/var/run/docker.sock:/var/run/docker.sock"
+#   #   deploy:
+#   #     placement:
+#   #       constraints: [node.role == manager] 
 
-  # visualizer:
-  #   <<: *logging
-  #   image: dockersamples/visualizer:stable
-  #   networks:
-  #     - backend-overlay
-  #   ports:
-  #     - "8084:8080"
-  #   stop_grace_period: 1m30s
-  #   volumes:
-  #     - "/var/run/docker.sock:/var/run/docker.sock"
-  #   deploy:
-  #     placement:
-  #       constraints: [node.role == manager] 
+# # volumes
+
+volumes:
+  prometheus: {}
+  grafana: {}
+  alertmanager: {}
+
+# networks
 
 networks:
-   traefik:
-     driver: overlay
-     external: true
+  traefik:
+    driver: overlay
+    external: true
+  net:
+    driver: overlay
+    attachable: true
+
+# secrets
+
+secrets:
+  db_create_user:
+    file: ./../../../../extra/postgresql/main/init/1_secret.sql
+  db_create_tables:
+    file: ./../../../../extra/postgresql/main/init/2_tables.sql
+
+# configs
+
+configs:
+  dockerd_config:
+    file: ./../../../../extra/dockerd-exporter/Caddyfile
+  prometheus_config:
+    file: ./../../../../extra/prometheus/conf/prometheus.yml
+  node_rules:
+    file: ./../../../../extra/prometheus/rules/swarm_node.rules.yml
+  task_rules:
+    file: ./../../../../extra/prometheus/rules/swarm_task.rules.yml
+
 
 
 # x-consul: &consul
@@ -436,4 +515,4 @@ networks:
 # ab -n 10 -H 'Host:api.consul.localhost' http://localhost:8081/
 # sudo docker-compose up --scale api=5 api
 
-#http://api.consul.localhost:8081/health
+# http://api.consul.localhost:8081/health

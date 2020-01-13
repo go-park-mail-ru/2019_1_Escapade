@@ -27,18 +27,6 @@ services:
   #     dockerfile: cmd/services/game/Dockerfile
   #     <<: *root
 
-  # # database servers
-  # pg:
-  #   image: smartphonejava/pg:latest
-  #   build:
-  #     dockerfile: Dockerfile
-  #     context: ./../../../../extra/postgresql/main/
-  # pg-ery:
-  #   image: smartphonejava/pg-ery:latest    
-  #   build:
-  #     dockerfile: Dockerfile
-  #     context: ./../../../../extra/postgresql/ery/
-
   # frontend servers
   # front:
   #   image: smartphonejava/front:latest

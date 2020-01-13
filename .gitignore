@@ -17,12 +17,13 @@ dive_*
 
 /vendor
 /bin
-secret*.json
 .vscode
 /vault/data/*
 /consul/data/*
 /vault/logs/*
 
-/grafana/sessions
-/grafana/sessions/*
-/grafana/grafana.db
+**/grafana/sessions
+*/grafana/sessions/*
+*grafana/grafana.db
+
+*secret*
