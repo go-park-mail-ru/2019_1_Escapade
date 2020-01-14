@@ -3,9 +3,7 @@ package middleware
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	// Hits hits
 	Hits *prometheus.CounterVec
-	// Users - registered users
 	Users *prometheus.GaugeVec
 )
 
@@ -17,7 +15,12 @@ func Init() {
 	Hits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "requests",
 		Subsystem: subsystem,
-	}, []string{"status", "path", "method"})
+	}, []string{"ip", "status", "path", "method"})
 
-	prometheus.MustRegister(Hits)
+	Users = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name:      "users",
+		Subsystem: subsystem,
+	}, []string{"ip", "path", "method"})
+
+	prometheus.MustRegister(Hits, Users)
 }

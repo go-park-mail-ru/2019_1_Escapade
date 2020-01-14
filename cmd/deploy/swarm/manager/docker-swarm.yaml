@@ -74,37 +74,37 @@ services:
     deploy: 
       <<: *manager
 
-#   # pg-auth:
-#   #   <<: *logging
-#   #   image: postgres:11.2-alpine
-#   #   networks:
-#   #     - backend-overlay
-#   #   environment:
-#   #     POSTGRES_USER: 'auth' 
-#   #     POSTGRES_PASSWORD: 'auth'
-#   #     POSTGRES_DB: 'authbase'
-#   #   ports:
-#   #     - "5431:5432" 
-#   #   deploy:
-#   #     restart_policy:
-#   #       condition: on-failure
-#   #     placement:
-#   #       constraints: [node.role == manager]    
+  # pg-auth:
+  #   <<: *logging
+  #   image: postgres:11.2-alpine
+  #   networks:
+  #     - backend-overlay
+  #   environment:
+  #     POSTGRES_USER: 'auth' 
+  #     POSTGRES_PASSWORD: 'auth'
+  #     POSTGRES_DB: 'authbase'
+  #   ports:
+  #     - "5431:5432" 
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager]    
 
-#   # pg-ery:
-#   #   <<: *logging
-#   #   image: smartphonejava/pg-ery:latest
-#   #   ports:
-#   #     - "5430:5432"   
-#   #   networks:
-#   #     - backend-overlay
-#   #   deploy:
-#   #     restart_policy:
-#   #       condition: on-failure
-#   #     placement:
-#   #       constraints: [node.role == manager] 
+  # pg-ery:
+  #   <<: *logging
+  #   image: smartphonejava/pg-ery:latest
+  #   ports:
+  #     - "5430:5432"   
+  #   networks:
+  #     - backend-overlay
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: [node.role == manager] 
 
-#   ### Backend servers ###
+  ### Backend servers ###
 
   api:
     <<: *backend-server
@@ -216,7 +216,7 @@ services:
       labels:
         - traefik.enable=true
         - traefik.http.services.prometheus.loadbalancer.server.port=9090
-        - traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`. `/graph`)
+        - traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`, `/graph`)
        
         - traefik.http.middlewares.pr-chain.chain.middlewares=pr-strip,pr-add
         - traefik.http.middlewares.pr-strip.stripprefix.prefixes=/prometheus
@@ -379,7 +379,6 @@ services:
 volumes:
   prometheus: {}
   grafana: {}
-  alertmanager: {}
 
 # networks
 

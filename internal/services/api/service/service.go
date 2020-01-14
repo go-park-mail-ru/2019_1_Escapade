@@ -12,11 +12,13 @@ import (
 type Service struct {
 	Database *database.Input
 	handler *handlers.Handlers
+	subnet string
 }
 
-func (s *Service) Init(db *database.Input) *Service {
+func (s *Service) Init(subnet string, db *database.Input) *Service {
 	s.handler = new(handlers.Handlers)
 	s.Database = db
+	s.subnet = subnet
 	return s
 }
 
@@ -24,7 +26,7 @@ func (s *Service) Run(args *server.Args) error {
 	if err := re.NoNil(s, s.Database, s.handler); err != nil {
 		return err
 	}
-	return s.handler.OpenDB(args.Loader.Get(), s.Database)
+	return s.handler.OpenDB(s.subnet, args.Loader.Get(), s.Database)
 }
 
 func (s *Service) Router() http.Handler {

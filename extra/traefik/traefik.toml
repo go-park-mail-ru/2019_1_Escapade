@@ -10,7 +10,7 @@
     swarmModeRefreshSeconds= "30s"
   [providers.consulCatalog]
     exposedByDefault=false
-    refreshInterval="10s"
+    refreshInterval="5s"
     prefix="traefik"
     [providers.consulCatalog.endpoint]
       address="http://consul:8500"
@@ -29,7 +29,7 @@
 
 [serversTransport]
   maxIdleConnsPerHost=-1
-  [forwardingTimeouts]
+  [serversTransport.forwardingTimeouts]
     dialTimeout="1s"
     responseHeaderTimeout="1s"
     idleConnTimeout="1s"

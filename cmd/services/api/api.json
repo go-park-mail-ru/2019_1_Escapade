@@ -4,7 +4,7 @@
 		"maxConn": 500,
 		"maxHeaderBytes": 16384,
 		"timeouts": {
-			"ttl":"10s",
+			"ttl":"3s",
 			"read":"10s",
 			"write":"15s",
 			"idle":"1s",

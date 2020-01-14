@@ -96,11 +96,16 @@ func Logger(next http.Handler) http.Handler {
 }
 
 // Metrics record metrics
-func Metrics(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		goodRW := &respWriterStatusCode{rw, 200}
-		next.ServeHTTP(goodRW, r)
-		utils.Debug(false, "metrics get "+utils.String(goodRW.status))
-		Hits.WithLabelValues(utils.String(goodRW.status), r.URL.Path, r.Method).Inc()
-	})
+func Metrics(subnet string) func (next http.Handler) http.Handler {
+	return func (next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			ip := server.GetIP(&subnet)
+			goodRW := &respWriterStatusCode{rw, 200}
+			Users.WithLabelValues(ip, r.URL.Path, r.Method).Inc()
+			next.ServeHTTP(goodRW, r)
+			utils.Debug(false, "metrics get "+utils.String(goodRW.status))
+			Hits.WithLabelValues(ip, utils.String(goodRW.status), r.URL.Path, r.Method).Inc()
+			Users.WithLabelValues(ip, r.URL.Path, r.Method).Dec()
+		})
+	}
 }

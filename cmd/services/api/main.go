@@ -74,7 +74,7 @@ func main() {
 			},
 		},
 
-		Service: new(api.Service).Init(
+		Service: new(api.Service).Init(subnet,
 			new(database.Input).InitAsPSQL()),
 
 		LoadBalancer: new(load_balancer.Traefik).Init(

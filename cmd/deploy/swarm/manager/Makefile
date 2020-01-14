@@ -1,6 +1,6 @@
-.PHONY: help init run stop status build restart
+.PHONY: init run stop status build restart
 .PHONY: restart-with-rebuild rebuild-network clear
-,PHONY: logs drain active
+,PHONY: drain active help
 
 VERSION=`git rev-parse HEAD`
 BUILD=`date +%FT%T%z`

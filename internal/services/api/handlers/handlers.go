@@ -13,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/router"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 type Handlers struct {
@@ -24,20 +25,23 @@ type Handlers struct {
 	game    *GameHandler
 	session *SessionHandler
 	image   *ImageHandler
+
+	subnet string
 }
 
 // InitWithPostgreSQL apply postgreSQL as database
-func (h *Handlers) InitWithPostgreSQL(c *config.Configuration) error {
-	return h.OpenDB(c, new(database.Input).InitAsPSQL())
+func (h *Handlers) InitWithPostgreSQL(subnet string, c *config.Configuration) error {
+	return h.OpenDB(subnet, c, new(database.Input).InitAsPSQL())
 }
 
 // Init open connection to database and put it to all handlers
-func (h *Handlers) OpenDB(c *config.Configuration, input *database.Input) error {
+func (h *Handlers) OpenDB(subnet string, c *config.Configuration, input *database.Input) error {
 	input.Init()
 	if err := input.IsValid(); err != nil {
 		return err
 	}
 
+	h.subnet = subnet
 	h.c = c
 	h.db = input
 
@@ -99,6 +103,12 @@ func (h *Handlers) Router() *mux.Router {
 		rw.Write([]byte("all ok " + server.GetIP(nil)))
 	})
 
+	for i := 0; i < 10; i++ {
+		api.PathPrefix("/test"+utils.String(i)).HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			rw.Write([]byte("test " + utils.String(i) + " " + server.GetIP(nil)))
+		})
+	}
+
 	api.PathPrefix("/post").HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte("post ok " + server.GetIP(nil)))
 	}).Methods("POST")
@@ -115,8 +125,8 @@ func (h *Handlers) Router() *mux.Router {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	router.Use(r, mi.CORS(h.c.Cors), mi.Metrics)
-	router.Use(api, mi.Metrics)
+	router.Use(r, mi.CORS(h.c.Cors), mi.Metrics(h.subnet))
+	//router.Use(api, mi.Metrics)
 	apiWithAuth.Use(mi.Auth(h.c.Cookie, h.c.Auth, h.c.AuthClient))
 	return r
 }
