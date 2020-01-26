@@ -127,7 +127,6 @@ func GetUserIDFromAuthRequest(r *http.Request) (int32, error) {
 }
 
 func ModelFromRequest(r *http.Request, jt JSONtype) error {
-
 	if r.Body == nil {
 		return re.ErrorNoBody()
 	}

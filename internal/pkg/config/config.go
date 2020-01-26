@@ -40,6 +40,7 @@ type RequiredService struct {
 }
 
 // Timeouts of the connection to the server
+//easyjson:json
 type Timeouts struct {
 	TTL Duration `json:"ttl"`
 
@@ -48,6 +49,8 @@ type Timeouts struct {
 	Idle  Duration `json:"idle"`
 	Wait  Duration `json:"wait"`
 	Exec  Duration `json:"exec"`
+
+	Prepare Duration `json:"prepare"`
 }
 
 // CORS set allowable origins, headers and methods

@@ -9,7 +9,8 @@
 			"write":"15s",
 			"idle":"1s",
 			"wait":"0",
-			"exec":"60s"
+			"exec":"60s",
+			"prepare":"60s"
 		},
 		"enableTraefik": true
 	},
@@ -23,7 +24,6 @@
 	"dataBase": {
 		"driverName": "postgres",
 		"url": "DATABASE_URL1",
-		"connectionString": "postgres://rolepade:escapade@pg:5432/escabase?sslmode=disable",
 		"maxOpenConns": 20,
 		"maxIdleConns": 10,
 		"maxLifetime": "1h",

@@ -1,5 +1,41 @@
 version: '3.7'
 
+
+volumes:
+  prometheus: {}
+  grafana: {}
+
+# networks
+
+networks:
+  traefik:
+    driver: overlay
+    external: true
+  net:
+    driver: overlay
+    attachable: true
+
+# secrets
+
+secrets:
+  db_create_user:
+    file: ./../../../../extra/postgresql/main/init/1_secret.sql
+  db_create_tables:
+    file: ./../../../../extra/postgresql/main/init/2_tables.sql
+
+# configs
+
+configs:
+  dockerd_config:
+    file: ./../../../../extra/dockerd-exporter/Caddyfile
+  prometheus_config:
+    file: ./../../../../extra/prometheus/conf/prometheus.yml
+  node_rules:
+    file: ./../../../../extra/prometheus/rules/swarm_node.rules.yml
+  task_rules:
+    file: ./../../../../extra/prometheus/rules/swarm_task.rules.yml
+
+
 x-network: &network
   networks:
     - traefik
@@ -375,42 +411,6 @@ services:
   #       constraints: [node.role != manager] 
 
 # # volumes
-
-volumes:
-  prometheus: {}
-  grafana: {}
-
-# networks
-
-networks:
-  traefik:
-    driver: overlay
-    external: true
-  net:
-    driver: overlay
-    attachable: true
-
-# secrets
-
-secrets:
-  db_create_user:
-    file: ./../../../../extra/postgresql/main/init/1_secret.sql
-  db_create_tables:
-    file: ./../../../../extra/postgresql/main/init/2_tables.sql
-
-# configs
-
-configs:
-  dockerd_config:
-    file: ./../../../../extra/dockerd-exporter/Caddyfile
-  prometheus_config:
-    file: ./../../../../extra/prometheus/conf/prometheus.yml
-  node_rules:
-    file: ./../../../../extra/prometheus/rules/swarm_node.rules.yml
-  task_rules:
-    file: ./../../../../extra/prometheus/rules/swarm_task.rules.yml
-
-
 
 # x-consul: &consul
 #   <<: *logging  

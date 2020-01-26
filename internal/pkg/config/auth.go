@@ -2,6 +2,20 @@ package config
 
 import "golang.org/x/oauth2"
 
+type AuthToken struct {
+	Auth       Auth
+	AuthClient AuthClient
+	Cookie     Cookie
+}
+
+func NewAuthToken(Auth Auth, AuthClient AuthClient, Cookie Cookie) *AuthToken {
+	return &AuthToken{
+		Auth:       Auth,
+		AuthClient: AuthClient,
+		Cookie:     Cookie,
+	}
+}
+
 // Auth client of auth microservice
 //easyjson:json
 type Auth struct {
@@ -14,6 +28,7 @@ type Auth struct {
 	WhiteList          []AuthClient `json:"whiteList"`
 }
 
+//easyjson:json
 type AuthClient struct {
 	// address of auth service
 	Address      string        `json:"address"`

@@ -169,10 +169,10 @@ type Lobby struct {
 	_notSavedGames []*models.GameInformation
 
 	anonymousM *sync.Mutex
-	_anonymous int32
+	_anonymous int32 // TODO заменить на atomic
 
-	context context.Context
-	cancel  context.CancelFunc
+	context context.Context    // TODO убрать
+	cancel  context.CancelFunc // TODO убрать
 
 	chanJoin      chan *Connection
 	chanBroadcast chan *Request

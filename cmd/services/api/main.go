@@ -1,18 +1,20 @@
 package main
 
-
-
 import (
 	"flag"
+	"log"
+	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/database"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/router"
+	sd "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/service_discovery"
+	lb "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/load_balancer"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/loader"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/load_balancer"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server/service_discovery"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/database"
-	api "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/service"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 
-	consulapi "github.com/hashicorp/consul/api"
+	factory "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/factory"
 
 	// dont delete it for correct easyjson work
 	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
@@ -39,7 +41,7 @@ var (
 	name                                     string
 	pathToConfig, pathToSecrets, pathToPhoto string
 	subnet, consulHost                       string
-	CheckHTTPTimeout, checkHTTPInterval string
+	CheckHTTPTimeout, checkHTTPInterval      string
 )
 
 func init() {
@@ -57,37 +59,55 @@ func init() {
 func main() {
 	flag.Parse()
 
-	server.Run(&server.Args{
-		Name: name,
-		Port: port,
+	var (
+		conf   = loadConfigFromFS()                     // load configuration from file system
+		Router = router.NewMuxRouter()                  // route paths by gorilla mux
+		psql   = database.NewPostgresSQL(conf.DataBase) // use Postgresql as Database
 
-		Subnet:        subnet,
-		DiscoveryAddr: consulHost,
+		// handle connections by our API's handler
+		Handler = factory.NewHandler(conf, psql, time.Minute, Router, subnet)
+		// use Traefik as reverse proxy and Consul as Service Discovery
+		balancing = traefikWithConsul(conf)
 
-		Loader: loader(),
-		Discovery: &service_discovery.Consul{
-			ExtraChecks: func(c *service_discovery.Consul) []*consulapi.AgentServiceCheck {
-				return []*consulapi.AgentServiceCheck{
-					c.HTTPCheck("http", "/api/health", 
-						CheckHTTPTimeout, checkHTTPInterval),
-				}
-			},
-		},
+		// run and stop connection to DB and consul TTL
+		// runGoroutines  = func() error {
+		// 	synced.Run(context.Background(), prepareTimeout,
+		// 	func() error {return psql.Open(conf.DataBase)},
+		// 	balancing.Run)
+		// }
+		// stopGoroutines = func() error { return re.Close(psql, balancing) }
 
-		Service: new(api.Service).Init(subnet,
-			new(database.Input).InitAsPSQL()),
+		// Create http server
+		srv = server.NewHTTPServer(conf.Server, Handler, server.PortString(port))
+	)
 
-		LoadBalancer: new(load_balancer.Traefik).Init(
-			new(load_balancer.InputEnv).Init(name, port)),
-	})
+	srv.AddDependencies(psql, balancing).Run()
 }
 
-func loader() *server.Loader {
-	var loader = new(server.Loader).InitAsFS(pathToConfig)
-	loader.CallExtra = func() error {
-		return loader.LoadPhoto(pathToPhoto, pathToSecrets)
+func loadConfigFromFS() *config.Configuration {
+	var load = loader.NewLoader(config.NewRepositoryFS(), pathToConfig)
+
+	if err := load.Load(); err != nil {
+		log.Fatal("no main configuration found:", err.Error())
 	}
-	return loader
+	if err := load.LoadPhoto(pathToPhoto, pathToSecrets); err != nil {
+		log.Fatal("no photo configuration found:", err.Error())
+	}
+
+	return load.Get()
 }
 
-// 120 -> 62 -> 93 -> 71 -> 64 -> 81 -> 92
+func traefikWithConsul(c *config.Configuration) sd.Interface {
+	var input = sd.NewInput(c.Server.Name, port,
+		server.GetIP(&subnet),
+		c.Server.Timeouts.TTL.Duration, c.Server.MaxConn,
+		consulHost, func() (bool, error) { return false, nil })
+
+	traefik := lb.NewTraefik(lb.NewInputEnv(name, port))
+
+	input.AddLoadBalancer(traefik)
+	var consul = sd.NewConsul(input)
+	consul.SetExtraChecks(consul.HTTPCheck("http", "/api/health",
+		CheckHTTPTimeout, checkHTTPInterval))
+	return consul
+}

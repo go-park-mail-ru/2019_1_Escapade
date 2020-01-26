@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aws/aws-sdk-go v1.19.19
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
 	github.com/fsouza/go-dockerclient v1.6.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-openapi/spec v0.19.5 // indirect
@@ -40,6 +41,8 @@ require (
 	github.com/ztrue/tracerr v0.3.0
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	golang.org/x/tools v0.0.0-20200107050322-53017a39ae36 // indirect
 	google.golang.org/grpc v1.22.0
 	gopkg.in/oauth2.v3 v3.10.1
