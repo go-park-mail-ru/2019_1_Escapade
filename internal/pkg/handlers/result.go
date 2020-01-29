@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )

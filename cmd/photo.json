@@ -1,0 +1,9 @@
+{
+    "region": "ru-msk",
+    "endpoint": "https://hb.bizmrg.com",
+    "playersAvatarsStorage": "escapade",
+    "defaultAvatar": "anonymous.jpg",
+    "maxFileSize": 60000000,
+    "expire":"24h",
+    "allowedFileTypes": ["image/jpg","image/jpeg","image/png", "image/gif"]
+}

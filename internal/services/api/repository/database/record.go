@@ -2,16 +2,16 @@ package database
 
 import (
 	"context"
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 )
 
 // Record implements the interface RecordRepositoryI using the sql postgres driver
 type Record struct {
-	db idb.ExecerI
+	db infrastructure.ExecerI
 }
 
-func NewRecord(dbI idb.ExecerI) *Record {
+func NewRecord(dbI infrastructure.ExecerI) *Record {
 	return &Record{dbI}
 }
 
@@ -30,7 +30,10 @@ func (db *Record) Create(ctx context.Context, id int) error {
 }
 
 // Update user's record
-func (db *Record) Update(ctx context.Context, id int32, record *models.Record) error {
+func (db *Record) Update(
+	ctx context.Context,
+	id int32,
+	record *models.Record) error {
 	var (
 		sqlStatement string
 		err          error
@@ -56,9 +59,18 @@ func (db *Record) Update(ctx context.Context, id int32, record *models.Record) e
 		WHERE player_id = $7 and difficult = $8
 		RETURNING id`
 
-		_, err = db.db.ExecContext(ctx, sqlStatement, record.Score, record.Time,
-			record.SingleTotal, record.OnlineTotal, record.SingleWin,
-			record.OnlineWin, id, record.Difficult)
+		_, err = db.db.ExecContext(
+			ctx,
+			sqlStatement,
+			record.Score,
+			record.Time,
+			record.SingleTotal,
+			record.OnlineTotal,
+			record.SingleWin,
+			record.OnlineWin,
+			id,
+			record.Difficult,
+		)
 	} else {
 		sqlStatement = `
 		UPDATE Record
@@ -69,9 +81,16 @@ func (db *Record) Update(ctx context.Context, id int32, record *models.Record) e
 		WHERE player_id = $5 and difficult = $6
 		RETURNING id`
 
-		_, err = db.db.ExecContext(ctx, sqlStatement, record.SingleTotal,
-			record.OnlineTotal, record.SingleWin,
-			record.OnlineWin, id, record.Difficult)
+		_, err = db.db.ExecContext(
+			ctx,
+			sqlStatement,
+			record.SingleTotal,
+			record.OnlineTotal,
+			record.SingleWin,
+			record.OnlineWin,
+			id,
+			record.Difficult,
+		)
 	}
 
 	return err

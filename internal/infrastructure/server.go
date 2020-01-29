@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"context"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/entity"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 )
 
@@ -30,24 +30,42 @@ type DependencyI interface {
 	Close() error
 }
 
+// ServerI represents server interface
 type ServerI interface {
 	Run()
 	AddDependencies(dependencies ...DependencyI) ServerI
 }
 
+// ServerRepositoryI represents repository for getting the server configuration
+type ServerRepositoryI interface {
+	Get() entity.Server
+}
+
+// ServerHTTPRepositoryI represents repository for getting the http server configuration
+type ServerHTTPRepositoryI interface {
+	Get() entity.ServerHTTP
+}
+
+// ServerGRPCRepositoryI represents repository for getting the grpc server configuration
+type ServerGRPCRepositoryI interface {
+	Get() entity.ServerGRPC
+}
+
 type ServerBase struct {
 	run          func() error
 	dependencies []DependencyI
-	config       config.Server
+	config       entity.Server
+	//config       config.Server
 }
 
-func (server *ServerBase) Init(run func() error, config config.Server) ServerI {
+func (server *ServerBase) SetRun(run func() error) ServerI {
 	server.run = run
-	server.config = config
 	return server
 }
 
-func (server *ServerBase) AddDependencies(dependencies ...DependencyI) ServerI {
+func (server *ServerBase) AddDependencies(
+	dependencies ...DependencyI,
+) ServerI {
 	server.dependencies = dependencies
 	return server
 }
@@ -81,8 +99,12 @@ func (server *ServerBase) runDependencies() error {
 	for _, dependency := range server.dependencies {
 		actions = append(actions, dependency.Run)
 	}
-	timeout := server.config.Timeouts.Prepare.Duration
-	return synced.Run(context.Background(), timeout, actions...)
+	timeout := server.config.Prepare //server.config.Timeouts.Prepare.Duration
+	return synced.Run(
+		context.Background(),
+		timeout,
+		actions...,
+	)
 }
 
 func (server *ServerBase) closeDependencies() error {

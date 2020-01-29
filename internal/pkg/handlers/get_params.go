@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/auth"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 )
 
@@ -140,7 +140,8 @@ func ModelFromRequest(r *http.Request, jt JSONtype) error {
 	return jt.UnmarshalJSON(bytes)
 }
 
-func GetUser(r *http.Request, salt string, ui UserI) error {
+// TODO зависимость к infrastructure в pkg не есть хорошо
+func GetUser(r *http.Request, auth infrastructure.AuthService, ui UserI) error {
 
 	if r.Body == nil {
 		return re.ErrorNoBody()
@@ -151,14 +152,15 @@ func GetUser(r *http.Request, salt string, ui UserI) error {
 	if err != nil {
 		return re.ErrorInvalidJSON()
 	}
-	ui.SetPassword(auth.HashPassword(ui.GetPassword(), salt))
+	ui.SetPassword(auth.HashPassword(ui.GetPassword()))
 
 	return nil
 }
 
-func GetUserWithAllFields(r *http.Request, salt string, ui UserI) error {
+// TODO зависимость к infrastructure в pkg не есть хорошо
+func GetUserWithAllFields(r *http.Request, auth infrastructure.AuthService, ui UserI) error {
 
-	if err := GetUser(r, salt, ui); err != nil {
+	if err := GetUser(r, auth, ui); err != nil {
 		return err
 	}
 	if ui.GetName() == "" {

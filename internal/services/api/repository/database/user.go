@@ -5,22 +5,25 @@ import (
 	"math"
 	"time"
 
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 )
 
 // User implements the interface UserRepositoryI using database
 type User struct {
-	db idb.ExecerI
+	db infrastructure.ExecerI
 }
 
-func NewUser(dbI idb.ExecerI) *User {
+func NewUser(dbI infrastructure.ExecerI) *User {
 	return &User{dbI}
 }
 
 // Create user
-func (db *User) Create(ctx context.Context, user *models.UserPrivateInfo) (int, error) {
+func (db *User) Create(
+	ctx context.Context,
+	user *models.UserPrivateInfo,
+) (int, error) {
 	var (
 		sqlInsert = `
 			INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
@@ -29,21 +32,39 @@ func (db *User) Create(ctx context.Context, user *models.UserPrivateInfo) (int, 
 		t  = time.Now()
 		id int
 	)
-	err := db.db.QueryRowContext(ctx, sqlInsert, user.Name, user.Password, t, t).Scan(&id)
+	err := db.db.QueryRowContext(
+		ctx,
+		sqlInsert,
+		user.Name,
+		user.Password,
+		t,
+		t,
+	).Scan(&id)
 	return id, err
 }
 
 // Delete delete all information about user
-func (db *User) Delete(ctx context.Context, user *models.UserPrivateInfo) error {
+func (db *User) Delete(
+	ctx context.Context,
+	user *models.UserPrivateInfo,
+) error {
 	sqlStatement := `
 	DELETE FROM Player where name=$1 and password=$2
 	RETURNING ID
 		`
-	return db.db.QueryRowContext(ctx, sqlStatement, user.Name, user.Password).Scan(&user.ID)
+	return db.db.QueryRowContext(
+		ctx,
+		sqlStatement,
+		user.Name,
+		user.Password,
+	).Scan(&user.ID)
 }
 
 // UpdateNamePassword update name and password of user with selected id
-func (db *User) UpdateNamePassword(ctx context.Context, user *models.UserPrivateInfo) error {
+func (db *User) UpdateNamePassword(
+	ctx context.Context,
+	user *models.UserPrivateInfo,
+) error {
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -51,11 +72,21 @@ func (db *User) UpdateNamePassword(ctx context.Context, user *models.UserPrivate
 			RETURNING id
 		`
 
-	return db.db.QueryRowContext(ctx, sqlStatement, user.Name, user.Password, time.Now(), user.ID).Scan(&user.ID)
+	return db.db.QueryRowContext(
+		ctx,
+		sqlStatement,
+		user.Name,
+		user.Password,
+		time.Now(),
+		user.ID,
+	).Scan(&user.ID)
 }
 
 // CheckNamePassword check that there are sych name and password
-func (db *User) CheckNamePassword(ctx context.Context, name string, password string) (int32, *models.UserPublicInfo, error) {
+func (db *User) CheckNamePassword(
+	ctx context.Context,
+	name, password string,
+) (int32, *models.UserPublicInfo, error) {
 	var (
 		sqlStatement = `
 			SELECT pl.id, pl.name, r.score, r.time, r.difficult
@@ -66,22 +97,43 @@ func (db *User) CheckNamePassword(ctx context.Context, name string, password str
 		id int32
 	)
 	user := &models.UserPublicInfo{}
-	err := db.db.QueryRowContext(ctx, sqlStatement, password, name).Scan(&id, &user.Name, &user.BestScore, &user.BestTime, &user.Difficult)
+	err := db.db.QueryRowContext(
+		ctx,
+		sqlStatement,
+		password,
+		name,
+	).Scan(
+		&id,
+		&user.Name,
+		&user.BestScore,
+		&user.BestTime,
+		&user.Difficult,
+	)
 	return id, user, err
 }
 
 // FetchNamePassword get player's personal info
-func (db *User) FetchNamePassword(ctx context.Context, userID int32) (*models.UserPrivateInfo, error) {
+func (db *User) FetchNamePassword(
+	ctx context.Context,
+	userID int32,
+) (*models.UserPrivateInfo, error) {
 	sqlStatement := "SELECT name, password FROM Player where id = $1"
 
 	user := &models.UserPrivateInfo{}
 	user.ID = int(userID)
-	err := db.db.QueryRowContext(ctx, sqlStatement, userID).Scan(&user.Name, &user.Password)
+	err := db.db.QueryRowContext(
+		ctx,
+		sqlStatement,
+		userID,
+	).Scan(&user.Name, &user.Password)
 	return user, err
 }
 
 // UpdateLastSeen update users last date seen
-func (db *User) UpdateLastSeen(ctx context.Context, id int) error {
+func (db *User) UpdateLastSeen(
+	ctx context.Context,
+	id int,
+) error {
 	var (
 		sqlStatement = `
 			UPDATE Player 
@@ -90,12 +142,20 @@ func (db *User) UpdateLastSeen(ctx context.Context, id int) error {
 		`
 		err error
 	)
-	_, err = db.db.ExecContext(ctx, sqlStatement, time.Now(), id)
+	_, err = db.db.ExecContext(
+		ctx,
+		sqlStatement,
+		time.Now(),
+		id,
+	)
 	return err
 }
 
 // FetchAll returns information about users
-func (db *User) FetchAll(ctx context.Context, params api.UsersSelectParams) ([]*models.UserPublicInfo, error) {
+func (db *User) FetchAll(
+	ctx context.Context,
+	params api.UsersSelectParams,
+) ([]*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -116,12 +176,20 @@ func (db *User) FetchAll(ctx context.Context, params api.UsersSelectParams) ([]*
 }
 
 // fetchAll returns information about users
-func (db *User) fetchAll(ctx context.Context, params api.UsersSelectParams,
-	sqlStatement string) ([]*models.UserPublicInfo, error) {
+func (db *User) fetchAll(
+	ctx context.Context,
+	params api.UsersSelectParams,
+	sqlStatement string,
+) ([]*models.UserPublicInfo, error) {
 
 	players := make([]*models.UserPublicInfo, 0, params.Limit)
-	rows, err := db.db.QueryContext(ctx, sqlStatement, params.Difficult, params.Offset,
-		params.Limit)
+	rows, err := db.db.QueryContext(
+		ctx,
+		sqlStatement,
+		params.Difficult,
+		params.Offset,
+		params.Limit,
+	)
 	if err != nil {
 		return players, err
 	}
@@ -129,8 +197,14 @@ func (db *User) fetchAll(ctx context.Context, params api.UsersSelectParams,
 
 	for rows.Next() {
 		player := &models.UserPublicInfo{}
-		err = rows.Scan(&player.ID, &player.FileKey, &player.Name,
-			&player.BestScore, &player.BestTime, &player.Difficult)
+		err = rows.Scan(
+			&player.ID,
+			&player.FileKey,
+			&player.Name,
+			&player.BestScore,
+			&player.BestTime,
+			&player.Difficult,
+		)
 		if err != nil {
 			break
 		}
@@ -141,8 +215,11 @@ func (db *User) fetchAll(ctx context.Context, params api.UsersSelectParams,
 }
 
 // FetchOne returns information about user
-func (db *User) FetchOne(ctx context.Context, userID int32,
-	difficult int) (*models.UserPublicInfo, error) {
+func (db *User) FetchOne(
+	ctx context.Context,
+	userID int32,
+	difficult int,
+) (*models.UserPublicInfo, error) {
 
 	sqlStatement := `
 	SELECT P.id, P.photo_title, P.name,
@@ -155,18 +232,32 @@ func (db *User) FetchOne(ctx context.Context, userID int32,
 	`
 
 	player := &models.UserPublicInfo{}
-	err := db.db.QueryRowContext(ctx, sqlStatement, userID, difficult).Scan(
-		&player.ID, &player.FileKey, &player.Name,
-		&player.BestScore, &player.BestTime, &player.Difficult)
+	err := db.db.QueryRowContext(ctx,
+		sqlStatement,
+		userID,
+		difficult,
+	).Scan(
+		&player.ID,
+		&player.FileKey,
+		&player.Name,
+		&player.BestScore,
+		&player.BestTime,
+		&player.Difficult,
+	)
 
 	return player, err
 }
 
 // PagesCount return user's pages count
-func (db *User) PagesCount(ctx context.Context, perPage int) (int, error) {
+func (db *User) PagesCount(
+	ctx context.Context,
+	perPage int) (int, error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	var amount int
-	err := db.db.QueryRowContext(ctx, sqlStatement).Scan(&amount)
+	err := db.db.QueryRowContext(
+		ctx,
+		sqlStatement,
+	).Scan(&amount)
 	if err != nil {
 		return 0, err
 	}

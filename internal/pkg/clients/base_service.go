@@ -1,27 +1,24 @@
 package clients
 
 import (
-	"fmt"
-	"strconv"
 	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/naming"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/config"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 type BaseService struct {
-	SG           synced.SingleGoroutine
-	Servers      []string
-	GrcpConn     *grpc.ClientConn
-	NameResolver *testNameResolver
-	Consul       server.ConsulServiceI
-	Finish       chan interface{}
+	SG               synced.SingleGoroutine
+	Servers          []string
+	GrcpConn         *grpc.ClientConn
+	NameResolver     *testNameResolver
+	ServiceDiscovery infrastructure.ServiceDiscovery
+	Finish           chan interface{}
 
 	C config.RequiredService
 
@@ -29,11 +26,11 @@ type BaseService struct {
 	_errorCounter     int
 }
 
-func (service *BaseService) Init(consul server.ConsulServiceI,
+func (service *BaseService) Init(serviceDiscovery infrastructure.ServiceDiscovery,
 	required config.RequiredService) error {
 
 	service.Finish = make(chan interface{})
-	service.Consul = consul
+	service.ServiceDiscovery = serviceDiscovery
 	service.C = required
 	service.SG = synced.SingleGoroutine{}
 	service.SG.Init(required.Polling.Duration, service.poll)
@@ -88,23 +85,8 @@ func (service *BaseService) runOnlineServiceDiscovery() {
 }
 
 func (service *BaseService) healthServers() ([]string, error) {
-	if service.Consul.Health() == nil {
-		return []string{}, re.ErrorServer()
-	}
-	health, _, err := service.Consul.Health().Service(service.C.Name,
-		service.C.Tag, true, nil)
-	if err != nil {
-		utils.Debug(false, "consul error", err.Error())
-		return []string{}, err
-	}
-	servers := []string{}
-	for _, item := range health {
-		//item.Service.Address
-		addr := service.C.Name + ":" + strconv.Itoa(item.Service.Port)
-		fmt.Println("chat addr:", addr)
-		servers = append(servers, addr)
-	}
-	return servers, nil
+	return service.ServiceDiscovery.Health(service.C.Name,
+		service.C.Tag, true)
 }
 
 func (service *BaseService) poll() {

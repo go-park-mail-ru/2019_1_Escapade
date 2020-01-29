@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 	"log"
-	"time"
+	"os"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/router"
-	sd "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/service_discovery"
-	lb "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/load_balancer"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/server"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/loader"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/factory"
+
+	lb "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/usecase/load_balancer"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/usecase/loader"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/usecase/server"
+	sd "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/usecase/service_discovery"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
 
@@ -36,15 +36,14 @@ import (
 // @host virtserver.swaggerhub.com/SmartPhoneJava/explosion/1.0.0
 // @BasePath /api
 
-var (
-	port                                     int
-	name                                     string
-	pathToConfig, pathToSecrets, pathToPhoto string
-	subnet, consulHost                       string
-	CheckHTTPTimeout, checkHTTPInterval      string
-)
-
-func init() {
+func main() {
+	var (
+		port                                     int
+		name                                     string
+		pathToConfig, pathToSecrets, pathToPhoto string
+		subnet, consulHost                       string
+		CheckHTTPTimeout, checkHTTPInterval      string
+	)
 	flag.IntVar(&port, "port", 80, "port number(default: 80)")
 	flag.StringVar(&name, "name", "api", "the service name(default: api)")
 	flag.StringVar(&pathToConfig, "config", "-", "path to service configuration file")
@@ -54,34 +53,62 @@ func init() {
 	flag.StringVar(&consulHost, "consul", "consul:8500", "address of consul(default: consul:8500)")
 	flag.StringVar(&CheckHTTPTimeout, "http.check.timeout", "2s", "timeout of http check(default: 2s)")
 	flag.StringVar(&checkHTTPInterval, "http.check.interval", "10s", "interval of http check(default: 10s)")
-}
-
-func main() {
 	flag.Parse()
 
-	var (
-		conf   = loadConfigFromFS()                     // load configuration from file system
-		Router = router.NewMuxRouter()                  // route paths by gorilla mux
-		psql   = database.NewPostgresSQL(conf.DataBase) // use Postgresql as Database
+	// var (
+	// 	conf   = loadConfigFromFS()                     // load configuration from file system
+	// 	Router = router.NewMuxRouter()                  // route paths by gorilla mux
+	// 	psql   = database.NewPostgresSQL(conf.DataBase) // use Postgresql as Database
 
-		// handle connections by our API's handler
-		Handler = factory.NewHandler(conf, psql, time.Minute, Router, subnet)
-		// use Traefik as reverse proxy and Consul as Service Discovery
-		balancing = traefikWithConsul(conf)
+	// 	// handle connections by our API's handler
+	// 	Handler = factory.NewHandler(conf, psql, time.Minute, Router, subnet)
+	// 	// use Traefik as reverse proxy and Consul as Service Discovery
+	// 	balancing = traefikWithConsul(conf)
 
-		// run and stop connection to DB and consul TTL
-		// runGoroutines  = func() error {
-		// 	synced.Run(context.Background(), prepareTimeout,
-		// 	func() error {return psql.Open(conf.DataBase)},
-		// 	balancing.Run)
-		// }
-		// stopGoroutines = func() error { return re.Close(psql, balancing) }
+	// 	// run and stop connection to DB and consul TTL
+	// 	// runGoroutines  = func() error {
+	// 	// 	synced.Run(context.Background(), prepareTimeout,
+	// 	// 	func() error {return psql.Open(conf.DataBase)},
+	// 	// 	balancing.Run)
+	// 	// }
+	// 	// stopGoroutines = func() error { return re.Close(psql, balancing) }
 
-		// Create http server
-		srv = server.NewHTTPServer(conf.Server, Handler, server.PortString(port))
+	// 	// Create http server
+	// 	srv = server.NewHTTPServer(conf.Server, Handler, server.PortString(port))
+	// )
+
+	var ( // handle errors, warnings and logs
+		logger   = factory.NewLogger()
+		errTrace = factory.NewErrorTrace()
+	)
+	// load configuration
+	c, err := factory.LoadConfiguration(pathToConfig, errTrace)
+	if err != nil {
+		logger.Fatal("cant load configuration:", err.Error())
+		return
+	}
+	var ( // prepare structs for middleware
+		metrics = factory.NewMetrics()
+		auth    = factory.NewAuth(c, os.Getenv("AUTH_ADDRESS"))
 	)
 
-	srv.AddDependencies(psql, balancing).Run()
+	var ( // middleware
+		middlewareAuth    = factory.NewMiddlewareAuth(c, auth, logger, metrics)
+		middlewareNonAuth = factory.NewMiddlewareNonAuth(c, subnet, logger, metrics)
+	)
+
+	// try connect to photo service
+	photo, err := factory.NewPhotoService(pathToPhoto, pathToSecrets)
+	if err != nil {
+		logger.Fatal("cant connect to photo service:", err.Error())
+		return
+	}
+	var (
+		db           = factory.NewDatabase(c)
+		loadBalancer = factory.NewLoadBalancer(name, port)
+	)
+
+	//srv.AddDependencies(psql, balancing).Run()
 }
 
 func loadConfigFromFS() *config.Configuration {

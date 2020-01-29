@@ -4,23 +4,29 @@ import (
 	"context"
 	"time"
 
-	idb "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/repository/database"
 )
 
 // User implements the interface UserUseCaseI
 type User struct {
-	db             idb.Interface
+	db             infrastructure.DatabaseI
+	trace          infrastructure.ErrorTrace
 	userDB         api.UserRepositoryI
 	recordDB       api.RecordRepositoryI
 	contextTimeout time.Duration
 }
 
-func NewUser(dbI idb.Interface, timeout time.Duration) *User {
+func NewUser(
+	dbI infrastructure.DatabaseI,
+	trace infrastructure.ErrorTrace,
+	timeout time.Duration,
+) *User {
 	return &User{
 		db:             dbI,
+		trace:          trace,
 		userDB:         database.NewUser(dbI),
 		recordDB:       database.NewRecord(dbI),
 		contextTimeout: timeout,
@@ -29,17 +35,23 @@ func NewUser(dbI idb.Interface, timeout time.Duration) *User {
 
 // CreateAccount check sql-injections and is name unique
 // Then add cookie to database and returns session_id
-func (repository *User) CreateAccount(c context.Context, user *models.UserPrivateInfo) (int, error) {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) CreateAccount(
+	c context.Context,
+	user *models.UserPrivateInfo,
+) (int, error) {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
 
 	var (
 		userID int
 		err    error
-		tx     idb.TransactionI
+		tx     infrastructure.TransactionI
 	)
 
-	if tx, err = repository.db.Begin(); err != nil {
+	if tx, err = usecase.db.Begin(); err != nil {
 		return userID, err
 	}
 	defer tx.Rollback()
@@ -60,26 +72,43 @@ func (repository *User) CreateAccount(c context.Context, user *models.UserPrivat
 
 // EnterAccount check sql-injections and is password right
 // Then add cookie to database and returns session_id
-func (repository *User) EnterAccount(c context.Context, name, password string) (int32, error) {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) EnterAccount(
+	c context.Context,
+	name, password string,
+) (int32, error) {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
-	userID, _, err := repository.userDB.CheckNamePassword(ctx, name, password)
+	userID, _, err := usecase.userDB.CheckNamePassword(
+		ctx,
+		name,
+		password,
+	)
 	return userID, err
 }
 
 // UpdateAccount gets name of Player from
 // relation Session, cause we know that user has session
-func (repository *User) UpdateAccount(c context.Context, userID int32, user *models.UserPrivateInfo) error {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) UpdateAccount(
+	c context.Context,
+	userID int32,
+	user *models.UserPrivateInfo,
+) error {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
 
 	var (
 		confirmedUser *models.UserPrivateInfo
-		tx            idb.TransactionI
+		tx            infrastructure.TransactionI
 		err           error
 	)
 
-	if tx, err = repository.db.Begin(); err != nil {
+	if tx, err = usecase.db.Begin(); err != nil {
 		return err
 	}
 	defer tx.Rollback()
@@ -93,6 +122,7 @@ func (repository *User) UpdateAccount(c context.Context, userID int32, user *mod
 
 	confirmedUser.Update(user)
 
+	// TODO сделать разлогин других сессий юзера при смене пароля
 	err = userTX.UpdateNamePassword(ctx, user)
 	if err != nil {
 		return err
@@ -103,13 +133,19 @@ func (repository *User) UpdateAccount(c context.Context, userID int32, user *mod
 }
 
 // DeleteAccount deletes account
-func (repository *User) DeleteAccount(c context.Context, user *models.UserPrivateInfo) error {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) DeleteAccount(
+	c context.Context,
+	user *models.UserPrivateInfo,
+) error {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
 
 	var (
 		err error
-		tx  idb.TransactionI
+		tx  infrastructure.TransactionI
 	)
 
 	defer tx.Rollback()
@@ -130,34 +166,31 @@ func (repository *User) DeleteAccount(c context.Context, user *models.UserPrivat
 }
 
 // FetchAll get users
-func (repository *User) FetchAll(c context.Context,
-	difficult int, page int, perPage int,
-	sort string) ([]*models.UserPublicInfo, error) {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) FetchAll(
+	c context.Context,
+	difficult, page, perPage int,
+	sort string,
+) ([]*models.UserPublicInfo, error) {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
 	var (
-		offset  int
-		limit   int
-		tx      idb.TransactionI
-		players []*models.UserPublicInfo
-		err     error
+		offset int
+		limit  int
 	)
-
-	if tx, err = repository.db.Begin(); err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
 
 	pageusers := 10 // в конфиг
 	limit = perPage
 	offset = limit * (page - 1)
 	if offset > pageusers {
-		return players, err
+		return nil, usecase.trace.New("offset > pageusers")
 	}
 	if offset+limit >= pageusers {
 		limit = pageusers - offset
 		if limit == 0 {
-			return players, err
+			return nil, usecase.trace.New("pageusers - offset = 0")
 		}
 	}
 
@@ -168,37 +201,49 @@ func (repository *User) FetchAll(c context.Context,
 		Sort:      sort,
 	}
 
-	if players, err = repository.userDB.FetchAll(ctx, params); err != nil {
+	players, err := usecase.userDB.FetchAll(ctx, params)
+	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
 	return players, err
 }
 
 // FetchOne get one user
-func (repository *User) FetchOne(c context.Context, userID int32, difficult int) (*models.UserPublicInfo, error) {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
-	defer cancel()
-	var (
-		tx   idb.TransactionI
-		user *models.UserPublicInfo
-		err  error
+func (usecase *User) FetchOne(
+	c context.Context,
+	userID int32,
+	difficult int,
+) (*models.UserPublicInfo, error) {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
 	)
+	defer cancel()
 
-	if user, err = repository.userDB.FetchOne(ctx, userID, difficult); err != nil {
+	user, err := usecase.userDB.FetchOne(
+		ctx,
+		userID,
+		difficult,
+	)
+	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
-	return user, err
+	return user, nil
 }
 
 // PagesCount returns amount of rows in table Player
 // deleted on amount of rows in one page
-func (repository *User) PagesCount(c context.Context, perPage int) (int, error) {
-	ctx, cancel := context.WithTimeout(c, repository.contextTimeout)
+func (usecase *User) PagesCount(
+	c context.Context,
+	perPage int,
+) (int, error) {
+	ctx, cancel := context.WithTimeout(
+		c,
+		usecase.contextTimeout,
+	)
 	defer cancel()
-	count, err := repository.userDB.PagesCount(ctx, perPage)
+	count, err := usecase.userDB.PagesCount(ctx, perPage)
 	return count, err
 }

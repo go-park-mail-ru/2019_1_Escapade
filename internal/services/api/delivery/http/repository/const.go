@@ -11,4 +11,8 @@ const (
 	VarPage             = "page"
 	VarPerPage          = "per_page"
 	VarPageDefault      = "0"
+
+	ErrInvalidID   = "No such id"
+	ErrInvalidName = "Invalid username"
+	ErrInvalidPage = "Invalid page of users list"
 )

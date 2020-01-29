@@ -1,10 +1,13 @@
 package infrastructure
 
-import "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/config"
+// LoaderI interface of loading struct
+type LoaderJSONI interface {
+	Init(object JSONtype)
+	Load() (JSONtype, error)
+}
 
-// ConfigutaionLoaderI interface of loading configuration
-type ConfigutaionLoaderI interface {
-	WithExtraI
-	Load() error
-	Get() *config.Configuration
+// JSONtype is interface to be sent by json
+type JSONtype interface {
+	MarshalJSON() ([]byte, error)
+	UnmarshalJSON(data []byte) error
 }

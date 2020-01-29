@@ -12,6 +12,12 @@ type ServiceDiscovery interface {
 	Close() error
 	AddLoadBalancer()
 
+	Health(
+		service,
+		tag string,
+		passingOnly bool,
+	) ([]string, error)
+
 	AddCheckHTTP(scheme, path, timeout, interval string)
 }
 
@@ -44,9 +50,16 @@ type ServiceDiscoveryData struct {
 	Check func() (bool, error)
 }
 
-func NewServiceDiscoveryData(name string, port int, host string,
-	ttl time.Duration, maxConn int, addr string,
-	check func() (bool, error)) *ServiceDiscoveryData {
+// TODO И где репозиторий?
+func NewServiceDiscoveryData(
+	name string, 
+	port int,  **
+	host string, ***
+	ttl time.Duration,  *** 
+	maxConn int,
+	 addr string,
+	check func() (bool, error),
+	) *ServiceDiscoveryData {
 	var ci = new(ServiceDiscoveryData)
 	ci.ServiceName = name
 	ci.ServicePort = port

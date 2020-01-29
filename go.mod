@@ -6,7 +6,6 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aws/aws-sdk-go v1.19.19
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
 	github.com/fsouza/go-dockerclient v1.6.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-openapi/spec v0.19.5 // indirect
