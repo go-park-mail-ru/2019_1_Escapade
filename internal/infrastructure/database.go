@@ -3,7 +3,6 @@ package infrastructure
 import (
 	"context"
 	"database/sql"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/entity"
 )
 
 //go:generate $GOPATH/bin/mockery -name "ExecerI|TransactionI|DatabaseI"
@@ -29,10 +28,4 @@ type DatabaseI interface {
 	Begin() (TransactionI, error)
 	PingContext(ctx context.Context) error
 	Close() error
-}
-
-// data
-
-type DatabaseRepositoryI interface {
-	Get() entity.Database
 }

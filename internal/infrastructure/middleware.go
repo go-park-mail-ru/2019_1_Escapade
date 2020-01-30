@@ -3,5 +3,5 @@ package infrastructure
 import "net/http"
 
 type MiddlewareI interface {
-	Func(http.Handler) http.Handler
+	Func(next http.Handler) http.Handler
 }

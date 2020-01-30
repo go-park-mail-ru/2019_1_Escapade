@@ -1,10 +1,6 @@
 package infrastructure
 
-import (
-	"net/http"
-
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/entity"
-)
+import "net/http"
 
 type AuthService interface {
 	HashPassword(password string) string
@@ -22,8 +18,4 @@ type AuthService interface {
 		rw http.ResponseWriter,
 		r *http.Request,
 	) error
-}
-
-type AuthServiceRepositoryI interface {
-	Get() entity.Auth
 }
