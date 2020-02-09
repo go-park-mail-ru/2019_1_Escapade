@@ -4,14 +4,14 @@ import (
 	//
 	_ "github.com/lib/pq"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/database"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/chat/proto"
 )
 
 type ChatRepositoryPQ struct{}
 
-func (db *ChatRepositoryPQ) get(tx database.TransactionI,
+func (db *ChatRepositoryPQ) get(tx infrastructure.Transaction,
 	ch *proto.Chat) (*proto.ChatID, error) {
 	var id int32
 	query := `select id from Chat 

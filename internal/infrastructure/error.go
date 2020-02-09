@@ -12,21 +12,21 @@ type ErrorTrace interface {
 	Errorf(message string, args ...interface{}) error
 }
 
-type ErrorTraceDefault struct{}
+type ErrorTraceNil struct{}
 
-func (*ErrorTraceDefault) Wrap(err error) error {
+func (*ErrorTraceNil) Wrap(err error) error {
 	return err
 }
-func (*ErrorTraceDefault) WrapWithText(
+func (*ErrorTraceNil) WrapWithText(
 	err error,
 	text string,
 ) error {
 	return err
 }
-func (*ErrorTraceDefault) New(message string) error {
+func (*ErrorTraceNil) New(message string) error {
 	return errors.New(message)
 }
-func (*ErrorTraceDefault) Errorf(
+func (*ErrorTraceNil) Errorf(
 	message string,
 	args ...interface{},
 ) error {

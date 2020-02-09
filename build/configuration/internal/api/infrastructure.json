@@ -1,0 +1,24 @@
+{
+	"server": {
+		"max_header_bytes": 16384,
+		"timeouts": {
+			"read":"10s",
+			"write":"15s",
+			"idle":"1s",
+			"wait":"0",
+			"exec":"60s",
+			"prepare":"60s"
+		}
+	},
+	"database": {
+		"max_open_conns": 20,
+		"max_idle_conns": 10,
+		"max_life_time": "1h"
+	},
+	"service_discovery": {
+		"ttl": "3s",
+		"critical":"30s",
+		"http_interval": "10s",
+		"http_timeout":"100s"
+	}
+}

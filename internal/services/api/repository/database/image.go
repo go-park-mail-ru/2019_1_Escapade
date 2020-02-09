@@ -2,15 +2,16 @@ package database
 
 import (
 	"context"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 )
 
 // Image implements the interface ImageRepositoryI using the sql postgres driver
 type Image struct {
-	db infrastructure.ExecerI
+	db infrastructure.Execer
 }
 
-func NewImage(dbI infrastructure.ExecerI) *Image {
+func NewImage(dbI infrastructure.Execer) *Image {
 	return &Image{dbI}
 }
 

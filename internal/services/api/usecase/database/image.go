@@ -11,13 +11,13 @@ import (
 
 //Image implements the interface ImageUseCaseI
 type Image struct {
-	db             infrastructure.DatabaseI
+	db             infrastructure.Database
 	imageDB        api.ImageRepositoryI
 	contextTimeout time.Duration
 }
 
 func NewImage(
-	dbI infrastructure.DatabaseI,
+	dbI infrastructure.Database,
 	timeout time.Duration,
 ) *Image {
 	return &Image{

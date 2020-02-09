@@ -6,11 +6,20 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/naming"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/config"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
+
+// RequiredService that is required for the correct working of this one
+//easyjson:json
+type RequiredService struct {
+	Name        string          `json:"name"`
+	Polling     models.Duration `json:"polling"`
+	CounterDrop int             `json:"drop"`
+	Tag         string          `json:"tag"`
+}
 
 type BaseService struct {
 	SG               synced.SingleGoroutine
@@ -20,14 +29,14 @@ type BaseService struct {
 	ServiceDiscovery infrastructure.ServiceDiscovery
 	Finish           chan interface{}
 
-	C config.RequiredService
+	C RequiredService
 
 	errorCounterMutex *sync.Mutex
 	_errorCounter     int
 }
 
 func (service *BaseService) Init(serviceDiscovery infrastructure.ServiceDiscovery,
-	required config.RequiredService) error {
+	required RequiredService) error {
 
 	service.Finish = make(chan interface{})
 	service.ServiceDiscovery = serviceDiscovery

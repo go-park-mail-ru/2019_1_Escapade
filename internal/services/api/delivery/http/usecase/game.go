@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
@@ -44,13 +44,13 @@ func NewGameHandler(
 func (h *GameHandler) OfflineSave(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		err    error
 		userID int32
 		record models.Record
 	)
-	userID, err = ih.GetUserIDFromAuthRequest(r)
+	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
 	if err != nil {
 		return ih.NewResult(
 			http.StatusUnauthorized,
@@ -59,7 +59,8 @@ func (h *GameHandler) OfflineSave(
 		)
 	}
 
-	if err = ih.ModelFromRequest(r, &record); err != nil {
+	err = ih.ModelFromRequest(r, h.trace, &record)
+	if err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
 

@@ -1,0 +1,19 @@
+{
+	"salt":"for_tests_only",
+	"cookie": {
+		"path": "/",
+		"lifetime": "2400h",
+		"http_only": true,
+		"keys": {
+			"access": "for_tests_only_a",
+			"type": "for_tests_only_t",
+			"refresh": "for_tests_only_r",
+			"expire": "for_tests_only_e"
+		}
+	},
+	"auth_client": {
+		"id": "1",
+		"secret": "for_tests_only",
+		"scopes": ["all"]
+	}
+}

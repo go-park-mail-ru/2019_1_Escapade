@@ -3,21 +3,21 @@ package infrastructure
 import (
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
-type RouterI interface {
-	PathHandler(tpl string, handler http.Handler) RouterI
+type Router interface {
+	PathHandler(tpl string, handler http.Handler) Router
 	PathHandlerFunc(
 		tpl string,
 		f func(http.ResponseWriter, *http.Request),
-	) RouterI
-	PathSubrouter(tpl string) RouterI
-	GET(path string, f handlers.ResultFunc) RouterI
-	POST(path string, f handlers.ResultFunc) RouterI
-	PUT(path string, f handlers.ResultFunc) RouterI
-	DELETE(path string, f handlers.ResultFunc) RouterI
-	OPTIONS(path string, f handlers.ResultFunc) RouterI
-	AddMiddleware(mwf ...MiddlewareI) RouterI
+	) Router
+	PathSubrouter(tpl string) Router
+	GET(path string, f models.ResultFunc) Router
+	POST(path string, f models.ResultFunc) Router
+	PUT(path string, f models.ResultFunc) Router
+	DELETE(path string, f models.ResultFunc) Router
+	OPTIONS(path string, f models.ResultFunc) Router
+	AddMiddleware(mwf ...Middleware) Router
 	Router() http.Handler
 }

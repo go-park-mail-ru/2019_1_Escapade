@@ -19,6 +19,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
+	github.com/ilyakaznacheev/cleanenv v1.2.1
 	github.com/jackc/pgx v3.5.0+incompatible
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.0

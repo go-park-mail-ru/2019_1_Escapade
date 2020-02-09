@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/repository/database"
 )
 
 // User implements the interface UserUseCaseI
 type User struct {
-	db             infrastructure.DatabaseI
+	db             infrastructure.Database
 	trace          infrastructure.ErrorTrace
 	userDB         api.UserRepositoryI
 	recordDB       api.RecordRepositoryI
@@ -20,7 +20,7 @@ type User struct {
 }
 
 func NewUser(
-	dbI infrastructure.DatabaseI,
+	dbI infrastructure.Database,
 	trace infrastructure.ErrorTrace,
 	timeout time.Duration,
 ) *User {
@@ -48,7 +48,7 @@ func (usecase *User) CreateAccount(
 	var (
 		userID int
 		err    error
-		tx     infrastructure.TransactionI
+		tx     infrastructure.Transaction
 	)
 
 	if tx, err = usecase.db.Begin(); err != nil {
@@ -104,7 +104,7 @@ func (usecase *User) UpdateAccount(
 
 	var (
 		confirmedUser *models.UserPrivateInfo
-		tx            infrastructure.TransactionI
+		tx            infrastructure.Transaction
 		err           error
 	)
 
@@ -145,7 +145,7 @@ func (usecase *User) DeleteAccount(
 
 	var (
 		err error
-		tx  infrastructure.TransactionI
+		tx  infrastructure.Transaction
 	)
 
 	defer tx.Rollback()

@@ -5,17 +5,17 @@ import (
 	"math"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 )
 
 // User implements the interface UserRepositoryI using database
 type User struct {
-	db infrastructure.ExecerI
+	db infrastructure.Execer
 }
 
-func NewUser(dbI infrastructure.ExecerI) *User {
+func NewUser(dbI infrastructure.Execer) *User {
 	return &User{dbI}
 }
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
-	//re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
 )
 
 type RequestMux struct {

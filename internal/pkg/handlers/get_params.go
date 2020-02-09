@@ -7,15 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gorilla/mux"
-
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/gorilla/mux"
 )
-
-type ContextKey string
-
-const ContextUserKey ContextKey = "userID"
 
 type UserI interface {
 	GetName() string
@@ -30,14 +25,18 @@ name - name of parameter. For example in user/{user_id} name would be
 "user_id"
 if cant convert string to int, return error
 */
-func IDFromPath(r *http.Request, name string) (int32, error) {
+func IDFromPath(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	name string,
+) (int32, error) {
 	str := mux.Vars(r)[name]
 	val, err := strconv.Atoi(str)
 	if err != nil {
 		return 0, err
 	}
 	if val < 0 {
-		return 0, re.ID()
+		return 0, trace.New(ErrInvalidID)
 	}
 	return int32(val), nil
 }
@@ -51,7 +50,11 @@ func IDFromPath(r *http.Request, name string) (int32, error) {
 
  if 0 names given, no error return
 */
-func IDsFromPath(r *http.Request, names ...string) (map[string]int32, error) {
+func IDsFromPath(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	names ...string,
+) (map[string]int32, error) {
 	var (
 		ids = make(map[string]int32)
 		err error
@@ -61,7 +64,7 @@ func IDsFromPath(r *http.Request, names ...string) (map[string]int32, error) {
 		return ids, nil
 	}
 	for _, name := range names {
-		ids[name], err = IDFromPath(r, name)
+		ids[name], err = IDFromPath(r, trace, name)
 		if err != nil {
 			break
 		}
@@ -69,23 +72,26 @@ func IDsFromPath(r *http.Request, names ...string) (map[string]int32, error) {
 	return ids, err
 }
 
-/*
-RequestParamsInt32 get all parameters from path via IDsFromPath and UserID
-via GetUserIDFromAuthRequest(if 'withAuth' true)
-userID is placed in map with key set in UserIDKey
-*/
-const UserIDKey = "auth_user_id"
-
-func RequestParamsInt32(r *http.Request, withAuth bool, names ...string) (map[string]int32, error) {
-	values, err := IDsFromPath(r, names...)
+func RequestParamsInt32(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	withAuth bool,
+	names ...string,
+) (map[string]int32, error) {
+	values, err := IDsFromPath(r, trace, names...)
 	if err == nil && withAuth {
-		values[UserIDKey], err = GetUserIDFromAuthRequest(r)
+		values[UserIDKey], err = GetUserIDFromAuthRequest(
+			r,
+			trace,
+		)
 	}
 	return values, err
 }
 
-func StringFromPath(r *http.Request, name string, defaultValue string) (str string) {
-	str = defaultValue
+func StringFromPath(
+	r *http.Request,
+	name, defaultValue string) string {
+	str := defaultValue
 	vals := r.URL.Query()
 	keys, ok := vals[name]
 	if ok {
@@ -93,11 +99,15 @@ func StringFromPath(r *http.Request, name string, defaultValue string) (str stri
 			str = keys[0]
 		}
 	}
-	return
+	return str
 }
 
-func IntFromPath(r *http.Request, name string,
-	defaultVelue int, expected error) (val int, err error) {
+func IntFromPath(
+	r *http.Request,
+	name string,
+	defaultVelue int,
+	expected error,
+) (val int, err error) {
 	var str string
 	if str = StringFromPath(r, name, ""); str == "" {
 		err = expected
@@ -116,19 +126,25 @@ func IntFromPath(r *http.Request, name string,
 	return
 }
 
-func GetUserIDFromAuthRequest(r *http.Request) (int32, error) {
-
+func GetUserIDFromAuthRequest(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+) (int32, error) {
 	interf := r.Context().Value(ContextUserKey)
 	if interf != nil {
 		i, err := strconv.Atoi(interf.(string))
 		return int32(i), err
 	}
-	return 0, re.NoAuthFound()
+	return 0, trace.New(ErrNoAuthFound)
 }
 
-func ModelFromRequest(r *http.Request, jt JSONtype) error {
+func ModelFromRequest(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	jt models.JSONtype,
+) error {
 	if r.Body == nil {
-		return re.ErrorNoBody()
+		return trace.New(ErrNoBody)
 	}
 	defer r.Body.Close()
 
@@ -140,49 +156,61 @@ func ModelFromRequest(r *http.Request, jt JSONtype) error {
 	return jt.UnmarshalJSON(bytes)
 }
 
-// TODO зависимость к infrastructure в pkg не есть хорошо
-func GetUser(r *http.Request, auth infrastructure.AuthService, ui UserI) error {
+func GetUser(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	hashPassword func(string) string,
+	ui UserI,
+) error {
 
 	if r.Body == nil {
-		return re.ErrorNoBody()
+		return trace.New(ErrNoBody)
 	}
 	defer r.Body.Close()
 
 	err := json.NewDecoder(r.Body).Decode(&ui)
 	if err != nil {
-		return re.ErrorInvalidJSON()
+		return trace.New(ErrInvalidJSON)
 	}
-	ui.SetPassword(auth.HashPassword(ui.GetPassword()))
+	ui.SetPassword(hashPassword(ui.GetPassword()))
 
 	return nil
 }
 
-// TODO зависимость к infrastructure в pkg не есть хорошо
-func GetUserWithAllFields(r *http.Request, auth infrastructure.AuthService, ui UserI) error {
+func GetUserWithAllFields(
+	r *http.Request,
+	trace infrastructure.ErrorTrace,
+	hashPassword func(string) string,
+	ui UserI,
+) error {
 
-	if err := GetUser(r, auth, ui); err != nil {
+	err := GetUser(r, trace, hashPassword, ui)
+	if err != nil {
 		return err
 	}
 	if ui.GetName() == "" {
-		return re.ErrorInvalidName()
+		return trace.New(ErrInvalidName)
 	}
 	if ui.GetPassword() == "" {
-		return re.ErrorInvalidPassword()
+		return trace.New(ErrInvalidPassword)
 	}
 
 	return nil
 }
 
-func ValidateUser(user UserI) error {
+func ValidateUser(
+	user UserI,
+	trace infrastructure.ErrorTrace,
+) error {
 	name := strings.TrimSpace(user.GetName())
-	if name == "" || len(name) < 3 {
-		return re.ErrorInvalidName()
+	if name == "" || len(name) < MinNameLength {
+		return trace.New(ErrInvalidName)
 	}
 	user.SetName(name)
 
 	password := strings.TrimSpace(user.GetPassword())
-	if len(password) < 3 {
-		return re.ErrorInvalidPassword()
+	if len(password) < MinPasswordLength {
+		return trace.New(ErrInvalidPassword)
 	}
 	return nil
 }

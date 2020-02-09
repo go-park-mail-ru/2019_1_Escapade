@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
@@ -17,14 +17,14 @@ type UsersHandler struct {
 	user api.UserUseCaseI
 	rep  delivery.RepositoryI
 
-	photo infrastructure.PhotoServiceI
+	photo infrastructure.PhotoService
 	trace infrastructure.ErrorTrace
 }
 
 func NewUsersHandler(
 	user api.UserUseCaseI,
 	rep delivery.RepositoryI,
-	photo infrastructure.PhotoServiceI,
+	photo infrastructure.PhotoService,
 	trace infrastructure.ErrorTrace,
 ) *UsersHandler {
 	return &UsersHandler{
@@ -39,7 +39,7 @@ func NewUsersHandler(
 func (h *UsersHandler) GetOneUser(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	userID, err := h.rep.GetUserID(r)
 	if err != nil {
 		return ih.NewResult(
@@ -67,7 +67,7 @@ func (h *UsersHandler) GetUser(
 	rw http.ResponseWriter,
 	r *http.Request,
 	userID int32,
-) ih.Result {
+) models.RequestResult {
 
 	difficult, err := strconv.Atoi(h.rep.GetDifficult(r))
 	if err != nil {
@@ -111,7 +111,7 @@ func (h *UsersHandler) GetUser(
 func (h *UsersHandler) GetUsersPageAmount(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var pages = models.Pages{}
 
 	perPage := h.rep.GetPerPage(r)
@@ -156,7 +156,7 @@ func (h *UsersHandler) GetUsersPageAmount(
 func (h *UsersHandler) GetUsers(
 	w http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		err       error
 		perPage   = h.rep.GetPerPage(r)

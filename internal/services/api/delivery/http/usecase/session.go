@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
@@ -13,20 +13,23 @@ import (
 
 // SessionHandler handle requests associated with the session
 type SessionHandler struct {
-	user  api.UserUseCaseI
-	auth  infrastructure.AuthService
-	trace infrastructure.ErrorTrace
+	user   api.UserUseCaseI
+	auth   infrastructure.AuthService
+	trace  infrastructure.ErrorTrace
+	logger infrastructure.Logger
 }
 
 func NewSessionHandler(
 	user api.UserUseCaseI,
 	service infrastructure.AuthService,
 	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
 ) *SessionHandler {
 	return &SessionHandler{
-		user:  user,
-		auth:  service,
-		trace: trace,
+		user:   user,
+		auth:   service,
+		trace:  trace,
+		logger: logger,
 	}
 }
 
@@ -46,7 +49,7 @@ func NewSessionHandler(
 func (h *SessionHandler) Login(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		user       models.UserPrivateInfo
 		publicUser *models.UserPublicInfo
@@ -54,12 +57,16 @@ func (h *SessionHandler) Login(
 		userID     int32
 	)
 
-	err = ih.GetUser(r, h.auth, &user)
+	err = ih.GetUser(r, h.trace, h.auth.HashPassword, &user)
 	if err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
 
-	userID, err = h.user.EnterAccount(r.Context(), user.Name, user.Password)
+	userID, err = h.user.EnterAccount(
+		r.Context(),
+		user.Name,
+		user.Password,
+	)
 	if err != nil {
 		return ih.NewResult(
 			http.StatusNotFound,
@@ -70,7 +77,7 @@ func (h *SessionHandler) Login(
 
 	err = h.auth.CreateToken(rw, user.Name, user.Password)
 	if err != nil {
-		ih.Warning(err, WrnFailedTokenCreate)
+		ih.Warning(h.logger, err, WrnFailedTokenCreate)
 	}
 
 	publicUser, err = h.user.FetchOne(r.Context(), userID, 0)
@@ -97,10 +104,14 @@ func (h *SessionHandler) Login(
 func (h *SessionHandler) Logout(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	err := h.auth.DeleteToken(rw, r)
 	if err != nil {
-		ih.Warning(err, "Cant delete token in auth service")
+		ih.Warning(
+			h.logger,
+			err,
+			"Cant delete token in auth service",
+		)
 	}
 
 	// TODO send here request to auth service to delete token from database

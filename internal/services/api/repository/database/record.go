@@ -2,16 +2,17 @@ package database
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 // Record implements the interface RecordRepositoryI using the sql postgres driver
 type Record struct {
-	db infrastructure.ExecerI
+	db infrastructure.Execer
 }
 
-func NewRecord(dbI infrastructure.ExecerI) *Record {
+func NewRecord(dbI infrastructure.Execer) *Record {
 	return &Record{dbI}
 }
 

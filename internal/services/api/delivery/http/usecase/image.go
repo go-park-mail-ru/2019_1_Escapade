@@ -9,7 +9,7 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
@@ -20,7 +20,7 @@ import (
 // ImageHandler handle requests associated with images
 type ImageHandler struct {
 	image   api.ImageUseCaseI
-	service infrastructure.PhotoServiceI
+	service infrastructure.PhotoService
 	rep     delivery.RepositoryI
 
 	trace infrastructure.ErrorTrace
@@ -29,7 +29,7 @@ type ImageHandler struct {
 func NewImageHandler(
 	image api.ImageUseCaseI,
 	rep delivery.RepositoryI,
-	service infrastructure.PhotoServiceI,
+	service infrastructure.PhotoService,
 	trace infrastructure.ErrorTrace,
 ) *ImageHandler {
 	return &ImageHandler{
@@ -46,7 +46,7 @@ func NewImageHandler(
 func (h *ImageHandler) GetImage(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		err     error
 		fileKey string
@@ -54,7 +54,7 @@ func (h *ImageHandler) GetImage(
 	)
 
 	if name, _ := h.rep.GetName(r); name == "" {
-		id, err := ih.GetUserIDFromAuthRequest(r)
+		id, err := ih.GetUserIDFromAuthRequest(r, h.trace)
 		if err != nil {
 			return ih.NewResult(
 				http.StatusUnauthorized,
@@ -103,7 +103,7 @@ func (h *ImageHandler) GetImage(
 func (h *ImageHandler) PostImage(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		err    error
 		file   multipart.File
@@ -111,7 +111,7 @@ func (h *ImageHandler) PostImage(
 		url    models.Avatar
 	)
 
-	userID, err = ih.GetUserIDFromAuthRequest(r)
+	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
 	if err != nil {
 		return ih.NewResult(
 			http.StatusUnauthorized,

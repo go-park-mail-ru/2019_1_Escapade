@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	handlers "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http"
-	apiuc "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http/usecases"
+	apiuc "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http/usecase"
 
 	req "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http/repository"
 	db "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/usecase/database"
@@ -14,46 +14,70 @@ import (
 
 func NewHandler(
 	auth infrastructure.AuthService,
-	photo infrastructure.PhotoServiceI,
+	photo infrastructure.PhotoService,
+	logger infrastructure.Logger,
 	trace infrastructure.ErrorTrace,
-	database infrastructure.DatabaseI,
-	router infrastructure.RouterI,
-	nonAuth []infrastructure.MiddlewareI,
-	withAuth []infrastructure.MiddlewareI,
-	timeout time.Duration, subnet string,
+	database infrastructure.Database,
+	router infrastructure.Router,
+	nonAuth []infrastructure.Middleware,
+	withAuth []infrastructure.Middleware,
+	timeout time.Duration,
 ) http.Handler {
+	//overriding the nil value of Logger
+	if logger == nil {
+		logger = new(infrastructure.LoggerNil)
+	}
 
-	usecases := NewUseCasesDB(database, trace, timeout)
-	hlers := NewHandlers(
+	//overriding the nil value of ErrorTrace
+	if trace == nil {
+		trace = new(infrastructure.ErrorTraceNil)
+	}
+
+	//overriding the nil value of Photo Service
+	if photo == nil {
+		photo = new(infrastructure.PhotoServiceNil)
+	}
+
+	usecases := newUseCasesDB(database, trace, timeout)
+	hlers := newHandlers(
 		auth,
 		photo,
 		*usecases,
-		req.NewRequestMux(),
+		req.NewRequestMux(trace),
+		trace,
+		logger,
 	)
 	handler := handlers.NewHandler(
 		router,
 		hlers,
 		usecases,
-		subnet,
 		nonAuth,
 		withAuth,
 	)
 	return handler
 }
 
-func NewHandlers(
+func newHandlers(
 	auth infrastructure.AuthService,
-	photo infrastructure.PhotoServiceI,
+	photo infrastructure.PhotoService,
 	hlrs handlers.UseCases,
 	rep handlers.RepositoryI,
+	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
 ) *handlers.Handlers {
 	return &handlers.Handlers{
-		Game:    apiuc.NewGameHandler(hlrs.Record),
-		Session: apiuc.NewSessionHandler(hlrs.User, auth),
+		Game: apiuc.NewGameHandler(hlrs.Record, trace),
+		Session: apiuc.NewSessionHandler(
+			hlrs.User,
+			auth,
+			trace,
+			logger,
+		),
 		Image: apiuc.NewImageHandler(
 			hlrs.Image,
 			rep,
 			photo,
+			trace,
 		),
 		User: apiuc.NewUserHandler(
 			hlrs.User,
@@ -61,13 +85,20 @@ func NewHandlers(
 			rep,
 			auth,
 			photo,
+			trace,
+			logger,
 		),
-		Users: apiuc.NewUsersHandler(hlrs.User, rep, photo),
+		Users: apiuc.NewUsersHandler(
+			hlrs.User,
+			rep,
+			photo,
+			trace,
+		),
 	}
 }
 
-func NewUseCasesDB(
-	database infrastructure.DatabaseI,
+func newUseCasesDB(
+	database infrastructure.Database,
 	trace infrastructure.ErrorTrace,
 	timeout time.Duration,
 ) *handlers.UseCases {

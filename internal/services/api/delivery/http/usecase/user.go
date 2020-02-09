@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
@@ -19,14 +19,14 @@ import (
 // UserHandler handle requests associated with the user
 type UserHandler struct {
 	auth  infrastructure.AuthService
-	photo infrastructure.PhotoServiceI
+	photo infrastructure.PhotoService
 
 	user   api.UserUseCaseI
 	record api.RecordUseCaseI
 	rep    delivery.RepositoryI
 
 	trace infrastructure.ErrorTrace
-	log   infrastructure.LoggerI
+	log   infrastructure.Logger
 }
 
 func NewUserHandler(
@@ -34,11 +34,11 @@ func NewUserHandler(
 	record api.RecordUseCaseI,
 	rep delivery.RepositoryI,
 	auth infrastructure.AuthService,
-	photo infrastructure.PhotoServiceI,
+	photo infrastructure.PhotoService,
 	trace infrastructure.ErrorTrace,
-	log infrastructure.LoggerI,
+	log infrastructure.Logger,
 ) *UserHandler {
-	handler := &UserHandler{
+	return &UserHandler{
 		auth:  auth,
 		photo: photo,
 
@@ -49,7 +49,6 @@ func NewUserHandler(
 		trace: trace,
 		log:   log,
 	}
-	return handler
 }
 
 // GetMyProfile get user public information
@@ -67,9 +66,9 @@ func NewUserHandler(
 func (h *UserHandler) GetMyProfile(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 
-	userID, err := ih.GetUserIDFromAuthRequest(r)
+	userID, err := ih.GetUserIDFromAuthRequest(r, h.trace)
 	if err != nil {
 		return ih.NewResult(
 			http.StatusUnauthorized,
@@ -95,14 +94,19 @@ func (h *UserHandler) GetMyProfile(
 func (h *UserHandler) CreateUser(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var user models.UserPrivateInfo
-	err := ih.GetUserWithAllFields(r, h.auth, &user)
+	err := ih.GetUserWithAllFields(
+		r,
+		h.trace,
+		h.auth.HashPassword,
+		&user,
+	)
 	if err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
 
-	if err = ih.ValidateUser(&user); err != nil {
+	if err = ih.ValidateUser(&user, h.trace); err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
 
@@ -118,7 +122,11 @@ func (h *UserHandler) CreateUser(
 	// TODO а может тут вызывать какой нибудь метод обработчика сессий?
 	err = h.auth.CreateToken(rw, user.Name, user.Password)
 	if err != nil {
-		ih.Warning(err, "Cant create token in auth service")
+		ih.Warning(
+			h.log,
+			err,
+			"Cant create token in auth service",
+		)
 	}
 
 	return ih.NewResult(http.StatusCreated, nil, nil)
@@ -141,18 +149,19 @@ func (h *UserHandler) CreateUser(
 func (h *UserHandler) UpdateProfile(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		user   models.UserPrivateInfo
 		err    error
 		userID int32
 	)
 
-	if err = ih.GetUser(r, h.auth, &user); err != nil {
+	err = ih.GetUser(r, h.trace, h.auth.HashPassword, &user)
+	if err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
 
-	userID, err = ih.GetUserIDFromAuthRequest(r)
+	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
 	if err != nil {
 		return ih.NewResult(
 			http.StatusUnauthorized,
@@ -188,13 +197,18 @@ func (h *UserHandler) UpdateProfile(
 func (h *UserHandler) DeleteUser(
 	rw http.ResponseWriter,
 	r *http.Request,
-) ih.Result {
+) models.RequestResult {
 	var (
 		user models.UserPrivateInfo
 		err  error
 	)
 
-	err = ih.GetUserWithAllFields(r, h.auth, &user)
+	err = ih.GetUserWithAllFields(
+		r,
+		h.trace,
+		h.auth.HashPassword,
+		&user,
+	)
 	if err != nil {
 		return ih.NewResult(http.StatusBadRequest, nil, err)
 	}
@@ -210,7 +224,7 @@ func (h *UserHandler) DeleteUser(
 
 	err = h.auth.DeleteToken(rw, r)
 	if err != nil {
-		ih.Warning(err, WrnFailedTokenDelete)
+		ih.Warning(h.log, err, WrnFailedTokenDelete)
 	}
 
 	return ih.NewResult(http.StatusOK, nil, nil)
@@ -220,7 +234,7 @@ func (h *UserHandler) getUser(
 	rw http.ResponseWriter,
 	r *http.Request,
 	userID int32,
-) ih.Result {
+) models.RequestResult {
 
 	var (
 		err       error

@@ -8,24 +8,24 @@ import (
 //go:generate $GOPATH/bin/mockery -name "ExecerI|TransactionI|DatabaseI"
 
 // ExecerI interface for executing queries in the database
-type ExecerI interface {
+type Execer interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
 // TransactionI interface of transaction
-type TransactionI interface {
-	ExecerI
+type Transaction interface {
+	Execer
 	Commit() error
 	Rollback() error
 }
 
 // DatabaseI interface of database
-type DatabaseI interface {
-	ExecerI
+type Database interface {
+	Execer
 	Open() error
-	Begin() (TransactionI, error)
+	Begin() (Transaction, error)
 	PingContext(ctx context.Context) error
 	Close() error
 }

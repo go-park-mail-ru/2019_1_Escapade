@@ -4,21 +4,21 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/repository/database"
 )
 
 // Record implements the interface RecordUseCaseI
 type Record struct {
-	db             infrastructure.DatabaseI
+	db             infrastructure.Database
 	recordDB       api.RecordRepositoryI
 	contextTimeout time.Duration
 }
 
 func NewRecord(
-	dbI infrastructure.DatabaseI,
+	dbI infrastructure.Database,
 	timeout time.Duration,
 ) *Record {
 	return &Record{

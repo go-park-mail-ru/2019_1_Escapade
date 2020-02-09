@@ -28,10 +28,13 @@ type UseCases struct {
 	Record api.RecordUseCaseI
 }
 
-func NewHandler(r infrastructure.RouterI,
-	h *Handlers, uc *UseCases, subnet string,
-	nonAuth []infrastructure.MiddlewareI,
-	withAuth []infrastructure.MiddlewareI) http.Handler {
+func NewHandler(
+	r infrastructure.Router,
+	h *Handlers,
+	uc *UseCases,
+	nonAuth []infrastructure.Middleware,
+	withAuth []infrastructure.Middleware,
+) http.Handler {
 
 	r.PathHandler("/swagger", httpSwagger.Handler(
 		httpSwagger.URL("swagger/doc.json"), //The url pointing to API definition"
@@ -79,8 +82,6 @@ func NewHandler(r infrastructure.RouterI,
 	api.AddMiddleware(nonAuth...)
 	apiWithAuth.AddMiddleware(withAuth...)
 
-	// api.Use(mi.CORS(cors), mi.Metrics(subnet))
-	// apiWithAuth.Use(mi.Auth(config.Cookie, config.Auth, config.AuthClient))
 	return r.Router()
 }
 

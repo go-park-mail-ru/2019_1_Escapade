@@ -1,6 +1,6 @@
 package infrastructure
 
-type LoggerI interface {
+type Logger interface {
 	Fatal(v ...interface{})
 	Fatalf(format string, v ...interface{})
 	Print(v ...interface{})
@@ -8,9 +8,10 @@ type LoggerI interface {
 	Printf(format string, v ...interface{})
 }
 
-type LoggerEmpty struct{}
-func (*LoggerEmpty) Fatal(v ...interface{}) {}
-func (*LoggerEmpty) 	Fatalf(format string, v ...interface{}) {}
-func (*LoggerEmpty) 	Print(v ...interface{}) {}
-func (*LoggerEmpty) 	Println(v ...interface{}) {}
-func (*LoggerEmpty) 	Printf(format string, v ...interface{}) {}
+type LoggerNil struct{}
+
+func (*LoggerNil) Fatal(v ...interface{})                 {}
+func (*LoggerNil) Fatalf(format string, v ...interface{}) {}
+func (*LoggerNil) Print(v ...interface{})                 {}
+func (*LoggerNil) Println(v ...interface{})               {}
+func (*LoggerNil) Printf(format string, v ...interface{}) {}

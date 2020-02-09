@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
 
 //go:generate $GOPATH/bin/mockery -name "UserRepositoryI|RecordRepositoryI|ImageRepositoryI"

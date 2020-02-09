@@ -3,67 +3,80 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/domens/models"
-	re "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/return_errors"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
-// Result - every handler return it
-type Result struct {
-	code int
-	send JSONtype
-	err  error
-}
-
-type ResultFunc func(http.ResponseWriter, *http.Request) Result
-
-func HandleFunc(rf ResultFunc) func(http.ResponseWriter, *http.Request) {
+func HandleFunc(
+	rf models.ResultFunc,
+	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
+) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		result := rf(rw, r)
-		Send(rw, r, &result)
+		Send(rw, r, &result, trace, logger)
 	}
-
 }
 
 // NewResult construct instance of result
-func NewResult(code int, send JSONtype, err error) Result {
-	return Result{
-		code: code,
-		send: send,
-		err:  err,
+func NewResult(
+	code int,
+	send models.JSONtype,
+	err error,
+) models.RequestResult {
+	return models.RequestResult{
+		Code: code,
+		Send: send,
+		Err:  err,
 	}
 }
 
 // SendResult send result to client
-func SendResult(rw http.ResponseWriter, result Result) {
-	if result.code == 0 {
+func SendResult(
+	rw http.ResponseWriter,
+	result models.RequestResult,
+	logger infrastructure.Logger,
+) {
+	if result.Code == 0 {
 		return
 	}
-	utils.Debug(false, "WriteHeader!", result.code)
-	rw.WriteHeader(result.code)
-	if result.err != nil {
-		sendErrorJSON(rw, result.err)
+	logger.Println("WriteHeader!", result.Code)
+	rw.WriteHeader(result.Code)
+	if result.Err != nil {
+		sendErrorJSON(rw, result.Err)
 	} else {
-		sendSuccessJSON(rw, result.send)
+		sendSuccessJSON(rw, result.Send)
 	}
-	Debug(result.err, result.code, "")
+	Debug(logger, result.Err, result.Code, "")
 }
 
 // Debug use utils.debug to log information
-func Debug(catched error, number int, place string) {
+func Debug(
+	logger infrastructure.Logger,
+	catched error,
+	number int,
+	place string,
+) {
 	if catched != nil {
-		utils.Debug(false, "api/"+place+" failed(code:", number, "). Error message:"+catched.Error())
+		logger.Println("api/"+place+" failed(code:",
+			number, "). Error message:"+catched.Error())
 	} else {
-		utils.Debug(false, "api/"+place+" success(code:", number, ")")
+		logger.Println("api/"+place+" success(code:",
+			number, ")")
 	}
 }
 
 // Warning use utils.debug to log warnings
-func Warning(err error, text string) {
+func Warning(
+	logger infrastructure.Logger,
+	err error,
+	text string,
+) {
 	if err != nil {
-		utils.Debug(false, "Warning.", text, "More:", err.Error())
+		logger.Println("Warning.", text, "More:", err.Error())
 	} else {
-		utils.Debug(false, "Warning.", text)
+		logger.Println("Warning.", text)
 	}
 }
 
@@ -80,7 +93,10 @@ func sendErrorJSON(rw http.ResponseWriter, catched error) {
 }
 
 // SendSuccessJSON send object json
-func sendSuccessJSON(rw http.ResponseWriter, result JSONtype) {
+func sendSuccessJSON(
+	rw http.ResponseWriter,
+	result models.JSONtype,
+) {
 	if result == nil {
 		result = &models.Result{
 			Success: true,
@@ -94,15 +110,24 @@ func sendSuccessJSON(rw http.ResponseWriter, result JSONtype) {
 }
 
 // HandleRequest handle request and return Result
-type HandleRequest func(rw http.ResponseWriter, r *http.Request) Result
+type HandleRequest func(
+	rw http.ResponseWriter,
+	r *http.Request,
+) models.RequestResult
 
 // MethodHandlers - map, where key - method, value - HandleRequest
 type MethodHandlers map[string]HandleRequest
 
 // Route direct the request depending on its method
 // mHr - map, where key - method, value - HandleRequest
-func Route(rw http.ResponseWriter, r *http.Request, mHr MethodHandlers) {
-	var result *Result
+func Route(
+	rw http.ResponseWriter,
+	r *http.Request,
+	mHr MethodHandlers,
+	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
+) {
+	var result *models.RequestResult
 	for k, v := range mHr {
 		if k == r.Method {
 			if v == nil {
@@ -116,35 +141,62 @@ func Route(rw http.ResponseWriter, r *http.Request, mHr MethodHandlers) {
 
 	if result == nil {
 		place := r.URL.Path
-		utils.Debug(false, place+" method not allowed:", r.Method)
-		result = &Result{
-			code: http.StatusMethodNotAllowed,
-			err:  re.ErrorMethodNotAllowed(),
+		logger.Println(
+			place+" method not allowed:",
+			r.Method,
+		)
+		result = &models.RequestResult{
+			Code: http.StatusMethodNotAllowed,
+			Err:  trace.New(ErrMethodNotAllowed),
 		}
 	}
-	SendResult(rw, *result)
+	SendResult(rw, *result, logger)
 }
 
-func Send(rw http.ResponseWriter, request *http.Request, result *Result) {
+func Send(
+	rw http.ResponseWriter,
+	request *http.Request,
+	result *models.RequestResult,
+	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
+) {
 	if result == nil {
 		place := request.URL.Path
-		utils.Debug(false, place+" method not allowed:", request.Method)
-		result = &Result{
-			code: http.StatusMethodNotAllowed,
-			err:  re.ErrorMethodNotAllowed(),
+		logger.Println(
+			place+" method not allowed:",
+			request.Method,
+		)
+		result = &models.RequestResult{
+			Code: http.StatusMethodNotAllowed,
+			Err:  trace.New(ErrMethodNotAllowed),
 		}
 	}
-	SendResult(rw, *result)
+	SendResult(rw, *result, logger)
 }
 
-func SendError(code int, err error) func(rw http.ResponseWriter, r *http.Request) Result {
-	return func(rw http.ResponseWriter, r *http.Request) Result {
+func SendError(
+	code int,
+	err error,
+) func(
+	rw http.ResponseWriter,
+	r *http.Request,
+) models.RequestResult {
+	return func(
+		rw http.ResponseWriter,
+		r *http.Request,
+	) models.RequestResult {
 		return NewResult(code, nil, err)
 	}
 }
 
-func OPTIONS() func(rw http.ResponseWriter, r *http.Request) Result {
-	return func(rw http.ResponseWriter, r *http.Request) Result {
+func OPTIONS() func(
+	rw http.ResponseWriter,
+	r *http.Request,
+) models.RequestResult {
+	return func(
+		rw http.ResponseWriter,
+		r *http.Request,
+	) models.RequestResult {
 		return NewResult(0, nil, nil)
 	}
 }

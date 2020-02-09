@@ -1,0 +1,16 @@
+{
+	"origins": [
+		"http://localhost:3001"
+	],
+	"headers": [
+		"Content-type",
+		"Authorization-access",
+		"Authorization-type",
+		"Authorization-refresh",
+		"Authorization-expire"
+	],
+	"methods": [
+		"GET", "POST", "DELETE", "PUT", "OPTIONS"
+	],
+	"credentials": "true"
+}

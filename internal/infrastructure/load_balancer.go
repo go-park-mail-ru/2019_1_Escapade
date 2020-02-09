@@ -1,16 +1,16 @@
 package infrastructure
 
-type LoadBalancerI interface {
+type LoadBalancer interface {
 	RoutingTags() []string
 	WeightTags(name, value string) []string
 }
 
-type LoadBalancerEmpty struct{}
+type LoadBalancerNil struct{}
 
-func (*LoadBalancerEmpty) RoutingTags() []string {
+func (*LoadBalancerNil) RoutingTags() []string {
 	return []string{}
 }
-func (*LoadBalancerEmpty) WeightTags(
+func (*LoadBalancerNil) WeightTags(
 	name, value string,
 ) []string {
 	return []string{}
