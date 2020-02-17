@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
@@ -19,18 +20,33 @@ type User struct {
 	contextTimeout time.Duration
 }
 
+// NewUser create new instance of User
 func NewUser(
 	dbI infrastructure.Database,
 	trace infrastructure.ErrorTrace,
 	timeout time.Duration,
-) *User {
+) (*User, error) {
+	if dbI == nil {
+		return nil, errors.New(ErrNoDatabase)
+	}
+	recordRep, err := database.NewRecord(dbI, trace)
+	if err != nil {
+		return nil, err
+	}
+	userRep, err := database.NewUser(dbI, trace)
+	if err != nil {
+		return nil, err
+	}
+	if trace == nil {
+		trace = new(infrastructure.ErrorTraceNil)
+	}
 	return &User{
 		db:             dbI,
 		trace:          trace,
-		userDB:         database.NewUser(dbI),
-		recordDB:       database.NewRecord(dbI),
+		userDB:         userRep,
+		recordDB:       recordRep,
 		contextTimeout: timeout,
-	}
+	}, nil
 }
 
 // CreateAccount check sql-injections and is name unique
@@ -39,6 +55,10 @@ func (usecase *User) CreateAccount(
 	c context.Context,
 	user *models.UserPrivateInfo,
 ) (int, error) {
+	// check user not nil
+	if user == nil {
+		return 0, usecase.trace.New(InvalidUser)
+	}
 	ctx, cancel := context.WithTimeout(
 		c,
 		usecase.contextTimeout,
@@ -56,8 +76,14 @@ func (usecase *User) CreateAccount(
 	}
 	defer tx.Rollback()
 
-	userTX := database.NewUser(tx)
-	recordTX := database.NewRecord(tx)
+	userTX, err := database.NewUser(tx, usecase.trace)
+	if err != nil {
+		return userID, err
+	}
+	recordTX, err := database.NewRecord(tx, usecase.trace)
+	if err != nil {
+		return userID, err
+	}
 
 	if userID, err = userTX.Create(ctx, user); err != nil {
 		return userID, err
@@ -96,6 +122,10 @@ func (usecase *User) UpdateAccount(
 	userID int32,
 	user *models.UserPrivateInfo,
 ) error {
+	// check user not nil
+	if user == nil {
+		return usecase.trace.New(InvalidUser)
+	}
 	ctx, cancel := context.WithTimeout(
 		c,
 		usecase.contextTimeout,
@@ -113,7 +143,10 @@ func (usecase *User) UpdateAccount(
 	}
 	defer tx.Rollback()
 
-	userTX := database.NewUser(tx)
+	userTX, err := database.NewUser(tx, usecase.trace)
+	if err != nil {
+		return err
+	}
 
 	confirmedUser, err = userTX.FetchNamePassword(ctx, userID)
 	if err != nil {
@@ -137,6 +170,9 @@ func (usecase *User) DeleteAccount(
 	c context.Context,
 	user *models.UserPrivateInfo,
 ) error {
+	if user == nil {
+		return usecase.trace.New(InvalidUser)
+	}
 	ctx, cancel := context.WithTimeout(
 		c,
 		usecase.contextTimeout,
@@ -148,9 +184,15 @@ func (usecase *User) DeleteAccount(
 		tx  infrastructure.Transaction
 	)
 
+	if tx, err = usecase.db.Begin(); err != nil {
+		return err
+	}
 	defer tx.Rollback()
 
-	userTX := database.NewUser(tx)
+	userTX, err := database.NewUser(tx, usecase.trace)
+	if err != nil {
+		return err
+	}
 
 	if err = userTX.Delete(ctx, user); err != nil {
 		return err

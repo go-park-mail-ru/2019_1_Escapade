@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
@@ -9,11 +10,24 @@ import (
 
 // Record implements the interface RecordRepositoryI using the sql postgres driver
 type Record struct {
-	db infrastructure.Execer
+	db    infrastructure.Execer
+	trace infrastructure.ErrorTrace
 }
 
-func NewRecord(dbI infrastructure.Execer) *Record {
-	return &Record{dbI}
+func NewRecord(
+	dbI infrastructure.Execer,
+	trace infrastructure.ErrorTrace,
+) (*Record, error) {
+	if dbI == nil {
+		return nil, errors.New(ErrNoDatabase)
+	}
+	if trace == nil {
+		trace = new(infrastructure.ErrorTraceNil)
+	}
+	return &Record{
+		db:    dbI,
+		trace: trace,
+	}, nil
 }
 
 // Create user's record
@@ -34,7 +48,11 @@ func (db *Record) Create(ctx context.Context, id int) error {
 func (db *Record) Update(
 	ctx context.Context,
 	id int32,
-	record *models.Record) error {
+	record *models.Record,
+) error {
+	if record == nil {
+		return db.trace.New(InvalidRecord)
+	}
 	var (
 		sqlStatement string
 		err          error

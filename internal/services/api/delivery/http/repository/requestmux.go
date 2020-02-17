@@ -6,22 +6,28 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 )
 
 type RequestMux struct {
+	handler.Handler
+
 	trace infrastructure.ErrorTrace
 }
 
-func NewRequestMux(trace infrastructure.ErrorTrace) *RequestMux {
+func NewRequestMux(
+	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
+) *RequestMux {
 	return &RequestMux{
-		trace: trace,
+		Handler: *handler.New(logger, trace),
+		trace:   trace,
 	}
 }
 
 func (r *RequestMux) GetUserID(req *http.Request) (int, error) {
-	return ih.IntFromPath(
+	return r.IntFromPath(
 		req,
 		VarID,
 		1,
@@ -30,11 +36,11 @@ func (r *RequestMux) GetUserID(req *http.Request) (int, error) {
 }
 
 func (r *RequestMux) GetPar(req *http.Request, par string) string {
-	return ih.StringFromPath(req, par, VarParDefault)
+	return r.StringFromPath(req, par, VarParDefault)
 }
 
 func (r *RequestMux) GetDifficult(req *http.Request) string {
-	return ih.StringFromPath(
+	return r.StringFromPath(
 		req,
 		VarDifficult,
 		VarDifficultDefault,
@@ -42,15 +48,15 @@ func (r *RequestMux) GetDifficult(req *http.Request) string {
 }
 
 func (r *RequestMux) GetSort(req *http.Request) string {
-	return ih.StringFromPath(req, VarSort, VarSortDefault)
+	return r.StringFromPath(req, VarSort, VarSortDefault)
 }
 
 func (r *RequestMux) GetPage(req *http.Request) string {
-	return ih.StringFromPath(req, VarPage, "0")
+	return r.StringFromPath(req, VarPage, "0")
 }
 
 func (r *RequestMux) GetPerPage(req *http.Request) string {
-	return ih.StringFromPath(req, VarPerPage, "")
+	return r.StringFromPath(req, VarPerPage, "")
 }
 
 func (r *RequestMux) GetName(req *http.Request) (string, error) {
@@ -79,7 +85,8 @@ func (r *RequestMux) GetNameAndPage(req *http.Request) (int, string, error) {
 	if vars[VarPage] == "" {
 		page = 1
 	} else {
-		if page, err = strconv.Atoi(vars[VarPage]); err != nil {
+		page, err = strconv.Atoi(vars[VarPage])
+		if err != nil {
 			return 0, username, r.trace.New(ErrInvalidPage)
 		}
 		if page < 1 {

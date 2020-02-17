@@ -1,0 +1,17 @@
+{
+	"gc":"1m",
+	"jwt":"3fZ5D03wdnyz47z7",
+	"token": {
+		"access_expire": "2h",
+		"refresh_expire": "336h",
+		"is_generate_refresh": true,
+		"type": "Bearer"
+	},
+	"whitelist": [
+		{
+			"id": "1",
+			"secret": "for_tests_only",
+			"domain": "127.0.0.1:3001"
+		}
+	]
+}

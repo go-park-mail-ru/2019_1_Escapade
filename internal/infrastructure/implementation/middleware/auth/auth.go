@@ -5,11 +5,13 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 )
 
 type Auth struct {
+	handler.Handler
+
 	auth infrastructure.AuthService
 	log  infrastructure.Logger
 }
@@ -27,8 +29,9 @@ func New(
 		logger = new(infrastructure.LoggerNil)
 	}
 	return &Auth{
-		auth: auth,
-		log:  logger,
+		Handler: *handler.New(logger, nil),
+		auth:    auth,
+		log:     logger,
 	}, nil
 }
 
@@ -53,27 +56,22 @@ func (mw *Auth) Func(next http.Handler) http.Handler {
 				}
 			}
 			if err != nil {
-				handlers.SendResult(
+				mw.SendResult(
 					rw,
-					handlers.NewResult(
-						http.StatusUnauthorized,
-						nil,
-						err,
-					),
-					mw.log,
+					mw.Fail(http.StatusUnauthorized, err),
 				)
 				return
 			}
 			ctx := context.WithValue(
 				r.Context(),
-				handlers.ContextUserKey,
+				handler.ContextUserKey,
 				userID,
 			)
 
 			mw.log.Println(
 				"auth end",
 				userID,
-				handlers.ContextUserKey,
+				handler.ContextUserKey,
 			)
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		},

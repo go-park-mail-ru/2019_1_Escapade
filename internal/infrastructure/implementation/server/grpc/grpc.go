@@ -11,9 +11,10 @@ import (
 
 	"golang.org/x/net/netutil"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/server"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 type ServerGRPC struct {
@@ -77,7 +78,7 @@ func serveGRPC(
 		lastFunc()
 	}()
 
-	l, err := net.Listen(Protocol, c.Port)
+	l, err := net.Listen(Protocol, ":"+utils.String(c.Port))
 
 	if err != nil {
 		log.Println("Listen error", err.Error())

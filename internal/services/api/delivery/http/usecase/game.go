@@ -3,15 +3,16 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 )
 
 // GameHandler handle requests associated with singleplayer
 type GameHandler struct {
+	handler.Handler
 	record api.RecordUseCaseI
 	trace  infrastructure.ErrorTrace
 }
@@ -19,10 +20,12 @@ type GameHandler struct {
 func NewGameHandler(
 	record api.RecordUseCaseI,
 	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
 ) *GameHandler {
 	handler := &GameHandler{
-		record: record,
-		trace:  trace,
+		Handler: *handler.New(logger, trace),
+		record:  record,
+		trace:   trace,
 	}
 	return handler
 }
@@ -50,29 +53,24 @@ func (h *GameHandler) OfflineSave(
 		userID int32
 		record models.Record
 	)
-	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
+	userID, err = h.GetUserIDFromAuthRequest(r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusUnauthorized,
-			nil,
 			h.trace.WrapWithText(err, ErrAuth),
 		)
 	}
 
-	err = ih.ModelFromRequest(r, h.trace, &record)
+	err = h.ModelFromRequest(r, &record)
 	if err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
 	err = h.record.Update(r.Context(), userID, &record)
 	if err != nil {
-		return ih.NewResult(
-			http.StatusInternalServerError,
-			nil,
-			err,
-		)
+		return h.Fail(http.StatusInternalServerError, err)
 	}
-	return ih.NewResult(http.StatusOK, nil, nil)
+	return h.Success(http.StatusOK, nil)
 }
 
 // GameOnline launch multiplayer

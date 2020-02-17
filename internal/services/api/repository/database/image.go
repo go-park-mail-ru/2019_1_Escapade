@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 )
@@ -11,8 +12,11 @@ type Image struct {
 	db infrastructure.Execer
 }
 
-func NewImage(dbI infrastructure.Execer) *Image {
-	return &Image{dbI}
+func NewImage(dbI infrastructure.Execer) (*Image, error) {
+	if dbI == nil {
+		return nil, errors.New(ErrNoDatabase)
+	}
+	return &Image{db: dbI}, nil
 }
 
 // Update set filename of avatar to relation Player

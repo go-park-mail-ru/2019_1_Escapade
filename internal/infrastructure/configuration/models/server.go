@@ -11,7 +11,7 @@ type Server struct {
 	MaxConn        int      `json:"max_conn" env:"max_conn"`
 	MaxHeaderBytes int      `json:"max_header_bytes"`
 	Timeouts       Timeouts `json:"timeouts"`
-	Port           string   `json:"port" env:"port"`
+	Port           int      `json:"port" env:"port"`
 }
 
 func (s *Server) Get() configuration.Server {

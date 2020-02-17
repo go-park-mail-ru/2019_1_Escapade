@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	delivery "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http"
@@ -14,6 +14,8 @@ import (
 
 // UsersHandler handle requests associated with list of users
 type UsersHandler struct {
+	handler.Handler
+
 	user api.UserUseCaseI
 	rep  delivery.RepositoryI
 
@@ -26,8 +28,11 @@ func NewUsersHandler(
 	rep delivery.RepositoryI,
 	photo infrastructure.PhotoService,
 	trace infrastructure.ErrorTrace,
+	log infrastructure.Logger,
 ) *UsersHandler {
 	return &UsersHandler{
+		Handler: *handler.New(log, trace),
+
 		user: user,
 		rep:  rep,
 
@@ -42,9 +47,8 @@ func (h *UsersHandler) GetOneUser(
 ) models.RequestResult {
 	userID, err := h.rep.GetUserID(r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
@@ -71,9 +75,8 @@ func (h *UsersHandler) GetUser(
 
 	difficult, err := strconv.Atoi(h.rep.GetDifficult(r))
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
@@ -84,16 +87,15 @@ func (h *UsersHandler) GetUser(
 		difficult,
 	)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	h.photo.GetImages(user)
 
-	return ih.NewResult(http.StatusOK, user, nil)
+	return h.Success(http.StatusOK, user)
 }
 
 // GetUsersPageAmount get number of pages with users
@@ -117,9 +119,8 @@ func (h *UsersHandler) GetUsersPageAmount(
 	perPage := h.rep.GetPerPage(r)
 	perPageI, err := strconv.Atoi(perPage)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
@@ -128,13 +129,12 @@ func (h *UsersHandler) GetUsersPageAmount(
 		perPageI,
 	)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusInternalServerError,
-			nil,
 			h.trace.WrapWithText(err, ErrFailedPageCountGet),
 		)
 	}
-	return ih.NewResult(http.StatusOK, &pages, nil)
+	return h.Success(http.StatusOK, &pages)
 }
 
 // GetUsers get users list
@@ -167,25 +167,22 @@ func (h *UsersHandler) GetUsers(
 
 	difficultI, err := strconv.Atoi(difficult)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 	perPageI, err := strconv.Atoi(perPage)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 	pageI, err := strconv.Atoi(page)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
@@ -198,18 +195,16 @@ func (h *UsersHandler) GetUsers(
 		sort,
 	)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	h.photo.GetImages(users...)
 
-	return ih.NewResult(
+	return h.Success(
 		http.StatusOK,
 		&models.UsersPublicInfo{users},
-		nil,
 	)
 }

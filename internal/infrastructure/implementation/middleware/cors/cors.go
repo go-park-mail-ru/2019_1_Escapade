@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 )
 
 // CORS is implementation of Middleware interface(package infrastructure)
 // realize CORS(https://developer.mozilla.org/ru/docs/Web/HTTP/CORS)
 type CORS struct {
+	handler.Handler
+
 	c     configuration.Cors
 	log   infrastructure.Logger
 	trace infrastructure.ErrorTrace
@@ -40,9 +42,10 @@ func New(
 	}
 
 	return &CORS{
-		c:     c.Get(),
-		log:   logger,
-		trace: trace,
+		Handler: *handler.New(logger, trace),
+		c:       c.Get(),
+		log:     logger,
+		trace:   trace,
 	}, nil
 }
 
@@ -52,14 +55,12 @@ func (c *CORS) Func(next http.Handler) http.Handler {
 			origin := getOrigin(r)
 			c.log.Println("cors check")
 			if !c.isAllowed(origin, c.c.Origins) {
-				handlers.SendResult(
+				c.SendResult(
 					rw,
-					handlers.NewResult(
+					c.Fail(
 						http.StatusForbidden,
-						nil,
 						c.trace.New(ErrCors+origin),
 					),
-					c.log,
 				)
 				c.log.Println("cors no!!!!!!!!!!")
 				return

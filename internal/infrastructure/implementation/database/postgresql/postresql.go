@@ -37,11 +37,7 @@ func (db *PostgresSQL) Run() error {
 // return result of ping
 func (db *PostgresSQL) Open() error {
 	str := db.c.ConnectionString
-	connectionString := DRIVER + "://" +
-		str.User + ":" +
-		str.Password + "@" + str.Address +
-		"/" + str.Database + "?sslmode=disable"
-	database, err := sql.Open(DRIVER, connectionString)
+	database, err := sql.Open(DRIVER, str.ToString(DRIVER))
 	if err != nil {
 		return err
 	}

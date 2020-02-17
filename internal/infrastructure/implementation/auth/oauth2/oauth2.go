@@ -245,35 +245,6 @@ func (service *OAuth2) check(
 	sReserve bool,
 	token oauth2.Token,
 ) (string, oauth2.Token, bool, error) {
-	if token.TokenType != service.c.TokenGeneration.TokenType {
-		service.log.Println(
-			"TokenType wrong! Get:",
-			token.TokenType,
-			". Expected:",
-			service.c.TokenGeneration.TokenType,
-		)
-		return "",
-			oauth2.Token{},
-			false,
-			service.trace.New(ErrInvalidTokenType)
-	}
-
-	// now, err := time.Parse("2006-01-02 15:04:05", time.Now().Format("2006-01-02 15:04:05"))
-	// if err != nil {
-	// 	return "", oauth2.Token{}, false, err
-	// }
-
-	// var updated bool
-	// if token.Expiry.Before(now) {
-	// 	updated = true
-	// 	utils.Debug(false, "before, go to updare")
-	// 	token, err = update(rw, token, client.Config)
-	// 	if err != nil {
-	// 		return "", token, updated, err
-	// 	}
-	// }
-	//accessToken = token.AccessToken
-
 	service.log.Println("look at access ", token.AccessToken)
 	service.log.Println("look at type ", token.TokenType)
 	service.log.Println("look at expiry ", token.Expiry)

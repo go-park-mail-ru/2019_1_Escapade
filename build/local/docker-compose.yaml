@@ -1,29 +1,70 @@
 version: '3.7'
 
+volumes:
+  prometheus: {}
+  grafana: {}
+  static: {}
+
 networks:
   traefik:
     driver: overlay
     external: true
 
 # secrets
+
 secrets:
+  # main database
   db_create_user:
     file: ./../configuration/external/postgresql/main/init/1_local.sql
   db_create_tables:
     file: ./../configuration/external/postgresql/main/init/2_local.sql
-  # так как в docker-compose нет configs, конфиги лежат в секретах
-  api_config:
-    file: ./../configuration/internal/api/infrastructure.json
-  api_auth_config:
-    file: ./../configuration/internal/api/auth_local.json
-  cors_config:
+  # auth database
+  db_auth_create_user:
+    file: ./../configuration/external/postgresql/auth/init/1_local.sql
+  # common secrets
+  cors:
     file: ./../configuration/internal/cors_local.json
-  database_config:
+  database:
     file: ./../configuration/internal/database_local.json
-  photo_config:
-    file: ./../configuration/internal/photo.json
-  photo_secret_config:
+  photo:
     file: ./../configuration/internal/photo_secret.json
+  # api serivce
+  api:
+    file: ./../configuration/internal/api/auth_local.json
+  # auth serivce
+  auth:
+    file: ./../configuration/internal/auth/auth_local.json
+  auth_database:
+    file: ./../configuration/internal/auth/database_local.json
+  # external services 
+  traefik:
+    file: ./../configuration/external/traefik/local.toml
+  users_credentials:
+    file: ./../configuration/external/traefik/users_credentials
+
+# configs
+
+configs:
+  # external services configs
+  nginx:
+    file: ./../configuration/external/nginx/default.conf
+  dockerd_config:
+    file: ./../configuration/external/dockerd-exporter/Caddyfile
+  prometheus:
+    file: ./../configuration/external/prometheus/conf/prometheus.yml
+  node_rules:
+    file: ./../configuration/external/prometheus/rules/swarm_node.rules.yml
+  task_rules:
+    file: ./../configuration/external/prometheus/rules/swarm_task.rules.yml
+  # internal services configs
+  api:
+    file: ./../configuration/internal/api/infrastructure.json
+  auth:
+    file: ./../configuration/internal/auth/infrastructure.json
+  chat:
+    file: ./../configuration/internal/chat/infrastructure.json
+  photo:
+    file: ./../configuration/internal/photo.json
 
 x-network: &network
   networks:
@@ -33,6 +74,18 @@ x-logging: &logging
   logging:
     options:
       max-size: 10m
+
+
+# x-consul: &consul
+#   image: consul:1.0.2
+#   networks:
+#     backend-overlay:
+#       aliases:
+#         - consul.cluster
+#   environment:
+#     - IP=$IP
+#   volumes:
+#     - ./../configuration/external/consul/config:/config
 
 x-backend: &backend-server
   <<: *logging
@@ -49,45 +102,126 @@ services:
 
   ### Load balancer ###
 
-  # traefik:
-  #   <<: *logging
-  #   <<: *network
-  #   image: traefik:v2.1
-  #   ports:
-  #     - 8081:80     # The HTTP port
-  #     - 444:443     # The HTTPS port
-  #     - 8079:8080 # The Web UI
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-  #     - ./../configuration/traefik/traefik.toml:/traefik.toml # Traefik configuration file
+  traefik:
+    <<: *logging
+    <<: *network
+    image: traefik:v2.1
+    ports:
+      - 8081:80     # The HTTP port
+      - 444:443     # The HTTPS port
+      - 8079:8080 # The Web UI
+    secrets:
+      - source: traefik
+        target: /traefik.toml
+      - source: users_credentials
+        target: /users_credentials
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      # - ./../configuration/external/traefik/acme.json:/acme.json
+    # env_file:
+    #   - ./../configuration/external/traefik/local.env
+    deploy:
+      labels:
+          - traefik.enable=true
+          #___ set traefik dashboard + API. The API is available at: mydomain.club/api/http/routers & mydomain.club/api/rawdata
+          - traefik.http.routers.traefik.rule=(PathPrefix(`/traefik`) || PathPrefix(`/api`))
+          - traefik.http.routers.traefik.service=api@internal
+          #___ set TLS (https)
+          - traefik.http.routers.traefik.entrypoints=web
+          #___ use these middlewares
+          - traefik.http.routers.traefik.middlewares=auth_all,traefik-strip
+          #___ specific middleware for traefik (it enables the dashboard at mydomain.com/traefik)
+          - traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik
+
+          # Middleware GROUPS
+          # ========================================================
+          #___ RuleGrpMain (follow bug: https://github.com/containous/traefik/issues/5890)
+          - traefik.http.middlewares.RuleGrpMain.chain.middlewares=compress_all,ratelimit_all,retry_all,header_all,slash_step1,slash_step2
+          #___ RuleGrpSlash
+          - traefik.http.middlewares.RuleGrpSlash.chain.middlewares=slash_step1,slash_step2
+
+          # Middlewares RULES
+          # ========================================================
+          # auth_all (useful for all dashboards)
+          - traefik.http.middlewares.auth_all.basicauth.users=user:$$apr1$$q8eZFHjF$$Fvmkk//V6Btlaf2i/ju5n/ # user/password
+          # compress_all
+          - traefik.http.middlewares.compress_all.compress=true
+          # ratelimit_all
+          - traefik.http.middlewares.ratelimit_all.ratelimit.average=100
+          - traefik.http.middlewares.ratelimit_all.ratelimit.burst=10
+          # retry_all
+          - traefik.http.middlewares.retry_all.retry.attempts=5
+          # error_all
+          - traefik.http.middlewares.error_all.errors.status=400-599
+          - traefik.http.middlewares.error_all.errors.service=serviceError
+          - traefik.http.middlewares.error_all.errors.query=/{status}.html
+          # slash_step1 + slash_step2 | Add missing trailing slash
+          - traefik.http.middlewares.slash_step1.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$
+          - traefik.http.middlewares.slash_step1.redirectregex.replacement=$${1}/
+          - traefik.http.middlewares.slash_step1.redirectregex.permanent=true
+          - traefik.http.middlewares.slash_step2.stripprefixregex.regex=/[a-z0-9_]+
+          # header_all
+          - traefik.http.middlewares.header_all.headers.browserXssFilter=true
+          - traefik.http.middlewares.header_all.headers.contentTypeNosniff=true
+          - traefik.http.middlewares.header_all.headers.forceSTSHeader=true
+          - traefik.http.middlewares.header_all.headers.framedeny=true
+          - traefik.http.middlewares.header_all.headers.sslredirect=true
+          - traefik.http.middlewares.header_all.headers.stsIncludeSubdomains=true
+          - traefik.http.middlewares.header_all.headers.stsPreload=true
+          - traefik.http.middlewares.header_all.headers.stsSeconds=31536000
+          - traefik.http.middlewares.header_all.headers.featurePolicy=accelerometer 'none'; ambient-light-sensor 'none'; camera 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; usb 'none'; midi 'none'; sync-xhr 'none'; vr 'none'
+          - "traefik.http.middlewares.header_all.headers.contentSecurityPolicy=default-src https:"
+          - traefik.http.middlewares.header_all.headers.referrerPolicy=strict-origin-when-cross-origin
+
+          # Docker swarm need a dummy service for port detection
+          - traefik.http.services.dummy-service.loadbalancer.server.port=59999
+
+  nginx:
+    <<: *logging
+    <<: *network
+    image: nginx:1.17.8
+    ports:
+      - 8082:80     # The HTTP port
+    configs:
+      - source: nginx
+        target: /etc/nginx/conf.d/default.conf
+    volumes:
+      - static:/static
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik
+        - traefik.http.services.nginx.loadbalancer.server.port=80
+        - traefik.http.routers.nginx.service=nginx
+        - traefik.http.routers.nginx.rule=PathPrefix(`/static`)
+        - traefik.http.routers.nginx.entrypoints=web
 
   ### Database servers ###
 
-  # pg:
-  #   <<: *logging
-  #   <<: *network
-  #   image: postgres:11.1
-  #   secrets:
-  #     - source: db_create_user
-  #       target: "/docker-entrypoint-initdb.d/1.sql"
-  #       mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
-  #       uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
-  #     - source: db_create_tables
-  #       target: "/docker-entrypoint-initdb.d/2.sql"
-  #       mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
-  #       uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
+  pg:
+    <<: *logging
+    <<: *network
+    image: postgres:12.1
+    secrets:
+      - source: db_create_user
+        target: "/docker-entrypoint-initdb.d/1.sql"
+        mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
+        uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
+      - source: db_create_tables
+        target: "/docker-entrypoint-initdb.d/2.sql"
+        mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
+        uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
 
-  # pg-auth:
-  #   image: localhost:11.2-alpine
-  #   environment:
-  #     POSTGRES_USER: 'auth' 
-  #     POSTGRES_PASSWORD: 'auth'
-  #     POSTGRES_DB: 'authbase'
-  #   networks: 
-  #     - backend
-  #   ports:
-  #     - "5431:5432"    
-
+  pg-auth:
+    <<: *logging
+    <<: *network
+    image: postgres:12.1
+    secrets:
+      - source: db_auth_create_user
+        target: "/docker-entrypoint-initdb.d/1.sql"
+        mode: 0755  #Grant read and execute permission to owner, execute and read to group and others
+        uid: "0"  #The uid for root is due to the permissions for the init.db folder for image
+    
   # pg-ery:
   #   image: smartphonejava/pg-ery:latest    
   #   build:
@@ -102,7 +236,7 @@ services:
     <<: *backend-server
     image: smartphonejava/api:latest    
     build:
-      dockerfile: build/image/internal/api/Dockerfile
+      dockerfile: build/image/api/Dockerfile
       <<: *root
     # depends_on:
     #   - "pg"
@@ -111,26 +245,27 @@ services:
     environment:
       - name=api
       - port=3001
-      - auth_address=http://auth:3003 
-      - auth_redirect_url=http://auth:3003/auth/oauth2
+      - auth_address=http://auth:3002 
+      - auth_redirect_url=http://auth:3002/auth/oauth2
       - db_address=pg:5432
-      - discovery_addressr=consul:8500
+      - discovery_address=consul:8500
       - subnet=10.10.8.
       - max_conn=500
       - network=traefik
       - entrypoint=web
-    secrets:
-      - source: api_config
+    configs:
+      - source: api
         target: /api.json
-      - source: api_auth_config
-        target: /auth.json
-      - source: cors_config
-        target: /cors.json
-      - source: database_config
-        target: /database.json
-      - source: photo_config
+      - source: photo
         target: /photo.json
-      - source: photo_secret_config
+    secrets:
+      - source: api
+        target: /auth.json
+      - source: cors
+        target: /cors.json
+      - source: database
+        target: /database.json
+      - source: photo
         target: /photo_secret.json
     command: 
       - --infrastructure-config=/api.json
@@ -140,87 +275,73 @@ services:
       - --photo-config=/photo.json
       - --photo-secret-config=/photo_secret.json
 
-  # ery:
-  #   build:
-  #     dockerfile: ./cmd/services/ery/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg-ery"
-  #     - "consul"
-  #     - "auth"
-  #   ports:
-  #     - 3100:3100
-  #   environment:
-  #     - CONSUL_ADDRESS=consul-agent-1
-  #   command: /bin/sh -c "go run cmd/services/ery/main.go cmd/services/ery/ery.json internal/photo/eryphoto.json cmd/services/ery/secret2.json 3100 8500"
-  #   volumes:
-  #   - ./:/escapade
-  #   logging:
-  #     options:
-  #       max-size: 10m
 
-  # chat:
-  #   image: smartphonejava/chat:latest
-  #   build:
-  #     dockerfile: ./cmd/services/chat/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg"
-  #   environment:
-  #     - CONSUL_ADDRESS=consul-agent
-  #   ports:
-  #     - 3066-3087:3060
-  #   networks: 
-  #     - backend
-  #   labels:
-  #     - "traefik.enable=false"
-  #     - "org.label-schema.group=monitoring"
-  #   command: /bin/sh -c "./bin/chat cmd/services/chat/chat.json 3060"
-  #   logging:
-  #     options:
-  #       max-size: 10m
+  auth:
+    <<: *backend-server
+    image: smartphonejava/auth:latest    
+    build:
+      dockerfile: build/image/auth/Dockerfile
+      <<: *root
+    ports:
+      - 3022-3041:3002
+    environment:
+      - name=auth
+      - port=3002
+      - discovery_address=consul:8500
+      - subnet=10.10.8.
+      - max_conn=100
+      - network=traefik
+      - entrypoint=web
+    configs:
+      - source: auth
+        target: /auth.json
+    secrets:
+      - source: auth
+        target: /auth_secret.json
+      - source: cors
+        target: /cors.json
+      - source: database
+        target: /database.json
+      - source: auth_database
+        target: /auth_database.json
+    command: 
+      - --infrastructure-config=/auth.json
+      - --service-config=/auth_secret.json
+      - --cors-config=/cors.json
+      - --database-config=/database.json
+      - --auth-database-config=/auth_database.json
 
-  # ### auth ###
-
-  # auth:
-  #   image: smartphonejava/auth:latest
-  #   build:
-  #     dockerfile: ./cmd/services/auth/Dockerfile
-  #     context: .
-  #   depends_on:
-  #     - "pg"
-  #     - "pg-auth"
-  #     - "pg-ery"
-  #   ports:
-  #     - 3022-3043:3003
-  #   #dns: 127.0.0.1 
-  #   networks: 
-  #     - backend
-  #   environment:
-  #     - CONSUL_ADDRESS=consul-agent
-  #     #/bin/sh -c "./wait-for-it.sh pg:5432 && ./wait-for-it.sh auth:3333 && ./bin/api"
-  #     # ./wait-for-it.sh pg:5432 &&  ./wait-for-it.sh  pg-auth:5432 && ./wait-for-it.sh pg-ery:5432 &&
-  #   command: /bin/sh -c " ./bin/auth cmd/services/auth/auth.json 3003"
-  #   labels:
-  #     - "traefik.enable=false"
-  #     - "org.label-schema.group=monitoring"
-  #   logging:
-  #     options:
-  #       max-size: 10m
-        
-  # # loader:
-  # #   build:
-  # #     dockerfile: ./cmd/services/configLoader/Dockerfile
-  # #     context: .
-  # #   depends_on:
-  # #     - "consul-agent-1"
-  # #     - "vault"
-  # #   ports:
-  # #     - 3007:3007
-  # #   command: /bin/sh -c "./bin/loader config.json"
-  # #   logging:
-  # #     options:
-  # #       max-size: 10m
+  chat:
+    <<: *backend-server
+    image: smartphonejava/chat:latest    
+    build:
+      dockerfile: build/image/chat/Dockerfile
+      <<: *root
+    ports:
+      - 3042-3063:3003
+    environment:
+      - name=chat
+      - port=3003
+      - discovery_address=consul:8500
+      - subnet=10.10.8.
+      - max_conn=100
+      - network=traefik
+      - entrypoint=web
+    configs:
+      - source: chat
+        target: /chat.json
+      - source: photo
+        target: /photo.json
+    secrets:
+      - source: database
+        target: /database.json
+      - source: photo
+        target: /photo_secret.json
+    command: 
+      - --infrastructure-config=/chat.json
+      - --database-config=/database.json
+      - --photo-config=/photo.json
+      - --photo-secret-config=/photo_secret.json
 
   # game:
   #   image: smartphonejava/game:latest
@@ -258,37 +379,58 @@ services:
   # #     - PORT_HISTORY_URL=:3004
   # #   command: /bin/sh -c "./bin/history"
 
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #   networks: 
-  #     - backend
-  #   ports:
-  #     - "9090:9090"
-  #   labels:
-  #    - "traefik.frontend.rule=Host:prometheus.localhost"
-  #    - "traefik.port=9090"
-  #    - "traefik.docker.network=inbound"
+  prometheus:
+    <<: *logging
+    <<: *network
+    image: prom/prometheus:v2.5.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=${PROMETHEUS_RETENTION:-24h}'
+    volumes:
+      - prometheus:/prometheus
+      - static:/prometheus/web/ui/static
+    configs:
+      - source: prometheus
+        target: /etc/prometheus/prometheus.yml
+      - source: node_rules
+        target: /etc/prometheus/swarm_node.rules.yml
+      - source: task_rules
+        target: /etc/prometheus/swarm_task.rules.yml
+    ports:
+      - "9090:9090"
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.prometheus.rule=PathPrefix(`/graph`)
+        - traefik.http.routers.prometheus.entrypoints=web
+        # - traefik.http.routers.prometheus.middlewares=prometheus-strip
+        # - traefik.http.middlewares.prometheus-strip.stripprefix.prefixes=/graph
+        - traefik.http.routers.prometheus.service=prometheus
+       # Docker swarm need a dummy service for port detection
+        - traefik.http.services.prometheus.loadbalancer.server.port=9090
+        - traefik.docker.network=traefik
     
-  # grafana:
-  #   image: grafana/grafana
-  #   container_name: grafana
-  #   networks: 
-  #     - backend
-  #   environment:
-  #    - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
-  #    - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-  #    - GF_USERS_ALLOW_SIGN_UP=false
-  #   restart: unless-stopped
-  #   ports:
-  #     - 3000:3000
-  #   labels:
-  #     - "traefik.port=3000"
-  #     - "traefik.docker.network=backend"
-  #     - "traefik.frontend.rule=Host:grafana.localhost"
+  grafana:
+    <<: *logging
+    <<: *network
+    image: stefanprodan/swarmprom-grafana:5.3.4
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana:/var/lib/grafana
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.grafana.loadbalancer.server.port=3000
+        - traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)
+        - traefik.http.routers.grafana.service=grafana
+        - traefik.http.routers.grafana.entrypoints=web
+        - traefik.docker.network=traefik
 
   # ### discovery ###
 
@@ -305,21 +447,29 @@ services:
   #     - backend
   #   command: agent -server -join consul -ui-dir /ui -config-file=/consul/config/server/consul-config.json
 
-  # ## consul bootstrap ##
-  # consul:
-  #   image: smartphonejava/consul:latest
-  #   build:
-  #     context: ./extra/consul
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8400:8400
-  #     - 8500:8500
-  #     - 8600:53/udp
-  #   networks: 
-  #     - backend
-  #   command: agent -server -bootstrap -node bootstrap -bind 0.0.0.0 -client 0.0.0.0 -ui -config-file=/consul/config/bootstrap/consul-config.json
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
+  consul: 
+    <<: *logging
+    networks:
+      traefik:
+        aliases:
+          - consul.cluster
+    image: consul:1.6.2
+    ports:
+      - "8500:8500"
+      - "8300:8300"
+      - "8400:8400"
+      - "8301:8301/tcp"
+      - "8302:8302/tcp"
+      - "8301:8301/udp"
+      - "8302:8302/udp"
+      - "8610:53/udp"
+      #-node bootstrap
+    command: 
+      - agent 
+      - -config-file=./config/bootstrap.json
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./../configuration/external/consul/config:/config
   
   # ## consul agents ##
   # consul-agent:
@@ -339,32 +489,30 @@ services:
   #   labels:
   #     - "traefik.frontend.rule=Host:consul-agent.2019-1-escapade.docker.localhost"
  
-  # front:
-  #   image: smartphonejava/front:latest
-  #   build:
-  #     dockerfile: Dockerfile
-  #     context: ./extra/front
-  #   ports:
-  #     - "8080:8080"   
-  #   command: npm start
-  # # vault:
-  # #   build:
-  # #     context: ./extra/vault
-  # #     dockerfile: Dockerfile
-  # #   ports:
-  # #     - 8200:8200
-  # #   volumes:
-  # #     - ./extra/vault/config:/vault/config
-  # #     - ./extra/vault/policies:/vault/policies
-  # #     - ./extra/vault/data:/vault/data
-  # #     - ./extra/vault/logs:/vault/logs
-  # #   environment:
-  # #     - VAULT_ADDR=http://127.0.0.1:8200
-  # #   command: server -config=config/vault-config.json
-  # #   cap_add:
-  # #     - IPC_LOCK
-  # #   depends_on:
-  # #     - consul-agent-1
+  front:
+    <<: *logging
+    <<: *network
+    image: smartphonejava/front:latest
+    build:
+      dockerfile: image/front/local/Dockerfile
+      context: ./../
+    ports:
+      - "8088:8080" 
+    command: start
+    # volumes:
+    #   - static:/front/public
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik
+        - traefik.http.services.front.loadbalancer.server.port=8080
+        - traefik.http.routers.front.service=front
+        - traefik.http.routers.front.rule=PathPrefix(`/front`)
+        - traefik.http.routers.front.entrypoints=web
+        - traefik.http.routers.traefik.middlewares=front-strip
+        #___ specific middleware for traefik (it enables the dashboard at mydomain.com/traefik)
+        - traefik.http.middlewares.front-strip.stripprefix.prefixes=/front
+
 
   # alertmanager:
   #   image: prom/alertmanager:v0.19.0

@@ -12,6 +12,7 @@ type Database struct {
 	MaxIdleConns     int              `json:"max_idle_conns"`
 	MaxLifetime      models.Duration  `json:"max_life_time"`
 	ConnectionString ConnectionString `json:"connection_string"`
+	ContextTimeout   models.Duration  `json:"context_timeout"`
 }
 
 // Get configuration.Database from json model
@@ -22,6 +23,7 @@ func (d *Database) Get() configuration.Database {
 		MaxIdleConns:     d.MaxIdleConns,
 		MaxLifetime:      d.MaxLifetime.Duration,
 		ConnectionString: d.ConnectionString.Get(),
+		ContextTimeout:   d.ContextTimeout.Duration,
 	}
 }
 
@@ -32,6 +34,7 @@ func (d *Database) Set(c configuration.Database) {
 	d.MaxIdleConns = c.MaxIdleConns
 	d.MaxLifetime.Duration = c.MaxLifetime
 	d.ConnectionString.Set(c.ConnectionString)
+	d.ContextTimeout.Duration = c.ContextTimeout
 }
 
 //easyjson:json

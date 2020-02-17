@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 // Recover is implementation of Middleware interface(package infrastructure)
@@ -26,11 +27,7 @@ func New(logger infrastructure.Logger) *Recover {
 func (mw *Recover) Func(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(rw http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if r := recover(); r != nil {
-					mw.log.Println("Panic recovered: ", r)
-				}
-			}()
+			defer utils.CatchPanic("mw")
 			next.ServeHTTP(rw, r)
 		},
 	)

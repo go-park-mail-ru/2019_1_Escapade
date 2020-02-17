@@ -7,10 +7,9 @@ import (
 
 //easyjson:json
 type Auth struct {
-	Salt            string          `json:"salt"`
-	Cookie          Cookie          `json:"cookie"`
-	TokenGeneration TokenGeneration `json:"token_generation"`
-	Client          AuthClient      `json:"auth_client"`
+	Salt   string     `json:"salt"`
+	Cookie Cookie     `json:"cookie"`
+	Client AuthClient `json:"auth_client"`
 }
 
 //easyjson:json
@@ -52,10 +51,9 @@ type AuthKeys struct {
 // implementation of AuthRepository
 func (a *Auth) Get() configuration.Auth {
 	return configuration.Auth{
-		Salt:            a.Salt,
-		Cookie:          a.Cookie.Get(),
-		TokenGeneration: a.TokenGeneration.Get(),
-		Client:          a.Client.Get(),
+		Salt:   a.Salt,
+		Cookie: a.Cookie.Get(),
+		Client: a.Client.Get(),
 	}
 }
 
@@ -64,28 +62,7 @@ func (a *Auth) Get() configuration.Auth {
 func (a *Auth) Set(c configuration.Auth) {
 	a.Salt = c.Salt
 	a.Cookie.Set(c.Cookie)
-	a.TokenGeneration.Set(c.TokenGeneration)
 	a.Client.Set(c.Client)
-}
-
-// Get configuration.TokenGeneration from json model
-// implementation of TokenGenerationRepository
-func (a *TokenGeneration) Get() configuration.TokenGeneration {
-	return configuration.TokenGeneration{
-		AccessExpire:      a.AccessExpire.Duration,
-		RefreshExpire:     a.RefreshExpire.Duration,
-		IsGenerateRefresh: a.IsGenerateRefresh,
-		TokenType:         a.TokenType,
-	}
-}
-
-// Set data from configuration.TokenGeneration
-// implementation of TokenGenerationRepository
-func (a *TokenGeneration) Set(c configuration.TokenGeneration) {
-	a.AccessExpire.Init(c.AccessExpire)
-	a.RefreshExpire.Init(c.RefreshExpire)
-	a.IsGenerateRefresh = c.IsGenerateRefresh
-	a.TokenType = c.TokenType
 }
 
 // Get configuration.AuthClient from json model

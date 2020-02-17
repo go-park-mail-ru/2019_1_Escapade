@@ -3,13 +3,15 @@ package gorillamux
 import (
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/gorilla/mux"
 )
 
 type MuxRouter struct {
+	*handler.Handler
+
 	m     *mux.Router
 	log   infrastructure.Logger
 	trace infrastructure.ErrorTrace
@@ -31,6 +33,8 @@ func New(
 	}
 
 	var m = &MuxRouter{
+		Handler: handler.New(logger, trace),
+
 		m:     mux.NewRouter(),
 		log:   logger,
 		trace: trace,
@@ -38,14 +42,12 @@ func New(
 	m.m.MethodNotAllowedHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, req *http.Request) {
 			w.Write([]byte("Error 405 - MethodNotAllowed"))
-			w.WriteHeader(http.StatusMethodNotAllowed)
 			m.log.Println("StatusMethodNotAllowed")
 		})
 	m.m.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, req *http.Request) {
 			w.Write([]byte("Error 404 - StatusNotFound " + req.URL.Path))
-			w.WriteHeader(http.StatusNotFound)
-			m.log.Println("NotFoundHandler")
+			m.log.Println("Path not found:", req.URL.Path)
 		})
 	return m
 }
@@ -73,20 +75,24 @@ func (r *MuxRouter) PathHandlerFunc(
 func (r *MuxRouter) PathSubrouter(
 	tpl string,
 ) infrastructure.Router {
-	return &MuxRouter{
-		m:   r.m.PathPrefix(tpl).Subrouter(),
-		log: r.log,
-	}
+	var m = New(r.log, r.trace)
+	m.m = r.m.PathPrefix(tpl).Subrouter()
+	return m
+}
+
+func (r *MuxRouter) ANY(
+	path string,
+	f models.ResultFunc,
+) infrastructure.Router {
+	r.m.HandleFunc(path, r.HandleFunc(f))
+	return r
 }
 
 func (r *MuxRouter) GET(
 	path string,
 	f models.ResultFunc,
 ) infrastructure.Router {
-	r.m.HandleFunc(
-		path,
-		handlers.HandleFunc(f, r.trace, r.log),
-	).Methods("GET")
+	r.m.HandleFunc(path, r.HandleFunc(f)).Methods("GET")
 	return r
 }
 
@@ -94,10 +100,7 @@ func (r *MuxRouter) POST(
 	path string,
 	f models.ResultFunc,
 ) infrastructure.Router {
-	r.m.HandleFunc(
-		path,
-		handlers.HandleFunc(f, r.trace, r.log),
-	).Methods("POST")
+	r.m.HandleFunc(path, r.HandleFunc(f)).Methods("POST")
 	return r
 }
 
@@ -105,10 +108,7 @@ func (r *MuxRouter) PUT(
 	path string,
 	f models.ResultFunc,
 ) infrastructure.Router {
-	r.m.HandleFunc(
-		path,
-		handlers.HandleFunc(f, r.trace, r.log),
-	).Methods("PUT")
+	r.m.HandleFunc(path, r.HandleFunc(f)).Methods("PUT")
 	return r
 }
 
@@ -116,10 +116,7 @@ func (r *MuxRouter) DELETE(
 	path string,
 	f models.ResultFunc,
 ) infrastructure.Router {
-	r.m.HandleFunc(
-		path,
-		handlers.HandleFunc(f, r.trace, r.log),
-	).Methods("DELETE")
+	r.m.HandleFunc(path, r.HandleFunc(f)).Methods("DELETE")
 	return r
 }
 
@@ -127,10 +124,7 @@ func (r *MuxRouter) OPTIONS(
 	path string,
 	f models.ResultFunc,
 ) infrastructure.Router {
-	r.m.HandleFunc(
-		path,
-		handlers.HandleFunc(f, r.trace, r.log),
-	).Methods("OPTIONS")
+	r.m.HandleFunc(path, r.HandleFunc(f)).Methods("OPTIONS")
 	return r
 }
 

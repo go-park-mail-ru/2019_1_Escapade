@@ -30,14 +30,14 @@ func (pn *PhotoServiceNil) SaveImage(
 	return nil
 }
 func (pn *PhotoServiceNil) GetImage(key string) (string, error) {
-	return "", nil
+	return "PhotoServiceNil", nil
 }
 func (pn *PhotoServiceNil) DeleteImage(key string) error {
 	return nil
 }
 
 func (pn *PhotoServiceNil) GetDefaultAvatar() string {
-	return ""
+	return "PhotoServiceNil"
 }
 func (pn *PhotoServiceNil) MaxFileSize() int64 {
 	return 0

@@ -16,8 +16,21 @@ type Database struct {
 	MaxIdleConns     int
 	MaxLifetime      time.Duration
 	ConnectionString ConnectionString
+	ContextTimeout   time.Duration
+}
+
+type ConnectionStringRepository interface {
+	Get() ConnectionString
+	Set(ConnectionString)
 }
 
 type ConnectionString struct {
 	User, Password, Database, Address string
+}
+
+func (str ConnectionString) ToString(driver string) string {
+	return driver + "://" +
+		str.User + ":" +
+		str.Password + "@" + str.Address +
+		"/" + str.Database + "?sslmode=disable"
 }

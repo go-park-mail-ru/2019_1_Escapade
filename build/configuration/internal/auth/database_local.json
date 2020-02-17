@@ -1,0 +1,6 @@
+{
+	"user":"authlocal",
+	"password":"authlocal",
+	"database":"authbase",
+	"address":"pg-auth:5432"
+}

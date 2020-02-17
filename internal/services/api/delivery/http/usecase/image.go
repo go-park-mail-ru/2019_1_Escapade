@@ -9,9 +9,9 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 	delivery "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/delivery/http"
@@ -19,6 +19,8 @@ import (
 
 // ImageHandler handle requests associated with images
 type ImageHandler struct {
+	*handler.Handler
+
 	image   api.ImageUseCaseI
 	service infrastructure.PhotoService
 	rep     delivery.RepositoryI
@@ -31,8 +33,11 @@ func NewImageHandler(
 	rep delivery.RepositoryI,
 	service infrastructure.PhotoService,
 	trace infrastructure.ErrorTrace,
+	logger infrastructure.Logger,
 ) *ImageHandler {
 	return &ImageHandler{
+		Handler: handler.New(logger, trace),
+
 		image:   image,
 		service: service,
 		rep:     rep,
@@ -54,11 +59,10 @@ func (h *ImageHandler) GetImage(
 	)
 
 	if name, _ := h.rep.GetName(r); name == "" {
-		id, err := ih.GetUserIDFromAuthRequest(r, h.trace)
+		id, err := h.GetUserIDFromAuthRequest(r)
 		if err != nil {
-			return ih.NewResult(
+			return h.Fail(
 				http.StatusUnauthorized,
-				nil,
 				h.trace.WrapWithText(err, ErrAuth),
 			)
 		}
@@ -68,23 +72,21 @@ func (h *ImageHandler) GetImage(
 	}
 
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrAvatarNotFound),
 		)
 	}
 
 	url.URL, err = h.service.GetImage(fileKey)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrAvatarNotFound),
 		)
 	}
 
-	return ih.NewResult(http.StatusOK, &url, nil)
+	return h.Success(http.StatusOK, &url)
 }
 
 // PostImage create avatar
@@ -111,20 +113,18 @@ func (h *ImageHandler) PostImage(
 		url    models.Avatar
 	)
 
-	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
+	userID, err = h.GetUserIDFromAuthRequest(r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusUnauthorized,
-			nil,
 			h.trace.WrapWithText(err, ErrAuth),
 		)
 	}
 
 	file, err = h.getFileFromRequst(rw, r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.Wrap(err),
 		)
 	}
@@ -132,14 +132,13 @@ func (h *ImageHandler) PostImage(
 
 	url, err = h.saveFile(r.Context(), file, userID)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusInternalServerError,
-			nil,
 			h.trace.Wrap(err),
 		)
 	}
 
-	return ih.NewResult(http.StatusCreated, &url, nil)
+	return h.Success(http.StatusCreated, &url)
 }
 
 func (h *ImageHandler) getFileFromRequst(
@@ -150,19 +149,25 @@ func (h *ImageHandler) getFileFromRequst(
 
 	r.Body = http.MaxBytesReader(rw, r.Body, maxFileSize)
 
-	if err := r.ParseMultipartForm(maxFileSize); err != nil {
-		return nil, h.trace.WrapWithText(err, ErrInvalidFile)
+	err := r.ParseMultipartForm(maxFileSize)
+	if err != nil {
+		return nil, h.trace.WrapWithText(
+			err,
+			ErrInvalidFile,
+		)
 	}
 
 	var (
-		err    error
 		file   multipart.File
 		handle *multipart.FileHeader
 	)
 
 	file, handle, err = r.FormFile(FormFileName)
 	if err != nil {
-		return nil, h.trace.WrapWithText(err, ErrInvalidFile)
+		return nil, h.trace.WrapWithText(
+			err,
+			ErrInvalidFile,
+		)
 	}
 	if file == nil || handle == nil {
 		return nil, h.trace.New(ErrInvalidFile)
@@ -174,7 +179,10 @@ func (h *ImageHandler) getFileFromRequst(
 	)
 	if fileSize, err = buff.ReadFrom(file); err != nil {
 		file.Close()
-		return nil, h.trace.WrapWithText(err, ErrInvalidFile)
+		return nil, h.trace.WrapWithText(
+			err,
+			ErrInvalidFile,
+		)
 	}
 
 	if fileSize > maxFileSize {
@@ -195,7 +203,9 @@ func (h *ImageHandler) getFileFromRequst(
 		)
 	}
 
-	err = h.checkFileType(handle.Header.Get(ContentTypeHeader))
+	err = h.checkFileType(
+		handle.Header.Get(ContentTypeHeader),
+	)
 	if err != nil {
 		file.Close()
 		return nil, err

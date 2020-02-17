@@ -12,13 +12,13 @@ package infrastructure
 //   services, databases, stops running gorutins, frees resources, and
 //   so on. It also can return error, As well as Run(), Close() can
 //   return an error, which will terminate the program with an error code
-type DependencyI interface {
+type Dependency interface {
 	Run() error
 	Close() error
 }
 
 // ServerI represents server interface
-type ServerI interface {
+type Server interface {
 	Run()
-	AddDependencies(dependencies ...DependencyI) ServerI
+	AddDependencies(dependencies ...Dependency) Server
 }

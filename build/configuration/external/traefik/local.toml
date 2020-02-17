@@ -1,0 +1,59 @@
+[api]
+  dashboard = true
+  insecure = true
+
+[providers]
+  [providers.docker]
+    exposedByDefault=false
+    endpoint="unix:///var/run/docker.sock"
+    swarmMode=true
+    swarmModeRefreshSeconds= "30s"
+  [providers.consulCatalog]
+    exposedByDefault=false
+    refreshInterval="5s"
+    prefix="traefik"
+    [providers.consulCatalog.endpoint]
+      address="http://consul:8500"
+      endpointWaitTime = "15s"
+
+[entrypoints]
+  [entrypoints.web]
+    address=":80"
+    [entrypoints.web.transport]
+      [entrypoints.web.transport.lifeCycle]
+        graceTimeOut=10
+      [entrypoints.web.transport.respondingtimeouts]
+        readTimeout=5
+        writeTimeout=5
+        idletimeout=5
+  [entryPoints.https]
+    address = ":443"
+    [entrypoints.https.transport]
+      [entrypoints.https.transport.lifeCycle]
+        graceTimeOut=10
+      [entrypoints.https.transport.respondingtimeouts]
+        readTimeout=5
+        writeTimeout=5
+        idletimeout=5
+
+[serversTransport]
+  maxIdleConnsPerHost=-1
+  [serversTransport.forwardingTimeouts]
+    dialTimeout="1s"
+    responseHeaderTimeout="1s"
+    idleConnTimeout="1s"
+
+[metrics]
+  [metrics.prometheus]
+    buckets = [0.1,0.3,1.2,5.0]
+    addentrypointslabels = true
+    addServicesLabels = true
+    entrypoint = "traefik"
+
+[certificatesResolvers.letsencrypt.acme]
+  email = "artyom773@gmail.com"
+  storage = "acme.json"
+  caserver= "https://acme-staging-v02.api.letsencrypt.org/directory"
+  tlschallenge = true
+  [certificatesResolvers.letsencrypt.acme.httpChallenge]
+    entryPoint = "web"

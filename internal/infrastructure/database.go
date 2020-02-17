@@ -7,6 +7,8 @@ import (
 
 //go:generate $GOPATH/bin/mockery -name "ExecerI|TransactionI|DatabaseI"
 
+const ErrNoDatabase = "Database interface not given"
+
 // ExecerI interface for executing queries in the database
 type Execer interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)

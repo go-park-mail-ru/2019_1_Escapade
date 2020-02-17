@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
@@ -18,6 +18,8 @@ import (
 
 // UserHandler handle requests associated with the user
 type UserHandler struct {
+	*handler.Handler
+
 	auth  infrastructure.AuthService
 	photo infrastructure.PhotoService
 
@@ -39,6 +41,8 @@ func NewUserHandler(
 	log infrastructure.Logger,
 ) *UserHandler {
 	return &UserHandler{
+		Handler: handler.New(log, trace),
+
 		auth:  auth,
 		photo: photo,
 
@@ -68,11 +72,10 @@ func (h *UserHandler) GetMyProfile(
 	r *http.Request,
 ) models.RequestResult {
 
-	userID, err := ih.GetUserIDFromAuthRequest(r, h.trace)
+	userID, err := h.GetUserIDFromAuthRequest(r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusUnauthorized,
-			nil,
 			h.trace.WrapWithText(err, ErrAuth),
 		)
 	}
@@ -96,25 +99,23 @@ func (h *UserHandler) CreateUser(
 	r *http.Request,
 ) models.RequestResult {
 	var user models.UserPrivateInfo
-	err := ih.GetUserWithAllFields(
+	err := h.GetUserWithAllFields(
 		r,
-		h.trace,
 		h.auth.HashPassword,
 		&user,
 	)
 	if err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
-	if err = ih.ValidateUser(&user, h.trace); err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+	if err = h.ValidateUser(&user); err != nil {
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
 	_, err = h.user.CreateAccount(r.Context(), &user)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserAlreadyExist),
 		)
 	}
@@ -122,14 +123,10 @@ func (h *UserHandler) CreateUser(
 	// TODO а может тут вызывать какой нибудь метод обработчика сессий?
 	err = h.auth.CreateToken(rw, user.Name, user.Password)
 	if err != nil {
-		ih.Warning(
-			h.log,
-			err,
-			"Cant create token in auth service",
-		)
+		h.Warning(err, "Cant create token in auth service")
 	}
 
-	return ih.NewResult(http.StatusCreated, nil, nil)
+	return h.Success(http.StatusCreated, nil)
 }
 
 // UpdateProfile update user's name or password
@@ -156,30 +153,28 @@ func (h *UserHandler) UpdateProfile(
 		userID int32
 	)
 
-	err = ih.GetUser(r, h.trace, h.auth.HashPassword, &user)
+	err = h.GetUser(r, h.auth.HashPassword, &user)
 	if err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
-	userID, err = ih.GetUserIDFromAuthRequest(r, h.trace)
+	userID, err = h.GetUserIDFromAuthRequest(r)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusUnauthorized,
-			nil,
 			h.trace.WrapWithText(err, ErrAuth),
 		)
 	}
 
 	err = h.user.UpdateAccount(r.Context(), userID, &user)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusInternalServerError,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
-	return ih.NewResult(http.StatusOK, nil, nil)
+	return h.Success(http.StatusOK, nil)
 }
 
 // DeleteUser delete account
@@ -203,31 +198,29 @@ func (h *UserHandler) DeleteUser(
 		err  error
 	)
 
-	err = ih.GetUserWithAllFields(
+	err = h.GetUserWithAllFields(
 		r,
-		h.trace,
 		h.auth.HashPassword,
 		&user,
 	)
 	if err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
 	err = h.deleteUserInDB(context.Background(), &user, "")
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusInternalServerError,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	err = h.auth.DeleteToken(rw, r)
 	if err != nil {
-		ih.Warning(h.log, err, WrnFailedTokenDelete)
+		h.Warning(err, WrnFailedTokenDelete)
 	}
 
-	return ih.NewResult(http.StatusOK, nil, nil)
+	return h.Success(http.StatusOK, nil)
 }
 
 func (h *UserHandler) getUser(
@@ -245,25 +238,23 @@ func (h *UserHandler) getUser(
 	difficult = h.rep.GetDifficult(r)
 	difficultI, err := strconv.Atoi(difficult)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusBadRequest,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	user, err = h.user.FetchOne(r.Context(), userID, difficultI)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	h.photo.GetImages(user)
 
-	return ih.NewResult(http.StatusOK, user, nil)
+	return h.Success(http.StatusOK, user)
 }
 
 func (h *UserHandler) deleteUserInDB(
@@ -271,7 +262,6 @@ func (h *UserHandler) deleteUserInDB(
 	user *models.UserPrivateInfo,
 	sessionID string,
 ) error {
-
 	err := h.user.DeleteAccount(ctx, user)
 	if err != nil {
 		return err

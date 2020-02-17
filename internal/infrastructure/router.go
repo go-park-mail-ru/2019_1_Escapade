@@ -13,6 +13,7 @@ type Router interface {
 		f func(http.ResponseWriter, *http.Request),
 	) Router
 	PathSubrouter(tpl string) Router
+	ANY(path string, f models.ResultFunc) Router
 	GET(path string, f models.ResultFunc) Router
 	POST(path string, f models.ResultFunc) Router
 	PUT(path string, f models.ResultFunc) Router

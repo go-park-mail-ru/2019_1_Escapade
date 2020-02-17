@@ -2,45 +2,23 @@ package main
 
 import (
 	"flag"
-	"time"
-
-	// "time"
+	"os"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/auth/oauth2"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/database/postgresql"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/error/tracerr"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/loadbalancer/traefik"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/loader/cleanenv"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/logger/log"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/metrics/prometheus"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/photo/aws"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/router/gorillamux"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/server/http"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/servicediscovery/consul"
+
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/factory"
-
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration/loader/cleanenv"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration/models"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/auth/oauth2"
-	// postgresql "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/database/postresql"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/error/tracerr"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/loadbalancer/traefik"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/logger/log"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/metrics/prometheus"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/photo/aws"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/router/gorillamux"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/server/http"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/servicediscovery/consul"
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
-
-	// "github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api/factory"
-
-	// miauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/auth"
-	// micors "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/cors"
-	// milogger "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/logger"
-	// mimetrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/metrics"
-	// mirecover "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/recover"
 
 	miauth "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/auth"
 	micors "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/cors"
@@ -48,11 +26,11 @@ import (
 	mimetrics "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/metrics"
 	mirecover "github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/implementation/middleware/recover"
 
-	// dont delete it for correct easyjson work
-	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration/loader/cleanenv"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/synced"
+
+	// dont delete it for correct easyjson work
+	_ "github.com/go-park-mail-ru/2019_1_Escapade/docs"
 	_ "github.com/mailru/easyjson/gen"
 )
 
@@ -79,26 +57,31 @@ func main() {
 		confInfrastructure, confAuth, confCors   string
 		confDatabase, confPhoto, confSecretPhoto string
 	)
-	flag.StringVar(&confInfrastructure, "infrastructure-config", "-",
-		"path to service configuration file")
-	flag.StringVar(&confAuth, "auth-config", "-",
-		"path to auth configuration file")
-	flag.StringVar(&confCors, "cors-config", "-",
-		"path to cors configuration file")
-	flag.StringVar(&confDatabase, "database-config", "-",
-		"path to database configuration file")
-	flag.StringVar(&confPhoto, "photo-config", "-",
-		"path to public photo configuration file")
-	flag.StringVar(&confSecretPhoto, "photo-secret-config", "-",
-		"path to secret photo configuration file")
-	flag.Parse()
+	fset := flag.NewFlagSet("api service", flag.ExitOnError)
 
-	loader := new(cleanenv.Loader)
+	fset.StringVar(&confInfrastructure, "infrastructure-config", "-",
+		"path to service configuration file")
+	fset.StringVar(&confAuth, "auth-config", "-",
+		"path to auth configuration file")
+	fset.StringVar(&confCors, "cors-config", "-",
+		"path to cors configuration file")
+	fset.StringVar(&confDatabase, "database-config", "-",
+		"path to database configuration file")
+	fset.StringVar(&confPhoto, "photo-config", "-",
+		"path to public photo configuration file")
+	fset.StringVar(&confSecretPhoto, "photo-secret-config", "-",
+		"path to secret photo configuration file")
+
+	var (
+		loader = new(cleanenv.Loader)
+		c      = models.All{}
+	)
+	fset.Usage = loader.FUsage(fset, &c, fset.Usage)
+
+	fset.Parse(os.Args[1:])
 
 	// initialize logger via log
 	var logger = log.New()
-
-	var c = models.All{}
 
 	// load inrastructure configuration
 	err := loader.Load(confInfrastructure, &c)
@@ -157,7 +140,6 @@ func main() {
 	var metrics = prometheus.New()
 
 	// initialize auth service via oauth2
-	// os.Getenv("AUTH_ADDRESS")
 	auth, err := oauth2.New(&c.Auth, errTrace, logger)
 	if err != nil {
 		logger.Println(err)
@@ -247,7 +229,7 @@ func main() {
 		c.ServiceDiscovery.HTTPInterval.String(),
 	)
 
-	handler := factory.NewHandler(
+	handler, err := factory.NewHandler(
 		auth,
 		photo,
 		logger,
@@ -256,8 +238,12 @@ func main() {
 		router,
 		mwrNoneAuth,
 		mwrWithAuth,
-		time.Minute, // TODO в конфиг контекстовый таймаут
+		c.Database.ContextTimeout.Duration,
 	)
+	if err != nil {
+		logger.Println(err)
+		panic(synced.Exit{Code: ERROR})
+	}
 
 	server, err := http.New(&c.Server, handler, logger)
 	if err != nil {
@@ -267,4 +253,4 @@ func main() {
 	server.AddDependencies(db, serviceDiscovery).Run()
 }
 
-// 136 -> 181 -> 195 -> 201 -> 270
+// 136 -> 181 -> 195 -> 201 -> 270 -> 252

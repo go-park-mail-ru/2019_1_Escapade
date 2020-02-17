@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure/configuration"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 )
@@ -27,7 +28,7 @@ type ServiceDiscovery struct {
 
 func (s *ServiceDiscovery) Get() configuration.ServiceDiscovery {
 	s.ID = configuration.ServiceID(s.ServiceName)
-	s.ServiceHost = configuration.GetIP(&s.Subnet)
+	s.ServiceHost = server.ServerAddr{}.IP(&s.Subnet)
 	return configuration.ServiceDiscovery{
 		ID: s.ID,
 

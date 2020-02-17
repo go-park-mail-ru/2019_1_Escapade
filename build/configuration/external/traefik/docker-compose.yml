@@ -1,0 +1,94 @@
+version: "3.3"
+
+services:
+  traefik:
+    image: "traefik:v2.1.0"
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker
+      - --api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme.json:/acme.json"
+    labels:
+      # Dashboard
+      - traefik.enable=true
+      #___ set traefik dashboard + API. The API is available at: mydomain.club/api/http/routers & mydomain.club/api/rawdata
+      - "traefik.http.routers.traefik.rule=Host(`traefik.docker.localhost`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.traefik.service=api@internal"
+      #___ set TLS (https)
+      - "traefik.http.routers.traefik.entrypoints=web"
+      #___ Ping is open to the world to let third party monitor traefik availability / healthcheck) (without basicauth)
+      - "traefik.http.routers.ping.rule=Host(`traefik.docker.localhost`) && Path(`/ping`)"
+      - "traefik.http.routers.ping.service=ping@internal"
+      - "traefik.http.routers.ping.tls=true"
+      #___ use these middlewares
+      - "traefik.http.routers.traefik.middlewares=auth_all,traefik-strip"
+      #___ specific middleware for traefik (it enables the dashboard at mydomain.com/traefik)
+      - "traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik"
+
+      # Middleware GROUPS
+      # ========================================================
+      #___ RuleGrpMain (follow bug: https://github.com/containous/traefik/issues/5890)
+      - "traefik.http.middlewares.RuleGrpMain.chain.middlewares=compress_all,ratelimit_all,retry_all,header_all,slash_step1,slash_step2"
+      #___ RuleGrpSlash
+      - "traefik.http.middlewares.RuleGrpSlash.chain.middlewares=slash_step1,slash_step2"
+
+      # Middlewares RULES
+      # ========================================================
+      # auth_all (useful for all dashboards)
+      - "traefik.http.middlewares.auth_all.basicauth.users=user:$$apr1$$q8eZFHjF$$Fvmkk//V6Btlaf2i/ju5n/" # user/password
+      # compress_all
+      - "traefik.http.middlewares.compress_all.compress=true"
+      # ratelimit_all
+      - "traefik.http.middlewares.ratelimit_all.ratelimit.average=100"
+      - "traefik.http.middlewares.ratelimit_all.ratelimit.burst=10"
+      # retry_all
+      - "traefik.http.middlewares.retry_all.retry.attempts=5"
+      # error_all
+      - "traefik.http.middlewares.error_all.errors.status=400-599"
+      - "traefik.http.middlewares.error_all.errors.service=serviceError"
+      - "traefik.http.middlewares.error_all.errors.query=/{status}.html"
+      # slash_step1 + slash_step2 | Add missing trailing slash
+      - "traefik.http.middlewares.slash_step1.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$"
+      - "traefik.http.middlewares.slash_step1.redirectregex.replacement=$${1}/"
+      - "traefik.http.middlewares.slash_step1.redirectregex.permanent=true"
+      - "traefik.http.middlewares.slash_step2.stripprefixregex.regex=/[a-z0-9_]+"
+      # header_all
+      - "traefik.http.middlewares.header_all.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.header_all.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.header_all.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.header_all.headers.framedeny=true"
+      - "traefik.http.middlewares.header_all.headers.sslredirect=true"
+      - "traefik.http.middlewares.header_all.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.header_all.headers.stsPreload=true"
+      - "traefik.http.middlewares.header_all.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.header_all.headers.featurePolicy=accelerometer 'none'; ambient-light-sensor 'none'; camera 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; usb 'none'; midi 'none'; sync-xhr 'none'; vr 'none'"
+      - "traefik.http.middlewares.header_all.headers.contentSecurityPolicy=default-src https:"
+      - "traefik.http.middlewares.header_all.headers.referrerPolicy=strict-origin-when-cross-origin"
+
+      # Docker swarm need a dummy service for port detection
+    # - "traefik.http.services.dummy-service.loadbalancer.server.port=59999"
+
+  my-app:
+    image: containous/whoami:v1.3.0
+    labels:
+      - "traefik.http.routers.my-app.rule=Host(`whoami.docker.localhost`)"
+      - "traefik.http.routers.my-app.middlewares=auth"
+      - "traefik.http.routers.my-app.entrypoints=web"
+      - "traefik.http.middlewares.auth.basicauth.users=user:$$apr1$$q8eZFHjF$$Fvmkk//V6Btlaf2i/ju5n/" # user/password
+
+# Dashboard (https://localhost:8080)
+# Route
+# Basic auth (login: user | password: password)
+# Let's Encrypt (https://whoami.docker.localhost/)
+# Global HTTP to HTTPS redirection (http://whoami.docker.localhost/)
+# Dashboard [api@internal]
+# Dashboard [api@internal] + Basic auth (login: user | password: password)
+# Dashboard [api@internal] + TLS (https://traefik.docker.localhost/)
+
+# touch acme.json; chmod 600 acme.json

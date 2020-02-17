@@ -1,5 +1,6 @@
 {
 	"user":"test",
 	"password":"testtest",
-	"database":"testbase"
+	"database":"testbase",
+	"address":"pg:5432"
 }

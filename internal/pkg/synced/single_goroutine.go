@@ -18,6 +18,24 @@ type SingleGoroutine struct {
 	action func()
 }
 
+func NewSingleGoroutine(
+	d time.Duration,
+	action func(),
+) *SingleGoroutine {
+	if d < 1 {
+		d = 1
+	}
+	var sg = &SingleGoroutine{
+		ticker:  time.NewTicker(d),
+		single:  make(chan interface{}, 1),
+		stop:    make(chan interface{}, 1),
+		stopedM: &sync.RWMutex{},
+		action:  action,
+	}
+	sg.single <- nil
+	return sg
+}
+
 func (sg *SingleGoroutine) doIfNotStopped(f func()) {
 	sg.stopedM.RLock()
 	defer sg.stopedM.RUnlock()
@@ -31,18 +49,6 @@ func (sg *SingleGoroutine) setStopped() {
 	sg.stopedM.Lock()
 	defer sg.stopedM.Unlock()
 	sg._stopped = true
-}
-
-func (sg *SingleGoroutine) Init(d time.Duration, action func()) {
-	if d < 1 {
-		d = 1
-	}
-	sg.ticker = time.NewTicker(d)
-	sg.single = make(chan interface{}, 1)
-	sg.stop = make(chan interface{}, 1)
-	sg.stopedM = &sync.RWMutex{}
-	sg.action = action
-	sg.single <- nil
 }
 
 func (sg *SingleGoroutine) Close() {

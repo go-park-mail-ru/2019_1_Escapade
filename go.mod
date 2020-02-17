@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/aws/aws-sdk-go v1.19.19
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/fsouza/go-dockerclient v1.6.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-openapi/spec v0.19.5 // indirect
@@ -25,7 +26,7 @@ require (
 	github.com/lib/pq v1.1.0
 	github.com/mailru/easyjson v0.7.0
 	github.com/mattn/go-colorable v0.1.1 // indirect
-	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+	github.com/prometheus/client_golang v1.1.0
 	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect

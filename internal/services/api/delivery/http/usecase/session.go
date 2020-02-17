@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/handler"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
-	ih "github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/handlers"
 
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
 
@@ -13,6 +13,8 @@ import (
 
 // SessionHandler handle requests associated with the session
 type SessionHandler struct {
+	handler.Handler
+
 	user   api.UserUseCaseI
 	auth   infrastructure.AuthService
 	trace  infrastructure.ErrorTrace
@@ -26,6 +28,8 @@ func NewSessionHandler(
 	logger infrastructure.Logger,
 ) *SessionHandler {
 	return &SessionHandler{
+		Handler: *handler.New(logger, trace),
+
 		user:   user,
 		auth:   service,
 		trace:  trace,
@@ -57,9 +61,9 @@ func (h *SessionHandler) Login(
 		userID     int32
 	)
 
-	err = ih.GetUser(r, h.trace, h.auth.HashPassword, &user)
+	err = h.GetUser(r, h.auth.HashPassword, &user)
 	if err != nil {
-		return ih.NewResult(http.StatusBadRequest, nil, err)
+		return h.Fail(http.StatusBadRequest, err)
 	}
 
 	userID, err = h.user.EnterAccount(
@@ -68,28 +72,26 @@ func (h *SessionHandler) Login(
 		user.Password,
 	)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusNotFound,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
 	err = h.auth.CreateToken(rw, user.Name, user.Password)
 	if err != nil {
-		ih.Warning(h.logger, err, WrnFailedTokenCreate)
+		h.Warning(err, WrnFailedTokenCreate)
 	}
 
 	publicUser, err = h.user.FetchOne(r.Context(), userID, 0)
 	if err != nil {
-		return ih.NewResult(
+		return h.Fail(
 			http.StatusInternalServerError,
-			nil,
 			h.trace.WrapWithText(err, ErrUserNotFound),
 		)
 	}
 
-	return ih.NewResult(http.StatusOK, publicUser, nil)
+	return h.Success(http.StatusOK, publicUser)
 }
 
 // Logout logout
@@ -107,13 +109,9 @@ func (h *SessionHandler) Logout(
 ) models.RequestResult {
 	err := h.auth.DeleteToken(rw, r)
 	if err != nil {
-		ih.Warning(
-			h.logger,
-			err,
-			"Cant delete token in auth service",
-		)
+		h.Warning(err, "Cant delete token in auth service")
 	}
 
 	// TODO send here request to auth service to delete token from database
-	return ih.NewResult(http.StatusOK, nil, nil)
+	return h.Success(http.StatusOK, nil)
 }

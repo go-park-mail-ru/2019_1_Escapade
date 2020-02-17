@@ -1,10 +1,7 @@
 package configuration
 
 import (
-	"fmt"
-	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -72,39 +69,4 @@ type ServiceDiscovery struct {
 // ServiceID return id of the service
 func ServiceID(serviceName string) string {
 	return serviceName + "-" + os.Getenv("HOSTNAME")
-}
-
-func GetIP(subnet *string) string {
-	var ips string
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return err.Error()
-	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			return err.Error()
-		}
-		// handle err
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			ipsting := ip.String()
-			fmt.Println("ips:", ipsting)
-			if subnet == nil {
-				ips += " " + ipsting
-			} else if strings.HasPrefix(ipsting, *subnet) {
-				return ipsting
-			}
-		}
-	}
-	if subnet == nil {
-		return ips
-	}
-	return "error: no networks. Change subnet!"
 }

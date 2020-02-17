@@ -14,7 +14,7 @@ type Server struct {
 	MaxConn        int
 	MaxHeaderBytes int
 	Timeouts       Timeouts
-	Port           string
+	Port           int
 }
 
 type TimeoutsRepository interface {

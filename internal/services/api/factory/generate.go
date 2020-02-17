@@ -22,7 +22,7 @@ func NewHandler(
 	nonAuth []infrastructure.Middleware,
 	withAuth []infrastructure.Middleware,
 	timeout time.Duration,
-) http.Handler {
+) (http.Handler, error) {
 	//overriding the nil value of Logger
 	if logger == nil {
 		logger = new(infrastructure.LoggerNil)
@@ -38,23 +38,27 @@ func NewHandler(
 		photo = new(infrastructure.PhotoServiceNil)
 	}
 
-	usecases := newUseCasesDB(database, trace, timeout)
-	hlers := newHandlers(
+	usecases, err := newUseCasesDB(database, trace, timeout)
+	if err != nil {
+		return nil, err
+	}
+	apiHandlers := newHandlers(
 		auth,
 		photo,
 		*usecases,
-		req.NewRequestMux(trace),
+		req.NewRequestMux(trace, logger),
 		trace,
 		logger,
 	)
-	handler := handlers.NewHandler(
+	return handlers.NewHandler(
+		logger,
+		trace,
 		router,
-		hlers,
+		apiHandlers,
 		usecases,
 		nonAuth,
 		withAuth,
 	)
-	return handler
 }
 
 func newHandlers(
@@ -66,7 +70,11 @@ func newHandlers(
 	logger infrastructure.Logger,
 ) *handlers.Handlers {
 	return &handlers.Handlers{
-		Game: apiuc.NewGameHandler(hlrs.Record, trace),
+		Game: apiuc.NewGameHandler(
+			hlrs.Record,
+			trace,
+			logger,
+		),
 		Session: apiuc.NewSessionHandler(
 			hlrs.User,
 			auth,
@@ -78,6 +86,7 @@ func newHandlers(
 			rep,
 			photo,
 			trace,
+			logger,
 		),
 		User: apiuc.NewUserHandler(
 			hlrs.User,
@@ -93,6 +102,7 @@ func newHandlers(
 			rep,
 			photo,
 			trace,
+			logger,
 		),
 	}
 }
@@ -101,10 +111,22 @@ func newUseCasesDB(
 	database infrastructure.Database,
 	trace infrastructure.ErrorTrace,
 	timeout time.Duration,
-) *handlers.UseCases {
-	return &handlers.UseCases{
-		Image:  db.NewImage(database, timeout),
-		User:   db.NewUser(database, trace, timeout),
-		Record: db.NewRecord(database, timeout),
+) (*handlers.UseCases, error) {
+	image, err := db.NewImage(database, trace, timeout)
+	if err != nil {
+		return nil, err
 	}
+	user, err := db.NewUser(database, trace, timeout)
+	if err != nil {
+		return nil, err
+	}
+	record, err := db.NewRecord(database, trace, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return &handlers.UseCases{
+		Image:  image,
+		User:   user,
+		Record: record,
+	}, nil
 }

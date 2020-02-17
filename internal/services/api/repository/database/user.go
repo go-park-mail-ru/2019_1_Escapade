@@ -2,21 +2,32 @@ package database
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/models"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/services/api"
 )
 
 // User implements the interface UserRepositoryI using database
 type User struct {
-	db infrastructure.Execer
+	db    infrastructure.Execer
+	trace infrastructure.ErrorTrace
 }
 
-func NewUser(dbI infrastructure.Execer) *User {
-	return &User{dbI}
+func NewUser(
+	dbI infrastructure.Execer,
+	trace infrastructure.ErrorTrace,
+) (*User, error) {
+	if dbI == nil {
+		return nil, errors.New(ErrNoDatabase)
+	}
+	return &User{
+		db:    dbI,
+		trace: trace,
+	}, nil
 }
 
 // Create user
@@ -24,6 +35,9 @@ func (db *User) Create(
 	ctx context.Context,
 	user *models.UserPrivateInfo,
 ) (int, error) {
+	if user == nil {
+		return 0, db.trace.New(InvalidUser)
+	}
 	var (
 		sqlInsert = `
 			INSERT INTO Player(name, password, firstSeen, lastSeen) VALUES
@@ -48,9 +62,12 @@ func (db *User) Delete(
 	ctx context.Context,
 	user *models.UserPrivateInfo,
 ) error {
+	if user == nil {
+		return db.trace.New(InvalidUser)
+	}
 	sqlStatement := `
-	DELETE FROM Player where name=$1 and password=$2
-	RETURNING ID
+		DELETE FROM Player where name=$1 and password=$2
+			RETURNING ID
 		`
 	return db.db.QueryRowContext(
 		ctx,
@@ -65,6 +82,9 @@ func (db *User) UpdateNamePassword(
 	ctx context.Context,
 	user *models.UserPrivateInfo,
 ) error {
+	if user == nil {
+		return db.trace.New(InvalidUser)
+	}
 	sqlStatement := `
 			UPDATE Player 
 			SET name = $1, password = $2, lastSeen = $3
@@ -251,7 +271,8 @@ func (db *User) FetchOne(
 // PagesCount return user's pages count
 func (db *User) PagesCount(
 	ctx context.Context,
-	perPage int) (int, error) {
+	perPage int,
+) (int, error) {
 	sqlStatement := `SELECT count(1) FROM Player`
 	var amount int
 	err := db.db.QueryRowContext(

@@ -4,14 +4,16 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-park-mail-ru/2019_1_Escapade/internal/base/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/infrastructure"
-	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/server"
 	"github.com/go-park-mail-ru/2019_1_Escapade/internal/pkg/utils"
 )
 
 // Metrics is implementation of Middleware interface(package infrastructure)
 // record metrics
 type Metrics struct {
+	server.ServerAddr
+
 	metrics infrastructure.Metrics
 	subnet  string
 }
@@ -43,7 +45,7 @@ func (rw *respWriterStatusCode) WriteHeader(status int) {
 func (mw *Metrics) Func(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(rw http.ResponseWriter, r *http.Request) {
-			ip := server.GetIP(&mw.subnet)
+			ip := mw.IP(&mw.subnet)
 			goodRW := &respWriterStatusCode{rw, 200}
 			mw.metrics.UsersInc(ip, r.URL.Path, r.Method)
 			next.ServeHTTP(goodRW, r)

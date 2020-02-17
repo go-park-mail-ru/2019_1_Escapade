@@ -1,0 +1,5 @@
+ {
+    "backHost" : "http://127.0.0.1:3001",
+    "lobbyWsAddress" : "ws://127.0.0.1:3002/game/ws",
+    "profileWsAddress" : "ws://127.0.0.1:3005/history/ws"
+}
