@@ -14,7 +14,7 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
 	github.com/gorilla/mux v1.7.1
-	github.com/gorilla/websocket v1.4.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
