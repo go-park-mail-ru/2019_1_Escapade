@@ -31,9 +31,8 @@ require (
 	github.com/swaggo/swag v1.6.3
 	github.com/vgarvardt/go-oauth2-pg v0.0.0-20190226204934-2d810489d985
 	github.com/vgarvardt/go-pg-adapter v0.3.0
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
-	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
 	google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb // indirect
 	google.golang.org/grpc v1.20.1
 	gopkg.in/oauth2.v3 v3.10.1
